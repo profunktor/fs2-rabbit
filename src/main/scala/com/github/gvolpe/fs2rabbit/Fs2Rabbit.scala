@@ -24,13 +24,6 @@ object Fs2Rabbit {
     factory
   }
 
-  private[Fs2Rabbit] def createChannel(queue: QueueName): Channel = {
-    val conn    = factory.newConnection
-    val channel = conn.createChannel
-    channel.queueDeclare(queue, false, false, false, null)
-    channel
-  }
-
   // Consumer
   private[Fs2Rabbit] def defaultConsumer(channel: Channel,
                                          Q: mutable.Queue[Task, AmqpEnvelope]): Consumer = new DefaultConsumer(channel) {

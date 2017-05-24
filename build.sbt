@@ -1,6 +1,6 @@
 name := """fs2-rabbit"""
 
-version := "0.0.1-SNAPSHOT"
+version := "0.0.2-SNAPSHOT"
 
 scalaVersion := "2.11.8"
 
@@ -8,7 +8,6 @@ lazy val circeVersion = "0.5.1"
 
 val commonSettings = Seq(
   organization := "com.github.gvolpe",
-  version := "0.0.1-SNAPSHOT",
   licenses +=("Apache-2.0", url("https://www.apache.org/licenses/LICENSE-2.0.html")),
   homepage := Some(url("https://github.com/gvolpe/fs2-rabbit")),
   //releasePublishArtifactsAction := PgpKeys.publishSigned.value,
