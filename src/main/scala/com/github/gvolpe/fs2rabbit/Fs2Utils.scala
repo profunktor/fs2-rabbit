@@ -1,4 +1,4 @@
-package com.gvolpe.fs2rabbit
+package com.github.gvolpe.fs2rabbit
 
 import fs2.{Pipe, Sink, Stream, Task}
 

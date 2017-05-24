@@ -19,6 +19,7 @@ val commonSettings = Seq(
     "io.circe"        %% "circe-core"       % circeVersion,
     "io.circe"        %% "circe-generic"    % circeVersion,
     "io.circe"        %% "circe-parser"     % circeVersion,
+    "com.typesafe"    % "config"            % "1.3.1",
     "ch.qos.logback"  %  "logback-classic"  % "1.0.6" % "runtime",
     "org.scalatest"   %% "scalatest"        % "2.2.4" % "test"
   ),
