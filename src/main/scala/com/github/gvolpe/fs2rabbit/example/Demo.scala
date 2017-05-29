@@ -3,6 +3,7 @@ package com.github.gvolpe.fs2rabbit.example
 import com.github.gvolpe.fs2rabbit.Fs2Rabbit._
 import com.github.gvolpe.fs2rabbit.Fs2Utils._
 import com.github.gvolpe.fs2rabbit.model._
+import com.github.gvolpe.fs2rabbit.json.Fs2JsonEncoder._
 import fs2.{Pipe, Strategy, Stream, Task}
 
 object Demo extends App {
@@ -19,7 +20,7 @@ object Demo extends App {
   def logPipe: Pipe[Task, AmqpEnvelope, AckResult] = { streamMsg =>
     for {
       amqpMsg <- streamMsg
-      _       <- async(println(s"Consumed: ${amqpMsg.payload}"))
+      _       <- async(println(s"Consumed: $amqpMsg"))
     } yield Ack(amqpMsg.deliveryTag)
   }
 
@@ -42,9 +43,18 @@ class Flow(consumer: StreamConsumer,
            publisher: StreamPublisher)
           (implicit S: Strategy) {
 
-  val flow: Stream[Task, Unit] = fs2.concurrent.join(2)(
+  import io.circe.generic.auto._
+
+  case class Address(number: Int, streetName: String)
+  case class Person(id: Long, name: String, address: Address)
+
+  val simpleMessage = AmqpMessage("Hey!", AmqpProperties(None, None, Map("demoId" -> LongVal(123), "app" -> StringVal("fs2RabbitDemo"))))
+  val classMessage  = AmqpMessage(Person(1L, "Gabi", Address(212, "Baker St")), AmqpProperties.empty)
+
+  val flow: Stream[Task, Unit] = fs2.concurrent.join(3  )(
     Stream(
-      Stream("Hey!") to publisher,
+      Stream(simpleMessage) to publisher,
+      Stream(classMessage) through jsonEncode[Person] to publisher,
       consumer through logger to acker
     )
   )

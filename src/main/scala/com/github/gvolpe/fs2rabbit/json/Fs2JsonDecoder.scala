@@ -1,4 +1,4 @@
-package com.github.gvolpe.fs2rabbit.parser
+package com.github.gvolpe.fs2rabbit.json
 
 import cats.data.Xor
 import com.github.gvolpe.fs2rabbit.Fs2Utils.async
@@ -8,11 +8,11 @@ import io.circe.{Decoder, Error}
 import io.circe.parser.decode
 import org.slf4j.LoggerFactory
 
-object Fs2JsonParser {
+object Fs2JsonDecoder {
 
   private val log = LoggerFactory.getLogger(getClass)
 
-  def jsonParser[A : Decoder]: Pipe[Task, AmqpEnvelope, (Xor[Error, A], DeliveryTag)] = { streamMsg =>
+  def jsonDecode[A : Decoder]: Pipe[Task, AmqpEnvelope, (Xor[Error, A], DeliveryTag)] = { streamMsg =>
     for {
       amqpMsg <- streamMsg
       _       <- async(log.info(s"Incoming Json: $amqpMsg"))

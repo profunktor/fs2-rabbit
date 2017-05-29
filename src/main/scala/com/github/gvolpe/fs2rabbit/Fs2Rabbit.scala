@@ -32,9 +32,10 @@ object Fs2Rabbit {
                                 envelope: Envelope,
                                 properties: AMQP.BasicProperties,
                                 body: Array[Byte]): Unit = {
-      val msg = new String(body, "UTF-8")
-      val tag = envelope.getDeliveryTag
-      Q.enqueue1(AmqpEnvelope(tag, msg)).unsafeRun()
+      val msg   = new String(body, "UTF-8")
+      val tag   = envelope.getDeliveryTag
+      val props = AmqpProperties.from(properties)
+      Q.enqueue1(AmqpEnvelope(tag, msg, props)).unsafeRun()
     }
 
   }
@@ -78,8 +79,8 @@ object Fs2Rabbit {
                       routingKey: RoutingKey)
                       (implicit S: Strategy): StreamPublisher = { streamMsg =>
     for {
-      msg <- streamMsg
-      _   <- async(channel.basicPublish(exchangeName, routingKey, null, msg.getBytes("UTF-8")))
+      msg   <- streamMsg
+      _     <- async(channel.basicPublish(exchangeName, routingKey, msg.properties.asBasicProps, msg.payload.getBytes("UTF-8")))
     } yield ()
   }
 
