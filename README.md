@@ -49,9 +49,9 @@ import com.github.gvolpe.fs2rabbit.Fs2Rabbit._
 implicit val S = fs2.Strategy.fromFixedDaemonPool(4, "fs2-rabbit-strategy")
 
 val program = for {
-  connAndChannel    <- createConnectionChannel() 			    // Stream[Task, (Connection, Channel)]
+  connAndChannel    <- createConnectionChannel()                // Stream[Task, (Connection, Channel)]
   (_, channel)      = connAndChannel
-  _                 <- declareQueue(channel, queueName) 		// Stream[Task, Queue.DeclareOk]
+  _                 <- declareQueue(channel, queueName)         // Stream[Task, Queue.DeclareOk]
   (acker, consumer) = createAckerConsumer(channel, queueName)	// (StreamAcker, StreamConsumer)
   publisher         = createPublisher(channel, "", routingKey)	// StreamPublisher
   _                 <- doSomething(consumer, acker, publisher)
@@ -60,9 +60,9 @@ val program = for {
 // Only once in your program...
 program.run.unsafeRun()
 
-// StreamAcker is a type alias for Stream[Task, AckResult]
+// StreamAcker is a type alias for Sink[Task, AckResult]
 // StreamConsumer is a type alias for Stream[Task, AmqpEnvelope]
-// StreamPublisher is a type alias for Stream[Task, String]
+// StreamPublisher is a type alias for Sink[Task, AmqpMessage[String]]
 
 ```
 
@@ -72,6 +72,7 @@ It is possible to create either an **autoAckConsumer** and an **ackerConsumer**.
 
 ```scala
 import com.github.gvolpe.fs2rabbit.model._
+import fs2._
 
 def logPipe: Pipe[Task, AmqpEnvelope, AckResult] = { streamMsg =>
   for {
@@ -111,6 +112,7 @@ To publish a simple String message is very simple:
 
 ```scala
 import com.github.gvolpe.fs2rabbit.model._
+import fs2._
 
 val message = AmqpMessage("Hello world!", AmqpProperties.empty)
 
@@ -125,6 +127,7 @@ A stream-based Json Encoder that can be connected to a StreamPublisher is provid
 import com.github.gvolpe.fs2rabbit.json.Fs2JsonEncoder._
 import com.github.gvolpe.fs2rabbit.model._
 import io.circe.generic.auto._
+import fs2._
 
 case class Address(number: Int, streetName: String)
 case class Person(id: Long, name: String, address: Address)
