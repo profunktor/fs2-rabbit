@@ -71,7 +71,6 @@ program.run.unsafeRun()
 It is possible to create either an **autoAckConsumer** and an **ackerConsumer**. If we choose the first one then we only need to worry about consuming the message. If we choose the latter instead, then we are in control of acking / nacking back to RabbitMQ. Here's a simple example on how you can do it:
 
 ```scala
-import cats.data.Xor
 import com.github.gvolpe.fs2rabbit.model._
 
 def logPipe: Pipe[Task, AmqpEnvelope, AckResult] = { streamMsg =>
@@ -90,6 +89,7 @@ consumer through logPipe to acker
 A stream-based Json Decoder that can be connected to a StreamConsumer is provided out of the box. Implicit decoders for your classes must be on scope (you can use Circe's codec auto derivation):
 
 ```scala
+import cats.data.Xor
 import com.github.gvolpe.fs2rabbit.json.Fs2JsonDecoder._
 import io.circe._
 import io.circe.generic.auto._
