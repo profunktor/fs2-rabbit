@@ -9,14 +9,14 @@ object StreamLoop {
 
   private val log = LoggerFactory.getLogger(getClass)
 
-  def run(program: () => Stream[Task, Unit])(retry: FiniteDuration = 5.seconds)(implicit S: Strategy, R: Scheduler): Unit =
-    loop(program().run)(retry)
+  def run(program: () => Stream[Task, Unit], retry: FiniteDuration = 5.seconds)(implicit S: Strategy, R: Scheduler): Unit =
+    loop(program().run, retry)
 
-  def loop(program: Task[Unit])(retry: FiniteDuration)(implicit S: Strategy, R: Scheduler): Unit =
+  private def loop(program: Task[Unit], retry: FiniteDuration)(implicit S: Strategy, R: Scheduler): Unit =
     program.unsafeAttemptRun() match {
       case Left(err) =>
         log.error(s"$err, restarting in $retry...")
-        loop(program.schedule(retry))
+        loop(program.schedule(retry), retry)
       case Right(()) =>
         Task.delay(())
     }
