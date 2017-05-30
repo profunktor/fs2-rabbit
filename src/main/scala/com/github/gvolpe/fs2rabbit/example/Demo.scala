@@ -2,17 +2,15 @@ package com.github.gvolpe.fs2rabbit.example
 
 import com.github.gvolpe.fs2rabbit.Fs2Rabbit._
 import com.github.gvolpe.fs2rabbit.Fs2Utils._
+import com.github.gvolpe.fs2rabbit.StreamLoop
 import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.json.Fs2JsonEncoder._
 import fs2.{Pipe, Strategy, Stream, Task}
-import org.slf4j.LoggerFactory
 
 object Demo extends App {
 
   implicit val appS = fs2.Strategy.fromFixedDaemonPool(4, "fs2-rabbit-demo")
   implicit val appR = fs2.Scheduler.fromFixedDaemonPool(2, "restarter")
-
-  private val log = LoggerFactory.getLogger(getClass)
 
   // For creation of consumer and publisher
   val libS          = fs2.Strategy.fromFixedDaemonPool(4, "fs2-rabbit")
@@ -36,7 +34,7 @@ object Demo extends App {
     result            <- new Flow(consumer, acker, logPipe, publisher).flow
   } yield result
 
-  Loop.run(program)
+  StreamLoop.run(program)
 
 }
 

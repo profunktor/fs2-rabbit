@@ -1,6 +1,6 @@
 name := """fs2-rabbit"""
 
-version := "0.0.4-SNAPSHOT"
+version := "0.0.5-SNAPSHOT"
 
 scalaVersion := "2.11.8"
 
@@ -20,7 +20,8 @@ val commonSettings = Seq(
     "io.circe"        %% "circe-parser"     % circeVersion,
     "com.typesafe"    % "config"            % "1.3.1",
     "ch.qos.logback"  %  "logback-classic"  % "1.0.6" % "runtime",
-    "org.scalatest"   %% "scalatest"        % "2.2.4" % "test"
+    "org.scalatest"   %% "scalatest"        % "2.2.4" % "test",
+    "org.scalacheck"  %% "scalacheck"       % "1.12.5" % "test"
   ),
   resolvers += "Apache public" at "https://repository.apache.org/content/groups/public/",
   scalacOptions ++= Seq(

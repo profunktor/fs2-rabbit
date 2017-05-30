@@ -8,7 +8,7 @@ Stream-based library for [RabbitMQ](https://www.rabbitmq.com/) built-in on top o
 Add the only dependency to your build.sbt:
 
 ```scala
-libraryDependencies += "com.github.gvolpe" %% "fs2-rabbit" % "0.0.3"
+libraryDependencies += "com.github.gvolpe" %% "fs2-rabbit" % "0.0.5"
 ```
 
 fs2-rabbit depends on fs2 v0.9.6, circe v0.5.1 and amqp-client v4.1.0.
@@ -39,6 +39,7 @@ See reference.conf for more.
 
 #### Creating connection, channel, "acker-consumer" and publisher
 
+Connection and Channel will be acquired in a safe way, so in case of an error, the resources will be cleaned up.
 
 ```scala
 import com.github.gvolpe.fs2rabbit.Fs2Rabbit._
@@ -131,6 +132,19 @@ val message = AmqpMessage(Person(1L, "Gabi", Address(212, "Baker St")), AmqpProp
 Stream(message) through jsonEncode[Person] to publisher
 ```
 
+#### Resiliency
+
+If you want your program to run forever with automatic error recovery you can choose to run your program in a loop that will restart every certain amount of specified time. An useful StreamLoop object that you can use to achieve this is provided by the library.
+
+So, for the program defined above, this would be an example of a resilient app that restarts every 3 seconds in case of failure:
+
+```scala
+import com.github.gvolpe.fs2rabbit.StreamLoop
+
+implicit val appR = fs2.Scheduler.fromFixedDaemonPool(2, "restarter")
+
+StreamLoop.run(program)(3.seconds)
+```
 
 See the Demo included in the library for more.
 
