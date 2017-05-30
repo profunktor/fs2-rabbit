@@ -5,11 +5,14 @@ import com.github.gvolpe.fs2rabbit.Fs2Utils._
 import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.json.Fs2JsonEncoder._
 import fs2.{Pipe, Strategy, Stream, Task}
+import org.slf4j.LoggerFactory
 
 object Demo extends App {
 
   implicit val appS = fs2.Strategy.fromFixedDaemonPool(4, "fs2-rabbit-demo")
   implicit val appR = fs2.Scheduler.fromFixedDaemonPool(2, "restarter")
+
+  private val log = LoggerFactory.getLogger(getClass)
 
   // For creation of consumer and publisher
   val libS          = fs2.Strategy.fromFixedDaemonPool(4, "fs2-rabbit")
@@ -49,9 +52,9 @@ class Flow(consumer: StreamConsumer,
   case class Person(id: Long, name: String, address: Address)
 
   val simpleMessage = AmqpMessage("Hey!", AmqpProperties(None, None, Map("demoId" -> LongVal(123), "app" -> StringVal("fs2RabbitDemo"))))
-  val classMessage  = AmqpMessage(Person(1L, "Gabi", Address(212, "Baker St")), AmqpProperties.empty)
+  val classMessage  = AmqpMessage(Person(1L, "Sherlock", Address(212, "Baker St")), AmqpProperties.empty)
 
-  val flow: Stream[Task, Unit] = fs2.concurrent.join(3  )(
+  val flow: Stream[Task, Unit] = fs2.concurrent.join(3)(
     Stream(
       Stream(simpleMessage) to publisher,
       Stream(classMessage) through jsonEncode[Person] to publisher,

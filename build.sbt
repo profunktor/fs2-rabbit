@@ -1,6 +1,6 @@
 name := """fs2-rabbit"""
 
-version := "0.0.2-SNAPSHOT"
+version := "0.0.4-SNAPSHOT"
 
 scalaVersion := "2.11.8"
 
@@ -61,7 +61,7 @@ lazy val root = project.in(file("."))
 
 sonatypeProfileName := "com.github.gvolpe"
 
-publishArtifact := false
+publishArtifact := true
 
 //resolvers += Resolver.sonatypeRepo("releases")
 //addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full)

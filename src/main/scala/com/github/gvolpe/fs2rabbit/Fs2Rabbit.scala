@@ -57,12 +57,22 @@ object Fs2Rabbit {
       consumer  <- daQ.dequeue
     } yield consumer
 
+  private[Fs2Rabbit] def acquireConnection: Task[(Connection, Channel)] = Task.delay {
+    val conn    = factory.newConnection
+    val channel = conn.createChannel
+    (conn, channel)
+  }
+
   // Public methods
   def createConnectionChannel(): Stream[Task, (Connection, Channel)] =
-    for {
-      conn    <- async(factory.newConnection)
-      channel <- async(conn.createChannel)
-    } yield (conn, channel)
+    Stream.bracket(acquireConnection)(
+      cc => async(cc),
+      cc => Task.delay {
+        val (conn, channel) = cc
+        if (channel.isOpen) channel.close()
+        if (conn.isOpen) conn.close()
+      }
+    )
 
   def createAckerConsumer(channel: Channel, queueName: QueueName)(implicit S: Strategy): StreamAckerConsumer = {
     channel.basicQos(1)
@@ -93,6 +103,5 @@ object Fs2Rabbit {
     async {
       channel.queueDeclare(queueName, false, false, false, null)
     }
-
 
 }
