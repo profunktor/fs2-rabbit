@@ -3,6 +3,8 @@ fs2-rabbit
 
 Stream-based library for [RabbitMQ](https://www.rabbitmq.com/) built-in on top of [Fs2](https://github.com/functional-streams-for-scala/fs2) and the [RabbitMq Java Client](https://github.com/rabbitmq/rabbitmq-java-client).
 
+***Disclaimer:** It's still in development and it was created just to solve my specific cases, but more features will be added as needed. Contributors are welcomed :)*
+
 ## Dependencies
 
 Add the only dependency to your build.sbt:
@@ -140,13 +142,14 @@ So, for the program defined above, this would be an example of a resilient app t
 
 ```scala
 import com.github.gvolpe.fs2rabbit.StreamLoop
+import scala.concurrent.duration._
 
 implicit val appR = fs2.Scheduler.fromFixedDaemonPool(2, "restarter")
 
-StreamLoop.run(program)(3.seconds)
+StreamLoop.run(() => program, 3.seconds)
 ```
 
-See the Demo included in the library for more.
+See the [Demo](https://github.com/gvolpe/fs2-rabbit/tree/master/src/main/scala/com/github/gvolpe/fs2rabbit/example/Demo.scala) included in the library for more.
 
 ## LICENSE
 
