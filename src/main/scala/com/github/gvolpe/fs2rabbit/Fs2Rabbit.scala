@@ -7,7 +7,7 @@ import model._
 import com.rabbitmq.client.AMQP.{Exchange, Queue}
 import com.rabbitmq.client._
 import fs2.async.mutable
-import fs2.{Sink, Strategy, Stream, Task}
+import fs2.{Pipe, Sink, Strategy, Stream, Task}
 
 object Fs2Rabbit {
 
@@ -26,7 +26,11 @@ object Fs2Rabbit {
 
   // Consumer
   private[Fs2Rabbit] def defaultConsumer(channel: Channel,
-                                         Q: mutable.Queue[Task, AmqpEnvelope]): Consumer = new DefaultConsumer(channel) {
+                                         Q: mutable.Queue[Task, Either[Throwable, AmqpEnvelope]]): Consumer = new DefaultConsumer(channel) {
+
+    override def handleCancel(consumerTag: String): Unit = {
+      Q.enqueue1(Left(new Exception(s"Queue might have been DELETED! $consumerTag"))).unsafeRun()
+    }
 
     override def handleDelivery(consumerTag: String,
                                 envelope: Envelope,
@@ -35,7 +39,7 @@ object Fs2Rabbit {
       val msg   = new String(body, "UTF-8")
       val tag   = envelope.getDeliveryTag
       val props = AmqpProperties.from(properties)
-      Q.enqueue1(AmqpEnvelope(tag, msg, props)).unsafeRun()
+      Q.enqueue1(Right(AmqpEnvelope(tag, msg, props))).unsafeRun()
     }
 
   }
@@ -51,16 +55,23 @@ object Fs2Rabbit {
                                         autoAck: Boolean)
                                         (implicit S: Strategy): StreamConsumer =
     for {
-      daQ       <- Stream.eval(fs2.async.boundedQueue[Task, AmqpEnvelope](100))
+      daQ       <- Stream.eval(fs2.async.boundedQueue[Task, Either[Throwable, AmqpEnvelope]](100))
       dc        = defaultConsumer(channel, daQ)
       _         <- async(channel.basicConsume(queueName, autoAck, dc))
-      consumer  <- daQ.dequeue
+      consumer  <- daQ.dequeue through resilientConsumer
     } yield consumer
 
   private[Fs2Rabbit] def acquireConnection: Task[(Connection, Channel)] = Task.delay {
     val conn    = factory.newConnection
     val channel = conn.createChannel
     (conn, channel)
+  }
+
+  private[Fs2Rabbit] def resilientConsumer: Pipe[Task, Either[Throwable, AmqpEnvelope], AmqpEnvelope] = { streamMsg =>
+    streamMsg.flatMap {
+      case Left(err)  => Stream.fail(err)
+      case Right(env) => async(env)
+    }
   }
 
   // Public methods

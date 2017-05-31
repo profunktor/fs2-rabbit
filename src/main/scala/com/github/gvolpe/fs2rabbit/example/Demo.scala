@@ -28,7 +28,7 @@ object Demo extends App {
   val program = () => for {
     connAndChannel    <- createConnectionChannel()
     (_, channel)      = connAndChannel
-    _                 <- declareQueue(channel, queueName)
+//    _                 <- declareQueue(channel, queueName)
     (acker, consumer) = createAckerConsumer(channel, queueName)(libS)
     publisher         = createPublisher(channel, "", routingKey)(libS)
     result            <- new Flow(consumer, acker, logPipe, publisher).flow

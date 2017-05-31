@@ -10,7 +10,7 @@ Stream-based library for [RabbitMQ](https://www.rabbitmq.com/) built-in on top o
 Add the only dependency to your build.sbt:
 
 ```scala
-libraryDependencies += "com.github.gvolpe" %% "fs2-rabbit" % "0.0.5-SNAPSHOT"
+libraryDependencies += "com.github.gvolpe" %% "fs2-rabbit" % "0.0.6-SNAPSHOT"
 ```
 
 fs2-rabbit depends on fs2 v0.9.6, circe v0.5.1 and amqp-client v4.1.0.
