@@ -15,9 +15,8 @@ object Fs2JsonDecoder {
   def jsonDecode[A : Decoder]: Pipe[Task, AmqpEnvelope, (Xor[Error, A], DeliveryTag)] = { streamMsg =>
     for {
       amqpMsg <- streamMsg
-      _       <- async(log.info(s"Incoming Json: $amqpMsg"))
       parsed  <- async(decode[A](amqpMsg.payload))
-      _       <- async(log.info(s"Parsed: $parsed"))
+      _       <- async(log.debug(s"Parsed: $parsed"))
     } yield (parsed, amqpMsg.deliveryTag)
   }
 
