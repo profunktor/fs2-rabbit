@@ -8,6 +8,7 @@ import com.rabbitmq.client.AMQP.{Exchange, Queue}
 import com.rabbitmq.client._
 import fs2.async.mutable
 import fs2.{Pipe, Sink, Strategy, Stream, Task}
+import scala.collection.JavaConverters._
 
 object Fs2Rabbit {
 
@@ -112,7 +113,7 @@ object Fs2Rabbit {
 
   def declareQueue(channel: Channel, queueName: QueueName): Stream[Task, Queue.DeclareOk] =
     async {
-      channel.queueDeclare(queueName, false, false, false, null)
+      channel.queueDeclare(queueName, false, false, false, Map.empty[String, AnyRef].asJava)
     }
 
 }
