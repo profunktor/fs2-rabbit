@@ -75,7 +75,12 @@ object Fs2Rabbit {
     }
   }
 
-  // Public methods
+  /**
+    * Creates a connection and a channel in a safe way using Stream.bracket.
+    * In case of failure, the resources will be cleaned up properly.
+    *
+    * @return A tuple (@Connection, @Channel) as a Stream
+    * */
   def createConnectionChannel(): Stream[Task, (Connection, Channel)] =
     Stream.bracket(acquireConnection)(
       cc => async(cc),
@@ -86,16 +91,41 @@ object Fs2Rabbit {
       }
     )
 
+  /**
+    * Creates a consumer and an acker to handle the acknowledgments with RabbitMQ.
+    *
+    * @param channel the channel where the consumer is going to be created
+    * @param queueName the name of the queue
+    *
+    * @return A tuple (@StreamAcker, @StreamConsumer) represented as @StreamAckerConsumer
+    * */
   def createAckerConsumer(channel: Channel, queueName: QueueName)(implicit S: Strategy): StreamAckerConsumer = {
     channel.basicQos(1)
     val consumer = createConsumer(queueName, channel, autoAck = false)
     (createAcker(channel), consumer)
   }
 
+  /**
+    * Creates a consumer with an auto acknowledgment mechanism.
+    *
+    * @param channel the channel where the consumer is going to be created
+    * @param queueName the name of the queue
+    *
+    * @return A @StreamConsumer with data type represented as @AmqpEnvelope
+    * */
   def createAutoAckConsumer(channel: Channel, queueName: QueueName)(implicit S: Strategy): StreamConsumer = {
     createConsumer(queueName, channel, autoAck = true)
   }
 
+  /**
+    * Creates a simple publisher.
+    *
+    * @param channel the channel where the publisher is going to be created
+    * @param exchangeName the exchange name
+    * @param routingKey the routing key name
+    *
+    * @return A sink where messages of type @AmqpMessage[String] can be published represented as @StreamPublisher
+    * */
   def createPublisher(channel: Channel,
                       exchangeName: ExchangeName,
                       routingKey: RoutingKey)
@@ -106,11 +136,28 @@ object Fs2Rabbit {
     } yield ()
   }
 
+  /**
+    * Declares an exchange: it means that an exchange will be created if it does not exist.
+    *
+    * @param channel the channel where the exchange is going to be declared
+    * @param exchangeName the exchange name
+    * @param exchangeType the exchange type: Direct, FanOut, Headers, Topic.
+    *
+    * @return a Stream of data type @Exchange.DeclareOk
+    * */
   def declareExchange(channel: Channel, exchangeName: ExchangeName, exchangeType: ExchangeType): Stream[Task, Exchange.DeclareOk] =
     async {
       channel.exchangeDeclare(exchangeName, exchangeType.toString.toLowerCase)
     }
 
+  /**
+    * Declares a queue: it means that a queue will be created if it does not exist.
+    *
+    * @param channel the channel where the exchange is going to be declared
+    * @param queueName the queue name
+    *
+    * @return a Stream of data type @Queue.DeclareOk
+    * */
   def declareQueue(channel: Channel, queueName: QueueName): Stream[Task, Queue.DeclareOk] =
     async {
       channel.queueDeclare(queueName, false, false, false, Map.empty[String, AnyRef].asJava)

@@ -74,7 +74,7 @@ program.run.unsafeRun()
 
 #### Message Consuming and Acknowledge
 
-It is possible to create either an **autoAckConsumer** and an **ackerConsumer**. If we choose the first one then we only need to worry about consuming the message. If we choose the latter instead, then we are in control of acking / nacking back to RabbitMQ. Here's a simple example on how you can do it:
+It is possible to create either an **autoAckConsumer** or an **ackerConsumer**. If we choose the first one then we only need to worry about consuming the message. If we choose the latter instead, then we are in control of acking / nacking back to RabbitMQ. Here's a simple example on how you can do it:
 
 ```scala
 import com.github.gvolpe.fs2rabbit.model._
@@ -138,7 +138,7 @@ import fs2._
 case class Address(number: Int, streetName: String)
 case class Person(id: Long, name: String, address: Address)
 
-val message = AmqpMessage(Person(1L, "Gabi", Address(212, "Baker St")), AmqpProperties.empty)
+val message = AmqpMessage(Person(1L, "Sherlock", Address(212, "Baker St")), AmqpProperties.empty)
 
 Stream(message) through jsonEncode[Person] to publisher
 ```
