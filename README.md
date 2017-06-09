@@ -16,7 +16,7 @@ Add the only dependency to your build.sbt:
 ```scala
 resolvers += Opts.resolver.sonatypeSnapshots
 
-libraryDependencies += "com.github.gvolpe" %% "fs2-rabbit" % "0.0.6-SNAPSHOT"
+libraryDependencies += "com.github.gvolpe" %% "fs2-rabbit" % "0.0.7-SNAPSHOT"
 ```
 
 fs2-rabbit depends on fs2 v0.9.6, circe v0.8.0 and amqp-client v4.1.0.
