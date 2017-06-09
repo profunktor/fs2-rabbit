@@ -19,7 +19,7 @@ resolvers += Opts.resolver.sonatypeSnapshots
 libraryDependencies += "com.github.gvolpe" %% "fs2-rabbit" % "0.0.6-SNAPSHOT"
 ```
 
-fs2-rabbit depends on fs2 v0.9.6, circe v0.5.1 and amqp-client v4.1.0.
+fs2-rabbit depends on fs2 v0.9.6, circe v0.8.0 and amqp-client v4.1.0.
 
 ## Usage
 
@@ -96,7 +96,6 @@ consumer through logPipe to acker
 A stream-based Json Decoder that can be connected to a StreamConsumer is provided out of the box. Implicit decoders for your classes must be on scope (you can use Circe's codec auto derivation):
 
 ```scala
-import cats.data.Xor
 import com.github.gvolpe.fs2rabbit.json.Fs2JsonDecoder._
 import io.circe._
 import io.circe.generic.auto._
@@ -105,8 +104,8 @@ case class Address(number: Int, streetName: String)
 case class Person(id: Long, name: String, address: Address)
 
 (consumer through jsonDecode[Person]) flatMap {
-  case (Xor.Left(error), tag) => (async(error) to errorSink).map(_ => Nack(tag)) to acker
-  case (Xor.Right(msg), tag)  => async((msg, tag)) to processorSink
+  case (Left(error), tag) => (async(error) to errorSink).map(_ => Nack(tag)) to acker
+  case (Right(msg), tag)  => async((msg, tag)) to processorSink
 }
 
 // async is just a simplified version of Stream.eval(Task.delay(yourCode))

@@ -1,6 +1,5 @@
 package com.github.gvolpe.fs2rabbit.json
 
-import cats.data.Xor
 import cats.syntax.functor._
 import com.github.gvolpe.fs2rabbit.json.Fs2JsonDecoder.jsonDecode
 import com.github.gvolpe.fs2rabbit.model.{AmqpEnvelope, AmqpProperties}
@@ -37,7 +36,7 @@ class Fs2JsonDecoderSpec extends Fs2JsonDecoderFixture with FlatSpecLike with Ma
       parsed          <- Stream(envelope) through jsonDecode[Person]
       (validated, _)  = parsed
     } yield {
-      validated shouldBe a[Xor.Left[_]]
+      validated shouldBe a[Left[_, Person]]
     }
 
     test.run.unsafeRun()
@@ -83,10 +82,10 @@ trait Fs2JsonDecoderFixture extends PropertyChecks {
 
   val examples = Table(
     ("description", "json", "clazz", "expected"),
-    ("decode a simple case class", simpleJson, jsonDecode[Address], Xor.Right(Address(212, "Baker St"))),
-    ("decode a nested case class", nestedJson, jsonDecode[Person], Xor.Right(Person("Sherlock", Address(212, "Baker St")))),
-    ("decode an adt 1", """ { "one": "the one" } """, jsonDecode[Message], Xor.Right(One("the one"))),
-    ("decode an adt 2", """ { "two": "the two" } """, jsonDecode[Message], Xor.Right(Two("the two")))
+    ("decode a simple case class", simpleJson, jsonDecode[Address], Right(Address(212, "Baker St"))),
+    ("decode a nested case class", nestedJson, jsonDecode[Person], Right(Person("Sherlock", Address(212, "Baker St")))),
+    ("decode an adt 1", """ { "one": "the one" } """, jsonDecode[Message], Right(One("the one"))),
+    ("decode an adt 2", """ { "two": "the two" } """, jsonDecode[Message], Right(Two("the two")))
   )
 
 }

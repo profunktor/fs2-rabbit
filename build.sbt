@@ -1,10 +1,10 @@
 name := """fs2-rabbit"""
 
-version := "0.0.6-SNAPSHOT"
+version := "0.0.7-SNAPSHOT"
 
 scalaVersion := "2.11.8"
 
-lazy val circeVersion = "0.5.1"
+lazy val circeVersion = "0.8.0"
 
 val commonSettings = Seq(
   organization := "com.github.gvolpe",
