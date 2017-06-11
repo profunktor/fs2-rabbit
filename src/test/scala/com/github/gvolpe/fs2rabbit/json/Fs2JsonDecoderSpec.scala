@@ -1,5 +1,6 @@
 package com.github.gvolpe.fs2rabbit.json
 
+import cats.effect.IO
 import cats.syntax.functor._
 import com.github.gvolpe.fs2rabbit.json.Fs2JsonDecoder.jsonDecode
 import com.github.gvolpe.fs2rabbit.model.{AmqpEnvelope, AmqpProperties}
@@ -8,6 +9,7 @@ import io.circe._
 import io.circe.generic.auto._
 import org.scalatest.prop.PropertyChecks
 import org.scalatest.{FlatSpecLike, Matchers}
+import scala.concurrent.duration._
 
 class Fs2JsonDecoderSpec extends Fs2JsonDecoderFixture with FlatSpecLike with Matchers {
 
@@ -18,13 +20,13 @@ class Fs2JsonDecoderSpec extends Fs2JsonDecoderFixture with FlatSpecLike with Ma
       val envelope = AmqpEnvelope(1, json, AmqpProperties.empty)
 
       val test = for {
-        parsed          <- Stream(envelope) through decoder
+        parsed          <- Stream(envelope).covary[IO] through decoder
         (validated, _)  = parsed
       } yield {
         validated should be (expected)
       }
 
-      test.run.unsafeRun()
+      test.run.unsafeRunTimed(2.seconds)
     }
   }
 
@@ -33,13 +35,13 @@ class Fs2JsonDecoderSpec extends Fs2JsonDecoderFixture with FlatSpecLike with Ma
     val envelope = AmqpEnvelope(1, json, AmqpProperties.empty)
 
     val test = for {
-      parsed          <- Stream(envelope) through jsonDecode[Person]
+      parsed          <- Stream(envelope).covary[IO] through jsonDecode[Person]
       (validated, _)  = parsed
     } yield {
       validated shouldBe a[Left[_, Person]]
     }
 
-    test.run.unsafeRun()
+    test.run.unsafeRunTimed(2.seconds)
   }
 
 }

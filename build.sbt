@@ -14,7 +14,8 @@ val commonSettings = Seq(
   scalaVersion := "2.11.8",
   libraryDependencies ++= Seq(
     "com.rabbitmq"    %  "amqp-client"      % "4.1.0",
-    "co.fs2"          %% "fs2-core"         % "0.9.6",
+    "co.fs2"          %% "fs2-core"         % "0.10.0-M2",
+    "org.typelevel"   %% "cats-effect"      % "0.3",
     "io.circe"        %% "circe-core"       % circeVersion,
     "io.circe"        %% "circe-generic"    % circeVersion,
     "io.circe"        %% "circe-parser"     % circeVersion,

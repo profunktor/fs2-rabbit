@@ -1,5 +1,6 @@
 package com.github.gvolpe.fs2rabbit
 
+import cats.effect.IO
 import com.github.gvolpe.fs2rabbit.Fs2Utils._
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfigManager
 import model.ExchangeType.ExchangeType
@@ -7,8 +8,10 @@ import model._
 import com.rabbitmq.client.AMQP.{Exchange, Queue}
 import com.rabbitmq.client._
 import fs2.async.mutable
-import fs2.{Pipe, Sink, Strategy, Stream, Task}
+import fs2.{Pipe, Sink, Stream}
+
 import scala.collection.JavaConverters._
+import scala.concurrent.ExecutionContext
 
 object Fs2Rabbit {
 
@@ -27,10 +30,10 @@ object Fs2Rabbit {
 
   // Consumer
   private[Fs2Rabbit] def defaultConsumer(channel: Channel,
-                                         Q: mutable.Queue[Task, Either[Throwable, AmqpEnvelope]]): Consumer = new DefaultConsumer(channel) {
+                                         Q: mutable.Queue[IO, Either[Throwable, AmqpEnvelope]]): Consumer = new DefaultConsumer(channel) {
 
     override def handleCancel(consumerTag: String): Unit = {
-      Q.enqueue1(Left(new Exception(s"Queue might have been DELETED! $consumerTag"))).unsafeRun()
+      Q.enqueue1(Left(new Exception(s"Queue might have been DELETED! $consumerTag"))).unsafeRunSync()
     }
 
     override def handleDelivery(consumerTag: String,
@@ -40,35 +43,35 @@ object Fs2Rabbit {
       val msg   = new String(body, "UTF-8")
       val tag   = envelope.getDeliveryTag
       val props = AmqpProperties.from(properties)
-      Q.enqueue1(Right(AmqpEnvelope(tag, msg, props))).unsafeRun()
+      Q.enqueue1(Right(AmqpEnvelope(tag, msg, props))).unsafeRunSync()
     }
 
   }
 
-  private[Fs2Rabbit] def createAcker(channel: Channel): Sink[Task, AckResult] =
+  private[Fs2Rabbit] def createAcker(channel: Channel): Sink[IO, AckResult] =
     liftSink[AckResult] {
-      case Ack(tag)   => Task.delay(channel.basicAck(tag, false))
-      case NAck(tag)  => Task.delay(channel.basicNack(tag, false, fs2RabbitConfig.requeueOnNack))
+      case Ack(tag)   => IO(channel.basicAck(tag, false))
+      case NAck(tag)  => IO(channel.basicNack(tag, false, fs2RabbitConfig.requeueOnNack))
     }
 
   private[Fs2Rabbit] def createConsumer(queueName: QueueName,
                                         channel: Channel,
                                         autoAck: Boolean)
-                                        (implicit S: Strategy): StreamConsumer =
+                                        (implicit ec: ExecutionContext): StreamConsumer =
     for {
-      daQ       <- Stream.eval(fs2.async.boundedQueue[Task, Either[Throwable, AmqpEnvelope]](100))
+      daQ       <- Stream.eval(fs2.async.boundedQueue[IO, Either[Throwable, AmqpEnvelope]](100))
       dc        = defaultConsumer(channel, daQ)
       _         <- async(channel.basicConsume(queueName, autoAck, dc))
       consumer  <- daQ.dequeue through resilientConsumer
     } yield consumer
 
-  private[Fs2Rabbit] def acquireConnection: Task[(Connection, Channel)] = Task.delay {
+  private[Fs2Rabbit] def acquireConnection: IO[(Connection, Channel)] = IO {
     val conn    = factory.newConnection
     val channel = conn.createChannel
     (conn, channel)
   }
 
-  private[Fs2Rabbit] def resilientConsumer: Pipe[Task, Either[Throwable, AmqpEnvelope], AmqpEnvelope] = { streamMsg =>
+  private[Fs2Rabbit] def resilientConsumer: Pipe[IO, Either[Throwable, AmqpEnvelope], AmqpEnvelope] = { streamMsg =>
     streamMsg.flatMap {
       case Left(err)  => Stream.fail(err)
       case Right(env) => async(env)
@@ -81,10 +84,10 @@ object Fs2Rabbit {
     *
     * @return A tuple (@Connection, @Channel) as a Stream
     * */
-  def createConnectionChannel(): Stream[Task, (Connection, Channel)] =
+  def createConnectionChannel(): Stream[IO, (Connection, Channel)] =
     Stream.bracket(acquireConnection)(
       cc => async(cc),
-      cc => Task.delay {
+      cc => IO {
         val (conn, channel) = cc
         if (channel.isOpen) channel.close()
         if (conn.isOpen) conn.close()
@@ -99,7 +102,8 @@ object Fs2Rabbit {
     *
     * @return A tuple (@StreamAcker, @StreamConsumer) represented as @StreamAckerConsumer
     * */
-  def createAckerConsumer(channel: Channel, queueName: QueueName)(implicit S: Strategy): StreamAckerConsumer = {
+  def createAckerConsumer(channel: Channel, queueName: QueueName)
+                         (implicit ec: ExecutionContext): StreamAckerConsumer = {
     channel.basicQos(1)
     val consumer = createConsumer(queueName, channel, autoAck = false)
     (createAcker(channel), consumer)
@@ -113,7 +117,8 @@ object Fs2Rabbit {
     *
     * @return A @StreamConsumer with data type represented as @AmqpEnvelope
     * */
-  def createAutoAckConsumer(channel: Channel, queueName: QueueName)(implicit S: Strategy): StreamConsumer = {
+  def createAutoAckConsumer(channel: Channel, queueName: QueueName)
+                           (implicit ec: ExecutionContext): StreamConsumer = {
     createConsumer(queueName, channel, autoAck = true)
   }
 
@@ -129,7 +134,7 @@ object Fs2Rabbit {
   def createPublisher(channel: Channel,
                       exchangeName: ExchangeName,
                       routingKey: RoutingKey)
-                      (implicit S: Strategy): StreamPublisher = { streamMsg =>
+                     (implicit ec: ExecutionContext): StreamPublisher = { streamMsg =>
     for {
       msg   <- streamMsg
       _     <- async(channel.basicPublish(exchangeName, routingKey, msg.properties.asBasicProps, msg.payload.getBytes("UTF-8")))
@@ -145,7 +150,7 @@ object Fs2Rabbit {
     *
     * @return a Stream of data type @Exchange.DeclareOk
     * */
-  def declareExchange(channel: Channel, exchangeName: ExchangeName, exchangeType: ExchangeType): Stream[Task, Exchange.DeclareOk] =
+  def declareExchange(channel: Channel, exchangeName: ExchangeName, exchangeType: ExchangeType): Stream[IO, Exchange.DeclareOk] =
     async {
       channel.exchangeDeclare(exchangeName, exchangeType.toString.toLowerCase)
     }
@@ -158,7 +163,7 @@ object Fs2Rabbit {
     *
     * @return a Stream of data type @Queue.DeclareOk
     * */
-  def declareQueue(channel: Channel, queueName: QueueName): Stream[Task, Queue.DeclareOk] =
+  def declareQueue(channel: Channel, queueName: QueueName): Stream[IO, Queue.DeclareOk] =
     async {
       channel.queueDeclare(queueName, false, false, false, Map.empty[String, AnyRef].asJava)
     }

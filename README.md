@@ -16,10 +16,10 @@ Add the only dependency to your build.sbt:
 ```scala
 resolvers += Opts.resolver.sonatypeSnapshots
 
-libraryDependencies += "com.github.gvolpe" %% "fs2-rabbit" % "0.0.7-SNAPSHOT"
+libraryDependencies += "com.github.gvolpe" %% "fs2-rabbit" % "0.0.8-SNAPSHOT"
 ```
 
-fs2-rabbit depends on fs2 v0.9.6, circe v0.8.0 and amqp-client v4.1.0.
+fs2-rabbit depends on fs2 v0.10.0-M2, cats.effects v0.3, circe v0.8.0 and amqp-client v4.1.0.
 
 ## Usage
 
@@ -50,25 +50,26 @@ See reference.conf for more.
 Connection and Channel will be acquired in a safe way, so in case of an error, the resources will be cleaned up.
 
 ```scala
+import cats.effect.IO
 import com.github.gvolpe.fs2rabbit.Fs2Rabbit._
 
-implicit val S = fs2.Strategy.fromFixedDaemonPool(4, "fs2-rabbit-strategy")
+implicit val ec = scala.concurrent.ExecutionContext.Implicits.global
 
 val program = for {
-  connAndChannel    <- createConnectionChannel()                // Stream[Task, (Connection, Channel)]
+  connAndChannel    <- createConnectionChannel()                // Stream[IO, (Connection, Channel)]
   (_, channel)      = connAndChannel
-  _                 <- declareQueue(channel, queueName)         // Stream[Task, Queue.DeclareOk]
+  _                 <- declareQueue(channel, queueName)         // Stream[IO, Queue.DeclareOk]
   (acker, consumer) = createAckerConsumer(channel, queueName)	// (StreamAcker, StreamConsumer)
   publisher         = createPublisher(channel, "", routingKey)	// StreamPublisher
   _                 <- doSomething(consumer, acker, publisher)
 } yield ()
 
 // Only once in your program...
-program.run.unsafeRun()
+program.run.unsafeRunSync()
 
-// StreamAcker is a type alias for Sink[Task, AckResult]
-// StreamConsumer is a type alias for Stream[Task, AmqpEnvelope]
-// StreamPublisher is a type alias for Sink[Task, AmqpMessage[String]]
+// StreamAcker is a type alias for Sink[IO, AckResult]
+// StreamConsumer is a type alias for Stream[IO, AmqpEnvelope]
+// StreamPublisher is a type alias for Sink[IO, AmqpMessage[String]]
 
 ```
 
@@ -77,13 +78,14 @@ program.run.unsafeRun()
 It is possible to create either an **autoAckConsumer** or an **ackerConsumer**. If we choose the first one then we only need to worry about consuming the message. If we choose the latter instead, then we are in control of acking / nacking back to RabbitMQ. Here's a simple example on how you can do it:
 
 ```scala
+import cats.effect.IO
 import com.github.gvolpe.fs2rabbit.model._
-import fs2._
+import fs2.Pipe
 
-def logPipe: Pipe[Task, AmqpEnvelope, AckResult] = { streamMsg =>
+def logPipe: Pipe[IO, AmqpEnvelope, AckResult] = { streamMsg =>
   for {
     amqpMsg <- streamMsg
-    _       <- async(println(s"Consumed: $amqpMsg"))
+    _       <- Stream.eval(IO(println(s"Consumed: $amqpMsg")))
   } yield Ack(amqpMsg.deliveryTag)
 }
 
@@ -104,11 +106,9 @@ case class Address(number: Int, streetName: String)
 case class Person(id: Long, name: String, address: Address)
 
 (consumer through jsonDecode[Person]) flatMap {
-  case (Left(error), tag) => (async(error) to errorSink).map(_ => Nack(tag)) to acker
-  case (Right(msg), tag)  => async((msg, tag)) to processorSink
+  case (Left(error), tag) => (Stream.eval(IO(error)) to errorSink).map(_ => Nack(tag)) to acker
+  case (Right(msg), tag)  => Stream.eval(IO((msg, tag))) to processorSink
 }
-
-// async is just a simplified version of Stream.eval(Task.delay(yourCode))
 ```
 
 #### Publishing
@@ -116,12 +116,13 @@ case class Person(id: Long, name: String, address: Address)
 To publish a simple String message is very simple:
 
 ```scala
+import cats.effect.IO
 import com.github.gvolpe.fs2rabbit.model._
 import fs2._
 
 val message = AmqpMessage("Hello world!", AmqpProperties.empty)
 
-Stream(message) to publisher
+Stream(message).covary[IO] to publisher
 ```
 
 #### Publishing Json Messages
@@ -129,6 +130,7 @@ Stream(message) to publisher
 A stream-based Json Encoder that can be connected to a StreamPublisher is provided out of the box. Very similar to the Json Decoder shown above, but in this case, implicit encoders for your classes must be on scope (again you can use Circe's codec auto derivation):
 
 ```scala
+import cats.effect.IO
 import com.github.gvolpe.fs2rabbit.json.Fs2JsonEncoder._
 import com.github.gvolpe.fs2rabbit.model._
 import io.circe.generic.auto._
@@ -139,7 +141,7 @@ case class Person(id: Long, name: String, address: Address)
 
 val message = AmqpMessage(Person(1L, "Sherlock", Address(212, "Baker St")), AmqpProperties.empty)
 
-Stream(message) through jsonEncode[Person] to publisher
+Stream(message).covary[IO] through jsonEncode[Person] to publisher
 ```
 
 #### Resiliency
