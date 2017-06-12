@@ -13,11 +13,12 @@ import org.scalatest.{FlatSpecLike, Matchers}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
+// TODO: See whether this spec makes sense or there's a better way to test it
 class Fs2RabbitSpec extends FlatSpecLike with Matchers with MockitoSugar {
 
   behavior of "Fs2Rabbit"
 
-  object MockFs2Rabbit extends Fs2Rabbit {
+  object MockFs2Rabbit extends Fs2Rabbit with UnderlyingAmqpClient{
     protected override val factory = mock[ConnectionFactory]
     protected override val fs2RabbitConfig = Fs2RabbitConfig("localhost", 5672, 3, requeueOnNack = false)
 

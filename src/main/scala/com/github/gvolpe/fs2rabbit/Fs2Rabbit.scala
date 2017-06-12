@@ -13,7 +13,7 @@ import fs2.{Pipe, Sink, Stream}
 import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext
 
-object Fs2Rabbit extends Fs2Rabbit {
+object Fs2Rabbit extends Fs2Rabbit with UnderlyingAmqpClient {
   // Connection and Channel
   protected override val factory = createRabbitConnectionFactory
 
@@ -28,13 +28,13 @@ object Fs2Rabbit extends Fs2Rabbit {
   }
 }
 
-trait Fs2Rabbit {
+trait UnderlyingAmqpClient {
   protected val factory: ConnectionFactory
   protected val fs2RabbitConfig: Fs2RabbitConfig
 
   // Consumer
-  private[Fs2Rabbit] def defaultConsumer(channel: Channel,
-                                         Q: mutable.Queue[IO, Either[Throwable, AmqpEnvelope]]): Consumer = new DefaultConsumer(channel) {
+  protected def defaultConsumer(channel: Channel,
+                                Q: mutable.Queue[IO, Either[Throwable, AmqpEnvelope]]): Consumer = new DefaultConsumer(channel) {
 
     override def handleCancel(consumerTag: String): Unit = {
       Q.enqueue1(Left(new Exception(s"Queue might have been DELETED! $consumerTag"))).unsafeRunSync()
@@ -52,16 +52,16 @@ trait Fs2Rabbit {
 
   }
 
-  private[Fs2Rabbit] def createAcker(channel: Channel): Sink[IO, AckResult] =
+  protected def createAcker(channel: Channel): Sink[IO, AckResult] =
     liftSink[AckResult] {
       case Ack(tag)   => IO(channel.basicAck(tag, false))
       case NAck(tag)  => IO(channel.basicNack(tag, false, fs2RabbitConfig.requeueOnNack))
     }
 
-  private[Fs2Rabbit] def createConsumer(queueName: QueueName,
-                                        channel: Channel,
-                                        autoAck: Boolean)
-                                        (implicit ec: ExecutionContext): StreamConsumer =
+  protected def createConsumer(queueName: QueueName,
+                               channel: Channel,
+                               autoAck: Boolean)
+                              (implicit ec: ExecutionContext): StreamConsumer =
     for {
       daQ       <- Stream.eval(fs2.async.boundedQueue[IO, Either[Throwable, AmqpEnvelope]](100))
       dc        = defaultConsumer(channel, daQ)
@@ -69,18 +69,22 @@ trait Fs2Rabbit {
       consumer  <- daQ.dequeue through resilientConsumer
     } yield consumer
 
-  private[Fs2Rabbit] def acquireConnection: IO[(Connection, Channel)] = IO {
+  protected def acquireConnection: IO[(Connection, Channel)] = IO {
     val conn    = factory.newConnection
     val channel = conn.createChannel
     (conn, channel)
   }
 
-  private[Fs2Rabbit] def resilientConsumer: Pipe[IO, Either[Throwable, AmqpEnvelope], AmqpEnvelope] = { streamMsg =>
+  protected def resilientConsumer: Pipe[IO, Either[Throwable, AmqpEnvelope], AmqpEnvelope] = { streamMsg =>
     streamMsg.flatMap {
       case Left(err)  => Stream.fail(err)
       case Right(env) => async(env)
     }
   }
+}
+
+trait Fs2Rabbit {
+  self: UnderlyingAmqpClient =>
 
   /**
     * Creates a connection and a channel in a safe way using Stream.bracket.

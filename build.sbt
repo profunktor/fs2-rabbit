@@ -35,7 +35,7 @@ val commonSettings = Seq(
     //"-Ydebug"
   ),
   incOptions := incOptions.value.withNameHashing(true),
-  coverageExcludedPackages := "com\\.github\\.gvolpe\\.fs2rabbit\\.example.*;.*Fs2Utils*",
+  coverageExcludedPackages := "com\\.github\\.gvolpe\\.fs2rabbit\\.example.*;.*Fs2Utils*;.*UnderlyingAmqpClient*",
   publishTo := {
     val sonatype = "https://oss.sonatype.org/"
     if (isSnapshot.value)

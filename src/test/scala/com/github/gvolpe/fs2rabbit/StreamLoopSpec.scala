@@ -25,7 +25,7 @@ class StreamLoopSpec extends FlatSpecLike with Matchers {
         else Stream.eval(IO(println(n)))
       }
     }
-    val program = Stream.eval(IO(Random.nextInt(3))) to sink
+    val program = Stream.eval(IO(Random.nextInt(2))) to sink
     StreamLoop.run(() => program, 1.second)
   }
 
