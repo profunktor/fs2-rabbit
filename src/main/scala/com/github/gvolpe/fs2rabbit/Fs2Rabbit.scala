@@ -2,7 +2,7 @@ package com.github.gvolpe.fs2rabbit
 
 import cats.effect.IO
 import com.github.gvolpe.fs2rabbit.Fs2Utils._
-import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfigManager
+import com.github.gvolpe.fs2rabbit.config.{Fs2RabbitConfig, Fs2RabbitConfigManager}
 import model.ExchangeType.ExchangeType
 import model._
 import com.rabbitmq.client.AMQP.{Exchange, Queue}
@@ -13,12 +13,11 @@ import fs2.{Pipe, Sink, Stream}
 import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext
 
-object Fs2Rabbit {
-
+object Fs2Rabbit extends Fs2Rabbit {
   // Connection and Channel
-  private[Fs2Rabbit] val factory = createRabbitConnectionFactory
+  protected override val factory = createRabbitConnectionFactory
 
-  private lazy val fs2RabbitConfig = Fs2RabbitConfigManager.config
+  protected override lazy val fs2RabbitConfig = Fs2RabbitConfigManager.config
 
   private[Fs2Rabbit] def createRabbitConnectionFactory: ConnectionFactory = {
     val factory = new ConnectionFactory()
@@ -27,6 +26,11 @@ object Fs2Rabbit {
     factory.setConnectionTimeout(fs2RabbitConfig.connectionTimeout)
     factory
   }
+}
+
+trait Fs2Rabbit {
+  protected val factory: ConnectionFactory
+  protected val fs2RabbitConfig: Fs2RabbitConfig
 
   // Consumer
   private[Fs2Rabbit] def defaultConsumer(channel: Channel,
@@ -142,7 +146,7 @@ object Fs2Rabbit {
   }
 
   /**
-    * Declares an exchange: it means that an exchange will be created if it does not exist.
+    * Creates an exchange.
     *
     * @param channel the channel where the exchange is going to be declared
     * @param exchangeName the exchange name
@@ -156,9 +160,9 @@ object Fs2Rabbit {
     }
 
   /**
-    * Declares a queue: it means that a queue will be created if it does not exist.
+    * Creates a queue.
     *
-    * @param channel the channel where the exchange is going to be declared
+    * @param channel the channel where the queue is going to be declared
     * @param queueName the queue name
     *
     * @return a Stream of data type @Queue.DeclareOk

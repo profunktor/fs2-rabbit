@@ -9,8 +9,8 @@ import scala.util.Random
 
 class StreamLoopSpec extends FlatSpecLike with Matchers {
 
-  implicit val appS = scala.concurrent.ExecutionContext.Implicits.global
-  implicit val appR = fs2.Scheduler.fromFixedDaemonPool(2, "restarter")
+  implicit val ec = scala.concurrent.ExecutionContext.Implicits.global
+  implicit val s  = fs2.Scheduler.fromFixedDaemonPool(2, "restarter")
 
   it should "run a stream until it's finished" in {
     val sink = Fs2Utils.liftSink[Int](n => IO(println(n)))
@@ -18,14 +18,14 @@ class StreamLoopSpec extends FlatSpecLike with Matchers {
     StreamLoop.run(() => program)
   }
 
-  ignore should "run a stream and recover in case of failure" in {
+  it should "run a stream and recover in case of failure" in {
     val sink: Sink[IO, Int] = streamN => {
       streamN.flatMap { n =>
-        if (Random.nextInt(5) == n) Stream.fail(new Exception("on purpose"))
+        if (1 == n) Stream.fail(new Exception("on purpose"))
         else Stream.eval(IO(println(n)))
       }
     }
-    val program = Stream(1,2,3).covary[IO] to sink
+    val program = Stream.eval(IO(Random.nextInt(3))) to sink
     StreamLoop.run(() => program, 1.second)
   }
 

@@ -13,11 +13,11 @@ object StreamLoop {
   private val log = LoggerFactory.getLogger(getClass)
 
   def run(program: () => Stream[IO, Unit], retry: FiniteDuration = 5.seconds)
-         (implicit ec: ExecutionContext, R: Scheduler): Unit =
+         (implicit ec: ExecutionContext, s: Scheduler): Unit =
     loop(program().run, retry)
 
   private def loop(program: IO[Unit], retry: FiniteDuration)
-                  (implicit ec: ExecutionContext, R: Scheduler): Unit =
+                  (implicit ec: ExecutionContext, s: Scheduler): Unit =
     program.attempt.unsafeRunSync() match {
       case Left(err) =>
         log.error(s"$err, restarting in $retry...")
