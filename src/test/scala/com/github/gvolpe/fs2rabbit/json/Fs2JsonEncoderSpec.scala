@@ -19,7 +19,7 @@ class Fs2JsonEncoderSpec extends FlatSpecLike with Matchers {
   it should "encode a simple case class" in {
     val payload = Address(212, "Baker St")
     val test = for {
-      json <- Stream(AmqpMessage(payload, AmqpProperties.empty)).covary[IO] through jsonEncode[Address]
+      json <- Stream(AmqpMessage(payload, AmqpProperties.empty)).covary[IO] through jsonEncode[IO, Address]
     } yield {
       json should be (AmqpMessage(payload.asJson.noSpaces, AmqpProperties.empty))
     }
@@ -30,7 +30,7 @@ class Fs2JsonEncoderSpec extends FlatSpecLike with Matchers {
   it should "encode a nested case class" in {
     val payload = Person("Sherlock", Address(212, "Baker St"))
     val test = for {
-      json <- Stream(AmqpMessage(payload, AmqpProperties.empty)).covary[IO] through jsonEncode[Person]
+      json <- Stream(AmqpMessage(payload, AmqpProperties.empty)).covary[IO] through jsonEncode[IO, Person]
     } yield {
       json should be (AmqpMessage(payload.asJson.noSpaces, AmqpProperties.empty))
     }

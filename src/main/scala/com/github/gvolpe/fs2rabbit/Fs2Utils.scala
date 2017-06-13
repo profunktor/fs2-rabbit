@@ -1,23 +1,19 @@
 package com.github.gvolpe.fs2rabbit
 
-import cats.effect.IO
-import fs2.{Pipe, Scheduler, Sink, Stream}
+import cats.effect.Effect
+import fs2.{Pipe, Sink, Stream}
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.FiniteDuration
+import scala.language.higherKinds
 
 object Fs2Utils {
 
-  def async[A](body: => A): Stream[IO, A] = Stream.eval(IO(body))
+  def asyncF[F[_], A](body: => A)(implicit F: Effect[F]): Stream[F, A] =
+    Stream.eval[F, A] { F.delay(body) }
 
-  def liftSink[A](f: A => IO[Unit]): Sink[IO, A]    = liftPipe[A, Unit](f)
+  def liftSink[F[_], A](f: A => F[Unit])(implicit F: Effect[F]): Sink[F, A] =
+    liftPipe[F, A, Unit](f)
 
-  def liftPipe[A, B](f: A => IO[B]): Pipe[IO, A, B] = _.evalMap (f)
-
-  implicit class IOOps[A](ioa: IO[A]) {
-    def schedule(delay: FiniteDuration)
-                (implicit ec: ExecutionContext, s: Scheduler): IO[A] =
-      IO.async[Unit] { cb => s.scheduleOnce(delay)(cb(Right(()))) }.flatMap(_ => ioa)
-  }
+  def liftPipe[F[_], A, B](f: A => F[B]): Pipe[F, A, B] =
+    _.evalMap (f)
 
 }

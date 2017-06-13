@@ -21,16 +21,16 @@ object Demo extends App {
   def logPipe: Pipe[IO, AmqpEnvelope, AckResult] = { streamMsg =>
     for {
       amqpMsg <- streamMsg
-      _       <- async(println(s"Consumed: $amqpMsg"))
+      _       <- asyncF[IO, Unit](println(s"Consumed: $amqpMsg"))
     } yield Ack(amqpMsg.deliveryTag)
   }
 
   val program = () => for {
-    connAndChannel    <- createConnectionChannel()
+    connAndChannel    <- createConnectionChannel[IO]()
     (_, channel)      = connAndChannel
-    _                 <- declareQueue(channel, queueName)
-    (acker, consumer) = createAckerConsumer(channel, queueName)
-    publisher         = createPublisher(channel, "", routingKey)
+    _                 <- declareQueue[IO](channel, queueName)
+    (acker, consumer) = createAckerConsumer[IO](channel, queueName)
+    publisher         = createPublisher[IO](channel, "", routingKey)
     result            <- new Flow(consumer, acker, logPipe, publisher).flow
   } yield result
 
@@ -38,10 +38,10 @@ object Demo extends App {
 
 }
 
-class Flow(consumer: StreamConsumer,
-           acker: StreamAcker,
+class Flow(consumer: StreamConsumer[IO],
+           acker: StreamAcker[IO],
            logger: Pipe[IO, AmqpEnvelope, AckResult],
-           publisher: StreamPublisher)
+           publisher: StreamPublisher[IO])
           (implicit ec: ExecutionContext) {
 
   import io.circe.generic.auto._
@@ -55,7 +55,7 @@ class Flow(consumer: StreamConsumer,
   val flow: Stream[IO, Unit] =
     Stream(
       Stream(simpleMessage).covary[IO] to publisher,
-      Stream(classMessage).covary[IO]  through jsonEncode[Person] to publisher,
+      Stream(classMessage).covary[IO]  through jsonEncode[IO, Person] to publisher,
       consumer through logger to acker
     ).join(3)
 

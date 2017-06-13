@@ -2,7 +2,6 @@ package com.github.gvolpe.fs2rabbit
 
 import cats.effect.IO
 import fs2.{Scheduler, Stream}
-import Fs2Utils._
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.ExecutionContext
@@ -25,5 +24,11 @@ object StreamLoop {
       case Right(()) =>
         IO(())
     }
+
+  implicit class IOOps[A](ioa: IO[A]) {
+    def schedule(delay: FiniteDuration)
+                (implicit ec: ExecutionContext, s: Scheduler): IO[A] =
+      IO.async[Unit] { cb => s.scheduleOnce(delay)(cb(Right(()))) }.flatMap(_ => ioa)
+  }
 
 }
