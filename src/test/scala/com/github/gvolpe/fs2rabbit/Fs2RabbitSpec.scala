@@ -40,10 +40,10 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers with MockitoSugar {
     import MockFs2Rabbit._
 
     val program = for {
-      connAndChannel    <- createConnectionChannel()
+      connAndChannel    <- createConnectionChannel[IO]()
       (conn, channel)   = connAndChannel
-      queueD            <- declareQueue(channel, "queueName")
-      exD               <- declareExchange(channel, "exName", ExchangeType.Topic)
+      queueD            <- declareQueue[IO](channel, "queueName")
+      exD               <- declareExchange[IO](channel, "exName", ExchangeType.Topic)
     } yield {
       conn      should be (mockConnection)
       channel   should be (mockChannel)
@@ -58,12 +58,12 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers with MockitoSugar {
   it should "create an auto-ack consumer" in {
     import MockFs2Rabbit._
 
-    val testLogger = Fs2Utils.liftSink[AmqpEnvelope]{ e => IO(println(e)) }
+    val testLogger = Fs2Utils.liftSink[IO, AmqpEnvelope]{ e => IO(println(e)) }
 
     val program = for {
-      connAndChannel    <- createConnectionChannel()
+      connAndChannel    <- createConnectionChannel[IO]()
       (_, channel)      = connAndChannel
-      (acker, consumer) = createAckerConsumer(channel, "daQ")
+      (acker, consumer) = createAckerConsumer[IO](channel, "daQ")
       _                 <- Stream(
                             consumer to testLogger,
                             Stream(Ack(1)).covary[IO] to acker
@@ -77,12 +77,12 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers with MockitoSugar {
   it should "create an acker-consumer" in {
     import MockFs2Rabbit._
 
-    val testLogger = Fs2Utils.liftSink[AmqpEnvelope]{ e => IO(println(e)) }
+    val testLogger = Fs2Utils.liftSink[IO, AmqpEnvelope]{ e => IO(println(e)) }
 
     val program = for {
-      connAndChannel <- createConnectionChannel()
+      connAndChannel <- createConnectionChannel[IO]()
       (_, channel)   = connAndChannel
-      consumer       = createAutoAckConsumer(channel, "daQ")
+      consumer       = createAutoAckConsumer[IO](channel, "daQ")
       _              <- (consumer to testLogger).take(0)
     } yield ()
 
@@ -93,9 +93,9 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers with MockitoSugar {
     import MockFs2Rabbit._
 
     val program = for {
-      connAndChannel <- createConnectionChannel()
+      connAndChannel <- createConnectionChannel[IO]()
       (_, channel)   = connAndChannel
-      publisher      = createPublisher(channel, "exName", "rk")
+      publisher      = createPublisher[IO](channel, "exName", "rk")
       msg            = Stream(AmqpMessage("test", AmqpProperties.empty))
       _              <- msg.covary[IO] to publisher
     } yield ()

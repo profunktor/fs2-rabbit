@@ -1,9 +1,10 @@
 package com.github.gvolpe.fs2rabbit
 
-import cats.effect.IO
 import com.rabbitmq.client.impl.LongStringHelper
 import com.rabbitmq.client.{AMQP, LongString}
 import fs2.{Sink, Stream}
+
+import scala.language.higherKinds
 
 object model {
 
@@ -21,10 +22,10 @@ object model {
   final case class Ack(deliveryTag: DeliveryTag) extends AckResult
   final case class NAck(deliveryTag: DeliveryTag) extends AckResult
 
-  type StreamAcker          = Sink[IO, AckResult]
-  type StreamConsumer       = Stream[IO, AmqpEnvelope]
-  type StreamAckerConsumer  = (StreamAcker, StreamConsumer)
-  type StreamPublisher      = Sink[IO, AmqpMessage[String]]
+  type StreamAcker[F[_]]          = Sink[F, AckResult]
+  type StreamConsumer[F[_]]       = Stream[F, AmqpEnvelope]
+  type StreamAckerConsumer[F[_]]  = (StreamAcker[F], StreamConsumer[F])
+  type StreamPublisher[F[_]]      = Sink[F, AmqpMessage[String]]
 
   sealed trait AmqpHeaderVal extends Product with Serializable {
     def impure: AnyRef = this match {

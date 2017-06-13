@@ -35,7 +35,7 @@ class Fs2JsonDecoderSpec extends Fs2JsonDecoderFixture with FlatSpecLike with Ma
     val envelope = AmqpEnvelope(1, json, AmqpProperties.empty)
 
     val test = for {
-      parsed          <- Stream(envelope).covary[IO] through jsonDecode[Person]
+      parsed          <- Stream(envelope).covary[IO] through jsonDecode[IO, Person]
       (validated, _)  = parsed
     } yield {
       validated shouldBe a[Left[_, Person]]
@@ -84,10 +84,10 @@ trait Fs2JsonDecoderFixture extends PropertyChecks {
 
   val examples = Table(
     ("description", "json", "clazz", "expected"),
-    ("decode a simple case class", simpleJson, jsonDecode[Address], Right(Address(212, "Baker St"))),
-    ("decode a nested case class", nestedJson, jsonDecode[Person], Right(Person("Sherlock", Address(212, "Baker St")))),
-    ("decode an adt 1", """ { "one": "the one" } """, jsonDecode[Message], Right(One("the one"))),
-    ("decode an adt 2", """ { "two": "the two" } """, jsonDecode[Message], Right(Two("the two")))
+    ("decode a simple case class", simpleJson, jsonDecode[IO, Address], Right(Address(212, "Baker St"))),
+    ("decode a nested case class", nestedJson, jsonDecode[IO, Person], Right(Person("Sherlock", Address(212, "Baker St")))),
+    ("decode an adt 1", """ { "one": "the one" } """, jsonDecode[IO, Message], Right(One("the one"))),
+    ("decode an adt 2", """ { "two": "the two" } """, jsonDecode[IO, Message], Right(Two("the two")))
   )
 
 }
