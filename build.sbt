@@ -13,6 +13,7 @@ val commonSettings = Seq(
   //releasePublishArtifactsAction := PgpKeys.publishSigned.value,
   scalaVersion := "2.11.8",
   libraryDependencies ++= Seq(
+    "ch.qos.logback"  %  "logback-classic"  % "1.0.6" % "runtime",
     "com.rabbitmq"    %  "amqp-client"      % "4.1.0",
     "co.fs2"          %% "fs2-core"         % "0.10.0-M2",
     "org.typelevel"   %% "cats-effect"      % "0.3",
@@ -20,7 +21,6 @@ val commonSettings = Seq(
     "io.circe"        %% "circe-generic"    % circeVersion,
     "io.circe"        %% "circe-parser"     % circeVersion,
     "com.typesafe"    % "config"            % "1.3.1",
-    "ch.qos.logback"  %  "logback-classic"  % "1.0.6" % "runtime",
     "org.apache.qpid" % "qpid-broker"       % "6.1.1" % "test" excludeAll ExclusionRule(organization = "ch.qos.logback"),
     "org.scalatest"   %% "scalatest"        % "2.2.4" % "test",
     "org.scalacheck"  %% "scalacheck"       % "1.12.5" % "test"
