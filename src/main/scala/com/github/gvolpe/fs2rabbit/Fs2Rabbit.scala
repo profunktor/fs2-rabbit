@@ -9,28 +9,30 @@ import com.rabbitmq.client.AMQP.{Exchange, Queue}
 import com.rabbitmq.client._
 import fs2.async.mutable
 import fs2.{Pipe, Sink, Stream}
+import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext
 import scala.language.higherKinds
 
 object Fs2Rabbit extends Fs2Rabbit with UnderlyingAmqpClient {
-  protected override val factory = createRabbitConnectionFactory
-
+  protected override val log = LoggerFactory.getLogger(getClass)
   protected override lazy val fs2RabbitConfig = Fs2RabbitConfigManager.config
-
-  private[Fs2Rabbit] def createRabbitConnectionFactory: ConnectionFactory = {
-    val factory = new ConnectionFactory()
-    factory.setHost(fs2RabbitConfig.host)
-    factory.setPort(fs2RabbitConfig.port)
-    factory.setConnectionTimeout(fs2RabbitConfig.connectionTimeout)
-    factory
-  }
 }
 
 trait UnderlyingAmqpClient {
-  protected val factory: ConnectionFactory
   protected val fs2RabbitConfig: Fs2RabbitConfig
+
+  protected lazy val factory: ConnectionFactory = createConnectionFactory(fs2RabbitConfig)
+
+  protected def createConnectionFactory(config: Fs2RabbitConfig): ConnectionFactory = {
+    val factory = new ConnectionFactory()
+    factory.setHost(config.host)
+    factory.setPort(config.port)
+    factory.setVirtualHost(config.virtualHost)
+    factory.setConnectionTimeout(config.connectionTimeout)
+    factory
+  }
 
   protected def defaultConsumer(channel: Channel,
                                 Q: mutable.Queue[IO, Either[Throwable, AmqpEnvelope]]): Consumer = new DefaultConsumer(channel) {
@@ -89,6 +91,8 @@ trait UnderlyingAmqpClient {
 trait Fs2Rabbit {
   self: UnderlyingAmqpClient =>
 
+  protected def log: Logger
+
   /**
     * Creates a connection and a channel in a safe way using Stream.bracket.
     * In case of failure, the resources will be cleaned up properly.
@@ -100,6 +104,7 @@ trait Fs2Rabbit {
       cc => asyncF[F, (Connection, Channel)](cc),
       cc => F.delay {
         val (conn, channel) = cc
+        log.info(s"Releasing connection: $conn and channel: ${channel.getChannelNumber} previously acquired.")
         if (channel.isOpen) channel.close()
         if (conn.isOpen) conn.close()
       }

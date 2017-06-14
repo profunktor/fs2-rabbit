@@ -11,10 +11,11 @@ object Fs2RabbitConfigManager {
   def config: Fs2RabbitConfig = Fs2RabbitConfig(
     host = safeConfig.string(s"$baseConfPath.host").getOrElse("localhost"),
     port = safeConfig.int(s"$baseConfPath.port").getOrElse(5672),
+    virtualHost = safeConfig.string(s"$baseConfPath.virtual-host").getOrElse("/"),
     connectionTimeout = safeConfig.int(s"$baseConfPath.connection-timeout").getOrElse(60),
     requeueOnNack = safeConfig.boolean("fs2-rabbit.requeue-on-nack").getOrElse(false)
   )
 
 }
 
-case class Fs2RabbitConfig(host: String, port: Int, connectionTimeout: Int, requeueOnNack: Boolean)
+case class Fs2RabbitConfig(host: String, port: Int, virtualHost: String, connectionTimeout: Int, requeueOnNack: Boolean)

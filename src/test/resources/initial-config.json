@@ -1,0 +1,32 @@
+{
+  "name": "Embedded Amqp for Test",
+  "modelVersion": "6.1",
+  "authenticationproviders" : [{
+    "name": "password",
+    "type": "Plain",
+    "secureOnlyMechanisms": [],
+    "users": [{"name": "guest", "password": "guest", "type": "managed"}]
+  }],
+  "ports": [{
+    "name": "AMQP",
+    "port": "${qpid.amqp_port}",
+    "authenticationProvider": "password",
+    "protocols": [ "AMQP_0_9_1" ],
+    "transports": [ "TCP" ],
+    "virtualhostaliases": [{
+      "name": "defaultAlias",
+      "type": "defaultAlias"
+    }, {
+      "name": "hostnameAlias",
+      "type": "hostnameAlias"
+    }, {
+      "name": "nameAlias",
+      "type": "nameAlias"
+    }]
+  }],
+  "virtualhostnodes" : [{
+    "name": "hostnameAlias",
+    "type": "Memory",
+    "virtualHostInitialConfiguration": "{ \"type\": \"Memory\" }"
+  }]
+}

@@ -21,8 +21,8 @@ val commonSettings = Seq(
     "io.circe"        %% "circe-parser"     % circeVersion,
     "com.typesafe"    % "config"            % "1.3.1",
     "ch.qos.logback"  %  "logback-classic"  % "1.0.6" % "runtime",
+    "org.apache.qpid" % "qpid-broker"       % "6.1.1" % "test" excludeAll ExclusionRule(organization = "ch.qos.logback"),
     "org.scalatest"   %% "scalatest"        % "2.2.4" % "test",
-    "org.mockito"     % "mockito-core"      % "2.8.9",
     "org.scalacheck"  %% "scalacheck"       % "1.12.5" % "test"
   ),
   resolvers += "Apache public" at "https://repository.apache.org/content/groups/public/",
