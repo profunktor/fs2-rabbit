@@ -2,61 +2,53 @@ package com.github.gvolpe.fs2rabbit
 
 import cats.effect.IO
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
+import com.github.gvolpe.fs2rabbit.embedded.EmbeddedAmqpBroker
 import com.github.gvolpe.fs2rabbit.model._
-import com.rabbitmq.client.AMQP.{Exchange, Queue}
-import com.rabbitmq.client.{Channel, Connection, ConnectionFactory, Consumer}
 import fs2._
-import org.mockito.ArgumentMatchers._
-import org.mockito.Mockito._
-import org.scalatest.mock.MockitoSugar
-import org.scalatest.{FlatSpecLike, Matchers}
+import org.scalatest.{BeforeAndAfterAll, FlatSpecLike, Matchers}
+import org.slf4j.LoggerFactory
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-// TODO: See whether this spec makes sense or there's a better way to test it
-class Fs2RabbitSpec extends FlatSpecLike with Matchers with MockitoSugar {
+class Fs2RabbitSpec extends FlatSpecLike with Matchers with BeforeAndAfterAll {
 
   behavior of "Fs2Rabbit"
 
-  object MockFs2Rabbit extends Fs2Rabbit with UnderlyingAmqpClient{
-    protected override val factory = mock[ConnectionFactory]
-    protected override val fs2RabbitConfig = Fs2RabbitConfig("localhost", 5672, 3, requeueOnNack = false)
+  override def beforeAll() = {
+    EmbeddedAmqpBroker.start()
+  }
 
-    val mockChannel     = mock[Channel]
-    val mockConnection  = mock[Connection]
-    val mockExchangeD   = mock[Exchange.DeclareOk]
-    val mockQueueD      = mock[Queue.DeclareOk]
+  override def afterAll() = {
+    EmbeddedAmqpBroker.shutdown()
+  }
 
-    when(factory.newConnection).thenReturn(mockConnection)
-    when(mockConnection.createChannel()).thenReturn(mockChannel)
-    when(mockConnection.isOpen).thenReturn(true)
-    when(mockChannel.isOpen).thenReturn(true)
-    when(mockChannel.basicConsume(anyString(), anyBoolean(), any(classOf[Consumer]))).thenReturn("MockConsumer")
-    when(mockChannel.exchangeDeclare(anyString(), anyString())).thenReturn(mockExchangeD)
-    when(mockChannel.queueDeclare(anyString(), anyBoolean(), anyBoolean(), anyBoolean(), any[java.util.Map[String, Object]])).thenReturn(mockQueueD)
+  object TestFs2Rabbit extends Fs2Rabbit with UnderlyingAmqpClient {
+    override protected val log = LoggerFactory.getLogger(getClass)
+    override protected val fs2RabbitConfig =
+      Fs2RabbitConfig("localhost", 5672, "hostnameAlias", 3, requeueOnNack = false)
   }
 
   it should "create a connection, a channel, a queue and an exchange" in {
-    import MockFs2Rabbit._
+    import TestFs2Rabbit._
 
     val program = for {
       connAndChannel    <- createConnectionChannel[IO]()
       (conn, channel)   = connAndChannel
       queueD            <- declareQueue[IO](channel, "queueName")
-      exD               <- declareExchange[IO](channel, "exName", ExchangeType.Topic)
+      _                 <- declareExchange[IO](channel, "exName", ExchangeType.Topic)
     } yield {
-      conn      should be (mockConnection)
-      channel   should be (mockChannel)
-      queueD    should be (mockQueueD)
-      exD       should be (mockExchangeD)
+      conn.toString             should be ("amqp://guest@127.0.0.1:5672/hostnameAlias")
+      channel.getChannelNumber  should be (1)
+      queueD.getQueue           should be ("queueName")
     }
 
     program.run.unsafeRunSync()
   }
 
-  // Probably doesn't even make sense to have this test
+  // TODO: Assert that consumer is consuming
+  // For this we need to bind an exchange to a queue and create a publisher, yet not supported
   it should "create an auto-ack consumer" in {
-    import MockFs2Rabbit._
+    import TestFs2Rabbit._
 
     val testLogger = Fs2Utils.liftSink[IO, AmqpEnvelope]{ e => IO(println(e)) }
 
@@ -73,9 +65,10 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers with MockitoSugar {
     program.run.unsafeRunSync()
   }
 
-  // Probably doesn't even make sense to have this test
+  // TODO: Assert that acker is receiving ack and consumer is consuming
+  // For this we need to bind an exchange to a queue and create a publisher, yet not supported
   it should "create an acker-consumer" in {
-    import MockFs2Rabbit._
+    import TestFs2Rabbit._
 
     val testLogger = Fs2Utils.liftSink[IO, AmqpEnvelope]{ e => IO(println(e)) }
 
@@ -89,8 +82,10 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers with MockitoSugar {
     program.run.unsafeRunSync()
   }
 
+  // TODO: Assert that message is published
+  // For this we need to bind an a queue to the "exName" exchange, yet not supported
   it should "create a publisher" in {
-    import MockFs2Rabbit._
+    import TestFs2Rabbit._
 
     val program = for {
       connAndChannel <- createConnectionChannel[IO]()
