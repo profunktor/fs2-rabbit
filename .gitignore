@@ -46,3 +46,4 @@ worker*.log
 /bin
 derby.log
 /work
+/${json:qpid.work_dir}

@@ -4,26 +4,36 @@ version := "0.0.9-SNAPSHOT"
 
 scalaVersion := "2.11.8"
 
-lazy val circeVersion = "0.8.0"
+val circeVersion = "0.8.0"
+val qpidBrokerVersion = "6.1.2"
 
 val commonSettings = Seq(
   organization := "com.github.gvolpe",
   licenses +=("Apache-2.0", url("https://www.apache.org/licenses/LICENSE-2.0.html")),
   homepage := Some(url("https://github.com/gvolpe/fs2-rabbit")),
-  //releasePublishArtifactsAction := PgpKeys.publishSigned.value,
   scalaVersion := "2.11.8",
   libraryDependencies ++= Seq(
-    "ch.qos.logback"  %  "logback-classic"  % "1.0.6" % "runtime",
+    "ch.qos.logback"  % "logback-classic"   % "1.1.3",
     "com.rabbitmq"    %  "amqp-client"      % "4.1.0",
     "co.fs2"          %% "fs2-core"         % "0.10.0-M2",
     "org.typelevel"   %% "cats-effect"      % "0.3",
-    "io.circe"        %% "circe-core"       % circeVersion,
-    "io.circe"        %% "circe-generic"    % circeVersion,
-    "io.circe"        %% "circe-parser"     % circeVersion,
     "com.typesafe"    % "config"            % "1.3.1",
-    "org.apache.qpid" % "qpid-broker"       % "6.1.1" % "test" excludeAll ExclusionRule(organization = "ch.qos.logback"),
-    "org.scalatest"   %% "scalatest"        % "2.2.4" % "test",
-    "org.scalacheck"  %% "scalacheck"       % "1.12.5" % "test"
+
+    // Json libraries
+    "io.circe" %% "circe-core"    % circeVersion,
+    "io.circe" %% "circe-generic" % circeVersion,
+    "io.circe" %% "circe-parser"  % circeVersion,
+
+    // Qpid Broker libraries for test
+    "org.apache.qpid"           % "qpid-broker-core"                      % qpidBrokerVersion % "test",
+    "org.apache.qpid"           % "qpid-broker-plugins-memory-store"      % qpidBrokerVersion % "test",
+    "org.apache.qpid"           % "qpid-broker-plugins-amqp-0-8-protocol" % qpidBrokerVersion % "test",
+    "org.apache.qpid"           % "qpid-client"                           % qpidBrokerVersion % "test",
+    "org.apache.geronimo.specs" % "geronimo-jms_1.1_spec"                 % "1.1.1"           % "test",
+
+    // Scala test libraries
+    "org.scalatest"   %% "scalatest"  % "2.2.4" % "test",
+    "org.scalacheck"  %% "scalacheck" % "1.12.5" % "test"
   ),
   resolvers += "Apache public" at "https://repository.apache.org/content/groups/public/",
   scalacOptions ++= Seq(
@@ -35,7 +45,7 @@ val commonSettings = Seq(
     //"-Ydebug"
   ),
   incOptions := incOptions.value.withNameHashing(true),
-  coverageExcludedPackages := "com\\.github\\.gvolpe\\.fs2rabbit\\.example.*;.*Fs2Utils*;.*UnderlyingAmqpClient*",
+//  coverageExcludedPackages := "com\\.github\\.gvolpe\\.fs2rabbit\\.example.*;.*Fs2Utils*;.*UnderlyingAmqpClient*",
   publishTo := {
     val sonatype = "https://oss.sonatype.org/"
     if (isSnapshot.value)

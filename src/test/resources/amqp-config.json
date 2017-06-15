@@ -27,6 +27,7 @@
   "virtualhostnodes" : [{
     "name": "hostnameAlias",
     "type": "Memory",
-    "virtualHostInitialConfiguration": "{ \"type\": \"Memory\" }"
+    "virtualHostInitialConfiguration": "{ \"type\": \"Memory\" }",
+    "preferenceStoreAttributes": {"type": "Noop"}
   }]
 }
