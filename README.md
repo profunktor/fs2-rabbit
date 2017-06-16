@@ -145,18 +145,19 @@ Stream(message).covary[F] through jsonEncode[F, Person] to publisher
 
 If you want your program to run forever with automatic error recovery you can choose to run your program in a loop that will restart every certain amount of specified time. An useful StreamLoop object that you can use to achieve this is provided by the library.
 
-So, for the program defined above, this would be an example of a resilient app that restarts every 3 seconds in case of failure (only implemented for **cats.effect.IO** for now):
+So, for the program defined above, this would be an example of a resilient app that restarts every 3 seconds in case of failure:
 
 ```scala
 import com.github.gvolpe.fs2rabbit.StreamLoop
 import scala.concurrent.duration._
 
 implicit val appR = fs2.Scheduler.fromFixedDaemonPool(2, "restarter")
+implicit val appS = IOEffectScheduler // or MonixEffectScheduler if using Monix Task
 
 StreamLoop.run(() => program, 3.seconds)
 ```
 
-See the [Demo](https://github.com/gvolpe/fs2-rabbit/tree/master/src/main/scala/com/github/gvolpe/fs2rabbit/example/Demo.scala) included in the library for more.
+See the [examples](https://github.com/gvolpe/fs2-rabbit/tree/master/examples/src/main/scala/com/github/gvolpe/fs2rabbit/examples) to learn more!
 
 ## LICENSE
 
