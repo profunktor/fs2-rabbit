@@ -1,4 +1,4 @@
-package com.github.gvolpe.fs2rabbit.example
+package com.github.gvolpe.fs2rabbit.examples
 
 import cats.effect.IO
 import com.github.gvolpe.fs2rabbit.Fs2Rabbit._
@@ -10,7 +10,7 @@ import fs2.{Pipe, Stream}
 
 import scala.concurrent.ExecutionContext
 
-object Demo extends App {
+object IODemo extends App {
 
   implicit val appS = scala.concurrent.ExecutionContext.Implicits.global
   implicit val appR = fs2.Scheduler.fromFixedDaemonPool(2, "restarter")

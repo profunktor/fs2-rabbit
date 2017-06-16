@@ -5,13 +5,13 @@ import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 import com.github.gvolpe.fs2rabbit.embedded.EmbeddedAmqpBroker
 import com.github.gvolpe.fs2rabbit.model._
 import fs2._
-import org.scalatest.{BeforeAndAfterAll, FlatSpecLike, Matchers}
+import org.scalatest.{FlatSpecLike, Matchers}
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
 // To take into account: https://www.rabbitmq.com/interoperability.html
-class Fs2RabbitSpec extends FlatSpecLike with Matchers with BeforeAndAfterAll {
+class Fs2RabbitSpec extends FlatSpecLike with Matchers {
 
   behavior of "Fs2Rabbit"
 
