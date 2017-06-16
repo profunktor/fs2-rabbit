@@ -19,8 +19,6 @@ import scala.collection.JavaConverters._
   * */
 object EmbeddedAmqpBroker {
 
-//  def start(): Unit = safeEmbeddedBroker.run.unsafeRunSync()
-
   def createBroker =
     Stream.bracket[IO, (File, SystemConfig[_]), Unit](acquireSystemConfig)(
       _  => asyncF[IO, Unit](),
