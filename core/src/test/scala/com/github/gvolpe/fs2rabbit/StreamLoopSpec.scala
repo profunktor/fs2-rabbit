@@ -1,6 +1,6 @@
 package com.github.gvolpe.fs2rabbit
 
-import cats.effect.{Effect, IO}
+import cats.effect.IO
 import fs2._
 import org.scalatest.{FlatSpecLike, Matchers}
 
@@ -15,7 +15,7 @@ class StreamLoopSpec extends FlatSpecLike with Matchers {
 
   implicit val es = new EffectScheduler[IO] {
     override def schedule[A](body: IO[A], delay: FiniteDuration)
-                            (implicit ec: ExecutionContext, s: Scheduler, F: Effect[IO]) = {
+                            (implicit ec: ExecutionContext, s: Scheduler) = {
       IO.async[Unit] { cb => s.scheduleOnce(delay)(cb(Right(()))) }.flatMap(_ => body)
     }
     override def unsafeRunSync(effect: IO[Unit]) = effect.unsafeRunSync()
