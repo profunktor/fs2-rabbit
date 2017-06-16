@@ -11,6 +11,7 @@ class StreamLoopSpec extends FlatSpecLike with Matchers {
 
   implicit val ec = scala.concurrent.ExecutionContext.Implicits.global
   implicit val s  = fs2.Scheduler.fromFixedDaemonPool(2, "restarter")
+  implicit val es = IOEffectScheduler
 
   it should "run a stream until it's finished" in {
     val sink = Fs2Utils.liftSink[IO, Int](n => IO(println(n)))

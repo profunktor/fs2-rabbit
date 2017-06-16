@@ -45,7 +45,7 @@ val commonSettings = Seq(
     //"-Ydebug"
   ),
   incOptions := incOptions.value.withNameHashing(true),
-//  coverageExcludedPackages := "com\\.github\\.gvolpe\\.fs2rabbit\\.example.*;.*Fs2Utils*;.*UnderlyingAmqpClient*",
+  coverageExcludedPackages := "com\\.github\\.gvolpe\\.fs2rabbit\\.examples.*;.*UnderlyingAmqpClient*",
   publishTo := {
     val sonatype = "https://oss.sonatype.org/"
     if (isSnapshot.value)
@@ -70,8 +70,12 @@ val commonSettings = Seq(
       </developers>
 )
 
+val CoreDependencies: Seq[ModuleID] = Seq(
+  "ch.qos.logback" % "logback-classic" % "1.1.3" % "test"
+)
+
 val ExamplesDependencies: Seq[ModuleID] = Seq(
-  "ch.qos.logback"  % "logback-classic"   % "1.1.3" % "runtime"
+  "ch.qos.logback" % "logback-classic" % "1.1.3" % "runtime"
 )
 
 lazy val root = project.in(file("."))
@@ -81,6 +85,7 @@ lazy val root = project.in(file("."))
 
 lazy val `fs2-rabbit` = project.in(file("core"))
   .settings(commonSettings: _*)
+  .settings(libraryDependencies ++= CoreDependencies)
 
 lazy val `fs2-rabbit-examples` = project.in(file("examples"))
   .settings(commonSettings: _*)
