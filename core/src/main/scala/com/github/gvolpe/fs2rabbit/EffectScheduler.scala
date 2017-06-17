@@ -7,6 +7,6 @@ import scala.concurrent.duration.FiniteDuration
 import scala.language.higherKinds
 
 trait EffectScheduler[F[_]] {
-  def schedule[A](body: F[A], delay: FiniteDuration)(implicit ec: ExecutionContext, s: Scheduler): F[A]
+  def schedule[A](effect: F[A], delay: FiniteDuration)(implicit ec: ExecutionContext, s: Scheduler): F[A]
   def unsafeRunSync(effect: F[Unit]): Unit
 }
