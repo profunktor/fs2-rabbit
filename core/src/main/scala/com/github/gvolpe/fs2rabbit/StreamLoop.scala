@@ -14,17 +14,14 @@ object StreamLoop {
 
   def run[F[_]](program: () => Stream[F, Unit], retry: FiniteDuration = 5.seconds)
          (implicit ec: ExecutionContext, s: Scheduler, F: Effect[F], ES: EffectScheduler[F]): Unit =
-    loop(program().run, retry)
+    ES.unsafeRunSync(loop(program(), retry).run)
 
-  private def loop[F[_]](program: F[Unit], retry: FiniteDuration)
-                        (implicit ec: ExecutionContext, s: Scheduler, F: Effect[F], ES: EffectScheduler[F]): Unit = {
-    ES.unsafeRunSync {
-      F.map[Either[Throwable, Unit], Unit](F.attempt(program)){
-        case Left(err) =>
-          log.error(s"$err, restarting in $retry...")
-          loop[F](ES.schedule[Unit](program, retry), retry)
-        case Right(()) => ()
-      }
+  private def loop[F[_]](program: Stream[F, Unit], retry: FiniteDuration)
+                        (implicit ec: ExecutionContext, s: Scheduler, F: Effect[F], ES: EffectScheduler[F]): Stream[F, Unit] = {
+    program.onError { err =>
+      log.error(s"$err")
+      log.info(s"Restarting in $retry...")
+      loop[F](Stream.eval(ES.schedule[Unit](program.run, retry)), retry)
     }
   }
 
