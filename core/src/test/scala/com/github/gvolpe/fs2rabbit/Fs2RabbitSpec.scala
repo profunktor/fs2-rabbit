@@ -27,6 +27,10 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
       Fs2RabbitConfig("localhost", 45947, "hostnameAlias", 3, requeueOnNack = true)
   }
 
+  val exchangeName  = ExchangeName("ex")
+  val queueName     = QueueName("daQ")
+  val routingKey    = RoutingKey("rk")
+
   it should "create a connection, a channel, a queue and an exchange" in {
     import TestFs2Rabbit._
 
@@ -34,12 +38,12 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
       broker            <- EmbeddedAmqpBroker.createBroker
       connAndChannel    <- createConnectionChannel[IO]()
       (conn, channel)   = connAndChannel
-      queueD            <- declareQueue[IO](channel, QueueName("daQ"))
-      _                 <- declareExchange[IO](channel, ExchangeName("ex"), ExchangeType.Topic)
+      queueD            <- declareQueue[IO](channel, queueName)
+      _                 <- declareExchange[IO](channel, exchangeName, ExchangeType.Topic)
     } yield {
       conn.toString             should be ("amqp://guest@127.0.0.1:45947/hostnameAlias")
       channel.getChannelNumber  should be (1)
-      queueD.getQueue           should be ("daQ")
+      queueD.getQueue           should be (queueName.name)
       broker
     }
 
@@ -53,9 +57,6 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
       broker            <- EmbeddedAmqpBroker.createBroker
       connAndChannel    <- createConnectionChannel[IO]()
       (_, channel)      = connAndChannel
-      exchangeName      = ExchangeName("ex")
-      queueName         = QueueName("daQ")
-      routingKey        = RoutingKey("rk")
       testQ             <- Stream.eval(async.boundedQueue[IO, AmqpEnvelope](100))
       ackerQ            <- Stream.eval(async.boundedQueue[IO, AckResult](100))
       _                 <- declareExchange[IO](channel, exchangeName, ExchangeType.Direct)
@@ -87,9 +88,6 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
       broker            <- EmbeddedAmqpBroker.createBroker
       connAndChannel    <- createConnectionChannel[IO]()
       (_, channel)      = connAndChannel
-      exchangeName      = ExchangeName("ex")
-      queueName         = QueueName("daQ")
-      routingKey        = RoutingKey("rk")
       testQ             <- Stream.eval(async.boundedQueue[IO, AmqpEnvelope](100))
       ackerQ            <- Stream.eval(async.boundedQueue[IO, AckResult](100))
       _                 <- declareExchange[IO](channel, exchangeName, ExchangeType.Direct)
@@ -119,9 +117,6 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
       broker            <- EmbeddedAmqpBroker.createBroker
       connAndChannel    <- createConnectionChannel[IO]()
       (_, channel)      = connAndChannel
-      exchangeName      = ExchangeName("ex")
-      queueName         = QueueName("daQ")
-      routingKey        = RoutingKey("rk")
       testQ             <- Stream.eval(async.boundedQueue[IO, AmqpEnvelope](100))
       ackerQ            <- Stream.eval(async.boundedQueue[IO, AckResult](100))
       _                 <- declareExchange[IO](channel, exchangeName, ExchangeType.Direct)
@@ -151,9 +146,6 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
       broker         <- EmbeddedAmqpBroker.createBroker
       connAndChannel <- createConnectionChannel[IO]()
       (_, channel)   = connAndChannel
-      exchangeName   = ExchangeName("ex")
-      queueName      = QueueName("daQ")
-      routingKey     = RoutingKey("rk")
       testQ          <- Stream.eval(async.boundedQueue[IO, AmqpEnvelope](100))
       _              <- declareExchange[IO](channel, exchangeName, ExchangeType.Direct)
       _              <- declareQueue[IO](channel, queueName)
@@ -179,9 +171,6 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
       broker            <- EmbeddedAmqpBroker.createBroker
       connAndChannel    <- createConnectionChannel[IO]()
       (_, channel)      = connAndChannel
-      exchangeName      = ExchangeName("ex")
-      queueName         = QueueName("daQ")
-      routingKey        = RoutingKey("rk")
       _                 <- declareExchange[IO](channel, exchangeName, ExchangeType.Direct)
       _                 <- declareQueue[IO](channel, queueName)
       _                 <- bindQueueNoWait[IO](channel, queueName, exchangeName, routingKey, QueueBindingArgs(Map.empty[String, AnyRef]))
