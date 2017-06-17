@@ -1,12 +1,12 @@
 package com.github.gvolpe.fs2rabbit
 
 import cats.effect.IO
+import Fs2Utils.asyncF
 import fs2._
 import org.scalatest.{FlatSpecLike, Matchers}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-import scala.util.Random
 
 class StreamLoopSpec extends FlatSpecLike with Matchers {
 
@@ -29,13 +29,22 @@ class StreamLoopSpec extends FlatSpecLike with Matchers {
 
   it should "run a stream and recover in case of failure" in {
     val sink: Sink[IO, Int] = streamN => {
-      streamN.flatMap { n =>
-        if (1 == n) Stream.fail(new Exception("on purpose"))
-        else Stream.eval(IO(println(n)))
+      streamN.map { n => println(n) }
+    }
+
+    val program = Stream.fail(new Exception("on purpose")).covary[IO] to sink
+
+    var trigger: Int = 2
+
+    val p: Stream[IO, Unit] = program.onError { t =>
+      if (trigger == 0) asyncF[IO, Unit]()
+      else {
+        trigger = trigger - 1
+        Stream.fail(t)
       }
     }
-    val program = Stream.eval(IO(Random.nextInt(2))) to sink
-    StreamLoop.run(() => program, 1.second)
+
+    StreamLoop.run(() => p, 1.second)
   }
 
 }

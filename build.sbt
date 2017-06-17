@@ -2,7 +2,7 @@ name := """fs2-rabbit-root"""
 
 organization in ThisBuild := "com.github.gvolpe"
 
-version in ThisBuild := "0.0.9-SNAPSHOT"
+version in ThisBuild := "0.0.10-SNAPSHOT"
 
 scalaVersion := "2.11.8"
 

@@ -16,7 +16,7 @@ Add the only dependency to your build.sbt:
 ```scala
 resolvers += Opts.resolver.sonatypeSnapshots
 
-libraryDependencies += "com.github.gvolpe" %% "fs2-rabbit" % "0.0.9-SNAPSHOT"
+libraryDependencies += "com.github.gvolpe" %% "fs2-rabbit" % "0.0.10-SNAPSHOT"
 ```
 
 fs2-rabbit depends on fs2 v0.10.0-M2, cats.effects v0.3, circe v0.8.0 and amqp-client v4.1.0.
@@ -45,7 +45,7 @@ fs2-rabbit {
 
 See reference.conf for more.
 
-#### Creating connection, channel, "acker-consumer" and publisher
+#### Creating connection, channel, "acker-consumer" and publisher + declare queue and exchange + binding queue
 
 Connection and Channel will be acquired in a safe way, so in case of an error, the resources will be cleaned up.
 
@@ -56,12 +56,18 @@ import com.github.gvolpe.fs2rabbit.Fs2Rabbit._
 
 implicit val ec = scala.concurrent.ExecutionContext.Implicits.global
 
+val exchangeName  = ExchangeName("ex")
+val queueName     = QueueName("daQ")
+val routingKey    = RoutingKey("rk")
+
 val program = for {
-  connAndChannel    <- createConnectionChannel[F]()                // Stream[F, (Connection, Channel)]
+  connAndChannel    <- createConnectionChannel[F]()                                     // Stream[F, (Connection, Channel)]
   (_, channel)      = connAndChannel
-  _                 <- declareQueue[F](channel, queueName)         // Stream[F, Queue.DeclareOk]
-  (acker, consumer) = createAckerConsumer[F](channel, queueName)	// (StreamAcker[F], StreamConsumer[F])
-  publisher         = createPublisher[F](channel, "", routingKey)	// StreamPublisher[F]
+  _                 <- declareQueue[F](channel, queueName)                              // Stream[F, Queue.DeclareOk]
+  _                 <- declareExchange[IO](channel, exchangeName, ExchangeType.Topic)   // Stream[F, Exchange.DeclareOk]
+  _                 <- bindQueue[IO](channel, queueName, exchangeName, routingKey)      // Stream[F, Queue.BindOk]
+  (acker, consumer) = createAckerConsumer[F](channel, queueName)	                    // (StreamAcker[F], StreamConsumer[F])
+  publisher         = createPublisher[F](channel, exchangeName, routingKey)	            // StreamPublisher[F]
   _                 <- doSomething(consumer, acker, publisher)
 } yield ()
 
@@ -145,7 +151,7 @@ Stream(message).covary[F] through jsonEncode[F, Person] to publisher
 
 If you want your program to run forever with automatic error recovery you can choose to run your program in a loop that will restart every certain amount of specified time. An useful StreamLoop object that you can use to achieve this is provided by the library.
 
-So, for the program defined above, this would be an example of a resilient app that restarts every 3 seconds in case of failure:
+So, for the program defined above, this would be an example of a resilient app that restarts after 1 second and then exponentially (1, 2, 4, 8, etc) in case of failure:
 
 ```scala
 import com.github.gvolpe.fs2rabbit.StreamLoop
@@ -154,7 +160,7 @@ import scala.concurrent.duration._
 implicit val appR = fs2.Scheduler.fromFixedDaemonPool(2, "restarter")
 implicit val appS = IOEffectScheduler // or MonixEffectScheduler if using Monix Task
 
-StreamLoop.run(() => program, 3.seconds)
+StreamLoop.run(() => program, 1.second)
 ```
 
 See the [examples](https://github.com/gvolpe/fs2-rabbit/tree/master/examples/src/main/scala/com/github/gvolpe/fs2rabbit/examples) to learn more!
