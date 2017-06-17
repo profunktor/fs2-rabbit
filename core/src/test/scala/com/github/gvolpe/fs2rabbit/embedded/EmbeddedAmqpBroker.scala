@@ -54,7 +54,7 @@ object EmbeddedAmqpBroker {
     val attributes = Map(
       "initialConfigurationLocation" -> initialConfigurationUrl,
       "context"   -> context.asJava,
-      "storePath" -> "${json:qpid.work_dir}${file.separator}config.json",
+      "storePath" -> s"$${json:qpid.work_dir}$${file.separator}config.json",
       "startupLoggedToSystemOut" -> "false"
     )
 

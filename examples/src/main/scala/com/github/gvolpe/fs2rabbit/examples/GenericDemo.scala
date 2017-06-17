@@ -1,7 +1,7 @@
 package com.github.gvolpe.fs2rabbit.examples
 
 import cats.effect.Effect
-import com.github.gvolpe.fs2rabbit.Fs2Rabbit.{createAckerConsumer, createConnectionChannel, createPublisher, declareQueue}
+import com.github.gvolpe.fs2rabbit.Fs2Rabbit._
 import com.github.gvolpe.fs2rabbit.Fs2Utils.asyncF
 import com.github.gvolpe.fs2rabbit.{EffectScheduler, StreamLoop}
 import com.github.gvolpe.fs2rabbit.json.Fs2JsonEncoder.jsonEncode
@@ -27,16 +27,18 @@ class GenericDemo[F[_]](implicit F: Effect[F], ES: EffectScheduler[F]) {
     } yield Ack(amqpMsg.deliveryTag)
   }
 
-  val program = () => for {
+  val program = for {
     connAndChannel    <- createConnectionChannel[F]()
     (_, channel)      = connAndChannel
     _                 <- declareQueue[F](channel, queueName)
+    _                 <- declareExchange[F](channel, exchangeName, ExchangeType.Topic)
+    _                 <- bindQueue[F](channel, queueName, exchangeName, routingKey)
     (acker, consumer) = createAckerConsumer[F](channel, queueName)
     publisher         = createPublisher[F](channel, exchangeName, routingKey)
     result            <- new Flow(consumer, acker, logPipe, publisher).flow
   } yield result
 
-  StreamLoop.run(program)
+  StreamLoop.run(() => program)
 
 }
 
