@@ -21,6 +21,12 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
       Fs2RabbitConfig("localhost", 45947, "hostnameAlias", 3, requeueOnNack = false)
   }
 
+  object TestNAckFs2Rabbit extends Fs2Rabbit with UnderlyingAmqpClient {
+    override protected val log = LoggerFactory.getLogger(getClass)
+    override protected val fs2RabbitConfig =
+      Fs2RabbitConfig("localhost", 45947, "hostnameAlias", 3, requeueOnNack = true)
+  }
+
   it should "create a connection, a channel, a queue and an exchange" in {
     import TestFs2Rabbit._
 
@@ -28,73 +34,140 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
       broker            <- EmbeddedAmqpBroker.createBroker
       connAndChannel    <- createConnectionChannel[IO]()
       (conn, channel)   = connAndChannel
-      queueD            <- declareQueue[IO](channel, "queueName")
-      _                 <- declareExchange[IO](channel, "exName", ExchangeType.Topic)
+      queueD            <- declareQueue[IO](channel, QueueName("daQ"))
+      _                 <- declareExchange[IO](channel, ExchangeName("ex"), ExchangeType.Topic)
     } yield {
       conn.toString             should be ("amqp://guest@127.0.0.1:45947/hostnameAlias")
       channel.getChannelNumber  should be (1)
-      queueD.getQueue           should be ("queueName")
+      queueD.getQueue           should be ("daQ")
       broker
     }
 
     program.run.unsafeRunSync()
   }
 
-  // TODO: Assert that consumer is consuming
-  // For this we need to bind an exchange to a queue and create a publisher, yet not supported
-  it should "create an auto-ack consumer" in {
+  it should "create an acker consumer and verify both envelope and ack result" in {
     import TestFs2Rabbit._
-
-    val testLogger = Fs2Utils.liftSink[IO, AmqpEnvelope]{ e => IO(println(e)) }
 
     val program = for {
       broker            <- EmbeddedAmqpBroker.createBroker
       connAndChannel    <- createConnectionChannel[IO]()
       (_, channel)      = connAndChannel
-      _                 <- declareQueue[IO](channel, "daQ")
-      (acker, consumer) = createAckerConsumer[IO](channel, "daQ")
+      exchangeName      = ExchangeName("ex")
+      queueName         = QueueName("daQ")
+      routingKey        = RoutingKey("rk")
+      testQ             <- Stream.eval(async.boundedQueue[IO, AmqpEnvelope](100))
+      ackerQ            <- Stream.eval(async.boundedQueue[IO, AckResult](100))
+      _                 <- declareExchange[IO](channel, exchangeName, ExchangeType.Direct)
+      _                 <- declareQueue[IO](channel, queueName)
+      _                 <- bindQueue[IO](channel, queueName, exchangeName, routingKey, QueueBindingArgs(Map.empty[String, AnyRef]))
+      publisher         = createPublisher[IO](channel, exchangeName, routingKey)
+      msg               = Stream(AmqpMessage("acker-test", AmqpProperties.empty))
+      _                 <- msg.covary[IO] to publisher
+      (acker, consumer) = createAckerConsumer[IO](channel, queueName)
       _                 <- Stream(
-                            consumer to testLogger,
-                            Stream(Ack(1)).covary[IO] to acker
-                           ).join(2).take(0)
-    } yield broker
+                            consumer to testQ.enqueue,
+                            Stream(Ack(1)).covary[IO] observe ackerQ.enqueue to acker
+                           ).join(2).take(1)
+      result            <- Stream.eval(testQ.dequeue1)
+      ackResult         <- Stream.eval(ackerQ.dequeue1)
+    } yield {
+      result    should be (AmqpEnvelope(1, "acker-test", AmqpProperties(None, None, Map.empty[String, AmqpHeaderVal])))
+      ackResult should be (Ack(1))
+      broker
+    }
 
     program.run.unsafeRunSync()
   }
 
-  // TODO: Assert that acker is receiving ack and consumer is consuming
-  // For this we need to bind an exchange to a queue and create a publisher, yet not supported
-  it should "create an acker-consumer" in {
+  it should "NOT requeue a message in case of NAck when option 'requeueOnNack = false'" in {
     import TestFs2Rabbit._
 
-    val testLogger = Fs2Utils.liftSink[IO, AmqpEnvelope]{ e => IO(println(e)) }
+    val program = for {
+      broker            <- EmbeddedAmqpBroker.createBroker
+      connAndChannel    <- createConnectionChannel[IO]()
+      (_, channel)      = connAndChannel
+      exchangeName      = ExchangeName("ex")
+      queueName         = QueueName("daQ")
+      routingKey        = RoutingKey("rk")
+      testQ             <- Stream.eval(async.boundedQueue[IO, AmqpEnvelope](100))
+      ackerQ            <- Stream.eval(async.boundedQueue[IO, AckResult](100))
+      _                 <- declareExchange[IO](channel, exchangeName, ExchangeType.Direct)
+      _                 <- declareQueue[IO](channel, queueName)
+      _                 <- bindQueue[IO](channel, queueName, exchangeName, routingKey, QueueBindingArgs(Map.empty[String, AnyRef]))
+      publisher         = createPublisher[IO](channel, exchangeName, routingKey)
+      msg               = Stream(AmqpMessage("NAck-test", AmqpProperties.empty))
+      _                 <- msg.covary[IO] to publisher
+      (acker, consumer) = createAckerConsumer[IO](channel, queueName)
+      _                 <- (consumer to testQ.enqueue).take(1)
+      _                 <- (Stream(NAck(1)).covary[IO] observe ackerQ.enqueue to acker).take(1)
+      result            <- Stream.eval(testQ.dequeue1)
+      ackResult         <- Stream.eval(ackerQ.dequeue1)
+    } yield {
+      result    should be (AmqpEnvelope(1, "NAck-test", AmqpProperties(None, None, Map.empty[String, AmqpHeaderVal])))
+      ackResult should be (NAck(1))
+      broker
+    }
+
+    program.run.unsafeRunSync()
+  }
+
+  it should "requeue a message in case of NAck when option 'requeueOnNack = true'" in {
+    import TestNAckFs2Rabbit._
+
+    val program = for {
+      broker            <- EmbeddedAmqpBroker.createBroker
+      connAndChannel    <- createConnectionChannel[IO]()
+      (_, channel)      = connAndChannel
+      exchangeName      = ExchangeName("ex")
+      queueName         = QueueName("daQ")
+      routingKey        = RoutingKey("rk")
+      testQ             <- Stream.eval(async.boundedQueue[IO, AmqpEnvelope](100))
+      ackerQ            <- Stream.eval(async.boundedQueue[IO, AckResult](100))
+      _                 <- declareExchange[IO](channel, exchangeName, ExchangeType.Direct)
+      _                 <- declareQueue[IO](channel, queueName)
+      _                 <- bindQueue[IO](channel, queueName, exchangeName, routingKey, QueueBindingArgs(Map.empty[String, AnyRef]))
+      publisher         = createPublisher[IO](channel, exchangeName, routingKey)
+      msg               = Stream(AmqpMessage("NAck-test", AmqpProperties.empty))
+      _                 <- msg.covary[IO] to publisher
+      (acker, consumer) = createAckerConsumer[IO](channel, queueName)
+      _                 <- (consumer to testQ.enqueue).take(2) // Message will be requeued
+      _                 <- (Stream(NAck(1)).covary[IO] observe ackerQ.enqueue to acker).take(1)
+      result            <- testQ.dequeue.take(1)
+      ackResult         <- ackerQ.dequeue.take(1)
+    } yield {
+      result    shouldBe an[AmqpEnvelope]
+      ackResult should be (NAck(1))
+      broker
+    }
+
+    program.run.unsafeRunSync()
+  }
+
+  it should "create a publisher, an auto-ack consumer, publish a message and consume it" in {
+    import TestFs2Rabbit._
 
     val program = for {
       broker         <- EmbeddedAmqpBroker.createBroker
       connAndChannel <- createConnectionChannel[IO]()
       (_, channel)   = connAndChannel
-      _              <- declareQueue[IO](channel, "daQ")
-      consumer       = createAutoAckConsumer[IO](channel, "daQ")
-      _              <- (consumer to testLogger).take(0)
-    } yield broker
-
-    program.run.unsafeRunSync()
-  }
-
-  // TODO: Assert that message is published
-  // For this we need to bind an a queue to the "exName" exchange, yet not supported
-  it should "create a publisher" in {
-    import TestFs2Rabbit._
-
-    val program = for {
-      broker         <- EmbeddedAmqpBroker.createBroker
-      connAndChannel <- createConnectionChannel[IO]()
-      (_, channel)   = connAndChannel
-      _              <- declareExchange[IO](channel, "exName", ExchangeType.Direct)
-      publisher      = createPublisher[IO](channel, "exName", "rk")
+      exchangeName   = ExchangeName("ex")
+      queueName      = QueueName("daQ")
+      routingKey     = RoutingKey("rk")
+      testQ          <- Stream.eval(async.boundedQueue[IO, AmqpEnvelope](100))
+      _              <- declareExchange[IO](channel, exchangeName, ExchangeType.Direct)
+      _              <- declareQueue[IO](channel, queueName)
+      _              <- bindQueue[IO](channel, queueName, exchangeName, routingKey)
+      publisher      = createPublisher[IO](channel, exchangeName, routingKey)
+      consumer       = createAutoAckConsumer[IO](channel, queueName)
       msg            = Stream(AmqpMessage("test", AmqpProperties.empty))
       _              <- msg.covary[IO] to publisher
-    } yield broker
+      _              <- (consumer to testQ.enqueue).take(1)
+      result         <- Stream.eval(testQ.dequeue1)
+    } yield {
+      result should be (AmqpEnvelope(1, "test", AmqpProperties(None, None, Map.empty[String, AmqpHeaderVal])))
+      broker
+    }
 
     program.run.unsafeRunSync()
   }

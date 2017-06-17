@@ -8,9 +8,10 @@ import scala.language.higherKinds
 
 object model {
 
-  type ExchangeName   = String
-  type QueueName      = String
-  type RoutingKey     = String
+  case class ExchangeName(name: String)
+  case class QueueName(name: String)
+  case class RoutingKey(name: String)
+
   type DeliveryTag    = Long
 
   object ExchangeType extends Enumeration {
@@ -77,5 +78,13 @@ object model {
   case class AmqpEnvelope(deliveryTag: DeliveryTag, payload: String, properties: AmqpProperties)
 
   case class AmqpMessage[A](payload: A, properties: AmqpProperties)
+
+  // Generic type arguments for methods like queueBind, queueDeclare, etc
+  case class QueueDeclarationArgs(value: Map[String, AnyRef])
+  case class QueueBindingArgs(value: Map[String, AnyRef])
+
+  case class ExchangeDeclarationArgs(value: Map[String, AnyRef])
+  case class ExchangeBindingArgs(value: Map[String, AnyRef])
+
 
 }

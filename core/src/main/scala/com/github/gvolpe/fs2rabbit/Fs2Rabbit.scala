@@ -67,7 +67,7 @@ trait UnderlyingAmqpClient {
     val daQ = fs2.async.boundedQueue[IO, Either[Throwable, AmqpEnvelope]](100).unsafeRunSync()
     val dc  = defaultConsumer(channel, daQ)
     for {
-      _         <- asyncF[F, String](channel.basicConsume(queueName, autoAck, dc))
+      _         <- asyncF[F, String](channel.basicConsume(queueName.name, autoAck, dc))
       consumer  <- Stream.repeatEval(daQ.dequeue1.to[F]) through resilientConsumer
     } yield consumer
   }
@@ -142,8 +142,8 @@ trait Fs2Rabbit {
     * Creates a simple publisher.
     *
     * @param channel the channel where the publisher is going to be created
-    * @param exchangeName the exchange name
-    * @param routingKey the routing key name
+    * @param exchangeName the name of the exchange
+    * @param routingKey the name of the routing key
     *
     * @return A sink where messages of type @AmqpMessage[String] can be published represented as @StreamPublisher
     * */
@@ -153,15 +153,17 @@ trait Fs2Rabbit {
                            (implicit F: Effect[F], ec: ExecutionContext): StreamPublisher[F] = { streamMsg =>
     for {
       msg   <- streamMsg
-      _     <- asyncF[F, Unit](channel.basicPublish(exchangeName, routingKey, msg.properties.asBasicProps, msg.payload.getBytes("UTF-8")))
+      _     <- asyncF[F, Unit] {
+        channel.basicPublish(exchangeName.name, routingKey.name, msg.properties.asBasicProps, msg.payload.getBytes("UTF-8"))
+      }
     } yield ()
   }
 
   /**
-    * Creates an exchange.
+    * Declares an exchange.
     *
     * @param channel the channel where the exchange is going to be declared
-    * @param exchangeName the exchange name
+    * @param exchangeName the name of the exchange
     * @param exchangeType the exchange type: Direct, FanOut, Headers, Topic.
     *
     * @return a Stream of data type @Exchange.DeclareOk
@@ -169,21 +171,75 @@ trait Fs2Rabbit {
   def declareExchange[F[_]](channel: Channel, exchangeName: ExchangeName, exchangeType: ExchangeType)
                            (implicit F: Effect[F]): Stream[F, Exchange.DeclareOk] =
     asyncF[F, Exchange.DeclareOk] {
-      channel.exchangeDeclare(exchangeName, exchangeType.toString.toLowerCase)
+      channel.exchangeDeclare(exchangeName.name, exchangeType.toString.toLowerCase)
     }
 
   /**
-    * Creates a queue.
+    * Declares a queue.
     *
     * @param channel the channel where the queue is going to be declared
-    * @param queueName the queue name
+    * @param queueName the name of the queue
     *
     * @return a Stream of data type @Queue.DeclareOk
     * */
   def declareQueue[F[_]](channel: Channel, queueName: QueueName)
                         (implicit F: Effect[F]): Stream[F, Queue.DeclareOk] =
     asyncF[F, Queue.DeclareOk] {
-      channel.queueDeclare(queueName, false, false, false, Map.empty[String, AnyRef].asJava)
+      channel.queueDeclare(queueName.name, false, false, false, Map.empty[String, AnyRef].asJava)
     }
+
+  /**
+    * Binds a queue to an exchange, with extra arguments.
+    *
+    * @param channel the channel where the exchange is going to be declared
+    * @param queueName the name of the queue
+    * @param exchangeName the name of the exchange
+    * @param routingKey the routing key to use for the binding
+    *
+    * @return a Stream of data type @Queue.BindOk
+    * */
+  def bindQueue[F[_]](channel: Channel, queueName: QueueName, exchangeName: ExchangeName, routingKey: RoutingKey)
+                     (implicit F: Effect[F]): Stream[F, Queue.BindOk] = {
+    asyncF[F, Queue.BindOk] {
+      channel.queueBind(queueName.name, exchangeName.name, routingKey.name)
+    }
+  }
+
+  /**
+    * Binds a queue to an exchange with the given arguments.
+    *
+    * @param channel the channel where the exchange is going to be declared
+    * @param queueName the name of the queue
+    * @param exchangeName the name of the exchange
+    * @param routingKey the routing key to use for the binding
+    * @param args other properties (binding parameters)
+    *
+    * @return a Stream of data type @Queue.BindOk
+    * */
+  def bindQueue[F[_]](channel: Channel, queueName: QueueName, exchangeName: ExchangeName, routingKey: RoutingKey, args: QueueBindingArgs)
+                     (implicit F: Effect[F]): Stream[F, Queue.BindOk] = {
+    asyncF[F, Queue.BindOk] {
+      channel.queueBind(queueName.name, exchangeName.name, routingKey.name, args.value.asJava)
+    }
+  }
+
+  /**
+    * Binds a queue to an exchange with the given arguments but sets nowait parameter to true and returns
+    * nothing (as there will be no response from the server).
+    *
+    * @param channel the channel where the exchange is going to be declared
+    * @param queueName the name of the queue
+    * @param exchangeName the name of the exchange
+    * @param routingKey the routing key to use for the binding
+    * @param args other properties (binding parameters)
+    *
+    * @return a Stream of data type Unit
+    * */
+  def bindQueueNoWait[F[_]](channel: Channel, queueName: QueueName, exchangeName: ExchangeName, routingKey: RoutingKey, args: QueueBindingArgs)
+                           (implicit F: Effect[F]): Stream[F, Unit] = {
+    asyncF[F, Unit] {
+      channel.queueBindNoWait(queueName.name, exchangeName.name, routingKey.name, args.value.asJava)
+    }
+  }
 
 }
