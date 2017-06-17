@@ -5,8 +5,8 @@ import fs2.Scheduler
 import monix.eval.Task
 import monix.execution.Scheduler.Implicits.global
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration._
+import scala.concurrent.{Await, ExecutionContext}
+import scala.concurrent.duration.{Duration, FiniteDuration}
 
 object MonixEffectScheduler extends EffectScheduler[Task] {
 
@@ -16,6 +16,6 @@ object MonixEffectScheduler extends EffectScheduler[Task] {
   }
 
   override def unsafeRunSync(effect: Task[Unit]) = {
-    effect.runSyncMaybe
+    Await.result(effect.runAsync, Duration.Inf)
   }
 }
