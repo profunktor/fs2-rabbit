@@ -172,4 +172,22 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
     program.run.unsafeRunSync()
   }
 
+  it should "bind a queue with the nowait parameter set to true" in {
+    import TestFs2Rabbit._
+
+    val program = for {
+      broker            <- EmbeddedAmqpBroker.createBroker
+      connAndChannel    <- createConnectionChannel[IO]()
+      (_, channel)      = connAndChannel
+      exchangeName      = ExchangeName("ex")
+      queueName         = QueueName("daQ")
+      routingKey        = RoutingKey("rk")
+      _                 <- declareExchange[IO](channel, exchangeName, ExchangeType.Direct)
+      _                 <- declareQueue[IO](channel, queueName)
+      _                 <- bindQueueNoWait[IO](channel, queueName, exchangeName, routingKey, QueueBindingArgs(Map.empty[String, AnyRef]))
+    } yield broker
+
+    program.run.unsafeRunSync()
+  }
+
 }
