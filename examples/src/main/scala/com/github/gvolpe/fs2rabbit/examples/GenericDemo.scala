@@ -16,8 +16,9 @@ class GenericDemo[F[_]](implicit F: Effect[F], ES: EffectScheduler[F]) {
   implicit val appS = scala.concurrent.ExecutionContext.Implicits.global
   implicit val appR = fs2.Scheduler.fromFixedDaemonPool(2, "restarter")
 
-  val queueName: QueueName    = "test"
-  val routingKey: RoutingKey  = "test"
+  val queueName     = QueueName("testQ")
+  val exchangeName  = ExchangeName("testEX")
+  val routingKey    = RoutingKey("testRK")
 
   def logPipe: Pipe[F, AmqpEnvelope, AckResult] = { streamMsg =>
     for {
@@ -31,7 +32,7 @@ class GenericDemo[F[_]](implicit F: Effect[F], ES: EffectScheduler[F]) {
     (_, channel)      = connAndChannel
     _                 <- declareQueue[F](channel, queueName)
     (acker, consumer) = createAckerConsumer[F](channel, queueName)
-    publisher         = createPublisher[F](channel, "", routingKey)
+    publisher         = createPublisher[F](channel, exchangeName, routingKey)
     result            <- new Flow(consumer, acker, logPipe, publisher).flow
   } yield result
 
