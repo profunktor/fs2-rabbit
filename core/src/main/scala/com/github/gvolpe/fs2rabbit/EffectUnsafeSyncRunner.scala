@@ -6,14 +6,17 @@ import scala.language.higherKinds
   * A generic unsafe synchronously runner representation for any [[cats.effect.Effect]].
   *
   * The reasons behind having this type is just to use it only once in your program as
-  * part of generic solution for any effect. Some types already implement this method:
+  * part of generic solution for any effect. Some types already implement this method.
   *
-  * @see [[cats.effect.IO.unsafeRunSync()]]
+  * For example the [[cats.effect.IO.unsafeRunSync()]].
   *
   * When having a Stream defined as your whole program, at the "end of the universe" you
   * will do this for example:
   *
   * {{{
+  * import cats.effect.IO
+  * import fs2._
+  *
   * val program = Stream.eval(IO { println("Hey!") })
   *
   * program.run.unsafeRunSync
@@ -22,12 +25,15 @@ import scala.language.higherKinds
   * Having this generic type allows the fs2-rabbit library to to this for any effect:
   *
   * {{{
-  * def createProgram[F[_]](implicit F: Effect[F], ES: EffectUnsafeSyncRunner[F]) = {
+  * import cats.effect.Effect
+  * import fs2._
+  *
+  * def createProgram[F[_]](implicit F: Effect[F], R: EffectUnsafeSyncRunner[F]) = {
   *   Stream.eval(F.delay { println("hey") })
   * }
   *
-  * def run[F[_]](program: Stream[F, Unit])(implicit F: Effect[F], ES: EffectUnsafeSyncRunner[F]) =
-  *   ES.unsafeRunSync(program.run)
+  * def run[F[_]](program: Stream[F, Unit])(implicit F: Effect[F], R: EffectUnsafeSyncRunner[F]) =
+  *   R.unsafeRunSync(program.run)
   *
   * run[IO](createProgram[IO])
   * }}}
@@ -35,5 +41,9 @@ import scala.language.higherKinds
   * Its only intention is to be used together with [[StreamLoop]]
   * */
 trait EffectUnsafeSyncRunner[F[_]] {
+  /**
+    * Produces the result by running the encapsulated effects as impure
+    * side effects.
+    * */
   def unsafeRunSync(effect: F[Unit]): Unit
 }

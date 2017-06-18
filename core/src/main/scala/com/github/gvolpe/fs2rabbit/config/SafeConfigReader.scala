@@ -5,6 +5,11 @@ import org.slf4j.LoggerFactory
 
 import scala.util.{Failure, Success, Try}
 
+/**
+  * It encapsulates a [[Config]] and reads the values in a safe way.
+  *
+  * In case the key does not exist, it will log the error and return [[None]]
+  * */
 class SafeConfigReader(config: Config) {
 
   private val log = LoggerFactory.getLogger(getClass)

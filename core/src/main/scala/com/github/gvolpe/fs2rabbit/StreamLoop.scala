@@ -8,6 +8,14 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.language.higherKinds
 
+/**
+  * It provides a resilient run method for an effectful [[fs2.Stream]] that will run forever with
+  * automatic error recovery.
+  *
+  * In case of failure, the entire stream will be restarted after the specified retry time.
+  *
+  * @see the StreamLoopSpec that demonstrates an use case.
+  * */
 object StreamLoop {
 
   private val log = LoggerFactory.getLogger(getClass)

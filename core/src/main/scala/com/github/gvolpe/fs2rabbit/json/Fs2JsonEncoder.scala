@@ -9,8 +9,29 @@ import io.circe.syntax._
 
 import scala.language.higherKinds
 
+/**
+  * Stream-based Json Encoder that exposes only one method as a streaming transformation
+  * using [[fs2.Pipe]] and depends on the Circe library.
+  * */
 object Fs2JsonEncoder {
 
+  /**
+    * It tries to encode a given case class encapsulated in an  [[AmqpMessage]] into a
+    * json string.
+    *
+    * For example:
+    *
+    * {{{
+    * import fs2._
+    *
+    * val payload = Person("Sherlock", Address(212, "Baker St"))
+    * val p = Stream(AmqpMessage(payload, AmqpProperties.empty)).covary[IO] through jsonEncode[IO, Person]
+    *
+    * p.run.unsafeRunSync
+    * }}}
+    *
+    * The result will be an [[AmqpMessage]] of type [[String]]
+    * */
   def jsonEncode[F[_], A : Encoder](implicit F: Effect[F]): Pipe[F, AmqpMessage[A], AmqpMessage[String]] =
     streamMsg =>
       for {

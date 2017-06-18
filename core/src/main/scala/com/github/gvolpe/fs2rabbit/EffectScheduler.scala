@@ -14,5 +14,9 @@ import scala.language.higherKinds
   * With this abstraction, we can do it generically for any given effect.
   * */
 trait EffectScheduler[F[_]] {
+  /**
+    * It creates an Effect that will be submitted for execution after the given delay, using
+    * the implicit [[fs2.Scheduler]].
+    * */
   def schedule[A](effect: F[A], delay: FiniteDuration)(implicit ec: ExecutionContext, s: Scheduler): F[A]
 }

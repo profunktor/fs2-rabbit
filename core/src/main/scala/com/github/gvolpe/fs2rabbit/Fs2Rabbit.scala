@@ -15,6 +15,9 @@ import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext
 import scala.language.higherKinds
 
+/**
+  * The default Fs2Rabbit stream-based client using the default [[Fs2RabbitConfig]]
+  * */
 object Fs2Rabbit extends Fs2Rabbit with UnderlyingAmqpClient {
   protected override val log = LoggerFactory.getLogger(getClass)
   protected override lazy val fs2RabbitConfig = Fs2RabbitConfigManager.config
@@ -153,7 +156,7 @@ trait Fs2Rabbit {
     * @param exchangeName the name of the exchange
     * @param routingKey the name of the routing key
     *
-    * @return A sink where messages of type [[AmqpMessage[String]]] can be published represented as [[StreamPublisher]]
+    * @return A sink where messages of type [[AmqpMessage]] of [[String]] can be published represented as [[StreamPublisher]]
     * */
   def createPublisher[F[_]](channel: Channel,
                             exchangeName: ExchangeName,
@@ -174,7 +177,7 @@ trait Fs2Rabbit {
     * @param exchangeName the name of the exchange
     * @param exchangeType the exchange type: Direct, FanOut, Headers, Topic.
     *
-    * @return a [[fs2.Stream[F, Exchange.DeclareOk]]]
+    * @return an effectful [[fs2.Stream]] of type [[Exchange.DeclareOk]]
     * */
   def declareExchange[F[_]](channel: Channel, exchangeName: ExchangeName, exchangeType: ExchangeType)
                            (implicit F: Effect[F]): Stream[F, Exchange.DeclareOk] =
@@ -188,7 +191,7 @@ trait Fs2Rabbit {
     * @param channel the channel where the queue is going to be declared
     * @param queueName the name of the queue
     *
-    * @return a [[fs2.Stream[F, Queue.DeclareOk]]]
+    * @return an effectful [[fs2.Stream]] of type [[Queue.DeclareOk]]
     * */
   def declareQueue[F[_]](channel: Channel, queueName: QueueName)
                         (implicit F: Effect[F]): Stream[F, Queue.DeclareOk] =
@@ -204,7 +207,7 @@ trait Fs2Rabbit {
     * @param exchangeName the name of the exchange
     * @param routingKey the routing key to use for the binding
     *
-    * @return a [[fs2.Stream[F, Queue.BindOk]]]
+    * @return an effectful [[fs2.Stream]] of type [[Queue.BindOk]]
     * */
   def bindQueue[F[_]](channel: Channel, queueName: QueueName, exchangeName: ExchangeName, routingKey: RoutingKey)
                      (implicit F: Effect[F]): Stream[F, Queue.BindOk] = {
@@ -222,7 +225,7 @@ trait Fs2Rabbit {
     * @param routingKey the routing key to use for the binding
     * @param args other properties (binding parameters)
     *
-    * @return a [[fs2.Stream[F, Queue.BindOk]]]
+    * @return a an effectful [[fs2.Stream]] of type [[Queue.BindOk]]
     * */
   def bindQueue[F[_]](channel: Channel, queueName: QueueName, exchangeName: ExchangeName, routingKey: RoutingKey, args: QueueBindingArgs)
                      (implicit F: Effect[F]): Stream[F, Queue.BindOk] = {
@@ -241,7 +244,7 @@ trait Fs2Rabbit {
     * @param routingKey the routing key to use for the binding
     * @param args other properties (binding parameters)
     *
-    * @return a Stream of effects [[fs2.Stream[F, Unit]]]
+    * @return an effectful [[fs2.Stream]]
     * */
   def bindQueueNoWait[F[_]](channel: Channel, queueName: QueueName, exchangeName: ExchangeName, routingKey: RoutingKey, args: QueueBindingArgs)
                            (implicit F: Effect[F]): Stream[F, Unit] = {
