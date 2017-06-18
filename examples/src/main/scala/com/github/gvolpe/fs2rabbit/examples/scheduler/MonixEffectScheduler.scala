@@ -3,10 +3,9 @@ package com.github.gvolpe.fs2rabbit.examples.scheduler
 import com.github.gvolpe.fs2rabbit.EffectScheduler
 import fs2.Scheduler
 import monix.eval.Task
-import monix.execution.Scheduler.Implicits.global
 
-import scala.concurrent.{Await, ExecutionContext}
-import scala.concurrent.duration.{Duration, FiniteDuration}
+import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.FiniteDuration
 
 object MonixEffectScheduler extends EffectScheduler[Task] {
 
@@ -15,7 +14,4 @@ object MonixEffectScheduler extends EffectScheduler[Task] {
     effect.delayExecution(delay)
   }
 
-  override def unsafeRunSync(effect: Task[Unit]) = {
-    Await.result(effect.runAsync, Duration.Inf)
-  }
 }

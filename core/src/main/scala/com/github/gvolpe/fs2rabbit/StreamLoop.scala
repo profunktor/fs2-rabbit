@@ -13,8 +13,8 @@ object StreamLoop {
   private val log = LoggerFactory.getLogger(getClass)
 
   def run[F[_]](program: () => Stream[F, Unit], retry: FiniteDuration = 5.seconds)
-         (implicit ec: ExecutionContext, s: Scheduler, F: Effect[F], ES: EffectScheduler[F]): Unit =
-    ES.unsafeRunSync(loop(program(), retry).run)
+         (implicit ec: ExecutionContext, s: Scheduler, F: Effect[F], ES: EffectScheduler[F], R: EffectUnsafeSyncRunner[F]): Unit =
+    R.unsafeRunSync(loop(program(), retry).run)
 
   private def loop[F[_]](program: Stream[F, Unit], retry: FiniteDuration)
                         (implicit ec: ExecutionContext, s: Scheduler, F: Effect[F], ES: EffectScheduler[F]): Stream[F, Unit] = {

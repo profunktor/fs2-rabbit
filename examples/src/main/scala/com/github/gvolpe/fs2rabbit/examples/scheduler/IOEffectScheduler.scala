@@ -14,6 +14,4 @@ object IOEffectScheduler extends EffectScheduler[IO] {
     IO.async[Unit] { cb => s.scheduleOnce(delay)(cb(Right(()))) }.flatMap(_ => effect)
   }
 
-  override def unsafeRunSync(effect: IO[Unit]) = effect.unsafeRunSync()
-
 }

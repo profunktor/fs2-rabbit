@@ -18,6 +18,9 @@ class StreamLoopSpec extends FlatSpecLike with Matchers {
                             (implicit ec: ExecutionContext, s: Scheduler) = {
       IO.async[Unit] { cb => s.scheduleOnce(delay)(cb(Right(()))) }.flatMap(_ => effect)
     }
+  }
+
+  implicit val runner = new EffectUnsafeSyncRunner[IO] {
     override def unsafeRunSync(effect: IO[Unit]) = effect.unsafeRunSync()
   }
 

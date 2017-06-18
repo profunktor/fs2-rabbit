@@ -3,7 +3,7 @@ package com.github.gvolpe.fs2rabbit.examples
 import cats.effect.Effect
 import com.github.gvolpe.fs2rabbit.Fs2Rabbit._
 import com.github.gvolpe.fs2rabbit.Fs2Utils.asyncF
-import com.github.gvolpe.fs2rabbit.{EffectScheduler, StreamLoop}
+import com.github.gvolpe.fs2rabbit.{EffectScheduler, EffectUnsafeSyncRunner, StreamLoop}
 import com.github.gvolpe.fs2rabbit.json.Fs2JsonEncoder.jsonEncode
 import com.github.gvolpe.fs2rabbit.model._
 import fs2.{Pipe, Stream}
@@ -11,7 +11,7 @@ import fs2.{Pipe, Stream}
 import scala.concurrent.ExecutionContext
 import scala.language.higherKinds
 
-class GenericDemo[F[_]](implicit F: Effect[F], ES: EffectScheduler[F]) {
+class GenericDemo[F[_]](implicit F: Effect[F], ES: EffectScheduler[F], R: EffectUnsafeSyncRunner[F]) {
 
   implicit val appS = scala.concurrent.ExecutionContext.Implicits.global
   implicit val appR = fs2.Scheduler.fromFixedDaemonPool(2, "restarter")
