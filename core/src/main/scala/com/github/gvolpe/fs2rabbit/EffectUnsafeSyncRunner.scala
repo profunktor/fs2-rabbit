@@ -47,3 +47,7 @@ trait EffectUnsafeSyncRunner[F[_]] {
     * */
   def unsafeRunSync(effect: F[Unit]): Unit
 }
+
+object EffectUnsafeSyncRunner {
+  def apply[F[_] : EffectUnsafeSyncRunner]: EffectUnsafeSyncRunner[F] = implicitly[EffectUnsafeSyncRunner[F]]
+}

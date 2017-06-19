@@ -32,7 +32,7 @@ object Fs2JsonEncoder {
     *
     * The result will be an [[AmqpMessage]] of type [[String]]
     * */
-  def jsonEncode[F[_], A : Encoder](implicit F: Effect[F]): Pipe[F, AmqpMessage[A], AmqpMessage[String]] =
+  def jsonEncode[F[_] : Effect, A : Encoder]: Pipe[F, AmqpMessage[A], AmqpMessage[String]] =
     streamMsg =>
       for {
         amqpMsg <- streamMsg

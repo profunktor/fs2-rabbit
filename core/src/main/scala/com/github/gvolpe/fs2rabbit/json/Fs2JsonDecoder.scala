@@ -36,7 +36,7 @@ object Fs2JsonDecoder {
     *
     * The result will be a tuple ([[Either[Error, A]], [[DeliveryTag]])
     * */
-  def jsonDecode[F[_], A : Decoder](implicit F: Effect[F]): Pipe[F, AmqpEnvelope, (Either[Error, A], DeliveryTag)] =
+  def jsonDecode[F[_] : Effect, A : Decoder]: Pipe[F, AmqpEnvelope, (Either[Error, A], DeliveryTag)] =
     streamMsg =>
       for {
         amqpMsg <- streamMsg

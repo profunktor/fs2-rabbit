@@ -11,7 +11,7 @@ import fs2.{Pipe, Stream}
 import scala.concurrent.ExecutionContext
 import scala.language.higherKinds
 
-class GenericDemo[F[_]](implicit F: Effect[F], ES: EffectScheduler[F], R: EffectUnsafeSyncRunner[F]) {
+class GenericDemo[F[_] : Effect : EffectScheduler : EffectUnsafeSyncRunner]() {
 
   implicit val appS = scala.concurrent.ExecutionContext.Implicits.global
   implicit val appR = fs2.Scheduler.fromFixedDaemonPool(2, "restarter")
@@ -42,11 +42,11 @@ class GenericDemo[F[_]](implicit F: Effect[F], ES: EffectScheduler[F], R: Effect
 
 }
 
-class Flow[F[_]](consumer: StreamConsumer[F],
-                 acker: StreamAcker[F],
-                 logger: Pipe[F, AmqpEnvelope, AckResult],
-                 publisher: StreamPublisher[F])
-                (implicit ec: ExecutionContext, F: Effect[F]) {
+class Flow[F[_] : Effect](consumer: StreamConsumer[F],
+                          acker: StreamAcker[F],
+                          logger: Pipe[F, AmqpEnvelope, AckResult],
+                          publisher: StreamPublisher[F])
+                          (implicit ec: ExecutionContext) {
 
   import io.circe.generic.auto._
 

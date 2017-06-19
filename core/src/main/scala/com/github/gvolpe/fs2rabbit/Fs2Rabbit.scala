@@ -56,17 +56,16 @@ trait UnderlyingAmqpClient {
 
   }
 
-  protected def createAcker[F[_]](channel: Channel)
-                                 (implicit F: Effect[F]): Sink[F, AckResult] =
+  protected def createAcker[F[_] : Effect](channel: Channel): Sink[F, AckResult] =
     liftSink[F, AckResult] {
-      case Ack(tag)   => F.delay(channel.basicAck(tag, false))
-      case NAck(tag)  => F.delay(channel.basicNack(tag, false, fs2RabbitConfig.requeueOnNack))
+      case Ack(tag)   => Effect[F].delay(channel.basicAck(tag, false))
+      case NAck(tag)  => Effect[F].delay(channel.basicNack(tag, false, fs2RabbitConfig.requeueOnNack))
     }
 
-  protected def createConsumer[F[_]](queueName: QueueName,
-                                     channel: Channel,
-                                     autoAck: Boolean)
-                                    (implicit F: Effect[F], ec: ExecutionContext): StreamConsumer[F] = {
+  protected def createConsumer[F[_] : Effect](queueName: QueueName,
+                                              channel: Channel,
+                                              autoAck: Boolean)
+                                              (implicit ec: ExecutionContext): StreamConsumer[F] = {
     val daQ = fs2.async.boundedQueue[IO, Either[Throwable, AmqpEnvelope]](100).unsafeRunSync()
     val dc  = defaultConsumer(channel, daQ)
     for {
@@ -75,14 +74,14 @@ trait UnderlyingAmqpClient {
     } yield consumer
   }
 
-  protected def acquireConnection[F[_]](implicit F: Effect[F]): F[(Connection, Channel)] =
-    F.delay {
+  protected def acquireConnection[F[_] : Effect]: F[(Connection, Channel)] =
+    Effect[F].delay {
       val conn    = factory.newConnection
       val channel = conn.createChannel
       (conn, channel)
     }
 
-  protected def resilientConsumer[F[_]](implicit F: Effect[F]): Pipe[F, Either[Throwable, AmqpEnvelope], AmqpEnvelope] =
+  protected def resilientConsumer[F[_] : Effect]: Pipe[F, Either[Throwable, AmqpEnvelope], AmqpEnvelope] =
     streamMsg =>
       streamMsg.flatMap {
         case Left(err)  => Stream.fail(err)
@@ -110,10 +109,10 @@ trait Fs2Rabbit {
     *
     * @return A tuple ([[Connection]], [[Channel]]) as a [[fs2.Stream]]
     * */
-  def createConnectionChannel[F[_]]()(implicit F: Effect[F]): Stream[F, (Connection, Channel)] =
+  def createConnectionChannel[F[_] : Effect](): Stream[F, (Connection, Channel)] =
     Stream.bracket(acquireConnection)(
       cc => asyncF[F, (Connection, Channel)](cc),
-      cc => F.delay {
+      cc => Effect[F].delay {
         val (conn, channel) = cc
         log.info(s"Releasing connection: $conn and channel: ${channel.getChannelNumber} previously acquired.")
         if (channel.isOpen) channel.close()
@@ -129,8 +128,8 @@ trait Fs2Rabbit {
     *
     * @return A tuple ([[StreamAcker]], [[StreamConsumer]]) represented as [[StreamAckerConsumer]]
     * */
-  def createAckerConsumer[F[_]](channel: Channel, queueName: QueueName)
-                               (implicit F: Effect[F], ec: ExecutionContext): StreamAckerConsumer[F] = {
+  def createAckerConsumer[F[_] : Effect](channel: Channel, queueName: QueueName)
+                                        (implicit ec: ExecutionContext): StreamAckerConsumer[F] = {
     channel.basicQos(1)
     val consumer = createConsumer(queueName, channel, autoAck = false)
     (createAcker(channel), consumer)
@@ -144,8 +143,8 @@ trait Fs2Rabbit {
     *
     * @return A [[StreamConsumer]] with data type represented as [[AmqpEnvelope]]
     * */
-  def createAutoAckConsumer[F[_]](channel: Channel, queueName: QueueName)
-                                 (implicit F: Effect[F], ec: ExecutionContext): StreamConsumer[F] = {
+  def createAutoAckConsumer[F[_] : Effect](channel: Channel, queueName: QueueName)
+                                 (implicit ec: ExecutionContext): StreamConsumer[F] = {
     createConsumer(queueName, channel, autoAck = true)
   }
 
@@ -158,10 +157,10 @@ trait Fs2Rabbit {
     *
     * @return A sink where messages of type [[AmqpMessage]] of [[String]] can be published represented as [[StreamPublisher]]
     * */
-  def createPublisher[F[_]](channel: Channel,
-                            exchangeName: ExchangeName,
-                            routingKey: RoutingKey)
-                           (implicit F: Effect[F], ec: ExecutionContext): StreamPublisher[F] = { streamMsg =>
+  def createPublisher[F[_] : Effect](channel: Channel,
+                                     exchangeName: ExchangeName,
+                                     routingKey: RoutingKey)
+                                    (implicit ec: ExecutionContext): StreamPublisher[F] = { streamMsg =>
     for {
       msg   <- streamMsg
       _     <- asyncF[F, Unit] {
@@ -179,8 +178,9 @@ trait Fs2Rabbit {
     *
     * @return an effectful [[fs2.Stream]] of type [[Exchange.DeclareOk]]
     * */
-  def declareExchange[F[_]](channel: Channel, exchangeName: ExchangeName, exchangeType: ExchangeType)
-                           (implicit F: Effect[F]): Stream[F, Exchange.DeclareOk] =
+  def declareExchange[F[_] : Effect](channel: Channel,
+                                     exchangeName: ExchangeName,
+                                     exchangeType: ExchangeType): Stream[F, Exchange.DeclareOk] =
     asyncF[F, Exchange.DeclareOk] {
       channel.exchangeDeclare(exchangeName.name, exchangeType.toString.toLowerCase)
     }
@@ -193,8 +193,7 @@ trait Fs2Rabbit {
     *
     * @return an effectful [[fs2.Stream]] of type [[Queue.DeclareOk]]
     * */
-  def declareQueue[F[_]](channel: Channel, queueName: QueueName)
-                        (implicit F: Effect[F]): Stream[F, Queue.DeclareOk] =
+  def declareQueue[F[_] : Effect](channel: Channel, queueName: QueueName): Stream[F, Queue.DeclareOk] =
     asyncF[F, Queue.DeclareOk] {
       channel.queueDeclare(queueName.name, false, false, false, Map.empty[String, AnyRef].asJava)
     }
@@ -209,8 +208,10 @@ trait Fs2Rabbit {
     *
     * @return an effectful [[fs2.Stream]] of type [[Queue.BindOk]]
     * */
-  def bindQueue[F[_]](channel: Channel, queueName: QueueName, exchangeName: ExchangeName, routingKey: RoutingKey)
-                     (implicit F: Effect[F]): Stream[F, Queue.BindOk] = {
+  def bindQueue[F[_] : Effect](channel: Channel,
+                               queueName: QueueName,
+                               exchangeName: ExchangeName,
+                               routingKey: RoutingKey): Stream[F, Queue.BindOk] = {
     asyncF[F, Queue.BindOk] {
       channel.queueBind(queueName.name, exchangeName.name, routingKey.name)
     }
@@ -227,8 +228,11 @@ trait Fs2Rabbit {
     *
     * @return a an effectful [[fs2.Stream]] of type [[Queue.BindOk]]
     * */
-  def bindQueue[F[_]](channel: Channel, queueName: QueueName, exchangeName: ExchangeName, routingKey: RoutingKey, args: QueueBindingArgs)
-                     (implicit F: Effect[F]): Stream[F, Queue.BindOk] = {
+  def bindQueue[F[_] : Effect](channel: Channel,
+                               queueName: QueueName,
+                               exchangeName: ExchangeName,
+                               routingKey: RoutingKey,
+                               args: QueueBindingArgs): Stream[F, Queue.BindOk] = {
     asyncF[F, Queue.BindOk] {
       channel.queueBind(queueName.name, exchangeName.name, routingKey.name, args.value.asJava)
     }
@@ -246,8 +250,11 @@ trait Fs2Rabbit {
     *
     * @return an effectful [[fs2.Stream]]
     * */
-  def bindQueueNoWait[F[_]](channel: Channel, queueName: QueueName, exchangeName: ExchangeName, routingKey: RoutingKey, args: QueueBindingArgs)
-                           (implicit F: Effect[F]): Stream[F, Unit] = {
+  def bindQueueNoWait[F[_] : Effect](channel: Channel,
+                                     queueName: QueueName,
+                                     exchangeName: ExchangeName,
+                                     routingKey: RoutingKey,
+                                     args: QueueBindingArgs): Stream[F, Unit] = {
     asyncF[F, Unit] {
       channel.queueBindNoWait(queueName.name, exchangeName.name, routingKey.name, args.value.asJava)
     }

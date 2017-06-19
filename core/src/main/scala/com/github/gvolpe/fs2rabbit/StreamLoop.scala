@@ -20,16 +20,17 @@ object StreamLoop {
 
   private val log = LoggerFactory.getLogger(getClass)
 
-  def run[F[_]](program: () => Stream[F, Unit], retry: FiniteDuration = 5.seconds)
-         (implicit ec: ExecutionContext, s: Scheduler, F: Effect[F], ES: EffectScheduler[F], R: EffectUnsafeSyncRunner[F]): Unit =
-    R.unsafeRunSync(loop(program(), retry).run)
+  def run[F[_] : Effect: EffectScheduler : EffectUnsafeSyncRunner](program: () => Stream[F, Unit], retry: FiniteDuration = 5.seconds)
+         (implicit ec: ExecutionContext, s: Scheduler): Unit = {
+    EffectUnsafeSyncRunner[F].unsafeRunSync(loop(program(), retry).run)
+  }
 
-  private def loop[F[_]](program: Stream[F, Unit], retry: FiniteDuration)
-                        (implicit ec: ExecutionContext, s: Scheduler, F: Effect[F], ES: EffectScheduler[F]): Stream[F, Unit] = {
+  private def loop[F[_] : Effect : EffectScheduler](program: Stream[F, Unit], retry: FiniteDuration)
+                        (implicit ec: ExecutionContext, s: Scheduler): Stream[F, Unit] = {
     program.onError { err =>
       log.error(s"$err")
       log.info(s"Restarting in $retry...")
-      loop[F](Stream.eval(ES.schedule[Unit](program.run, retry)), retry)
+      loop[F](Stream.eval(EffectScheduler[F].schedule[Unit](program.run, retry)), retry)
     }
   }
 

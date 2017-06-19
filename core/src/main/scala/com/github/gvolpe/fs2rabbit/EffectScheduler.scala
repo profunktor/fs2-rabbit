@@ -20,3 +20,7 @@ trait EffectScheduler[F[_]] {
     * */
   def schedule[A](effect: F[A], delay: FiniteDuration)(implicit ec: ExecutionContext, s: Scheduler): F[A]
 }
+
+object EffectScheduler {
+  def apply[F[_] : EffectScheduler]: EffectScheduler[F] = implicitly[EffectScheduler[F]]
+}
