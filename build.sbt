@@ -13,10 +13,12 @@ val commonSettings = Seq(
   licenses +=("Apache-2.0", url("https://www.apache.org/licenses/LICENSE-2.0.html")),
   homepage := Some(url("https://github.com/gvolpe/fs2-rabbit")),
   scalaVersion := "2.11.8",
+  addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.4"),
   libraryDependencies ++= Seq(
     "com.rabbitmq"    %  "amqp-client"      % "4.1.0",
     "co.fs2"          %% "fs2-core"         % "0.10.0-M2",
     "org.typelevel"   %% "cats-effect"      % "0.3",
+    "org.typelevel"   %% "cats-free"        % "0.9.0",
     "com.typesafe"    % "config"            % "1.3.1",
 
     // Json libraries
