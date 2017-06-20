@@ -1,40 +1,32 @@
 package com.github.gvolpe.fs2rabbit.free
 
-import cats.effect.{Effect, IO}
-import cats.free._
-import cats.{Monad, ~>}
-import com.github.gvolpe.fs2rabbit.Fs2Rabbit
+import cats.~>
+import cats.Monad
+import cats.data.Coproduct
+import cats.effect.IO
+import cats.free.Free
 import com.github.gvolpe.fs2rabbit.model._
 import fs2.Stream
 
-import scala.concurrent.ExecutionContext
 import scala.language.higherKinds
 
 object FreeExample extends App {
+
+  type AMQP[A] = Coproduct[AMQPBroker, AMQPBrokerEffect, A]
 
   val queueName     = QueueName("testQ")
   val exchangeName  = ExchangeName("testEX")
   val routingKey    = RoutingKey("testRK")
 
-  val createFreeConsumer: Free[AMQPBroker, AmqpEnvelope] = for {
-    connAndChannel <- Free.liftF(CreateConnectionAndChannel)
-    (_, channel)   = connAndChannel
-    _              <- Free.liftF(DeclareQueue(channel, queueName))
-    _              <- Free.liftF(DeclareExchange(channel, exchangeName, ExchangeType.Topic))
-    _              <- Free.liftF(BindQueue(channel, queueName, exchangeName, routingKey))
-    consumer       <- Free.liftF(CreateAutoAckConsumer(channel, queueName))
-  } yield consumer
-
-  def streamInterpreter[F[_]: Effect](implicit ec: ExecutionContext): AMQPBroker ~> Stream[F, ?] =
-    new (AMQPBroker ~> Stream[F, ?]) {
-      override def apply[A](fa: AMQPBroker[A]): Stream[F, A] = fa match {
-        case CreateConnectionAndChannel               => Fs2Rabbit.createConnectionChannel[F]()
-        case CreateAutoAckConsumer(channel, queue)    => Fs2Rabbit.createAutoAckConsumer[F](channel, queue)
-        case DeclareExchange(channel, exName, exType) => Fs2Rabbit.declareExchange[F](channel, exName, exType)
-        case DeclareQueue(channel, queue)             => Fs2Rabbit.declareQueue[F](channel, queue)
-        case BindQueue(channel, queue, exName, rk)    => Fs2Rabbit.bindQueue[F](channel, queue, exName, rk)
-      }
-    }
+  def createConsumer(implicit B: AMQPBrokerService[AMQP], E: AMQPBrokerEffects[AMQP]): Free[AMQP, AmqpEnvelope] =
+    for {
+      connAndChannel  <- B.createConnectionAndChannel
+      (_, channel)    = connAndChannel
+      _               <- B.declareQueue(channel, queueName)
+      _               <- B.declareExchange(channel, exchangeName, ExchangeType.Topic)
+      _               <- B.bindQueue(channel, queueName, exchangeName, routingKey)
+      consumer        <- B.createAutoAckConsumer(channel, queueName)
+    } yield consumer
 
   implicit val ec = scala.concurrent.ExecutionContext.Implicits.global
 
@@ -47,6 +39,8 @@ object FreeExample extends App {
     }
   }
 
-  println(Free.foldMap[AMQPBroker, Stream[IO, ?]](streamInterpreter[IO])) //.run.unsafeRunSync()
+  val interpreter: AMQP ~> Stream[IO, ?] = new BrokerStreamInterpreter[IO] or new BrokerEffectStreamInterpreter
+
+  createConsumer.foldMap[Stream[IO, ?]](interpreter).run.unsafeRunSync()
 
 }

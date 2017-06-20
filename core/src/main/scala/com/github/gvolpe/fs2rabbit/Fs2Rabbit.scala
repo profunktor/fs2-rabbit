@@ -169,6 +169,15 @@ trait Fs2Rabbit {
     } yield ()
   }
 
+  def createPublisherAlt[F[_] : Effect](channel: Channel,
+                                       exchangeName: ExchangeName,
+                                       routingKey: RoutingKey)
+                                      (implicit ec: ExecutionContext): Stream[F, AmqpMessage[String] => Unit] = {
+    asyncF[F, AmqpMessage[String] => Unit] { msg =>
+      channel.basicPublish(exchangeName.name, routingKey.name, msg.properties.asBasicProps, msg.payload.getBytes("UTF-8"))
+    }
+  }
+
   /**
     * Declares an exchange.
     *
