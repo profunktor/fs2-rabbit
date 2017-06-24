@@ -1,4 +1,4 @@
-# Welcome to the contribution guide of fs2-rabbit!
+# Welcome to fs2-rabbit!
 
 We follow the standard GitHub [fork & pull](https://help.github.com/articles/using-pull-requests/#fork--pull) approach to pull requests. Just fork the official repo, develop in a branch, and submit a PR!
 
