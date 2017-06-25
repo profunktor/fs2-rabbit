@@ -28,8 +28,7 @@ class GenericDemo[F[_] : Effect : EffectScheduler : EffectUnsafeSyncRunner]() {
   }
 
   val program = for {
-    connAndChannel    <- createConnectionChannel[F]()
-    (_, channel)      = connAndChannel
+    channel           <- createConnectionChannel[F]()
     _                 <- declareQueue[F](channel, queueName)
     _                 <- declareExchange[F](channel, exchangeName, ExchangeType.Topic)
     _                 <- bindQueue[F](channel, queueName, exchangeName, routingKey)

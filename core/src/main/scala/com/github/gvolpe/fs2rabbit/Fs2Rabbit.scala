@@ -113,14 +113,14 @@ trait Fs2Rabbit {
     * Creates a connection and a channel in a safe way using Stream.bracket.
     * In case of failure, the resources will be cleaned up properly.
     *
-    * @return A tuple ([[Connection]], [[Channel]]) as a [[fs2.Stream]]
+    * @return An effectful [[fs2.Stream]] of type [[Channel]]
     * */
-  def createConnectionChannel[F[_] : Effect](): Stream[F, (Connection, Channel)] =
+  def createConnectionChannel[F[_] : Effect](): Stream[F, Channel] =
     Stream.bracket(acquireConnection)(
-      cc => asyncF[F, (Connection, Channel)](cc),
+      cc => asyncF[F, Channel](cc._2),
       cc => Effect[F].delay {
         val (conn, channel) = cc
-        log.info(s"Releasing connection: $conn and channel: ${channel.getChannelNumber} previously acquired.")
+        log.info(s"Releasing connection: $conn previously acquired.")
         if (channel.isOpen) channel.close()
         if (conn.isOpen) conn.close()
       }
@@ -261,7 +261,7 @@ trait Fs2Rabbit {
     * @param routingKey the routing key to use for the binding
     * @param args other properties (binding parameters)
     *
-    * @return a an effectful [[fs2.Stream]] of type [[Queue.BindOk]]
+    * @return an effectful [[fs2.Stream]] of type [[Queue.BindOk]]
     * */
   def bindQueue[F[_] : Effect](channel: Channel,
                                queueName: QueueName,

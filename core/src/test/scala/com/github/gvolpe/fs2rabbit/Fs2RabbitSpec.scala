@@ -40,15 +40,14 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers with BeforeAndAfterEach {
     import TestFs2Rabbit._
 
     val program = for {
-      broker            <- EmbeddedAmqpBroker.createBroker
-      connAndChannel    <- createConnectionChannel[IO]()
-      (conn, channel)   = connAndChannel
-      queueD            <- declareQueue[IO](channel, queueName)
-      _                 <- declareExchange[IO](channel, exchangeName, ExchangeType.Topic)
+      broker  <- EmbeddedAmqpBroker.createBroker
+      channel <- createConnectionChannel[IO]()
+      queueD  <- declareQueue[IO](channel, queueName)
+      _       <- declareExchange[IO](channel, exchangeName, ExchangeType.Topic)
     } yield {
-      conn.toString             should be ("amqp://guest@127.0.0.1:45947/hostnameAlias")
-      channel.getChannelNumber  should be (1)
-      queueD.getQueue           should be (queueName.name)
+      channel.getConnection.toString  should be ("amqp://guest@127.0.0.1:45947/hostnameAlias")
+      channel.getChannelNumber        should be (1)
+      queueD.getQueue                 should be (queueName.name)
       broker
     }
 
@@ -60,8 +59,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers with BeforeAndAfterEach {
 
     val program = for {
       broker            <- EmbeddedAmqpBroker.createBroker
-      connAndChannel    <- createConnectionChannel[IO]()
-      (_, channel)      = connAndChannel
+      channel           <- createConnectionChannel[IO]()
       testQ             <- Stream.eval(async.boundedQueue[IO, AmqpEnvelope](100))
       ackerQ            <- Stream.eval(async.boundedQueue[IO, AckResult](100))
       _                 <- declareExchange[IO](channel, exchangeName, ExchangeType.Direct)
@@ -91,8 +89,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers with BeforeAndAfterEach {
 
     val program = for {
       broker            <- EmbeddedAmqpBroker.createBroker
-      connAndChannel    <- createConnectionChannel[IO]()
-      (_, channel)      = connAndChannel
+      channel           <- createConnectionChannel[IO]()
       testQ             <- Stream.eval(async.boundedQueue[IO, AmqpEnvelope](100))
       ackerQ            <- Stream.eval(async.boundedQueue[IO, AckResult](100))
       _                 <- declareExchange[IO](channel, exchangeName, ExchangeType.Direct)
@@ -120,8 +117,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers with BeforeAndAfterEach {
 
     val program = for {
       broker            <- EmbeddedAmqpBroker.createBroker
-      connAndChannel    <- createConnectionChannel[IO]()
-      (_, channel)      = connAndChannel
+      channel           <- createConnectionChannel[IO]()
       testQ             <- Stream.eval(async.boundedQueue[IO, AmqpEnvelope](100))
       ackerQ            <- Stream.eval(async.boundedQueue[IO, AckResult](100))
       _                 <- declareExchange[IO](channel, exchangeName, ExchangeType.Direct)
@@ -148,19 +144,18 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers with BeforeAndAfterEach {
     import TestFs2Rabbit._
 
     val program = for {
-      broker         <- EmbeddedAmqpBroker.createBroker
-      connAndChannel <- createConnectionChannel[IO]()
-      (_, channel)   = connAndChannel
-      testQ          <- Stream.eval(async.boundedQueue[IO, AmqpEnvelope](100))
-      _              <- declareExchange[IO](channel, exchangeName, ExchangeType.Direct)
-      _              <- declareQueue[IO](channel, queueName)
-      _              <- bindQueue[IO](channel, queueName, exchangeName, routingKey)
-      publisher      = createPublisher[IO](channel, exchangeName, routingKey)
-      consumer       = createAutoAckConsumer[IO](channel, queueName)
-      msg            = Stream(AmqpMessage("test", AmqpProperties.empty))
-      _              <- msg.covary[IO] to publisher
-      _              <- (consumer to testQ.enqueue).take(1)
-      result         <- Stream.eval(testQ.dequeue1)
+      broker    <- EmbeddedAmqpBroker.createBroker
+      channel   <- createConnectionChannel[IO]()
+      testQ     <- Stream.eval(async.boundedQueue[IO, AmqpEnvelope](100))
+      _         <- declareExchange[IO](channel, exchangeName, ExchangeType.Direct)
+      _         <- declareQueue[IO](channel, queueName)
+      _         <- bindQueue[IO](channel, queueName, exchangeName, routingKey)
+      publisher = createPublisher[IO](channel, exchangeName, routingKey)
+      consumer  = createAutoAckConsumer[IO](channel, queueName)
+      msg       = Stream(AmqpMessage("test", AmqpProperties.empty))
+      _         <- msg.covary[IO] to publisher
+      _         <- (consumer to testQ.enqueue).take(1)
+      result    <- Stream.eval(testQ.dequeue1)
     } yield {
       result should be (AmqpEnvelope(1, "test", AmqpProperties(None, None, Map.empty[String, AmqpHeaderVal])))
       broker
@@ -173,20 +168,19 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers with BeforeAndAfterEach {
     import TestFs2Rabbit._
 
     val program = for {
-      broker         <- EmbeddedAmqpBroker.createBroker
-      connAndChannel <- createConnectionChannel[IO]()
-      (_, channel)   = connAndChannel
-      testQ          <- Stream.eval(async.boundedQueue[IO, AmqpEnvelope](100))
-      _              <- declareExchange[IO](channel, exchangeName, ExchangeType.Direct)
-      _              <- declareQueue[IO](channel, queueName)
-      _              <- bindQueue[IO](channel, queueName, exchangeName, routingKey)
-      publisher      = createPublisher[IO](channel, exchangeName, routingKey)
-      consumerArgs   = ConsumerArgs(consumerTag = "XclusiveConsumer", noLocal = false, exclusive = true, args = Map.empty[String, AnyRef])
-      consumer       = createAutoAckConsumer[IO](channel, queueName, BasicQos(prefetchSize = 0, prefetchCount = 10), Some(consumerArgs))
-      msg            = Stream(AmqpMessage("test", AmqpProperties.empty))
-      _              <- msg.covary[IO] to publisher
-      _              <- (consumer to testQ.enqueue).take(1)
-      result         <- Stream.eval(testQ.dequeue1)
+      broker        <- EmbeddedAmqpBroker.createBroker
+      channel       <- createConnectionChannel[IO]()
+      testQ         <- Stream.eval(async.boundedQueue[IO, AmqpEnvelope](100))
+      _             <- declareExchange[IO](channel, exchangeName, ExchangeType.Direct)
+      _             <- declareQueue[IO](channel, queueName)
+      _             <- bindQueue[IO](channel, queueName, exchangeName, routingKey)
+      publisher     = createPublisher[IO](channel, exchangeName, routingKey)
+      consumerArgs  = ConsumerArgs(consumerTag = "XclusiveConsumer", noLocal = false, exclusive = true, args = Map.empty[String, AnyRef])
+      consumer      = createAutoAckConsumer[IO](channel, queueName, BasicQos(prefetchSize = 0, prefetchCount = 10), Some(consumerArgs))
+      msg           = Stream(AmqpMessage("test", AmqpProperties.empty))
+      _             <- msg.covary[IO] to publisher
+      _             <- (consumer to testQ.enqueue).take(1)
+      result        <- Stream.eval(testQ.dequeue1)
     } yield {
       println(consumer)
       result should be (AmqpEnvelope(1, "test", AmqpProperties(None, None, Map.empty[String, AmqpHeaderVal])))
@@ -201,8 +195,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers with BeforeAndAfterEach {
 
     val program = for {
       broker            <- EmbeddedAmqpBroker.createBroker
-      connAndChannel    <- createConnectionChannel[IO]()
-      (_, channel)      = connAndChannel
+      channel           <- createConnectionChannel[IO]()
       testQ             <- Stream.eval(async.boundedQueue[IO, AmqpEnvelope](100))
       ackerQ            <- Stream.eval(async.boundedQueue[IO, AckResult](100))
       _                 <- declareExchange[IO](channel, exchangeName, ExchangeType.Direct)
@@ -232,12 +225,11 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers with BeforeAndAfterEach {
     import TestFs2Rabbit._
 
     val program = for {
-      broker            <- EmbeddedAmqpBroker.createBroker
-      connAndChannel    <- createConnectionChannel[IO]()
-      (_, channel)      = connAndChannel
-      _                 <- declareExchange[IO](channel, exchangeName, ExchangeType.Direct)
-      _                 <- declareQueue[IO](channel, queueName)
-      _                 <- bindQueueNoWait[IO](channel, queueName, exchangeName, routingKey, QueueBindingArgs(Map.empty[String, AnyRef]))
+      broker  <- EmbeddedAmqpBroker.createBroker
+      channel <- createConnectionChannel[IO]()
+      _       <- declareExchange[IO](channel, exchangeName, ExchangeType.Direct)
+      _       <- declareQueue[IO](channel, queueName)
+      _       <- bindQueueNoWait[IO](channel, queueName, exchangeName, routingKey, QueueBindingArgs(Map.empty[String, AnyRef]))
     } yield broker
 
     program.run.unsafeRunSync()
