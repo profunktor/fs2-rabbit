@@ -64,12 +64,18 @@ trait UnderlyingAmqpClient {
 
   protected def createConsumer[F[_] : Effect](queueName: QueueName,
                                               channel: Channel,
-                                              autoAck: Boolean)
+                                              basicQos: BasicQos,
+                                              autoAck: Boolean = false,
+                                              noLocal: Boolean = false,
+                                              exclusive: Boolean = false,
+                                              consumerTag: String = "",
+                                              args: Map[String, AnyRef] = Map.empty[String, AnyRef])
                                               (implicit ec: ExecutionContext): StreamConsumer[F] = {
     val daQ = fs2.async.boundedQueue[IO, Either[Throwable, AmqpEnvelope]](100).unsafeRunSync()
     val dc  = defaultConsumer(channel, daQ)
     for {
-      _         <- asyncF[F, String](channel.basicConsume(queueName.name, autoAck, dc))
+      _         <- asyncF[F, Unit](channel.basicQos(basicQos.prefetchSize, basicQos.prefetchCount, basicQos.global))
+      _         <- asyncF[F, String](channel.basicConsume(queueName.name, autoAck, consumerTag, noLocal, exclusive, args.asJava, dc))
       consumer  <- Stream.repeatEval(daQ.dequeue1.to[F]) through resilientConsumer
     } yield consumer
   }
@@ -128,10 +134,21 @@ trait Fs2Rabbit {
     *
     * @return A tuple ([[StreamAcker]], [[StreamConsumer]]) represented as [[StreamAckerConsumer]]
     * */
-  def createAckerConsumer[F[_] : Effect](channel: Channel, queueName: QueueName)
+  def createAckerConsumer[F[_] : Effect](channel: Channel,
+                                         queueName: QueueName,
+                                         basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
+                                         consumerArgs: Option[ConsumerArgs] = None)
                                         (implicit ec: ExecutionContext): StreamAckerConsumer[F] = {
-    channel.basicQos(1)
-    val consumer = createConsumer(queueName, channel, autoAck = false)
+    val consumer = consumerArgs.fold(createConsumer(queueName, channel, basicQos)) { args =>
+      createConsumer(
+        queueName = queueName,
+        channel = channel,
+        basicQos = basicQos,
+        noLocal = args.noLocal,
+        exclusive = args.exclusive,
+        consumerTag = args.consumerTag,
+        args = args.args)
+    }
     (createAcker(channel), consumer)
   }
 
@@ -143,9 +160,23 @@ trait Fs2Rabbit {
     *
     * @return A [[StreamConsumer]] with data type represented as [[AmqpEnvelope]]
     * */
-  def createAutoAckConsumer[F[_] : Effect](channel: Channel, queueName: QueueName)
+  def createAutoAckConsumer[F[_] : Effect](channel: Channel,
+                                           queueName: QueueName,
+                                           basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
+                                           consumerArgs: Option[ConsumerArgs] = None)
                                  (implicit ec: ExecutionContext): StreamConsumer[F] = {
-    createConsumer(queueName, channel, autoAck = true)
+    consumerArgs.fold(createConsumer(queueName, channel, basicQos, autoAck = true)) { args =>
+      createConsumer(
+        queueName = queueName,
+        channel = channel,
+        basicQos = basicQos,
+        autoAck = true,
+        noLocal = args.noLocal,
+        exclusive = args.exclusive,
+        consumerTag = args.consumerTag,
+        args = args.args
+      )
+    }
   }
 
   /**
