@@ -12,12 +12,15 @@ object model {
   case class QueueName(name: String)
   case class RoutingKey(name: String)
 
-  type DeliveryTag    = Long
+  case class ConsumerArgs(consumerTag: String, noLocal: Boolean, exclusive: Boolean, args: Map[String, AnyRef])
+  case class BasicQos(prefetchSize: Int, prefetchCount: Int, global: Boolean = false)
 
   object ExchangeType extends Enumeration {
     type ExchangeType = Value
     val Direct, FanOut, Headers, Topic = Value
   }
+
+  type DeliveryTag = Long
 
   sealed trait AckResult extends Product with Serializable
   final case class Ack(deliveryTag: DeliveryTag) extends AckResult
@@ -85,6 +88,5 @@ object model {
 
   case class ExchangeDeclarationArgs(value: Map[String, AnyRef])
   case class ExchangeBindingArgs(value: Map[String, AnyRef])
-
 
 }
