@@ -1,4 +1,4 @@
-![logo](logo.png) fs2-rabbit
+![logo](fs2-rabbit.png) fs2-rabbit
 ==========
 
 [![Codeship Status for gvolpe/fs2-rabbit](https://app.codeship.com/projects/ae5afcb0-28c2-0135-02b9-5656a7048432/status?branch=master)](https://app.codeship.com/projects/223399)
