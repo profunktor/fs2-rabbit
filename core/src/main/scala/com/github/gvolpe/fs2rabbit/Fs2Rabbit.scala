@@ -131,6 +131,8 @@ trait Fs2Rabbit {
     *
     * @param channel the channel where the consumer is going to be created
     * @param queueName the name of the queue
+    * @param basicQos the basic quality of service (default to prefetchSize = 0, prefetchCount = 1 and global = false)
+    * @param consumerArgs consumer options: consumer tag (default is empty), exclusive (default is false), non-local (default is false) and extra arguments (default is empty).
     *
     * @return A tuple ([[StreamAcker]], [[StreamConsumer]]) represented as [[StreamAckerConsumer]]
     * */
@@ -157,6 +159,8 @@ trait Fs2Rabbit {
     *
     * @param channel the channel where the consumer is going to be created
     * @param queueName the name of the queue
+    * @param basicQos the basic quality of service (default to prefetchSize = 0, prefetchCount = 1 and global = false)
+    * @param consumerArgs consumer options: consumer tag (default is empty), exclusive (default is false), non-local (default is false) and extra arguments (default is empty).
     *
     * @return A [[StreamConsumer]] with data type represented as [[AmqpEnvelope]]
     * */

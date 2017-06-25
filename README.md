@@ -16,7 +16,7 @@ Add the only dependency to your build.sbt:
 ```scala
 resolvers += Opts.resolver.sonatypeSnapshots
 
-libraryDependencies += "com.github.gvolpe" %% "fs2-rabbit" % "0.0.10-SNAPSHOT"
+libraryDependencies += "com.github.gvolpe" %% "fs2-rabbit" % "0.0.11-SNAPSHOT"
 ```
 
 fs2-rabbit depends on fs2 v0.10.0-M2, cats.effects v0.3, circe v0.8.0 and amqp-client v4.1.0.
@@ -97,6 +97,12 @@ def logPipe: Pipe[F, AmqpEnvelope, AckResult] = { streamMsg =>
 
 consumer through logPipe to acker
 ```
+
+#### Consumer options
+
+When creating a consumer, it's also possible to indicate whether it is exclusive, non-local and the basic QOS among others.
+
+Both `createAckerConsumer` and `createAutoackConsumer` methods support two extra arguments: A `BasicQos` and a `ConsumerArgs`. By default, the basic QOS is set to a prefetch size of 0, a prefetch count of 1 and global is set to false. The ConsumerArgs is by default None since it's optional. When defined, you can indicate `consumerTag` (default is ""), `noLocal` (default is false), `exclusive` (default is false) and `args` (default is an empty Map[String, AnyRef]).
 
 #### Json message Consuming
 
