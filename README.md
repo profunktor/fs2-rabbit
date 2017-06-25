@@ -63,15 +63,18 @@ val routingKey    = RoutingKey("rk")
 val program = for {
   channel           <- createConnectionChannel[F]()                                     // Stream[F, Channel]
   _                 <- declareQueue[F](channel, queueName)                              // Stream[F, Queue.DeclareOk]
-  _                 <- declareExchange[IO](channel, exchangeName, ExchangeType.Topic)   // Stream[F, Exchange.DeclareOk]
-  _                 <- bindQueue[IO](channel, queueName, exchangeName, routingKey)      // Stream[F, Queue.BindOk]
-  (acker, consumer) = createAckerConsumer[F](channel, queueName)	                    // (StreamAcker[F], StreamConsumer[F])
-  publisher         = createPublisher[F](channel, exchangeName, routingKey)	            // StreamPublisher[F]
+  _                 <- declareExchange[F](channel, exchangeName, ExchangeType.Topic)    // Stream[F, Exchange.DeclareOk]
+  _                 <- bindQueue[F](channel, queueName, exchangeName, routingKey)       // Stream[F, Queue.BindOk]
+  (acker, consumer) = createAckerConsumer[F](channel, queueName)	                // (StreamAcker[F], StreamConsumer[F])
+  publisher         = createPublisher[F](channel, exchangeName, routingKey)	        // StreamPublisher[F]
   _                 <- doSomething(consumer, acker, publisher)
 } yield ()
 
-// Only once in your program...
-program.run.unsafeRunSync()
+// this will give you an Effect describing your program F[Unit]
+val effect: F[Unit] = program.run
+
+// if using cats.effect.IO you can execute it like this
+effect.unsafeRunSync()
 
 // StreamAcker is a type alias for Sink[F, AckResult]
 // StreamConsumer is a type alias for Stream[F, AmqpEnvelope]
