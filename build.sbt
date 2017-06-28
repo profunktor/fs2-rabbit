@@ -4,7 +4,10 @@ organization in ThisBuild := "com.github.gvolpe"
 
 version in ThisBuild := "0.0.11-SNAPSHOT"
 
-scalaVersion := "2.11.8"
+scalaVersion in ThisBuild := "2.11.8"
+
+// Plan to support both Scala 2.11.x and 2.12.x once the dependencies also support 2.12.x
+//crossScalaVersions in ThisBuild := Seq("2.11.8", "2.12.2")
 
 val circeVersion = "0.8.0"
 val qpidBrokerVersion = "6.1.2"
@@ -12,7 +15,6 @@ val qpidBrokerVersion = "6.1.2"
 val commonSettings = Seq(
   licenses +=("Apache-2.0", url("https://www.apache.org/licenses/LICENSE-2.0.html")),
   homepage := Some(url("https://github.com/gvolpe/fs2-rabbit")),
-  scalaVersion := "2.11.8",
   libraryDependencies ++= Seq(
     "com.rabbitmq"    %  "amqp-client"      % "4.1.0",
     "co.fs2"          %% "fs2-core"         % "0.10.0-M2",
@@ -80,10 +82,15 @@ val ExamplesDependencies: Seq[ModuleID] = Seq(
   "ch.qos.logback"  %  "logback-classic"    % "1.1.3" % "runtime"
 )
 
+lazy val noPublish = Seq(
+  publish := (),
+  publishLocal := (),
+  publishArtifact := false
+)
+
 lazy val root = project.in(file("."))
   .aggregate(`fs2-rabbit`, `fs2-rabbit-examples`)
-  .settings(publishLocal := {})
-  .settings(publish := {})
+  .settings(noPublish)
 
 lazy val `fs2-rabbit` = project.in(file("core"))
   .settings(commonSettings: _*)
@@ -92,13 +99,10 @@ lazy val `fs2-rabbit` = project.in(file("core"))
 lazy val `fs2-rabbit-examples` = project.in(file("examples"))
   .settings(commonSettings: _*)
   .settings(libraryDependencies ++= ExamplesDependencies)
-  .settings(publishLocal := {})
-  .settings(publish := {})
+  .settings(noPublish)
   .dependsOn(`fs2-rabbit`)
 
 sonatypeProfileName := "com.github.gvolpe"
-
-publishArtifact := false
 
 //resolvers += Resolver.sonatypeRepo("releases")
 //addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full)
