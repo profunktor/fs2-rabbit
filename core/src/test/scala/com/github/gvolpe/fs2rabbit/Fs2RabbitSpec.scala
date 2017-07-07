@@ -239,17 +239,51 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers with BeforeAndAfterEach {
     import TestFs2Rabbit._
 
     val program = for {
-      broker  <- EmbeddedAmqpBroker.createBroker
+      broker <- EmbeddedAmqpBroker.createBroker
       channel <- createConnectionChannel[IO]()
-      _       <- declareExchange[IO](channel, exchangeName, ExchangeType.Direct)
-      _       <- declareQueue[IO](channel, queueName)
-      _       <- deleteQueue[IO](channel, queueName)
+      _ <- declareExchange[IO](channel, exchangeName, ExchangeType.Direct)
+      _ <- declareQueue[IO](channel, queueName)
+      _ <- deleteQueue[IO](channel, queueName)
       either <- createAutoAckConsumer[IO](channel, queueName).attempt
     } yield {
-      either shouldBe a [Left[_, _]]
-      either.left.get shouldBe a [java.io.IOException]
+      either shouldBe a[Left[_, _]]
+      either.left.get shouldBe a[java.io.IOException]
     }
 
     program.run.unsafeRunSync()
   }
+
+  ignore should "bind an exchange to another exhange" in {
+    import TestFs2Rabbit._
+
+    val sourceExchangeName = ExchangeName("sourceExchange")
+    val destinationExchangeName = ExchangeName("destinationExchange")
+
+    val program = for {
+      broker            <- EmbeddedAmqpBroker.createBroker
+      channel           <- createConnectionChannel[IO]()
+      testQ             <- Stream.eval(async.boundedQueue[IO, AmqpEnvelope](100))
+      ackerQ            <- Stream.eval(async.boundedQueue[IO, AckResult](100))
+      _                 <- declareExchange[IO](channel, sourceExchangeName, ExchangeType.Direct)
+      _                 <- declareExchange[IO](channel, destinationExchangeName, ExchangeType.Direct)
+      _                 <- declareQueue[IO](channel, queueName)
+      _                 <- bindQueue[IO](channel, queueName, destinationExchangeName, routingKey)
+      _                 <- bindExchange[IO](channel, destinationExchangeName, sourceExchangeName, routingKey, ExchangeBindingArgs(Map.empty[String, AnyRef]))
+      publisher         = createPublisher[IO](channel, sourceExchangeName, routingKey)
+      consumerArgs      = ConsumerArgs(consumerTag = "XclusiveConsumer", noLocal = false, exclusive = true, args = Map.empty[String, AnyRef])
+      (acker, consumer) = createAckerConsumer[IO](channel, queueName, BasicQos(prefetchSize = 0, prefetchCount = 10), Some(consumerArgs))
+
+      msg               = Stream(AmqpMessage("test", AmqpProperties.empty))
+      _                 <- msg.covary[IO] to publisher
+      _                 <- Stream(
+        consumer to testQ.enqueue,
+        Stream(Ack(1)).covary[IO] observe ackerQ.enqueue to acker
+      ).join(2).take(1)
+      result            <- Stream.eval(testQ.dequeue1)
+      ackResult         <- Stream.eval(ackerQ.dequeue1)
+
+    } yield {
+      result    should be (AmqpEnvelope(1, "test", AmqpProperties(None, None, Map.empty[String, AmqpHeaderVal])))
+      ackResult should be (Ack(1))
+      broker
 }
