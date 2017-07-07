@@ -295,4 +295,43 @@ trait Fs2Rabbit {
     }
   }
 
+  /**
+    * Delete a queue.
+    *
+    * @param channel the channel where the publisher is going to be created
+    * @param queueName the name of the queue
+    * @param ifUnused true if the queue should be deleted only if not in use
+    * @param ifEmpty true if the queue should be deleted only if empty
+    *
+    * @return an effectful [[fs2.Stream]]
+    * */
+  def deleteQueue[F[_] : Effect](channel: Channel,
+                                 queueName: QueueName,
+                                 ifUnused: Boolean = true,
+                                 ifEmpty: Boolean = true)
+    (implicit ec: ExecutionContext): Stream[F, Queue.DeleteOk] = {
+    asyncF[F, Queue.DeleteOk] {
+      channel.queueDelete(queueName.name, ifUnused, ifEmpty)
+    }
+  }
+
+  /**
+    * Delete a queue without waiting for the response from the server.
+    *
+    * @param channel the channel where the publisher is going to be created
+    * @param queueName the name of the queue
+    * @param ifUnused true if the queue should be deleted only if not in use
+    * @param ifEmpty true if the queue should be deleted only if empty
+    *
+    * @return an effectful [[fs2.Stream]]
+    * */
+  def deleteQueueNoWait[F[_] : Effect](channel: Channel,
+    queueName: QueueName,
+    ifUnused: Boolean = true,
+    ifEmpty: Boolean = true)
+    (implicit ec: ExecutionContext): Stream[F,Unit] = {
+    asyncF[F, Unit] {
+      channel.queueDeleteNoWait(queueName.name, ifUnused, ifEmpty)
+    }
+  }
 }
