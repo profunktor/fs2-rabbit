@@ -309,7 +309,7 @@ trait Fs2Rabbit {
                                  queueName: QueueName,
                                  ifUnused: Boolean = true,
                                  ifEmpty: Boolean = true)
-    (implicit ec: ExecutionContext): Stream[F, Queue.DeleteOk] = {
+                                 (implicit ec: ExecutionContext): Stream[F, Queue.DeleteOk] = {
     asyncF[F, Queue.DeleteOk] {
       channel.queueDelete(queueName.name, ifUnused, ifEmpty)
     }
@@ -326,13 +326,14 @@ trait Fs2Rabbit {
     * @return an effectful [[fs2.Stream]]
     * */
   def deleteQueueNoWait[F[_] : Effect](channel: Channel,
-    queueName: QueueName,
-    ifUnused: Boolean = true,
-    ifEmpty: Boolean = true)
-    (implicit ec: ExecutionContext): Stream[F,Unit] = {
+                                       queueName: QueueName,
+                                       ifUnused: Boolean = true,
+                                       ifEmpty: Boolean = true)
+                                       (implicit ec: ExecutionContext): Stream[F,Unit] = {
     asyncF[F, Unit] {
       channel.queueDeleteNoWait(queueName.name, ifUnused, ifEmpty)
     }
+  }
 
   /**
     * Binds an exchange to an exchange.
@@ -354,4 +355,5 @@ trait Fs2Rabbit {
       channel.exchangeBind(destination.name, source.name, routingKey.name, args.value.asJava)
     }
   }
+
 }
