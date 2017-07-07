@@ -235,4 +235,21 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers with BeforeAndAfterEach {
     program.run.unsafeRunSync()
   }
 
+  it should "delete a queue" in {
+    import TestFs2Rabbit._
+
+    val program = for {
+      broker  <- EmbeddedAmqpBroker.createBroker
+      channel <- createConnectionChannel[IO]()
+      _       <- declareExchange[IO](channel, exchangeName, ExchangeType.Direct)
+      _       <- declareQueue[IO](channel, queueName)
+      _       <- deleteQueue[IO](channel, queueName)
+      either <- createAutoAckConsumer[IO](channel, queueName).attempt
+    } yield {
+      either shouldBe a [Left[_, _]]
+      either.left.get shouldBe a [java.io.IOException]
+    }
+
+    program.run.unsafeRunSync()
+  }
 }
