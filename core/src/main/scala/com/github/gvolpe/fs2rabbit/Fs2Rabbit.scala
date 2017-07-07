@@ -296,6 +296,25 @@ trait Fs2Rabbit {
   }
 
   /**
+    * Unbinds a queue from an exchange with the given arguments.
+    *
+    * @param channel the channel where the exchange is going to be declared
+    * @param queueName the name of the queue
+    * @param exchangeName the name of the exchange
+    * @param routingKey the routing key to use for the binding
+    *
+    * @return an effectful [[fs2.Stream]] of type [[Queue.BindOk]]
+    * */
+  def unbindQueue[F[_] : Effect](channel: Channel,
+                               queueName: QueueName,
+                               exchangeName: ExchangeName,
+                               routingKey: RoutingKey): Stream[F, Queue.UnbindOk] = {
+    asyncF[F, Queue.UnbindOk] {
+      channel.queueUnbind(queueName.name, exchangeName.name, routingKey.name)
+    }
+  }
+
+  /**
     * Delete a queue.
     *
     * @param channel the channel where the publisher is going to be created

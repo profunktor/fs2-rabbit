@@ -257,7 +257,42 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers with BeforeAndAfterEach {
     program.run.unsafeRunSync()
   }
 
-  ignore should "bind an exchange to another exhange" in {
+  it should "fail to unbind a queue when there is no binding" in {
+    import TestFs2Rabbit._
+
+    val program = for {
+      broker  <- EmbeddedAmqpBroker.createBroker
+      channel <- createConnectionChannel[IO]()
+      _       <- declareExchange[IO](channel, exchangeName, ExchangeType.Direct)
+      _       <- declareQueue[IO](channel, queueName)
+      either  <- unbindQueue[IO](channel, queueName, exchangeName, routingKey).attempt
+    } yield {
+      either          shouldBe a[Left[_, _]]
+      either.left.get shouldBe a[java.io.IOException]
+      broker
+    }
+
+    program.run.unsafeRunSync()
+  }
+
+  it should "unbind a queue" in {
+    import TestFs2Rabbit._
+
+    val program = for {
+      broker  <- EmbeddedAmqpBroker.createBroker
+      channel <- createConnectionChannel[IO]()
+      _       <- declareExchange[IO](channel, exchangeName, ExchangeType.Direct)
+      _       <- declareQueue[IO](channel, queueName)
+      _       <- bindQueue[IO](channel, queueName, exchangeName, routingKey)
+      _       <- unbindQueue[IO](channel, queueName, exchangeName, routingKey)
+    } yield {
+      broker
+    }
+
+    program.run.unsafeRunSync()
+  }
+
+  ignore should "bind an exchange to another exchange" in {
     import TestFs2Rabbit._
 
     val sourceExchangeName = ExchangeName("sourceExchange")
