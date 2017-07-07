@@ -333,5 +333,25 @@ trait Fs2Rabbit {
     asyncF[F, Unit] {
       channel.queueDeleteNoWait(queueName.name, ifUnused, ifEmpty)
     }
+
+  /**
+    * Binds an exchange to an exchange.
+    *
+    * @param channel the channel used to create a binding
+    * @param destination the destination exchange
+    * @param source the source exchange
+    * @param routingKey  the routing key to use for the binding
+    * @param args other properties
+    *
+    * @return an effectful [[fs2.Stream]] of type [[Exchange.BindOk]]
+    * */
+  def bindExchange[F[_]: Effect](channel: Channel,
+                                 destination: ExchangeName,
+                                 source: ExchangeName,
+                                 routingKey: RoutingKey,
+                                 args: ExchangeBindingArgs): Stream[F, Exchange.BindOk] = {
+    asyncF[F, Exchange.BindOk]{
+      channel.exchangeBind(destination.name, source.name, routingKey.name, args.value.asJava)
+    }
   }
 }
