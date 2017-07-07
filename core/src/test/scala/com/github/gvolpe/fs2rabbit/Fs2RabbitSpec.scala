@@ -40,14 +40,17 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers with BeforeAndAfterEach {
     import TestFs2Rabbit._
 
     val program = for {
-      broker  <- EmbeddedAmqpBroker.createBroker
-      channel <- createConnectionChannel[IO]()
-      queueD  <- declareQueue[IO](channel, queueName)
-      _       <- declareExchange[IO](channel, exchangeName, ExchangeType.Topic)
+      broker     <- EmbeddedAmqpBroker.createBroker
+      channel    <- createConnectionChannel[IO]()
+      queueD     <- declareQueue[IO](channel, queueName)
+      _          <- declareExchange[IO](channel, exchangeName, ExchangeType.Topic)
+      connection = channel.getConnection
     } yield {
-      channel.getConnection.toString  should be ("amqp://guest@127.0.0.1:45947/hostnameAlias")
-      channel.getChannelNumber        should be (1)
-      queueD.getQueue                 should be (queueName.name)
+      channel.getChannelNumber                should be (1)
+      queueD.getQueue                         should be (queueName.name)
+      connection.getAddress.isLoopbackAddress should be (true)
+      connection.toString                     should startWith ("amqp://guest@")
+      connection.toString                     should endWith ("45947/hostnameAlias")
       broker
     }
 
