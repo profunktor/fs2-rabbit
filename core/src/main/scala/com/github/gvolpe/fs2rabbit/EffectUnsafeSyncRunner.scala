@@ -22,7 +22,7 @@ import scala.language.higherKinds
   * program.run.unsafeRunSync
   * }}}
   *
-  * Having this generic type allows the fs2-rabbit library to to this for any effect:
+  * Having this generic type allows the fs2-rabbit library to do this for any effect:
   *
   * {{{
   * import cats.effect.Effect
