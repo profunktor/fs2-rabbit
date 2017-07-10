@@ -194,13 +194,12 @@ trait Fs2Rabbit {
     * */
   def createPublisher[F[_] : Effect](channel: Channel,
                                      exchangeName: ExchangeName,
-                                     routingKey: RoutingKey)
-                                    (implicit ec: ExecutionContext): StreamPublisher[F] = { streamMsg =>
+                                     routingKey: RoutingKey): StreamPublisher[F] = { streamMsg =>
     for {
       msg   <- streamMsg
       _     <- asyncF[F, Unit] {
-        channel.basicPublish(exchangeName.name, routingKey.name, msg.properties.asBasicProps, msg.payload.getBytes("UTF-8"))
-      }
+                 channel.basicPublish(exchangeName.name, routingKey.name, msg.properties.asBasicProps, msg.payload.getBytes("UTF-8"))
+               }
     } yield ()
   }
 
@@ -246,11 +245,10 @@ trait Fs2Rabbit {
   def bindQueue[F[_] : Effect](channel: Channel,
                                queueName: QueueName,
                                exchangeName: ExchangeName,
-                               routingKey: RoutingKey): Stream[F, Queue.BindOk] = {
+                               routingKey: RoutingKey): Stream[F, Queue.BindOk] =
     asyncF[F, Queue.BindOk] {
       channel.queueBind(queueName.name, exchangeName.name, routingKey.name)
     }
-  }
 
   /**
     * Binds a queue to an exchange with the given arguments.
@@ -267,11 +265,10 @@ trait Fs2Rabbit {
                                queueName: QueueName,
                                exchangeName: ExchangeName,
                                routingKey: RoutingKey,
-                               args: QueueBindingArgs): Stream[F, Queue.BindOk] = {
+                               args: QueueBindingArgs): Stream[F, Queue.BindOk] =
     asyncF[F, Queue.BindOk] {
       channel.queueBind(queueName.name, exchangeName.name, routingKey.name, args.value.asJava)
     }
-  }
 
   /**
     * Binds a queue to an exchange with the given arguments but sets nowait parameter to true and returns
@@ -289,11 +286,10 @@ trait Fs2Rabbit {
                                      queueName: QueueName,
                                      exchangeName: ExchangeName,
                                      routingKey: RoutingKey,
-                                     args: QueueBindingArgs): Stream[F, Unit] = {
+                                     args: QueueBindingArgs): Stream[F, Unit] =
     asyncF[F, Unit] {
       channel.queueBindNoWait(queueName.name, exchangeName.name, routingKey.name, args.value.asJava)
     }
-  }
 
   /**
     * Unbinds a queue from an exchange with the given arguments.
@@ -308,11 +304,10 @@ trait Fs2Rabbit {
   def unbindQueue[F[_] : Effect](channel: Channel,
                                queueName: QueueName,
                                exchangeName: ExchangeName,
-                               routingKey: RoutingKey): Stream[F, Queue.UnbindOk] = {
+                               routingKey: RoutingKey): Stream[F, Queue.UnbindOk] =
     asyncF[F, Queue.UnbindOk] {
       channel.queueUnbind(queueName.name, exchangeName.name, routingKey.name)
     }
-  }
 
   /**
     * Delete a queue.
@@ -327,12 +322,10 @@ trait Fs2Rabbit {
   def deleteQueue[F[_] : Effect](channel: Channel,
                                  queueName: QueueName,
                                  ifUnused: Boolean = true,
-                                 ifEmpty: Boolean = true)
-                                 (implicit ec: ExecutionContext): Stream[F, Queue.DeleteOk] = {
+                                 ifEmpty: Boolean = true): Stream[F, Queue.DeleteOk] =
     asyncF[F, Queue.DeleteOk] {
       channel.queueDelete(queueName.name, ifUnused, ifEmpty)
     }
-  }
 
   /**
     * Delete a queue without waiting for the response from the server.
@@ -347,12 +340,10 @@ trait Fs2Rabbit {
   def deleteQueueNoWait[F[_] : Effect](channel: Channel,
                                        queueName: QueueName,
                                        ifUnused: Boolean = true,
-                                       ifEmpty: Boolean = true)
-                                       (implicit ec: ExecutionContext): Stream[F,Unit] = {
+                                       ifEmpty: Boolean = true): Stream[F,Unit] =
     asyncF[F, Unit] {
       channel.queueDeleteNoWait(queueName.name, ifUnused, ifEmpty)
     }
-  }
 
   /**
     * Binds an exchange to an exchange.
@@ -369,10 +360,9 @@ trait Fs2Rabbit {
                                  destination: ExchangeName,
                                  source: ExchangeName,
                                  routingKey: RoutingKey,
-                                 args: ExchangeBindingArgs): Stream[F, Exchange.BindOk] = {
+                                 args: ExchangeBindingArgs): Stream[F, Exchange.BindOk] =
     asyncF[F, Exchange.BindOk]{
       channel.exchangeBind(destination.name, source.name, routingKey.name, args.value.asJava)
     }
-  }
 
 }
