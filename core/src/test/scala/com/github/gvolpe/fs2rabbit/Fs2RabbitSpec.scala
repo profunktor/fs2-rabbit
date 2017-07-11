@@ -1,6 +1,7 @@
 package com.github.gvolpe.fs2rabbit
 
 import cats.effect.IO
+import com.github.gvolpe.fs2rabbit.Binding._
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 import com.github.gvolpe.fs2rabbit.embedded.EmbeddedAmqpBroker
 import com.github.gvolpe.fs2rabbit.model._
