@@ -3,9 +3,7 @@ package com.github.gvolpe.fs2rabbit
 import cats.effect.{Effect, IO}
 import com.github.gvolpe.fs2rabbit.Fs2Utils._
 import com.github.gvolpe.fs2rabbit.config.{Fs2RabbitConfig, Fs2RabbitConfigManager}
-import model.ExchangeType.ExchangeType
 import model._
-import com.rabbitmq.client.AMQP.{Exchange, Queue}
 import com.rabbitmq.client._
 import fs2.async.mutable
 import fs2.{Pipe, Sink, Stream}
@@ -104,7 +102,7 @@ trait UnderlyingAmqpClient {
   * Acquisition of resources like [[Connection]] and [[Channel]] are performed in a safe way with
   * the help of [[fs2.Stream.bracket()]] that will free the resources when they're no longer needed.
   * */
-trait Fs2Rabbit {
+trait Fs2Rabbit extends Declarations with Binding with Deletions {
   self: UnderlyingAmqpClient =>
 
   protected def log: Logger
@@ -202,167 +200,5 @@ trait Fs2Rabbit {
                }
     } yield ()
   }
-
-  /**
-    * Declares an exchange.
-    *
-    * @param channel the channel where the exchange is going to be declared
-    * @param exchangeName the name of the exchange
-    * @param exchangeType the exchange type: Direct, FanOut, Headers, Topic.
-    *
-    * @return an effectful [[fs2.Stream]] of type [[Exchange.DeclareOk]]
-    * */
-  def declareExchange[F[_] : Effect](channel: Channel,
-                                     exchangeName: ExchangeName,
-                                     exchangeType: ExchangeType): Stream[F, Exchange.DeclareOk] =
-    asyncF[F, Exchange.DeclareOk] {
-      channel.exchangeDeclare(exchangeName.name, exchangeType.toString.toLowerCase)
-    }
-
-  /**
-    * Declares a queue.
-    *
-    * @param channel the channel where the queue is going to be declared
-    * @param queueName the name of the queue
-    *
-    * @return an effectful [[fs2.Stream]] of type [[Queue.DeclareOk]]
-    * */
-  def declareQueue[F[_] : Effect](channel: Channel, queueName: QueueName): Stream[F, Queue.DeclareOk] =
-    asyncF[F, Queue.DeclareOk] {
-      channel.queueDeclare(queueName.name, false, false, false, Map.empty[String, AnyRef].asJava)
-    }
-
-  /**
-    * Binds a queue to an exchange, with extra arguments.
-    *
-    * @param channel the channel where the exchange is going to be declared
-    * @param queueName the name of the queue
-    * @param exchangeName the name of the exchange
-    * @param routingKey the routing key to use for the binding
-    *
-    * @return an effectful [[fs2.Stream]] of type [[Queue.BindOk]]
-    * */
-  def bindQueue[F[_] : Effect](channel: Channel,
-                               queueName: QueueName,
-                               exchangeName: ExchangeName,
-                               routingKey: RoutingKey): Stream[F, Queue.BindOk] =
-    asyncF[F, Queue.BindOk] {
-      channel.queueBind(queueName.name, exchangeName.name, routingKey.name)
-    }
-
-  /**
-    * Binds a queue to an exchange with the given arguments.
-    *
-    * @param channel the channel where the exchange is going to be declared
-    * @param queueName the name of the queue
-    * @param exchangeName the name of the exchange
-    * @param routingKey the routing key to use for the binding
-    * @param args other properties (binding parameters)
-    *
-    * @return an effectful [[fs2.Stream]] of type [[Queue.BindOk]]
-    * */
-  def bindQueue[F[_] : Effect](channel: Channel,
-                               queueName: QueueName,
-                               exchangeName: ExchangeName,
-                               routingKey: RoutingKey,
-                               args: QueueBindingArgs): Stream[F, Queue.BindOk] =
-    asyncF[F, Queue.BindOk] {
-      channel.queueBind(queueName.name, exchangeName.name, routingKey.name, args.value.asJava)
-    }
-
-  /**
-    * Binds a queue to an exchange with the given arguments but sets nowait parameter to true and returns
-    * nothing (as there will be no response from the server).
-    *
-    * @param channel the channel where the exchange is going to be declared
-    * @param queueName the name of the queue
-    * @param exchangeName the name of the exchange
-    * @param routingKey the routing key to use for the binding
-    * @param args other properties (binding parameters)
-    *
-    * @return an effectful [[fs2.Stream]]
-    * */
-  def bindQueueNoWait[F[_] : Effect](channel: Channel,
-                                     queueName: QueueName,
-                                     exchangeName: ExchangeName,
-                                     routingKey: RoutingKey,
-                                     args: QueueBindingArgs): Stream[F, Unit] =
-    asyncF[F, Unit] {
-      channel.queueBindNoWait(queueName.name, exchangeName.name, routingKey.name, args.value.asJava)
-    }
-
-  /**
-    * Unbinds a queue from an exchange with the given arguments.
-    *
-    * @param channel the channel where the exchange is going to be declared
-    * @param queueName the name of the queue
-    * @param exchangeName the name of the exchange
-    * @param routingKey the routing key to use for the binding
-    *
-    * @return an effectful [[fs2.Stream]] of type [[Queue.BindOk]]
-    * */
-  def unbindQueue[F[_] : Effect](channel: Channel,
-                               queueName: QueueName,
-                               exchangeName: ExchangeName,
-                               routingKey: RoutingKey): Stream[F, Queue.UnbindOk] =
-    asyncF[F, Queue.UnbindOk] {
-      channel.queueUnbind(queueName.name, exchangeName.name, routingKey.name)
-    }
-
-  /**
-    * Delete a queue.
-    *
-    * @param channel the channel where the publisher is going to be created
-    * @param queueName the name of the queue
-    * @param ifUnused true if the queue should be deleted only if not in use
-    * @param ifEmpty true if the queue should be deleted only if empty
-    *
-    * @return an effectful [[fs2.Stream]]
-    * */
-  def deleteQueue[F[_] : Effect](channel: Channel,
-                                 queueName: QueueName,
-                                 ifUnused: Boolean = true,
-                                 ifEmpty: Boolean = true): Stream[F, Queue.DeleteOk] =
-    asyncF[F, Queue.DeleteOk] {
-      channel.queueDelete(queueName.name, ifUnused, ifEmpty)
-    }
-
-  /**
-    * Delete a queue without waiting for the response from the server.
-    *
-    * @param channel the channel where the publisher is going to be created
-    * @param queueName the name of the queue
-    * @param ifUnused true if the queue should be deleted only if not in use
-    * @param ifEmpty true if the queue should be deleted only if empty
-    *
-    * @return an effectful [[fs2.Stream]]
-    * */
-  def deleteQueueNoWait[F[_] : Effect](channel: Channel,
-                                       queueName: QueueName,
-                                       ifUnused: Boolean = true,
-                                       ifEmpty: Boolean = true): Stream[F,Unit] =
-    asyncF[F, Unit] {
-      channel.queueDeleteNoWait(queueName.name, ifUnused, ifEmpty)
-    }
-
-  /**
-    * Binds an exchange to an exchange.
-    *
-    * @param channel the channel used to create a binding
-    * @param destination the destination exchange
-    * @param source the source exchange
-    * @param routingKey  the routing key to use for the binding
-    * @param args other properties
-    *
-    * @return an effectful [[fs2.Stream]] of type [[Exchange.BindOk]]
-    * */
-  def bindExchange[F[_]: Effect](channel: Channel,
-                                 destination: ExchangeName,
-                                 source: ExchangeName,
-                                 routingKey: RoutingKey,
-                                 args: ExchangeBindingArgs): Stream[F, Exchange.BindOk] =
-    asyncF[F, Exchange.BindOk]{
-      channel.exchangeBind(destination.name, source.name, routingKey.name, args.value.asJava)
-    }
 
 }

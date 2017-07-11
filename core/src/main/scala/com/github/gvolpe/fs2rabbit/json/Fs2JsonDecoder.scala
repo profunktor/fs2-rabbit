@@ -34,7 +34,7 @@ object Fs2JsonDecoder {
     * p.run.unsafeRunSync
     * }}}
     *
-    * The result will be a tuple ([[Either[Error, A]], [[DeliveryTag]])
+    * The result will be a tuple ([[Either]] of [[Error]] and [[A]], [[DeliveryTag]])
     * */
   def jsonDecode[F[_] : Effect, A : Decoder]: Pipe[F, AmqpEnvelope, (Either[Error, A], DeliveryTag)] =
     streamMsg =>
