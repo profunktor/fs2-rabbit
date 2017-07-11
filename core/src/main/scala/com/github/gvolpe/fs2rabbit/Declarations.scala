@@ -43,3 +43,8 @@ trait Declarations {
     }
 
 }
+
+object Declarations {
+  case class QueueDeclarationArgs(value: Map[String, AnyRef])
+  case class ExchangeDeclarationArgs(value: Map[String, AnyRef])
+}

@@ -1,6 +1,7 @@
 package com.github.gvolpe.fs2rabbit
 
 import cats.effect.Effect
+import com.github.gvolpe.fs2rabbit.Binding._
 import com.github.gvolpe.fs2rabbit.Fs2Utils.asyncF
 import com.github.gvolpe.fs2rabbit.model._
 import com.rabbitmq.client.AMQP.{Exchange, Queue}
@@ -109,4 +110,9 @@ trait Binding {
       channel.exchangeBind(destination.name, source.name, routingKey.name, args.value.asJava)
     }
 
+}
+
+object Binding {
+  case class QueueBindingArgs(value: Map[String, AnyRef])
+  case class ExchangeBindingArgs(value: Map[String, AnyRef])
 }

@@ -82,11 +82,4 @@ object model {
 
   case class AmqpMessage[A](payload: A, properties: AmqpProperties)
 
-  // Generic type arguments for methods like queueBind, queueDeclare, etc
-  case class QueueDeclarationArgs(value: Map[String, AnyRef])
-  case class QueueBindingArgs(value: Map[String, AnyRef])
-
-  case class ExchangeDeclarationArgs(value: Map[String, AnyRef])
-  case class ExchangeBindingArgs(value: Map[String, AnyRef])
-
 }
