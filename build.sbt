@@ -17,7 +17,7 @@ val commonSettings = Seq(
   homepage := Some(url("https://github.com/gvolpe/fs2-rabbit")),
   libraryDependencies ++= Seq(
     "com.rabbitmq"    %  "amqp-client"      % "4.1.0",
-    "co.fs2"          %% "fs2-core"         % "0.10.0-M2",
+    "co.fs2"          %% "fs2-core"         % "0.10.0-M4",
     "org.typelevel"   %% "cats-effect"      % "0.3",
     "com.typesafe"    % "config"            % "1.3.1",
 

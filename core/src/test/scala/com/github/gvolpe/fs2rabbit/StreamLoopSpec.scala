@@ -11,12 +11,10 @@ import scala.concurrent.duration._
 class StreamLoopSpec extends FlatSpecLike with Matchers {
 
   implicit val ec = scala.concurrent.ExecutionContext.Implicits.global
-  implicit val s  = fs2.Scheduler.fromFixedDaemonPool(2, "restarter")
 
   implicit val es = new EffectScheduler[IO] {
-    override def schedule[A](effect: IO[A], delay: FiniteDuration)
-                            (implicit ec: ExecutionContext, s: Scheduler) = {
-      IO.async[Unit] { cb => s.scheduleOnce(delay)(cb(Right(()))) }.flatMap(_ => effect)
+    override def schedule[A](effect: IO[A], delay: FiniteDuration)(implicit ec: ExecutionContext) = {
+      Scheduler[IO](2).flatMap(_.sleep[IO](delay)).run.flatMap(_ => effect)
     }
   }
 
