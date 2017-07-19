@@ -1,7 +1,5 @@
 package com.github.gvolpe.fs2rabbit
 
-import fs2.Scheduler
-
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
 import scala.language.higherKinds
@@ -15,10 +13,9 @@ import scala.language.higherKinds
   * */
 trait EffectScheduler[F[_]] {
   /**
-    * It creates an Effect that will be submitted for execution after the given delay, using
-    * the implicit [[fs2.Scheduler]].
+    * It creates an Effect that will be submitted for execution after the given delay.
     * */
-  def schedule[A](effect: F[A], delay: FiniteDuration)(implicit ec: ExecutionContext, s: Scheduler): F[A]
+  def schedule[A](effect: F[A], delay: FiniteDuration)(implicit ec: ExecutionContext): F[A]
 }
 
 object EffectScheduler {

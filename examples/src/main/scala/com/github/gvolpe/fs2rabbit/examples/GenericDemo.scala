@@ -14,7 +14,6 @@ import scala.language.higherKinds
 class GenericDemo[F[_] : Effect : EffectScheduler : EffectUnsafeSyncRunner]() {
 
   implicit val appS = scala.concurrent.ExecutionContext.Implicits.global
-  implicit val appR = fs2.Scheduler.fromFixedDaemonPool(2, "restarter")
 
   val queueName     = QueueName("testQ")
   val exchangeName  = ExchangeName("testEX")

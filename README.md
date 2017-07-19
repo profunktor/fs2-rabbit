@@ -166,7 +166,6 @@ So, for the program defined above, this would be an example of a resilient app t
 import com.github.gvolpe.fs2rabbit.StreamLoop
 import scala.concurrent.duration._
 
-implicit val appR = fs2.Scheduler.fromFixedDaemonPool(2, "restarter")
 implicit val appS = IOEffectScheduler // or MonixEffectScheduler if using Monix Task
 
 StreamLoop.run(() => program, 1.second)
