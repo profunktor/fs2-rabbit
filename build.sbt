@@ -2,12 +2,9 @@ name := """fs2-rabbit-root"""
 
 organization in ThisBuild := "com.github.gvolpe"
 
-version in ThisBuild := "0.0.11-SNAPSHOT"
+version in ThisBuild := "0.0.12-SNAPSHOT"
 
-scalaVersion in ThisBuild := "2.11.8"
-
-// Plan to support both Scala 2.11.x and 2.12.x once the dependencies also support 2.12.x
-//crossScalaVersions in ThisBuild := Seq("2.11.8", "2.12.2")
+crossScalaVersions in ThisBuild := Seq("2.11.8", "2.12.2")
 
 val circeVersion = "0.8.0"
 val qpidBrokerVersion = "6.1.2"
@@ -34,8 +31,8 @@ val commonSettings = Seq(
     "org.apache.geronimo.specs" % "geronimo-jms_1.1_spec"                 % "1.1.1"           % "test",
 
     // Scala test libraries
-    "org.scalatest"   %% "scalatest"  % "2.2.4" % "test",
-    "org.scalacheck"  %% "scalacheck" % "1.12.5" % "test"
+    "org.scalatest"   %% "scalatest"  % "3.0.1" % "test",
+    "org.scalacheck"  %% "scalacheck" % "1.13.4" % "test"
   ),
   resolvers += "Apache public" at "https://repository.apache.org/content/groups/public/",
   scalacOptions ++= Seq(
