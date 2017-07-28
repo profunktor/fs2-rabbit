@@ -4,7 +4,7 @@ organization in ThisBuild := "com.github.gvolpe"
 
 version in ThisBuild := "0.0.12-SNAPSHOT"
 
-crossScalaVersions in ThisBuild := Seq("2.11.8", "2.12.2")
+crossScalaVersions in ThisBuild := Seq("2.11.8", "2.12.3")
 
 val circeVersion = "0.8.0"
 val qpidBrokerVersion = "6.1.2"
