@@ -20,7 +20,7 @@ resolvers += Opts.resolver.sonatypeSnapshots
 libraryDependencies += "com.github.gvolpe" %% "fs2-rabbit" % "0.0.12-SNAPSHOT"
 ```
 
-fs2-rabbit depends on fs2 v0.10.0-M4, cats-effect v0.3, circe v0.8.0 and amqp-client v4.1.0 and it's cross compiled to Scala 2.11.8 and 2.11.3.
+fs2-rabbit depends on fs2 v0.10.0-M4, cats-effect v0.3, circe v0.8.0 and amqp-client v4.1.0 and it's cross compiled to Scala 2.11.8 and 2.12.3.
 
 ## Usage
 
