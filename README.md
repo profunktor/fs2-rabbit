@@ -89,7 +89,7 @@ It is possible to create either an **autoAckConsumer** or an **ackerConsumer**. 
 
 ```scala
 import com.github.gvolpe.fs2rabbit.model._
-import fs2.Pipe
+import fs2.{Pipe, Stream}
 
 def logPipe: Pipe[F, AmqpEnvelope, AckResult] = { streamMsg =>
   for {

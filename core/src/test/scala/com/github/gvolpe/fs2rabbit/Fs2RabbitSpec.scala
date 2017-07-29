@@ -299,7 +299,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers with BeforeAndAfterEach {
     val sourceExchangeName = ExchangeName("sourceExchange")
     val destinationExchangeName = ExchangeName("destinationExchange")
 
-    val program = for {
+    for {
       broker            <- EmbeddedAmqpBroker.createBroker
       channel           <- createConnectionChannel[IO]()
       testQ             <- Stream.eval(async.boundedQueue[IO, AmqpEnvelope](100))

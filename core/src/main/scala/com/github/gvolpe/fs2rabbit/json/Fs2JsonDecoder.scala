@@ -1,6 +1,6 @@
 package com.github.gvolpe.fs2rabbit.json
 
-import cats.effect.Effect
+import cats.effect.Sync
 import com.github.gvolpe.fs2rabbit.Fs2Utils.asyncF
 import com.github.gvolpe.fs2rabbit.model.{AmqpEnvelope, DeliveryTag}
 import fs2.Pipe
@@ -36,7 +36,7 @@ object Fs2JsonDecoder {
     *
     * The result will be a tuple ([[Either]] of [[Error]] and [[A]], [[DeliveryTag]])
     * */
-  def jsonDecode[F[_] : Effect, A : Decoder]: Pipe[F, AmqpEnvelope, (Either[Error, A], DeliveryTag)] =
+  def jsonDecode[F[_] : Sync, A : Decoder]: Pipe[F, AmqpEnvelope, (Either[Error, A], DeliveryTag)] =
     streamMsg =>
       for {
         amqpMsg <- streamMsg

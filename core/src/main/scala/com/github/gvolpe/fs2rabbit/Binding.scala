@@ -1,6 +1,6 @@
 package com.github.gvolpe.fs2rabbit
 
-import cats.effect.Effect
+import cats.effect.Sync
 import com.github.gvolpe.fs2rabbit.Binding._
 import com.github.gvolpe.fs2rabbit.Fs2Utils.asyncF
 import com.github.gvolpe.fs2rabbit.model._
@@ -23,10 +23,10 @@ trait Binding {
     *
     * @return an effectful [[fs2.Stream]] of type [[Queue.BindOk]]
     * */
-  def bindQueue[F[_] : Effect](channel: Channel,
-                               queueName: QueueName,
-                               exchangeName: ExchangeName,
-                               routingKey: RoutingKey): Stream[F, Queue.BindOk] =
+  def bindQueue[F[_] : Sync](channel: Channel,
+                             queueName: QueueName,
+                             exchangeName: ExchangeName,
+                             routingKey: RoutingKey): Stream[F, Queue.BindOk] =
     asyncF[F, Queue.BindOk] {
       channel.queueBind(queueName.name, exchangeName.name, routingKey.name)
     }
@@ -42,11 +42,11 @@ trait Binding {
     *
     * @return an effectful [[fs2.Stream]] of type [[Queue.BindOk]]
     * */
-  def bindQueue[F[_] : Effect](channel: Channel,
-                               queueName: QueueName,
-                               exchangeName: ExchangeName,
-                               routingKey: RoutingKey,
-                               args: QueueBindingArgs): Stream[F, Queue.BindOk] =
+  def bindQueue[F[_] : Sync](channel: Channel,
+                             queueName: QueueName,
+                             exchangeName: ExchangeName,
+                             routingKey: RoutingKey,
+                             args: QueueBindingArgs): Stream[F, Queue.BindOk] =
     asyncF[F, Queue.BindOk] {
       channel.queueBind(queueName.name, exchangeName.name, routingKey.name, args.value.asJava)
     }
@@ -63,11 +63,11 @@ trait Binding {
     *
     * @return an effectful [[fs2.Stream]]
     * */
-  def bindQueueNoWait[F[_] : Effect](channel: Channel,
-                                     queueName: QueueName,
-                                     exchangeName: ExchangeName,
-                                     routingKey: RoutingKey,
-                                     args: QueueBindingArgs): Stream[F, Unit] =
+  def bindQueueNoWait[F[_] : Sync](channel: Channel,
+                                   queueName: QueueName,
+                                   exchangeName: ExchangeName,
+                                   routingKey: RoutingKey,
+                                   args: QueueBindingArgs): Stream[F, Unit] =
     asyncF[F, Unit] {
       channel.queueBindNoWait(queueName.name, exchangeName.name, routingKey.name, args.value.asJava)
     }
@@ -82,10 +82,10 @@ trait Binding {
     *
     * @return an effectful [[fs2.Stream]] of type [[Queue.BindOk]]
     * */
-  def unbindQueue[F[_] : Effect](channel: Channel,
-                                 queueName: QueueName,
-                                 exchangeName: ExchangeName,
-                                 routingKey: RoutingKey): Stream[F, Queue.UnbindOk] =
+  def unbindQueue[F[_] : Sync](channel: Channel,
+                               queueName: QueueName,
+                               exchangeName: ExchangeName,
+                               routingKey: RoutingKey): Stream[F, Queue.UnbindOk] =
     asyncF[F, Queue.UnbindOk] {
       channel.queueUnbind(queueName.name, exchangeName.name, routingKey.name)
     }
@@ -101,11 +101,11 @@ trait Binding {
     *
     * @return an effectful [[fs2.Stream]] of type [[Exchange.BindOk]]
     * */
-  def bindExchange[F[_]: Effect](channel: Channel,
-                                 destination: ExchangeName,
-                                 source: ExchangeName,
-                                 routingKey: RoutingKey,
-                                 args: ExchangeBindingArgs): Stream[F, Exchange.BindOk] =
+  def bindExchange[F[_]: Sync](channel: Channel,
+                               destination: ExchangeName,
+                               source: ExchangeName,
+                               routingKey: RoutingKey,
+                               args: ExchangeBindingArgs): Stream[F, Exchange.BindOk] =
     asyncF[F, Exchange.BindOk]{
       channel.exchangeBind(destination.name, source.name, routingKey.name, args.value.asJava)
     }

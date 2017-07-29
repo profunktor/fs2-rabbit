@@ -1,6 +1,6 @@
 package com.github.gvolpe.fs2rabbit
 
-import cats.effect.Effect
+import cats.effect.Sync
 import fs2.Stream
 import org.slf4j.LoggerFactory
 
@@ -20,12 +20,12 @@ object StreamLoop {
 
   private val log = LoggerFactory.getLogger(getClass)
 
-  def run[F[_] : Effect: EffectScheduler : EffectUnsafeSyncRunner](program: () => Stream[F, Unit], retry: FiniteDuration = 5.seconds)
+  def run[F[_] : Sync : EffectScheduler : EffectUnsafeSyncRunner](program: () => Stream[F, Unit], retry: FiniteDuration = 5.seconds)
          (implicit ec: ExecutionContext): Unit = {
     EffectUnsafeSyncRunner[F].unsafeRunSync(loop(program(), retry).run)
   }
 
-  private def loop[F[_] : Effect : EffectScheduler](program: Stream[F, Unit], retry: FiniteDuration)
+  private def loop[F[_] : Sync : EffectScheduler](program: Stream[F, Unit], retry: FiniteDuration)
                         (implicit ec: ExecutionContext): Stream[F, Unit] = {
     program.onError { err =>
       log.error(s"$err")

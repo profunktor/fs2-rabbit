@@ -1,6 +1,6 @@
 package com.github.gvolpe.fs2rabbit
 
-import cats.effect.Effect
+import cats.effect.Sync
 import com.github.gvolpe.fs2rabbit.Fs2Utils.asyncF
 import com.github.gvolpe.fs2rabbit.model.ExchangeType.ExchangeType
 import com.github.gvolpe.fs2rabbit.model.{ExchangeName, QueueName}
@@ -22,9 +22,9 @@ trait Declarations {
     *
     * @return an effectful [[fs2.Stream]] of type [[Exchange.DeclareOk]]
     * */
-  def declareExchange[F[_] : Effect](channel: Channel,
-                                     exchangeName: ExchangeName,
-                                     exchangeType: ExchangeType): Stream[F, Exchange.DeclareOk] =
+  def declareExchange[F[_] : Sync](channel: Channel,
+                                   exchangeName: ExchangeName,
+                                   exchangeType: ExchangeType): Stream[F, Exchange.DeclareOk] =
     asyncF[F, Exchange.DeclareOk] {
       channel.exchangeDeclare(exchangeName.name, exchangeType.toString.toLowerCase)
     }
@@ -37,7 +37,7 @@ trait Declarations {
     *
     * @return an effectful [[fs2.Stream]] of type [[Queue.DeclareOk]]
     * */
-  def declareQueue[F[_] : Effect](channel: Channel, queueName: QueueName): Stream[F, Queue.DeclareOk] =
+  def declareQueue[F[_] : Sync](channel: Channel, queueName: QueueName): Stream[F, Queue.DeclareOk] =
     asyncF[F, Queue.DeclareOk] {
       channel.queueDeclare(queueName.name, false, false, false, Map.empty[String, AnyRef].asJava)
     }

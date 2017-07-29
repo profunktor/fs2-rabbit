@@ -1,6 +1,6 @@
 package com.github.gvolpe.fs2rabbit
 
-import cats.effect.{Effect, IO}
+import cats.effect.{Async, IO, Sync}
 import com.github.gvolpe.fs2rabbit.Fs2Utils._
 import com.github.gvolpe.fs2rabbit.config.{Fs2RabbitConfig, Fs2RabbitConfigManager}
 import model._
@@ -54,13 +54,13 @@ trait UnderlyingAmqpClient {
 
   }
 
-  protected def createAcker[F[_] : Effect](channel: Channel): Sink[F, AckResult] =
+  protected def createAcker[F[_] : Sync](channel: Channel): Sink[F, AckResult] =
     liftSink[F, AckResult] {
-      case Ack(tag)   => Effect[F].delay(channel.basicAck(tag, false))
-      case NAck(tag)  => Effect[F].delay(channel.basicNack(tag, false, fs2RabbitConfig.requeueOnNack))
+      case Ack(tag)   => Sync[F].delay(channel.basicAck(tag, false))
+      case NAck(tag)  => Sync[F].delay(channel.basicNack(tag, false, fs2RabbitConfig.requeueOnNack))
     }
 
-  protected def createConsumer[F[_] : Effect](queueName: QueueName,
+  protected def createConsumer[F[_] : Async](queueName: QueueName,
                                               channel: Channel,
                                               basicQos: BasicQos,
                                               autoAck: Boolean = false,
@@ -78,14 +78,14 @@ trait UnderlyingAmqpClient {
     } yield consumer
   }
 
-  protected def acquireConnection[F[_] : Effect]: F[(Connection, Channel)] =
-    Effect[F].delay {
+  protected def acquireConnection[F[_] : Sync]: F[(Connection, Channel)] =
+    Sync[F].delay {
       val conn    = factory.newConnection
       val channel = conn.createChannel
       (conn, channel)
     }
 
-  protected def resilientConsumer[F[_] : Effect]: Pipe[F, Either[Throwable, AmqpEnvelope], AmqpEnvelope] =
+  protected def resilientConsumer[F[_] : Sync]: Pipe[F, Either[Throwable, AmqpEnvelope], AmqpEnvelope] =
     streamMsg =>
       streamMsg.flatMap {
         case Left(err)  => Stream.fail(err)
@@ -113,10 +113,10 @@ trait Fs2Rabbit extends Declarations with Binding with Deletions {
     *
     * @return An effectful [[fs2.Stream]] of type [[Channel]]
     * */
-  def createConnectionChannel[F[_] : Effect](): Stream[F, Channel] =
+  def createConnectionChannel[F[_] : Sync](): Stream[F, Channel] =
     Stream.bracket(acquireConnection)(
       cc => asyncF[F, Channel](cc._2),
-      cc => Effect[F].delay {
+      cc => Sync[F].delay {
         val (conn, channel) = cc
         log.info(s"Releasing connection: $conn previously acquired.")
         if (channel.isOpen) channel.close()
@@ -134,11 +134,11 @@ trait Fs2Rabbit extends Declarations with Binding with Deletions {
     *
     * @return A tuple ([[StreamAcker]], [[StreamConsumer]]) represented as [[StreamAckerConsumer]]
     * */
-  def createAckerConsumer[F[_] : Effect](channel: Channel,
-                                         queueName: QueueName,
-                                         basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
-                                         consumerArgs: Option[ConsumerArgs] = None)
-                                        (implicit ec: ExecutionContext): StreamAckerConsumer[F] = {
+  def createAckerConsumer[F[_] : Async](channel: Channel,
+                                        queueName: QueueName,
+                                        basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
+                                        consumerArgs: Option[ConsumerArgs] = None)
+                                       (implicit ec: ExecutionContext): StreamAckerConsumer[F] = {
     val consumer = consumerArgs.fold(createConsumer(queueName, channel, basicQos)) { args =>
       createConsumer(
         queueName = queueName,
@@ -162,11 +162,11 @@ trait Fs2Rabbit extends Declarations with Binding with Deletions {
     *
     * @return A [[StreamConsumer]] with data type represented as [[AmqpEnvelope]]
     * */
-  def createAutoAckConsumer[F[_] : Effect](channel: Channel,
-                                           queueName: QueueName,
-                                           basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
-                                           consumerArgs: Option[ConsumerArgs] = None)
-                                 (implicit ec: ExecutionContext): StreamConsumer[F] = {
+  def createAutoAckConsumer[F[_] : Async](channel: Channel,
+                                          queueName: QueueName,
+                                          basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
+                                          consumerArgs: Option[ConsumerArgs] = None)
+                                         (implicit ec: ExecutionContext): StreamConsumer[F] = {
     consumerArgs.fold(createConsumer(queueName, channel, basicQos, autoAck = true)) { args =>
       createConsumer(
         queueName = queueName,
@@ -190,7 +190,7 @@ trait Fs2Rabbit extends Declarations with Binding with Deletions {
     *
     * @return A sink where messages of type [[AmqpMessage]] of [[String]] can be published represented as [[StreamPublisher]]
     * */
-  def createPublisher[F[_] : Effect](channel: Channel,
+  def createPublisher[F[_] : Sync](channel: Channel,
                                      exchangeName: ExchangeName,
                                      routingKey: RoutingKey): StreamPublisher[F] = { streamMsg =>
     for {

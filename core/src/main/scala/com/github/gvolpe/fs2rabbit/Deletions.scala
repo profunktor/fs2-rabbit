@@ -1,6 +1,6 @@
 package com.github.gvolpe.fs2rabbit
 
-import cats.effect.Effect
+import cats.effect.Sync
 import com.github.gvolpe.fs2rabbit.Fs2Utils.asyncF
 import com.github.gvolpe.fs2rabbit.model._
 import com.rabbitmq.client.AMQP.Queue
@@ -21,10 +21,10 @@ trait Deletions {
     *
     * @return an effectful [[fs2.Stream]]
     * */
-  def deleteQueue[F[_] : Effect](channel: Channel,
-                                 queueName: QueueName,
-                                 ifUnused: Boolean = true,
-                                 ifEmpty: Boolean = true): Stream[F, Queue.DeleteOk] =
+  def deleteQueue[F[_] : Sync](channel: Channel,
+                               queueName: QueueName,
+                               ifUnused: Boolean = true,
+                               ifEmpty: Boolean = true): Stream[F, Queue.DeleteOk] =
     asyncF[F, Queue.DeleteOk] {
       channel.queueDelete(queueName.name, ifUnused, ifEmpty)
     }
@@ -39,10 +39,10 @@ trait Deletions {
     *
     * @return an effectful [[fs2.Stream]]
     * */
-  def deleteQueueNoWait[F[_] : Effect](channel: Channel,
-                                       queueName: QueueName,
-                                       ifUnused: Boolean = true,
-                                       ifEmpty: Boolean = true): Stream[F,Unit] =
+  def deleteQueueNoWait[F[_] : Sync](channel: Channel,
+                                     queueName: QueueName,
+                                     ifUnused: Boolean = true,
+                                     ifEmpty: Boolean = true): Stream[F,Unit] =
     asyncF[F, Unit] {
       channel.queueDeleteNoWait(queueName.name, ifUnused, ifEmpty)
     }

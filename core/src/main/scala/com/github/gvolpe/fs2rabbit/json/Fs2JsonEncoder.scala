@@ -1,6 +1,6 @@
 package com.github.gvolpe.fs2rabbit.json
 
-import cats.effect.Effect
+import cats.effect.Sync
 import com.github.gvolpe.fs2rabbit.Fs2Utils.asyncF
 import com.github.gvolpe.fs2rabbit.model.AmqpMessage
 import fs2.Pipe
@@ -32,7 +32,7 @@ object Fs2JsonEncoder {
     *
     * The result will be an [[AmqpMessage]] of type [[String]]
     * */
-  def jsonEncode[F[_] : Effect, A : Encoder]: Pipe[F, AmqpMessage[A], AmqpMessage[String]] =
+  def jsonEncode[F[_] : Sync, A : Encoder]: Pipe[F, AmqpMessage[A], AmqpMessage[String]] =
     streamMsg =>
       for {
         amqpMsg <- streamMsg
