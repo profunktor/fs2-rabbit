@@ -2,7 +2,7 @@ name := """fs2-rabbit-root"""
 
 organization in ThisBuild := "com.github.gvolpe"
 
-version in ThisBuild := "0.0.12-SNAPSHOT"
+version in ThisBuild := "0.0.13-SNAPSHOT"
 
 crossScalaVersions in ThisBuild := Seq("2.11.8", "2.12.3")
 
@@ -14,8 +14,8 @@ val commonSettings = Seq(
   homepage := Some(url("https://github.com/gvolpe/fs2-rabbit")),
   libraryDependencies ++= Seq(
     "com.rabbitmq"    %  "amqp-client"      % "4.1.0",
-    "co.fs2"          %% "fs2-core"         % "0.10.0-M4",
-    "org.typelevel"   %% "cats-effect"      % "0.3",
+    "co.fs2"          %% "fs2-core"         % "0.10.0-M6",
+    "org.typelevel"   %% "cats-effect"      % "0.4",
     "com.typesafe"    % "config"            % "1.3.1",
 
     // Json libraries
