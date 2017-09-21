@@ -64,9 +64,10 @@ object model {
       AmqpProperties(
         Option(basicProps.getContentType),
         Option(basicProps.getContentEncoding),
-        basicProps.getHeaders.asScala.toMap.map {
-          case (k,v) => k -> AmqpHeaderVal.from(v)
-        }
+        Option(basicProps.getHeaders).fold(Map.empty[String, Object])(_.asScala.toMap)
+          .map {
+            case (k,v) => k -> AmqpHeaderVal.from(v)
+          }
       )
 
     implicit class AmqpPropertiesOps(props: AmqpProperties) {
