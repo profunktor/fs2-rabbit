@@ -39,11 +39,10 @@ val commonSettings = Seq(
     "-Xlint"
     // "-Xfatal-warnings",
     // "-feature"
-    // "-deprecation", //hard to handle when supporting multiple scala versions...
     // , "-Xlog-implicits"
     //"-Ydebug"
   ),
-  incOptions := incOptions.value.withNameHashing(true),
+  //incOptions := incOptions.value.withNameHashing(true),
   coverageExcludedPackages := "com\\.github\\.gvolpe\\.fs2rabbit\\.examples.*;.*UnderlyingAmqpClient*",
   publishTo := {
     val sonatype = "https://oss.sonatype.org/"
@@ -80,8 +79,8 @@ val ExamplesDependencies: Seq[ModuleID] = Seq(
 )
 
 lazy val noPublish = Seq(
-  publish := (),
-  publishLocal := (),
+  publish := {},
+  publishLocal := {},
   publishArtifact := false
 )
 
