@@ -6,7 +6,7 @@ version in ThisBuild := "0.0.14-SNAPSHOT"
 
 crossScalaVersions in ThisBuild := Seq("2.11.8", "2.12.3")
 
-val circeVersion = "0.8.0"
+val circeVersion = "0.9.0-M2"
 val qpidBrokerVersion = "6.1.2"
 
 val commonSettings = Seq(
@@ -14,8 +14,8 @@ val commonSettings = Seq(
   homepage := Some(url("https://github.com/gvolpe/fs2-rabbit")),
   libraryDependencies ++= Seq(
     "com.rabbitmq"    %  "amqp-client"      % "4.1.0",
-    "co.fs2"          %% "fs2-core"         % "0.10.0-M6",
-    "org.typelevel"   %% "cats-effect"      % "0.4",
+    "co.fs2"          %% "fs2-core"         % "0.10.0-M8",
+    "org.typelevel"   %% "cats-effect"      % "0.5",
     "com.typesafe"    % "config"            % "1.3.1",
 
     // Json libraries
@@ -36,7 +36,8 @@ val commonSettings = Seq(
   ),
   resolvers += "Apache public" at "https://repository.apache.org/content/groups/public/",
   scalacOptions ++= Seq(
-    "-Xlint"
+    "-Xlint",
+    "-Xmax-classfile-name", "80"
     // "-Xfatal-warnings",
     // "-feature"
     // , "-Xlog-implicits"
