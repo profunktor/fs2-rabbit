@@ -50,7 +50,7 @@ See reference.conf for more.
 
 Connection and Channel will be acquired in a safe way, so in case of an error, the resources will be cleaned up.
 
-**F** represents the effect type. In the example Demo I use **cats.effect.IO** but it's also possible to use either **scalaz.Task** or **monix.eval.Task**.
+**F** represents the effect type. In the example Demo I use **cats.effect.IO** but it's also possible to use either **scalaz.concurrent.Task** or **monix.eval.Task**.
 
 ```scala
 import com.github.gvolpe.fs2rabbit.Fs2Rabbit._

@@ -5,12 +5,14 @@ import com.rabbitmq.client.{AMQP, LongString}
 import fs2.{Sink, Stream}
 
 import scala.language.higherKinds
+import scala.reflect.ClassTag
 
 object model {
 
-  case class ExchangeName(name: String)
-  case class QueueName(name: String)
-  case class RoutingKey(name: String)
+  class ExchangeName(val value: String) extends AnyVal
+  class QueueName(val value: String) extends AnyVal
+  class RoutingKey(val value: String) extends AnyVal
+  class DeliveryTag(val value: Long) extends AnyVal
 
   case class ConsumerArgs(consumerTag: String, noLocal: Boolean, exclusive: Boolean, args: Map[String, AnyRef])
   case class BasicQos(prefetchSize: Int, prefetchCount: Int, global: Boolean = false)
@@ -19,8 +21,6 @@ object model {
     type ExchangeType = Value
     val Direct, FanOut, Headers, Topic = Value
   }
-
-  type DeliveryTag = Long
 
   sealed trait AckResult extends Product with Serializable
   final case class Ack(deliveryTag: DeliveryTag) extends AckResult
@@ -82,5 +82,10 @@ object model {
   case class AmqpEnvelope(deliveryTag: DeliveryTag, payload: String, properties: AmqpProperties)
 
   case class AmqpMessage[A](payload: A, properties: AmqpProperties)
+
+  implicit class StringValueClasses(value: String) {
+    def as[A : ClassTag]: A =
+      implicitly[ClassTag[A]].runtimeClass.getConstructors.head.newInstance(value).asInstanceOf[A]
+  }
 
 }

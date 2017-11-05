@@ -26,7 +26,7 @@ trait Declarations {
                                    exchangeName: ExchangeName,
                                    exchangeType: ExchangeType): Stream[F, Exchange.DeclareOk] =
     asyncF[F, Exchange.DeclareOk] {
-      channel.exchangeDeclare(exchangeName.name, exchangeType.toString.toLowerCase)
+      channel.exchangeDeclare(exchangeName.value, exchangeType.toString.toLowerCase)
     }
 
   /**
@@ -39,7 +39,7 @@ trait Declarations {
     * */
   def declareQueue[F[_] : Sync](channel: Channel, queueName: QueueName): Stream[F, Queue.DeclareOk] =
     asyncF[F, Queue.DeclareOk] {
-      channel.queueDeclare(queueName.name, false, false, false, Map.empty[String, AnyRef].asJava)
+      channel.queueDeclare(queueName.value, false, false, false, Map.empty[String, AnyRef].asJava)
     }
 
 }

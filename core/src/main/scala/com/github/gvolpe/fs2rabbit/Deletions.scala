@@ -26,7 +26,7 @@ trait Deletions {
                                ifUnused: Boolean = true,
                                ifEmpty: Boolean = true): Stream[F, Queue.DeleteOk] =
     asyncF[F, Queue.DeleteOk] {
-      channel.queueDelete(queueName.name, ifUnused, ifEmpty)
+      channel.queueDelete(queueName.value, ifUnused, ifEmpty)
     }
 
   /**
@@ -44,7 +44,7 @@ trait Deletions {
                                      ifUnused: Boolean = true,
                                      ifEmpty: Boolean = true): Stream[F,Unit] =
     asyncF[F, Unit] {
-      channel.queueDeleteNoWait(queueName.name, ifUnused, ifEmpty)
+      channel.queueDeleteNoWait(queueName.value, ifUnused, ifEmpty)
     }
 
 }

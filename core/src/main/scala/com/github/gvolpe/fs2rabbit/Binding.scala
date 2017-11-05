@@ -28,7 +28,7 @@ trait Binding {
                              exchangeName: ExchangeName,
                              routingKey: RoutingKey): Stream[F, Queue.BindOk] =
     asyncF[F, Queue.BindOk] {
-      channel.queueBind(queueName.name, exchangeName.name, routingKey.name)
+      channel.queueBind(queueName.value, exchangeName.value, routingKey.value)
     }
 
   /**
@@ -48,7 +48,7 @@ trait Binding {
                              routingKey: RoutingKey,
                              args: QueueBindingArgs): Stream[F, Queue.BindOk] =
     asyncF[F, Queue.BindOk] {
-      channel.queueBind(queueName.name, exchangeName.name, routingKey.name, args.value.asJava)
+      channel.queueBind(queueName.value, exchangeName.value, routingKey.value, args.value.asJava)
     }
 
   /**
@@ -69,7 +69,7 @@ trait Binding {
                                    routingKey: RoutingKey,
                                    args: QueueBindingArgs): Stream[F, Unit] =
     asyncF[F, Unit] {
-      channel.queueBindNoWait(queueName.name, exchangeName.name, routingKey.name, args.value.asJava)
+      channel.queueBindNoWait(queueName.value, exchangeName.value, routingKey.value, args.value.asJava)
     }
 
   /**
@@ -87,7 +87,7 @@ trait Binding {
                                exchangeName: ExchangeName,
                                routingKey: RoutingKey): Stream[F, Queue.UnbindOk] =
     asyncF[F, Queue.UnbindOk] {
-      channel.queueUnbind(queueName.name, exchangeName.name, routingKey.name)
+      channel.queueUnbind(queueName.value, exchangeName.value, routingKey.value)
     }
 
   /**
@@ -107,7 +107,7 @@ trait Binding {
                                routingKey: RoutingKey,
                                args: ExchangeBindingArgs): Stream[F, Exchange.BindOk] =
     asyncF[F, Exchange.BindOk]{
-      channel.exchangeBind(destination.name, source.name, routingKey.name, args.value.asJava)
+      channel.exchangeBind(destination.value, source.value, routingKey.value, args.value.asJava)
     }
 
 }

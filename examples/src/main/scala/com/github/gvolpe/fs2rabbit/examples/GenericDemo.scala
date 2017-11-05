@@ -15,9 +15,9 @@ class GenericDemo[F[_] : Effect : EffectScheduler : EffectUnsafeSyncRunner]() {
 
   implicit val appS = scala.concurrent.ExecutionContext.Implicits.global
 
-  val queueName     = QueueName("testQ")
-  val exchangeName  = ExchangeName("testEX")
-  val routingKey    = RoutingKey("testRK")
+  val queueName     = "testQ".as[QueueName]
+  val exchangeName  = "testEX".as[ExchangeName]
+  val routingKey    = "testRK".as[RoutingKey]
 
   def logPipe: Pipe[F, AmqpEnvelope, AckResult] = { streamMsg =>
     for {

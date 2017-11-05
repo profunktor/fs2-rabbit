@@ -3,12 +3,13 @@ package com.github.gvolpe.fs2rabbit.json
 import cats.effect.IO
 import cats.syntax.functor._
 import com.github.gvolpe.fs2rabbit.json.Fs2JsonDecoder.jsonDecode
-import com.github.gvolpe.fs2rabbit.model.{AmqpEnvelope, AmqpProperties}
+import com.github.gvolpe.fs2rabbit.model.{AmqpEnvelope, AmqpProperties, DeliveryTag}
 import fs2._
 import io.circe._
 import io.circe.generic.auto._
 import org.scalatest.prop.PropertyChecks
 import org.scalatest.{FlatSpecLike, Matchers}
+
 import scala.concurrent.duration._
 
 class Fs2JsonDecoderSpec extends Fs2JsonDecoderFixture with FlatSpecLike with Matchers {
@@ -17,7 +18,7 @@ class Fs2JsonDecoderSpec extends Fs2JsonDecoderFixture with FlatSpecLike with Ma
 
   forAll(examples){ (description, json, decoder, expected) =>
     it should description in {
-      val envelope = AmqpEnvelope(1, json, AmqpProperties.empty)
+      val envelope = AmqpEnvelope(new DeliveryTag(1), json, AmqpProperties.empty)
 
       val test = for {
         parsed          <- Stream(envelope).covary[IO] through decoder
@@ -32,7 +33,7 @@ class Fs2JsonDecoderSpec extends Fs2JsonDecoderFixture with FlatSpecLike with Ma
 
   it should "fail decoding the wrong class" in {
     val json = """ { "two": "the two" } """
-    val envelope = AmqpEnvelope(1, json, AmqpProperties.empty)
+    val envelope = AmqpEnvelope(new DeliveryTag(1), json, AmqpProperties.empty)
 
     val test = for {
       parsed          <- Stream(envelope).covary[IO] through jsonDecode[IO, Person]

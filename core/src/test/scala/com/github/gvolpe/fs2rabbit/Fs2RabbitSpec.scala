@@ -33,9 +33,9 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers with BeforeAndAfterEach {
     Thread.sleep(300)
   }
 
-  val exchangeName  = ExchangeName("ex")
-  val queueName     = QueueName("daQ")
-  val routingKey    = RoutingKey("rk")
+  val exchangeName  = "ex".as[ExchangeName]
+  val queueName     = "daQ".as[QueueName]
+  val routingKey    = "rk".as[RoutingKey]
 
   it should "create a connection, a channel, a queue and an exchange" in {
     import TestFs2Rabbit._
@@ -48,7 +48,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers with BeforeAndAfterEach {
       connection = channel.getConnection
     } yield {
       channel.getChannelNumber                should be (1)
-      queueD.getQueue                         should be (queueName.name)
+      queueD.getQueue                         should be (queueName.value)
       connection.getAddress.isLoopbackAddress should be (true)
       connection.toString                     should startWith ("amqp://guest@")
       connection.toString                     should endWith ("45947/hostnameAlias")
@@ -75,13 +75,13 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers with BeforeAndAfterEach {
       (acker, consumer) = createAckerConsumer[IO](channel, queueName)
       _                 <- Stream(
                             consumer to testQ.enqueue,
-                            Stream(Ack(1)).covary[IO] observe ackerQ.enqueue to acker
+                            Stream(Ack(new DeliveryTag(1))).covary[IO] observe ackerQ.enqueue to acker
                            ).join(2).take(1)
       result            <- Stream.eval(testQ.dequeue1)
       ackResult         <- Stream.eval(ackerQ.dequeue1)
     } yield {
-      result    should be (AmqpEnvelope(1, "acker-test", AmqpProperties(None, None, Map.empty[String, AmqpHeaderVal])))
-      ackResult should be (Ack(1))
+      result    should be (AmqpEnvelope(new DeliveryTag(1), "acker-test", AmqpProperties(None, None, Map.empty[String, AmqpHeaderVal])))
+      ackResult should be (Ack(new DeliveryTag(1)))
       broker
     }
 
@@ -104,12 +104,12 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers with BeforeAndAfterEach {
       _                 <- msg.covary[IO] to publisher
       (acker, consumer) = createAckerConsumer[IO](channel, queueName)
       _                 <- (consumer to testQ.enqueue).take(1)
-      _                 <- (Stream(NAck(1)).covary[IO] observe ackerQ.enqueue to acker).take(1)
+      _                 <- (Stream(NAck(new DeliveryTag(1))).covary[IO] observe ackerQ.enqueue to acker).take(1)
       result            <- Stream.eval(testQ.dequeue1)
       ackResult         <- Stream.eval(ackerQ.dequeue1)
     } yield {
-      result    should be (AmqpEnvelope(1, "NAck-test", AmqpProperties(None, None, Map.empty[String, AmqpHeaderVal])))
-      ackResult should be (NAck(1))
+      result    should be (AmqpEnvelope(new DeliveryTag(1), "NAck-test", AmqpProperties(None, None, Map.empty[String, AmqpHeaderVal])))
+      ackResult should be (NAck(new DeliveryTag(1)))
       broker
     }
 
@@ -132,12 +132,12 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers with BeforeAndAfterEach {
       _                 <- msg.covary[IO] to publisher
       (acker, consumer) = createAckerConsumer[IO](channel, queueName)
       _                 <- (consumer to testQ.enqueue).take(2) // Message will be requeued
-      _                 <- (Stream(NAck(1)).covary[IO] observe ackerQ.enqueue to acker).take(1)
+      _                 <- (Stream(NAck(new DeliveryTag(1))).covary[IO] observe ackerQ.enqueue to acker).take(1)
       result            <- testQ.dequeue.take(1)
       ackResult         <- ackerQ.dequeue.take(1)
     } yield {
       result    shouldBe an[AmqpEnvelope]
-      ackResult should be (NAck(1))
+      ackResult should be (NAck(new DeliveryTag(1)))
       broker
     }
 
@@ -161,7 +161,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers with BeforeAndAfterEach {
       _         <- (consumer to testQ.enqueue).take(1)
       result    <- Stream.eval(testQ.dequeue1)
     } yield {
-      result should be (AmqpEnvelope(1, "test", AmqpProperties(None, None, Map.empty[String, AmqpHeaderVal])))
+      result should be (AmqpEnvelope(new DeliveryTag(1), "test", AmqpProperties(None, None, Map.empty[String, AmqpHeaderVal])))
       broker
     }
 
@@ -187,7 +187,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers with BeforeAndAfterEach {
       result        <- Stream.eval(testQ.dequeue1)
     } yield {
       println(consumer)
-      result should be (AmqpEnvelope(1, "test", AmqpProperties(None, None, Map.empty[String, AmqpHeaderVal])))
+      result should be (AmqpEnvelope(new DeliveryTag(1), "test", AmqpProperties(None, None, Map.empty[String, AmqpHeaderVal])))
       broker
     }
 
@@ -212,13 +212,13 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers with BeforeAndAfterEach {
       _                 <- msg.covary[IO] to publisher
       _                 <- Stream(
                           consumer to testQ.enqueue,
-                          Stream(Ack(1)).covary[IO] observe ackerQ.enqueue to acker
+                          Stream(Ack(new DeliveryTag(1))).covary[IO] observe ackerQ.enqueue to acker
                         ).join(2).take(1)
       result            <- Stream.eval(testQ.dequeue1)
       ackResult         <- Stream.eval(ackerQ.dequeue1)
     } yield {
-      result    should be (AmqpEnvelope(1, "test", AmqpProperties(None, None, Map.empty[String, AmqpHeaderVal])))
-      ackResult should be (Ack(1))
+      result    should be (AmqpEnvelope(new DeliveryTag(1), "test", AmqpProperties(None, None, Map.empty[String, AmqpHeaderVal])))
+      ackResult should be (Ack(new DeliveryTag(1)))
       broker
     }
 
@@ -296,8 +296,8 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers with BeforeAndAfterEach {
   ignore should "bind an exchange to another exchange" in {
     import TestFs2Rabbit._
 
-    val sourceExchangeName = ExchangeName("sourceExchange")
-    val destinationExchangeName = ExchangeName("destinationExchange")
+    val sourceExchangeName = "sourceExchange".as[ExchangeName]
+    val destinationExchangeName = "destinationExchange".as[ExchangeName]
 
     for {
       broker            <- EmbeddedAmqpBroker.createBroker
@@ -316,13 +316,13 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers with BeforeAndAfterEach {
       _                 <- msg.covary[IO] to publisher
       _                 <- Stream(
                           consumer to testQ.enqueue,
-                          Stream(Ack(1)).covary[IO] observe ackerQ.enqueue to acker
+                          Stream(Ack(new DeliveryTag(1))).covary[IO] observe ackerQ.enqueue to acker
                         ).join(2).take(1)
       result            <- Stream.eval(testQ.dequeue1)
       ackResult         <- Stream.eval(ackerQ.dequeue1)
     } yield {
-      result    should be(AmqpEnvelope(1, "test", AmqpProperties(None, None, Map.empty[String, AmqpHeaderVal])))
-      ackResult should be(Ack(1))
+      result    should be(AmqpEnvelope(new DeliveryTag(1), "test", AmqpProperties(None, None, Map.empty[String, AmqpHeaderVal])))
+      ackResult should be(Ack(new DeliveryTag(1)))
       broker
     }
   }

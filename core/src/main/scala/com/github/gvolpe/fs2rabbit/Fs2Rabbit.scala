@@ -49,15 +49,15 @@ trait UnderlyingAmqpClient {
       val msg   = new String(body, "UTF-8")
       val tag   = envelope.getDeliveryTag
       val props = AmqpProperties.from(properties)
-      Q.enqueue1(Right(AmqpEnvelope(tag, msg, props))).unsafeRunSync()
+      Q.enqueue1(Right(AmqpEnvelope(new DeliveryTag(tag), msg, props))).unsafeRunSync()
     }
 
   }
 
   protected def createAcker[F[_] : Sync](channel: Channel): Sink[F, AckResult] =
     liftSink[F, AckResult] {
-      case Ack(tag)   => Sync[F].delay(channel.basicAck(tag, false))
-      case NAck(tag)  => Sync[F].delay(channel.basicNack(tag, false, fs2RabbitConfig.requeueOnNack))
+      case Ack(tag)   => Sync[F].delay(channel.basicAck(tag.value, false))
+      case NAck(tag)  => Sync[F].delay(channel.basicNack(tag.value, false, fs2RabbitConfig.requeueOnNack))
     }
 
   protected def createConsumer[F[_] : Async](queueName: QueueName,
@@ -73,7 +73,7 @@ trait UnderlyingAmqpClient {
     val dc  = defaultConsumer(channel, daQ)
     for {
       _         <- asyncF[F, Unit](channel.basicQos(basicQos.prefetchSize, basicQos.prefetchCount, basicQos.global))
-      _         <- asyncF[F, String](channel.basicConsume(queueName.name, autoAck, consumerTag, noLocal, exclusive, args.asJava, dc))
+      _         <- asyncF[F, String](channel.basicConsume(queueName.value, autoAck, consumerTag, noLocal, exclusive, args.asJava, dc))
       consumer  <- Stream.repeatEval(daQ.dequeue1.to[F]) through resilientConsumer
     } yield consumer
   }
@@ -191,12 +191,12 @@ trait Fs2Rabbit extends Declarations with Binding with Deletions {
     * @return A sink where messages of type [[AmqpMessage]] of [[String]] can be published represented as [[StreamPublisher]]
     * */
   def createPublisher[F[_] : Sync](channel: Channel,
-                                     exchangeName: ExchangeName,
-                                     routingKey: RoutingKey): StreamPublisher[F] = { streamMsg =>
+                                   exchangeName: ExchangeName,
+                                   routingKey: RoutingKey): StreamPublisher[F] = { streamMsg =>
     for {
       msg   <- streamMsg
       _     <- asyncF[F, Unit] {
-                 channel.basicPublish(exchangeName.name, routingKey.name, msg.properties.asBasicProps, msg.payload.getBytes("UTF-8"))
+                 channel.basicPublish(exchangeName.value, routingKey.value, msg.properties.asBasicProps, msg.payload.getBytes("UTF-8"))
                }
     } yield ()
   }
