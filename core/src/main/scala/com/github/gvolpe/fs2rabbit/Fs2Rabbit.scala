@@ -1,5 +1,7 @@
 package com.github.gvolpe.fs2rabbit
 
+import java.util.concurrent.Executors
+
 import cats.effect.{Async, IO, Sync}
 import com.github.gvolpe.fs2rabbit.Fs2Utils._
 import com.github.gvolpe.fs2rabbit.config.{Fs2RabbitConfig, Fs2RabbitConfigManager}
@@ -35,24 +37,33 @@ trait UnderlyingAmqpClient {
     factory
   }
 
-  protected def defaultConsumer(channel: Channel,
-                                Q: mutable.Queue[IO, Either[Throwable, AmqpEnvelope]]): Consumer = new DefaultConsumer(channel) {
+  protected def defaultConsumer(channel: Channel): IO[(mutable.Queue[IO, Either[Throwable, AmqpEnvelope]], Consumer)] = {
+    implicit val queueEC: ExecutionContext = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(4))
 
-    override def handleCancel(consumerTag: String): Unit = {
-      Q.enqueue1(Left(new Exception(s"Queue might have been DELETED! $consumerTag"))).unsafeRunSync()
+    def consumer(daQ: mutable.Queue[IO, Either[Throwable, AmqpEnvelope]]): Consumer = new DefaultConsumer(channel) {
+
+      override def handleCancel(consumerTag: String): Unit = {
+        daQ.enqueue1(Left(new Exception(s"Queue might have been DELETED! $consumerTag"))).unsafeRunSync()
+      }
+
+      override def handleDelivery(consumerTag: String,
+                                  envelope: Envelope,
+                                  properties: AMQP.BasicProperties,
+                                  body: Array[Byte]): Unit = {
+        val msg   = new String(body, "UTF-8")
+        val tag   = envelope.getDeliveryTag
+        val props = AmqpProperties.from(properties)
+        daQ.enqueue1(Right(AmqpEnvelope(new DeliveryTag(tag), msg, props))).unsafeRunSync()
+      }
+
     }
 
-    override def handleDelivery(consumerTag: String,
-                                envelope: Envelope,
-                                properties: AMQP.BasicProperties,
-                                body: Array[Byte]): Unit = {
-      val msg   = new String(body, "UTF-8")
-      val tag   = envelope.getDeliveryTag
-      val props = AmqpProperties.from(properties)
-      Q.enqueue1(Right(AmqpEnvelope(new DeliveryTag(tag), msg, props))).unsafeRunSync()
-    }
-
+    for {
+      q <- fs2.async.boundedQueue[IO, Either[Throwable, AmqpEnvelope]](100)
+      c <- IO(consumer(q))
+    } yield (q, c)
   }
+
 
   protected def createAcker[F[_] : Sync](channel: Channel): Sink[F, AckResult] =
     liftSink[F, AckResult] {
@@ -67,11 +78,11 @@ trait UnderlyingAmqpClient {
                                               noLocal: Boolean = false,
                                               exclusive: Boolean = false,
                                               consumerTag: String = "",
-                                              args: Map[String, AnyRef] = Map.empty[String, AnyRef])
-                                              (implicit ec: ExecutionContext): StreamConsumer[F] = {
-    val daQ = fs2.async.boundedQueue[IO, Either[Throwable, AmqpEnvelope]](100).unsafeRunSync()
-    val dc  = defaultConsumer(channel, daQ)
+                                              args: Map[String, AnyRef] = Map.empty[String, AnyRef]): StreamConsumer[F] = {
+    val ioConsumer: F[(mutable.Queue[IO, Either[Throwable, AmqpEnvelope]], Consumer)] = defaultConsumer(channel).to[F]
     for {
+      daQAndDC  <- Stream.eval(ioConsumer)
+      (daQ, dc) = daQAndDC
       _         <- asyncF[F, Unit](channel.basicQos(basicQos.prefetchSize, basicQos.prefetchCount, basicQos.global))
       _         <- asyncF[F, String](channel.basicConsume(queueName.value, autoAck, consumerTag, noLocal, exclusive, args.asJava, dc))
       consumer  <- Stream.repeatEval(daQ.dequeue1.to[F]) through resilientConsumer
@@ -137,8 +148,7 @@ trait Fs2Rabbit extends Declarations with Binding with Deletions {
   def createAckerConsumer[F[_] : Async](channel: Channel,
                                         queueName: QueueName,
                                         basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
-                                        consumerArgs: Option[ConsumerArgs] = None)
-                                       (implicit ec: ExecutionContext): StreamAckerConsumer[F] = {
+                                        consumerArgs: Option[ConsumerArgs] = None): StreamAckerConsumer[F] = {
     val consumer = consumerArgs.fold(createConsumer(queueName, channel, basicQos)) { args =>
       createConsumer(
         queueName = queueName,
@@ -165,8 +175,7 @@ trait Fs2Rabbit extends Declarations with Binding with Deletions {
   def createAutoAckConsumer[F[_] : Async](channel: Channel,
                                           queueName: QueueName,
                                           basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
-                                          consumerArgs: Option[ConsumerArgs] = None)
-                                         (implicit ec: ExecutionContext): StreamConsumer[F] = {
+                                          consumerArgs: Option[ConsumerArgs] = None): StreamConsumer[F] = {
     consumerArgs.fold(createConsumer(queueName, channel, basicQos, autoAck = true)) { args =>
       createConsumer(
         queueName = queueName,
