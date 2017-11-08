@@ -37,10 +37,12 @@ trait UnderlyingAmqpClient {
     factory
   }
 
-  protected def defaultConsumer(channel: Channel): IO[(mutable.Queue[IO, Either[Throwable, AmqpEnvelope]], Consumer)] = {
-    implicit val queueEC: ExecutionContext = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(4))
+  protected def defaultConsumer(channel: Channel): (mutable.Queue[IO, Either[Throwable, AmqpEnvelope]], Consumer) = {
+    implicit val queueEC: ExecutionContext = ExecutionContext.fromExecutor(Executors.newCachedThreadPool())
 
-    def consumer(daQ: mutable.Queue[IO, Either[Throwable, AmqpEnvelope]]): Consumer = new DefaultConsumer(channel) {
+    val daQ = fs2.async.boundedQueue[IO, Either[Throwable, AmqpEnvelope]](100).unsafeRunSync()
+
+    val consumer = new DefaultConsumer(channel) {
 
       override def handleCancel(consumerTag: String): Unit = {
         daQ.enqueue1(Left(new Exception(s"Queue might have been DELETED! $consumerTag"))).unsafeRunSync()
@@ -58,12 +60,8 @@ trait UnderlyingAmqpClient {
 
     }
 
-    for {
-      q <- fs2.async.boundedQueue[IO, Either[Throwable, AmqpEnvelope]](100)
-      c <- IO(consumer(q))
-    } yield (q, c)
+    (daQ, consumer)
   }
-
 
   protected def createAcker[F[_] : Sync](channel: Channel): Sink[F, AckResult] =
     liftSink[F, AckResult] {
@@ -72,17 +70,15 @@ trait UnderlyingAmqpClient {
     }
 
   protected def createConsumer[F[_] : Async](queueName: QueueName,
-                                              channel: Channel,
-                                              basicQos: BasicQos,
-                                              autoAck: Boolean = false,
-                                              noLocal: Boolean = false,
-                                              exclusive: Boolean = false,
-                                              consumerTag: String = "",
-                                              args: Map[String, AnyRef] = Map.empty[String, AnyRef]): StreamConsumer[F] = {
-    val ioConsumer: F[(mutable.Queue[IO, Either[Throwable, AmqpEnvelope]], Consumer)] = defaultConsumer(channel).to[F]
+                                             channel: Channel,
+                                             basicQos: BasicQos,
+                                             autoAck: Boolean = false,
+                                             noLocal: Boolean = false,
+                                             exclusive: Boolean = false,
+                                             consumerTag: String = "",
+                                             args: Map[String, AnyRef] = Map.empty[String, AnyRef]): StreamConsumer[F] = {
+    val (daQ, dc) = defaultConsumer(channel)
     for {
-      daQAndDC  <- Stream.eval(ioConsumer)
-      (daQ, dc) = daQAndDC
       _         <- asyncF[F, Unit](channel.basicQos(basicQos.prefetchSize, basicQos.prefetchCount, basicQos.global))
       _         <- asyncF[F, String](channel.basicConsume(queueName.value, autoAck, consumerTag, noLocal, exclusive, args.asJava, dc))
       consumer  <- Stream.repeatEval(daQ.dequeue1.to[F]) through resilientConsumer
