@@ -9,7 +9,7 @@ import scala.concurrent.duration.Duration
 
 object MonixEffectRunner extends EffectUnsafeSyncRunner[Task] {
 
-  override def unsafeRunSync(effect: Task[Unit]) = {
+  override def unsafeRunSync(effect: Task[Unit]): Unit = {
     Await.result(effect.runAsync, Duration.Inf)
   }
 

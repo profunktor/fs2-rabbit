@@ -9,7 +9,8 @@ import scala.concurrent.duration.FiniteDuration
 
 object IOEffectScheduler extends EffectScheduler[IO] {
 
-  override def schedule[A](effect: IO[A], delay: FiniteDuration)(implicit ec: ExecutionContext) = {
+  override def schedule[A](effect: IO[A], delay: FiniteDuration)
+                          (implicit ec: ExecutionContext): IO[A] = {
     Scheduler[IO](2).flatMap(_.sleep[IO](delay)).run.flatMap(_ => effect)
   }
 

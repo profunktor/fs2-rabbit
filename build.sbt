@@ -74,8 +74,7 @@ val CoreDependencies: Seq[ModuleID] = Seq(
 )
 
 val ExamplesDependencies: Seq[ModuleID] = Seq(
-  "io.monix"        %% "monix"              % "3.0.0-7a337f9",
-  //  "org.scalaz"      %% "scalaz-concurrent"  % "7.2.13",
+  "io.monix"        %% "monix"              % "3.0.0-M2",
   "ch.qos.logback"  %  "logback-classic"    % "1.1.3" % "runtime"
 )
 

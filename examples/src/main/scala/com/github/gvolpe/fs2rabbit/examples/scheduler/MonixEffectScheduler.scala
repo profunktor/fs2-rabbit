@@ -8,7 +8,8 @@ import scala.concurrent.duration.FiniteDuration
 
 object MonixEffectScheduler extends EffectScheduler[Task] {
 
-  override def schedule[A](effect: Task[A], delay: FiniteDuration)(implicit ec: ExecutionContext) = {
+  override def schedule[A](effect: Task[A], delay: FiniteDuration)
+                          (implicit ec: ExecutionContext): Task[A] = {
     effect.delayExecution(delay)
   }
 
