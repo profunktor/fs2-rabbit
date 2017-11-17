@@ -9,7 +9,6 @@ import com.github.gvolpe.fs2rabbit.model._
 import fs2.{Pipe, Stream}
 
 import scala.concurrent.ExecutionContext
-import scala.language.higherKinds
 
 class GenericDemo[F[_] : Effect : EffectScheduler : EffectUnsafeSyncRunner]() {
 

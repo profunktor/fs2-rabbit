@@ -36,14 +36,14 @@ val commonSettings = Seq(
   ),
   resolvers += "Apache public" at "https://repository.apache.org/content/groups/public/",
   scalacOptions ++= Seq(
-    "-Xlint",
-    "-Xmax-classfile-name", "80"
-    // "-Xfatal-warnings",
-    // "-feature"
-    // , "-Xlog-implicits"
-    //"-Ydebug"
+    "-Xmax-classfile-name", "80",
+    "-deprecation",
+    "-encoding",
+    "UTF-8",
+    "-feature",
+    "-language:existentials",
+    "-language:higherKinds"
   ),
-  //incOptions := incOptions.value.withNameHashing(true),
   coverageExcludedPackages := "com\\.github\\.gvolpe\\.fs2rabbit\\.examples.*;.*UnderlyingAmqpClient*",
   publishTo := {
     val sonatype = "https://oss.sonatype.org/"

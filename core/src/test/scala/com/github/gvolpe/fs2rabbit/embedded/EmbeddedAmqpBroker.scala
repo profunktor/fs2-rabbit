@@ -19,9 +19,9 @@ import scala.collection.JavaConverters._
   * */
 object EmbeddedAmqpBroker {
 
-  def createBroker =
+  def createBroker: Stream[IO, Unit] =
     Stream.bracket[IO, (File, SystemConfig[_]), Unit](acquireSystemConfig)(
-      _  => asyncF[IO, Unit](),
+      _  => asyncF[IO, Unit](()),
       fs => {
         val (file, systemConfig) = fs
         shutdown(file, systemConfig).map(_ => ())

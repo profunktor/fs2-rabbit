@@ -38,7 +38,7 @@ class StreamLoopSpec extends FlatSpecLike with Matchers {
     var trigger: Int = 2
 
     val p: Stream[IO, Unit] = program.onError { t =>
-      if (trigger == 0) asyncF[IO, Unit]()
+      if (trigger == 0) asyncF[IO, Unit](())
       else {
         trigger = trigger - 1
         Stream.fail(t)

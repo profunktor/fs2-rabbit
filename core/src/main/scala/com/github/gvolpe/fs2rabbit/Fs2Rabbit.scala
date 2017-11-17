@@ -13,14 +13,13 @@ import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext
-import scala.language.higherKinds
 
 /**
   * The default Fs2Rabbit stream-based client using the default [[Fs2RabbitConfig]]
   * */
 object Fs2Rabbit extends Fs2Rabbit with UnderlyingAmqpClient {
-  protected override val log = LoggerFactory.getLogger(getClass)
-  protected override lazy val fs2RabbitConfig = Fs2RabbitConfigManager.config
+  protected override val log: Logger = LoggerFactory.getLogger(getClass)
+  protected override lazy val fs2RabbitConfig: Fs2RabbitConfig = Fs2RabbitConfigManager.config
 }
 
 trait UnderlyingAmqpClient {

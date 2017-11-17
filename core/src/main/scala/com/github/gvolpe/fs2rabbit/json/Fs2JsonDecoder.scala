@@ -8,8 +8,6 @@ import io.circe.parser.decode
 import io.circe.{Decoder, Error}
 import org.slf4j.LoggerFactory
 
-import scala.language.higherKinds
-
 /**
   * Stream-based Json Decoder that exposes only one method as a streaming transformation
   * using [[fs2.Pipe]] and depends on the Circe library.

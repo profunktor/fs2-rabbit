@@ -2,7 +2,6 @@ package com.github.gvolpe.fs2rabbit
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
-import scala.language.higherKinds
 
 /**
   * A generic scheduler representation for any [[cats.effect.Effect]] that is able to schedule

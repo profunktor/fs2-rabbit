@@ -4,7 +4,6 @@ import com.rabbitmq.client.impl.LongStringHelper
 import com.rabbitmq.client.{AMQP, LongString}
 import fs2.{Sink, Stream}
 
-import scala.language.higherKinds
 import scala.reflect.ClassTag
 
 object model {

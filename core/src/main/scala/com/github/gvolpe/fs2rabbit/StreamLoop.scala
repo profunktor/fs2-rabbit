@@ -6,7 +6,6 @@ import org.slf4j.LoggerFactory
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-import scala.language.higherKinds
 
 /**
   * It provides a resilient run method for an effectful [[fs2.Stream]] that will run forever with

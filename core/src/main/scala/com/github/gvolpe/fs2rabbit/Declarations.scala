@@ -9,7 +9,6 @@ import com.rabbitmq.client.Channel
 import fs2.Stream
 
 import scala.collection.JavaConverters._
-import scala.language.higherKinds
 
 trait Declarations {
 

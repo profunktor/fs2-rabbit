@@ -1,7 +1,5 @@
 package com.github.gvolpe.fs2rabbit
 
-import scala.language.higherKinds
-
 /**
   * A generic unsafe synchronously runner representation for any [[cats.effect.Effect]].
   *

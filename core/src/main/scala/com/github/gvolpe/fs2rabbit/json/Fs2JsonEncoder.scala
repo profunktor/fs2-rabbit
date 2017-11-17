@@ -7,8 +7,6 @@ import fs2.Pipe
 import io.circe.Encoder
 import io.circe.syntax._
 
-import scala.language.higherKinds
-
 /**
   * Stream-based Json Encoder that exposes only one method as a streaming transformation
   * using [[fs2.Pipe]] and depends on the Circe library.

@@ -7,8 +7,6 @@ import com.rabbitmq.client.AMQP.Queue
 import com.rabbitmq.client.Channel
 import fs2.Stream
 
-import scala.language.higherKinds
-
 trait Deletions {
 
   /**

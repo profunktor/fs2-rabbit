@@ -3,8 +3,6 @@ package com.github.gvolpe.fs2rabbit
 import cats.effect.Sync
 import fs2.{Pipe, Sink, Stream}
 
-import scala.language.higherKinds
-
 object Fs2Utils {
 
   def asyncF[F[_] : Sync, A](body: => A): Stream[F, A] =
