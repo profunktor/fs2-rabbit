@@ -1,23 +1,61 @@
 package com.github.gvolpe.fs2rabbit
 
-import com.github.gvolpe.fs2rabbit.model.{AmqpHeaderVal, AmqpProperties, IntVal}
+import com.github.gvolpe.fs2rabbit.model.{AmqpHeaderVal, AmqpProperties, IntVal, LongVal, StringVal}
+import org.scalacheck._
+import org.scalacheck.Arbitrary.arbitrary
 import org.scalatest.{FlatSpecLike, Matchers}
 import com.rabbitmq.client.AMQP
+import org.scalatest.prop.PropertyChecks
 
-class AmqpPropertiesSpec extends FlatSpecLike with Matchers {
+class AmqpPropertiesSpec extends FlatSpecLike with Matchers with AmqpPropertiesArbitraries {
+
+  forAll { (amqpProperties: AmqpProperties) =>
+    it should s"convert from and to Java AMQP.BasicProperties for $amqpProperties" in {
+      val basicProps = amqpProperties.asBasicProps
+      AmqpProperties.from(basicProps) should be (amqpProperties)
+    }
+  }
 
   it should "create an empty amqp properties" in {
     AmqpProperties.empty should be (AmqpProperties(None, None, Map.empty[String, AmqpHeaderVal]))
-  }
-
-  it should "convert from and to Java AMQP.BasicProperties" in {
-    val props = AmqpProperties(Some("application/json"), Some("UTF-8"), Map("k" -> IntVal(1)))
-    val basic = props.asBasicProps
-    AmqpProperties.from(basic) should be (props)
   }
 
   it should "handle null values in Java AMQP.BasicProperties" in {
     val basic = new AMQP.BasicProperties()
     AmqpProperties.from(basic) should be (AmqpProperties.empty)
   }
+
+}
+
+trait AmqpPropertiesArbitraries extends PropertyChecks {
+
+  implicit val intVal: Arbitrary[IntVal] = Arbitrary[IntVal] {
+    Gen.posNum[Int].flatMap(x => IntVal(x))
+  }
+
+  implicit val longVal: Arbitrary[LongVal] = Arbitrary[LongVal] {
+    Gen.posNum[Long].flatMap(x => LongVal(x))
+  }
+
+  implicit val stringVal: Arbitrary[StringVal] = Arbitrary[StringVal] {
+    Gen.alphaStr.flatMap(x => StringVal(x))
+  }
+
+  implicit val amqpHeaderVal: Arbitrary[AmqpHeaderVal] = Arbitrary[AmqpHeaderVal] {
+    Gen.oneOf(arbitrary[IntVal], arbitrary[LongVal], arbitrary[StringVal])
+  }
+
+  private val headersGen: Gen[(String, AmqpHeaderVal)] = for {
+    key   <- Gen.alphaStr
+    value <- arbitrary[AmqpHeaderVal]
+  } yield (key, value)
+
+  implicit val amqpProperties: Arbitrary[AmqpProperties] = Arbitrary[AmqpProperties] {
+    for {
+      contentType     <- Gen.option(Gen.alphaStr)
+      contentEncoding <- Gen.option(Gen.alphaStr)
+      headers         <- Gen.mapOf[String, AmqpHeaderVal](headersGen)
+    } yield AmqpProperties(contentType, contentEncoding, headers)
+  }
+
 }
