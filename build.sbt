@@ -4,7 +4,7 @@ organization in ThisBuild := "com.github.gvolpe"
 
 version in ThisBuild := "0.0.17-SNAPSHOT"
 
-crossScalaVersions in ThisBuild := Seq("2.11.8", "2.12.3")
+crossScalaVersions in ThisBuild := Seq("2.11.11", "2.12.3")
 
 val circeVersion = "0.9.0-M2"
 val qpidBrokerVersion = "6.1.2"
@@ -41,6 +41,7 @@ val commonSettings = Seq(
     "-encoding",
     "UTF-8",
     "-feature",
+    "-Ypartial-unification",
     "-language:existentials",
     "-language:higherKinds"
   ),
