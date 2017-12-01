@@ -33,6 +33,11 @@ trait UnderlyingAmqpClient {
     factory.setPort(config.port)
     factory.setVirtualHost(config.virtualHost)
     factory.setConnectionTimeout(config.connectionTimeout)
+    if (config.useSsl) {
+      factory.useSslProtocol()
+    }
+    config.username.foreach(factory.setUsername)
+    config.password.foreach(factory.setPassword)
     factory
   }
 

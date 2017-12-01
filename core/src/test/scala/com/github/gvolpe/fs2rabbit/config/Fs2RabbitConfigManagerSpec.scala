@@ -9,7 +9,10 @@ class Fs2RabbitConfigManagerSpec extends FlatSpecLike with Matchers {
     config.connectionTimeout  should be (3)
     config.host               should be ("127.0.0.1")
     config.port               should be (5672)
+    config.useSsl             should be (false)
     config.requeueOnNack      should be (false)
+    config.username           should be (Some("guest"))
+    config.password           should be (Some("guest"))
   }
 
 }

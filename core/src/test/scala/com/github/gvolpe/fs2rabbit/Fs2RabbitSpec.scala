@@ -19,13 +19,13 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers with BeforeAndAfterEach {
   object TestFs2Rabbit extends Fs2Rabbit with UnderlyingAmqpClient {
     override protected val log = LoggerFactory.getLogger(getClass)
     override protected val fs2RabbitConfig =
-      Fs2RabbitConfig("localhost", 45947, "hostnameAlias", 3, requeueOnNack = false)
+      Fs2RabbitConfig("localhost", 45947, "hostnameAlias", 3, useSsl = false, requeueOnNack = false, username = None, password = None)
   }
 
   object TestNAckFs2Rabbit extends Fs2Rabbit with UnderlyingAmqpClient {
     override protected val log = LoggerFactory.getLogger(getClass)
     override protected val fs2RabbitConfig =
-      Fs2RabbitConfig("localhost", 45947, "hostnameAlias", 3, requeueOnNack = true)
+      Fs2RabbitConfig("localhost", 45947, "hostnameAlias", 3, useSsl = false, requeueOnNack = true, username = None, password = None)
   }
 
   // Workaround to let the Qpid Broker close the connection between tests
