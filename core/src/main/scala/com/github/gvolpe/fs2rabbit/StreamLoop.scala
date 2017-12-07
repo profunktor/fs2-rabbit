@@ -26,7 +26,7 @@ object StreamLoop {
 
   private def loop[F[_] : Effect : EffectScheduler](program: Stream[F, Unit], retry: FiniteDuration)
                         (implicit ec: ExecutionContext): Stream[F, Unit] = {
-    program.onError { err =>
+    program.handleErrorWith { err =>
       log.error(s"$err")
       log.info(s"Restarting in $retry...")
       loop[F](Stream.eval(EffectScheduler[F].schedule[Unit](program.run, retry)), retry)

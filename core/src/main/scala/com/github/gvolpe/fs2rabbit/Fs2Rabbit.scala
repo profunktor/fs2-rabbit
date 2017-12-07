@@ -99,7 +99,7 @@ trait UnderlyingAmqpClient {
   protected def resilientConsumer[F[_] : Sync]: Pipe[F, Either[Throwable, AmqpEnvelope], AmqpEnvelope] =
     streamMsg =>
       streamMsg.flatMap {
-        case Left(err)  => Stream.fail(err)
+        case Left(err)  => Stream.raiseError(err)
         case Right(env) => asyncF[F, AmqpEnvelope](env)
       }
 

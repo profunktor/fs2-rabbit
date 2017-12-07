@@ -33,15 +33,15 @@ class StreamLoopSpec extends FlatSpecLike with Matchers {
       streamN.map { n => println(n) }
     }
 
-    val program = Stream.fail(new Exception("on purpose")).covary[IO] to sink
+    val program = Stream.raiseError(new Exception("on purpose")).covary[IO] to sink
 
     var trigger: Int = 2
 
-    val p: Stream[IO, Unit] = program.onError { t =>
+    val p: Stream[IO, Unit] = program.handleErrorWith { t =>
       if (trigger == 0) asyncF[IO, Unit](())
       else {
         trigger = trigger - 1
-        Stream.fail(t)
+        Stream.raiseError(t)
       }
     }
 
