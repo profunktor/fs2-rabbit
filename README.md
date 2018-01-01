@@ -50,7 +50,7 @@ See reference.conf for more.
 
 Connection and Channel will be acquired in a safe way, so in case of an error, the resources will be cleaned up.
 
-**F** represents the effect type. In the example Demo I use **cats.effect.IO** but it's also possible to use either **scalaz.concurrent.Task** or **monix.eval.Task**.
+`F` represents the effect type. In the examples both `cats.effect.IO` and `monix.eval.Task` are used but it's possible to use any other effect with an implicit instance of `cats.effect.Effect[F]` available.
 
 ```scala
 import com.github.gvolpe.fs2rabbit.Fs2Rabbit._
@@ -61,15 +61,17 @@ val exchangeName  = ExchangeName("ex")
 val queueName     = QueueName("daQ")
 val routingKey    = RoutingKey("rk")
 
-val program = for {
-  channel           <- createConnectionChannel[F]()                                     // Stream[F, Channel]
-  _                 <- declareQueue[F](channel, queueName)                              // Stream[F, Queue.DeclareOk]
-  _                 <- declareExchange[F](channel, exchangeName, ExchangeType.Topic)    // Stream[F, Exchange.DeclareOk]
-  _                 <- bindQueue[F](channel, queueName, exchangeName, routingKey)       // Stream[F, Queue.BindOk]
-  (acker, consumer) = createAckerConsumer[F](channel, queueName)	                // (StreamAcker[F], StreamConsumer[F])
-  publisher         = createPublisher[F](channel, exchangeName, routingKey)	        // StreamPublisher[F]
-  _                 <- doSomething(consumer, acker, publisher)
-} yield ()
+val program = createConnectionChannel flatMap { implicit channel => // Stream[F, Channel]
+  for {
+    _                 <- declareQueue(queueName)                              // Stream[F, Queue.DeclareOk]
+    _                 <- declareExchange(exchangeName, ExchangeType.Topic)    // Stream[F, Exchange.DeclareOk]
+    _                 <- bindQueue(queueName, exchangeName, routingKey)       // Stream[F, Queue.BindOk]
+    ackerConsumer     <- createAckerConsumer(queueName)	                      // (StreamAcker[F], StreamConsumer[F])
+    (acker, consumer) = ackerConsumer
+    publisher         <- createPublisher(exchangeName, routingKey)	      // StreamPublisher[F]
+    _                 <- doSomething(consumer, acker, publisher)
+  } yield ()
+}
 
 // this will give you an Effect describing your program F[Unit]
 val effect: F[Unit] = program.run
@@ -158,15 +160,13 @@ Stream(message).covary[F] through jsonEncode[F, Person] to publisher
 
 #### Resiliency
 
-If you want your program to run forever with automatic error recovery you can choose to run your program in a loop that will restart every certain amount of specified time. An useful StreamLoop object that you can use to achieve this is provided by the library.
+If you want your program to run forever with automatic error recovery you can choose to run your program in a loop that will restart every certain amount of specified time. An useful `StreamLoop` object that you can use to achieve this is provided by the library.
 
 So, for the program defined above, this would be an example of a resilient app that restarts after 1 second and then exponentially (1, 2, 4, 8, etc) in case of failure:
 
 ```scala
 import com.github.gvolpe.fs2rabbit.StreamLoop
 import scala.concurrent.duration._
-
-implicit val appS = IOEffectScheduler // or MonixEffectScheduler if using Monix Task
 
 StreamLoop.run(() => program, 1.second)
 ```
