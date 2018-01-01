@@ -14,19 +14,22 @@
  * limitations under the License.
  */
 
-package com.github.gvolpe.fs2rabbit.examples.scheduler
+package com.github.gvolpe.fs2rabbit.algebra
 
-import com.github.gvolpe.fs2rabbit.typeclasses.EffectScheduler
-import monix.eval.Task
+import com.github.gvolpe.fs2rabbit.model.QueueName
+import com.rabbitmq.client.AMQP.Queue
+import com.rabbitmq.client.Channel
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.FiniteDuration
+trait DeletionAlg[F[_]] {
 
-object MonixEffectScheduler extends EffectScheduler[Task] {
+  def deleteQueue(channel: Channel,
+                  queueName: QueueName,
+                  ifUnused: Boolean = true,
+                  ifEmpty: Boolean = true): F[Queue.DeleteOk]
 
-  override def schedule[A](effect: Task[A], delay: FiniteDuration)
-                          (implicit ec: ExecutionContext): Task[A] = {
-    effect.delayExecution(delay)
-  }
+  def deleteQueueNoWait(channel: Channel,
+                        queueName: QueueName,
+                        ifUnused: Boolean = true,
+                        ifEmpty: Boolean = true): F[Unit]
 
 }

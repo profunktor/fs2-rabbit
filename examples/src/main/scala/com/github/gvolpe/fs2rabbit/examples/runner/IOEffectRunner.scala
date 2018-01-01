@@ -17,7 +17,7 @@
 package com.github.gvolpe.fs2rabbit.examples.runner
 
 import cats.effect.IO
-import com.github.gvolpe.fs2rabbit.EffectUnsafeSyncRunner
+import com.github.gvolpe.fs2rabbit.typeclasses.EffectUnsafeSyncRunner
 
 object IOEffectRunner extends EffectUnsafeSyncRunner[IO] {
 

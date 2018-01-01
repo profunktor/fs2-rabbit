@@ -17,7 +17,7 @@
 package com.github.gvolpe.fs2rabbit.json
 
 import cats.effect.Sync
-import com.github.gvolpe.fs2rabbit.Fs2Utils.asyncF
+import com.github.gvolpe.fs2rabbit.Fs2Utils.evalF
 import com.github.gvolpe.fs2rabbit.model.{AmqpEnvelope, DeliveryTag}
 import fs2.Pipe
 import io.circe.parser.decode
@@ -54,8 +54,8 @@ object Fs2JsonDecoder {
     streamMsg =>
       for {
         amqpMsg <- streamMsg
-        parsed  <- asyncF[F, Either[Error, A]](decode[A](amqpMsg.payload))
-        _       <- asyncF[F, Unit](log.debug(s"Parsed: $parsed"))
+        parsed  <- evalF[F, Either[Error, A]](decode[A](amqpMsg.payload))
+        _       <- evalF[F, Unit](log.debug(s"Parsed: $parsed"))
       } yield (parsed, amqpMsg.deliveryTag)
 
 }

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.github.gvolpe.fs2rabbit
+package com.github.gvolpe.fs2rabbit.typeclasses
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration

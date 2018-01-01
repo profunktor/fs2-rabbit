@@ -17,7 +17,8 @@
 package com.github.gvolpe.fs2rabbit
 
 import cats.effect.IO
-import Fs2Utils.asyncF
+import Fs2Utils.evalF
+import com.github.gvolpe.fs2rabbit.typeclasses.{EffectScheduler, EffectUnsafeSyncRunner}
 import fs2._
 import org.scalatest.{FlatSpecLike, Matchers}
 
@@ -54,7 +55,7 @@ class StreamLoopSpec extends FlatSpecLike with Matchers {
     var trigger: Int = 2
 
     val p: Stream[IO, Unit] = program.handleErrorWith { t =>
-      if (trigger == 0) asyncF[IO, Unit](())
+      if (trigger == 0) evalF[IO, Unit](())
       else {
         trigger = trigger - 1
         Stream.raiseError(t)

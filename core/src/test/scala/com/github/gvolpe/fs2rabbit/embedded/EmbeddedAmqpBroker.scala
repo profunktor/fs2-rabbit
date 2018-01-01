@@ -20,7 +20,7 @@ import java.io.File
 import java.security.Principal
 
 import cats.effect.IO
-import com.github.gvolpe.fs2rabbit.Fs2Utils.asyncF
+import com.github.gvolpe.fs2rabbit.Fs2Utils.evalF
 import com.google.common.io.Files
 import fs2._
 import org.apache.qpid.server.configuration.updater.{TaskExecutor, TaskExecutorImpl}
@@ -37,7 +37,7 @@ object EmbeddedAmqpBroker {
 
   def createBroker: Stream[IO, Unit] =
     Stream.bracket[IO, (File, SystemConfig[_]), Unit](acquireSystemConfig)(
-      _  => asyncF[IO, Unit](()),
+      _  => evalF[IO, Unit](()),
       fs => {
         val (file, systemConfig) = fs
         shutdown(file, systemConfig).map(_ => ())

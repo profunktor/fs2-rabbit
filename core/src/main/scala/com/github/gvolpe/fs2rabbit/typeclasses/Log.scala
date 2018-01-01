@@ -14,19 +14,9 @@
  * limitations under the License.
  */
 
-package com.github.gvolpe.fs2rabbit.examples.scheduler
+package com.github.gvolpe.fs2rabbit.typeclasses
 
-import com.github.gvolpe.fs2rabbit.typeclasses.EffectScheduler
-import monix.eval.Task
-
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.FiniteDuration
-
-object MonixEffectScheduler extends EffectScheduler[Task] {
-
-  override def schedule[A](effect: Task[A], delay: FiniteDuration)
-                          (implicit ec: ExecutionContext): Task[A] = {
-    effect.delayExecution(delay)
-  }
-
+trait Log[F[_]] {
+  def info(value: String): F[Unit]
+  def error(error: Throwable): F[Unit]
 }

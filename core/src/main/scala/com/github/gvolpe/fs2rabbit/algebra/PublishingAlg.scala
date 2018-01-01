@@ -14,19 +14,15 @@
  * limitations under the License.
  */
 
-package com.github.gvolpe.fs2rabbit.examples.scheduler
+package com.github.gvolpe.fs2rabbit.algebra
 
-import com.github.gvolpe.fs2rabbit.typeclasses.EffectScheduler
-import monix.eval.Task
+import com.github.gvolpe.fs2rabbit.model.{AmqpMessage, ExchangeName, RoutingKey}
+import com.rabbitmq.client.Channel
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.FiniteDuration
+trait PublishingAlg[F[_], G[_]] {
 
-object MonixEffectScheduler extends EffectScheduler[Task] {
-
-  override def schedule[A](effect: Task[A], delay: FiniteDuration)
-                          (implicit ec: ExecutionContext): Task[A] = {
-    effect.delayExecution(delay)
-  }
+  def createPublisher(channel: Channel,
+                      exchangeName: ExchangeName,
+                      routingKey: RoutingKey): F[G[AmqpMessage[String]]]
 
 }

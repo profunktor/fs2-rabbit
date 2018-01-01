@@ -16,7 +16,20 @@
 
 package com.github.gvolpe.fs2rabbit.examples
 
+import com.github.gvolpe.fs2rabbit.StreamLoop
+import com.github.gvolpe.fs2rabbit.interpreter.Fs2RabbitInterpreter
 import monix.eval.Task
 import monix.execution.Scheduler.Implicits.global
 
-object MonixTaskDemo extends GenericDemo[Task] with App
+import scala.concurrent.ExecutionContext
+
+object MonixTaskDemo extends App {
+
+  implicit val appS: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
+  implicit val interpreter: Fs2RabbitInterpreter[Task] = new Fs2RabbitInterpreter[Task]
+
+  val program = new GenericDemo[Task].program
+
+  StreamLoop.run(() => program)
+
+}

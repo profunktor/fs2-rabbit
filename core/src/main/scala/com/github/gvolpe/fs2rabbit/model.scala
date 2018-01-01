@@ -24,10 +24,18 @@ import scala.reflect.ClassTag
 
 object model {
 
-  class ExchangeName(val value: String) extends AnyVal
-  class QueueName(val value: String) extends AnyVal
-  class RoutingKey(val value: String) extends AnyVal
-  class DeliveryTag(val value: Long) extends AnyVal
+  class ExchangeName(val value: String) extends AnyVal {
+    override def toString: String = value
+  }
+  class QueueName(val value: String) extends AnyVal {
+    override def toString: String = value
+  }
+  class RoutingKey(val value: String) extends AnyVal {
+    override def toString: String = value
+  }
+  class DeliveryTag(val value: Long) extends AnyVal {
+    override def toString: String = value.toString
+  }
 
   case class ConsumerArgs(consumerTag: String, noLocal: Boolean, exclusive: Boolean, args: Map[String, AnyRef])
   case class BasicQos(prefetchSize: Int, prefetchCount: Int, global: Boolean = false)
@@ -102,5 +110,13 @@ object model {
     def as[A : ClassTag]: A =
       implicitly[ClassTag[A]].runtimeClass.getConstructors.head.newInstance(value).asInstanceOf[A]
   }
+
+  // Binding
+  case class QueueBindingArgs(value: Map[String, AnyRef])
+  case class ExchangeBindingArgs(value: Map[String, AnyRef])
+
+  // Declaration
+  case class QueueDeclarationArgs(value: Map[String, AnyRef])
+  case class ExchangeDeclarationArgs(value: Map[String, AnyRef])
 
 }

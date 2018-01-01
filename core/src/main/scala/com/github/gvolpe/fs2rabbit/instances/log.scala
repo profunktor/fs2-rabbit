@@ -14,19 +14,20 @@
  * limitations under the License.
  */
 
-package com.github.gvolpe.fs2rabbit.examples.scheduler
+package com.github.gvolpe.fs2rabbit.instances
 
-import com.github.gvolpe.fs2rabbit.typeclasses.EffectScheduler
-import monix.eval.Task
+import cats.effect.Sync
+import com.github.gvolpe.fs2rabbit.typeclasses.Log
+import org.slf4j.LoggerFactory
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.FiniteDuration
+object log {
 
-object MonixEffectScheduler extends EffectScheduler[Task] {
+  private val logger = LoggerFactory.getLogger(this.getClass)
 
-  override def schedule[A](effect: Task[A], delay: FiniteDuration)
-                          (implicit ec: ExecutionContext): Task[A] = {
-    effect.delayExecution(delay)
-  }
+  implicit def syncLogInstance[F[_]](implicit F: Sync[F]): Log[F] =
+    new Log[F] {
+      override def error(error: Throwable): F[Unit] = F.delay(logger.error(error.getMessage, error))
+      override def info(value: String): F[Unit] = F.delay(logger.info(value))
+    }
 
 }

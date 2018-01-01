@@ -14,6 +14,7 @@ val commonSettings = Seq(
   startYear := Some(2017),
   licenses += ("Apache-2.0", new URL("https://www.apache.org/licenses/LICENSE-2.0.txt")),
   homepage := Some(url("https://github.com/gvolpe/fs2-rabbit")),
+  addCompilerPlugin("org.spire-math" % "kind-projector" % "0.9.5" cross CrossVersion.binary),
   libraryDependencies ++= Seq(
     "com.rabbitmq"    %  "amqp-client"      % "4.1.0",
     "co.fs2"          %% "fs2-core"         % "0.10.0-M10",

@@ -17,7 +17,7 @@
 package com.github.gvolpe.fs2rabbit.json
 
 import cats.effect.Sync
-import com.github.gvolpe.fs2rabbit.Fs2Utils.asyncF
+import com.github.gvolpe.fs2rabbit.Fs2Utils.evalF
 import com.github.gvolpe.fs2rabbit.model.AmqpMessage
 import fs2.Pipe
 import io.circe.Encoder
@@ -50,7 +50,7 @@ object Fs2JsonEncoder {
     streamMsg =>
       for {
         amqpMsg <- streamMsg
-        json    <- asyncF[F, String](amqpMsg.payload.asJson.noSpaces)
+        json    <- evalF[F, String](amqpMsg.payload.asJson.noSpaces)
       } yield AmqpMessage(json, amqpMsg.properties)
 
 }

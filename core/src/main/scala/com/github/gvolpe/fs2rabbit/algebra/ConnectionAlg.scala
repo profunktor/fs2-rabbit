@@ -14,19 +14,14 @@
  * limitations under the License.
  */
 
-package com.github.gvolpe.fs2rabbit.examples.scheduler
+package com.github.gvolpe.fs2rabbit.algebra
 
-import com.github.gvolpe.fs2rabbit.typeclasses.EffectScheduler
-import monix.eval.Task
+import com.rabbitmq.client.{Channel, Connection}
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.FiniteDuration
+trait ConnectionAlg[F[_], G[_]] {
 
-object MonixEffectScheduler extends EffectScheduler[Task] {
+  def acquireConnection: F[(Connection, Channel)]
 
-  override def schedule[A](effect: Task[A], delay: FiniteDuration)
-                          (implicit ec: ExecutionContext): Task[A] = {
-    effect.delayExecution(delay)
-  }
+  def createConnectionChannel: G[Channel]
 
 }

@@ -17,7 +17,7 @@
 package com.github.gvolpe.fs2rabbit.examples.scheduler
 
 import cats.effect.IO
-import com.github.gvolpe.fs2rabbit.EffectScheduler
+import com.github.gvolpe.fs2rabbit.typeclasses.EffectScheduler
 import fs2.Scheduler
 
 import scala.concurrent.ExecutionContext

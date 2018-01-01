@@ -16,7 +16,7 @@
 
 package com.github.gvolpe.fs2rabbit.examples.runner
 
-import com.github.gvolpe.fs2rabbit.EffectUnsafeSyncRunner
+import com.github.gvolpe.fs2rabbit.typeclasses.EffectUnsafeSyncRunner
 import monix.eval.Task
 import monix.execution.Scheduler.Implicits.global
 

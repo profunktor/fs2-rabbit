@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 
-package com.github.gvolpe.fs2rabbit
+package com.github.gvolpe.fs2rabbit.typeclasses
+
+import com.github.gvolpe.fs2rabbit.StreamLoop
 
 /**
   * A generic unsafe synchronously runner representation for any [[cats.effect.Effect]].

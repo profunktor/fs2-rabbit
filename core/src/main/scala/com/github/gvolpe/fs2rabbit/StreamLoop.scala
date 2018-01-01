@@ -17,6 +17,7 @@
 package com.github.gvolpe.fs2rabbit
 
 import cats.effect.Effect
+import com.github.gvolpe.fs2rabbit.typeclasses.{EffectScheduler, EffectUnsafeSyncRunner}
 import fs2.Stream
 import org.slf4j.LoggerFactory
 

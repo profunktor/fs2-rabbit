@@ -21,8 +21,8 @@ import fs2.{Pipe, Sink, Stream}
 
 object Fs2Utils {
 
-  def asyncF[F[_] : Sync, A](body: => A): Stream[F, A] =
-    Stream.eval[F, A] { Sync[F].delay(body) }
+  def evalF[F[_], A](body: => A)(implicit F: Sync[F]): Stream[F, A] =
+    Stream.eval[F, A](F.delay(body))
 
   def liftSink[F[_], A](f: A => F[Unit]): Sink[F, A] =
     liftPipe[F, A, Unit](f)
