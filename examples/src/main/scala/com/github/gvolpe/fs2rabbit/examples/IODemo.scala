@@ -28,11 +28,10 @@ object IODemo extends IOApp {
 
   private lazy val config = new Fs2RabbitConfigManager[IO].config
 
-  implicit val appS: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
+  implicit val appS: ExecutionContext                = scala.concurrent.ExecutionContext.Implicits.global
   implicit val interpreter: Fs2RabbitInterpreter[IO] = new Fs2RabbitInterpreter[IO](config)
 
-  override def start(args: List[String]): IO[Unit] = {
+  override def start(args: List[String]): IO[Unit] =
     StreamLoop.run(() => new GenericDemo[IO]().program)
-  }
 
 }

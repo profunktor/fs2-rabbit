@@ -57,12 +57,12 @@ class Fs2RabbitConfigManager[F[_]](implicit F: Sync[F]) {
 }
 
 case class Fs2RabbitConfig(
-  host: String,
-  port: Int,
-  virtualHost: String,
-  connectionTimeout: Int,
-  useSsl: Boolean,
-  requeueOnNack: Boolean,
-  username: Option[String],
-  password: Option[String]
+    host: String,
+    port: Int,
+    virtualHost: String,
+    connectionTimeout: Int,
+    useSsl: Boolean,
+    requeueOnNack: Boolean,
+    username: Option[String],
+    password: Option[String]
 )

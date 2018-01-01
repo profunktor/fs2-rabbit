@@ -31,7 +31,7 @@ object streameval {
         liftPipe[A, Unit](f)
 
       override def liftPipe[A, B](f: A => F[B]): Pipe[F, A, B] =
-        _.evalMap (f)
+        _.evalMap(f)
     }
 
 }

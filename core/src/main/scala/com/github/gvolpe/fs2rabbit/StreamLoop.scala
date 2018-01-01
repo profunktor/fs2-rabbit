@@ -35,22 +35,20 @@ object StreamLoop {
 
   private val log = LoggerFactory.getLogger(getClass)
 
-  def run[F[_]](program: () => Stream[F, Unit],
-                retry: FiniteDuration = 5.seconds)
-               (implicit F: Effect[F], ec: ExecutionContext): IO[Unit] =
+  def run[F[_]](program: () => Stream[F, Unit], retry: FiniteDuration = 5.seconds)(implicit F: Effect[F],
+                                                                                   ec: ExecutionContext): IO[Unit] =
     F.runAsync(loop(program(), retry).run) {
       case Right(_) => IO.unit
       case Left(e)  => IO.raiseError(e)
     }
 
-  private def loop[F[_] : Effect](program: Stream[F, Unit], retry: FiniteDuration)
-                                 (implicit ec: ExecutionContext): Stream[F, Unit] = {
+  private def loop[F[_]: Effect](program: Stream[F, Unit], retry: FiniteDuration)(
+      implicit ec: ExecutionContext): Stream[F, Unit] =
     program.handleErrorWith { err =>
       log.error(s"$err")
       log.info(s"Restarting in $retry...")
       val scheduledProgram = Scheduler[F](2).flatMap(_.sleep[F](retry)).flatMap(_ => program)
       loop[F](scheduledProgram, retry)
     }
-  }
 
 }

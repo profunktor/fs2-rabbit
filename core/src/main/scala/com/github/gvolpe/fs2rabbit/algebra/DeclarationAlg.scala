@@ -23,9 +23,7 @@ import com.rabbitmq.client.Channel
 
 trait DeclarationAlg[F[_]] {
 
-  def declareExchange(channel: Channel,
-                      exchangeName: ExchangeName,
-                      exchangeType: ExchangeType): F[Exchange.DeclareOk]
+  def declareExchange(channel: Channel, exchangeName: ExchangeName, exchangeType: ExchangeType): F[Exchange.DeclareOk]
 
   def declareQueue(channel: Channel, queueName: QueueName): F[Queue.DeclareOk]
 

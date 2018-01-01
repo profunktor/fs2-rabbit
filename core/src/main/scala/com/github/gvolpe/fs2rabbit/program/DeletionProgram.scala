@@ -24,7 +24,7 @@ import com.rabbitmq.client.AMQP.Queue
 import com.rabbitmq.client.Channel
 import fs2.Stream
 
-class DeletionProgram[F[_] : Sync](implicit SE: StreamEval[F]) extends DeletionAlg[Stream[F, ?]] {
+class DeletionProgram[F[_]: Sync](implicit SE: StreamEval[F]) extends DeletionAlg[Stream[F, ?]] {
 
   override def deleteQueue(channel: Channel,
                            queueName: QueueName,
@@ -40,7 +40,7 @@ class DeletionProgram[F[_] : Sync](implicit SE: StreamEval[F]) extends DeletionA
   override def deleteQueueNoWait(channel: Channel,
                                  queueName: QueueName,
                                  ifUnused: Boolean = true,
-                                 ifEmpty: Boolean = true): Stream[F,Unit] =
+                                 ifEmpty: Boolean = true): Stream[F, Unit] =
     SE.evalF[Unit] {
       channel.queueDeleteNoWait(queueName.value, ifUnused, ifEmpty)
     }

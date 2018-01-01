@@ -26,7 +26,7 @@ import fs2.Stream
 
 import scala.collection.JavaConverters._
 
-class BindingProgram[F[_] : Sync](implicit SE: StreamEval[F]) extends BindingAlg[Stream[F, ?]] {
+class BindingProgram[F[_]: Sync](implicit SE: StreamEval[F]) extends BindingAlg[Stream[F, ?]] {
 
   /**
     * Binds a queue to an exchange, with extra arguments.
@@ -83,7 +83,7 @@ class BindingProgram[F[_] : Sync](implicit SE: StreamEval[F]) extends BindingAlg
                             source: ExchangeName,
                             routingKey: RoutingKey,
                             args: ExchangeBindingArgs): Stream[F, Exchange.BindOk] =
-    SE.evalF[Exchange.BindOk]{
+    SE.evalF[Exchange.BindOk] {
       channel.exchangeBind(destination.value, source.value, routingKey.value, args.value.asJava)
     }
 }

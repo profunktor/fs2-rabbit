@@ -23,7 +23,7 @@ import com.github.gvolpe.fs2rabbit.typeclasses.StreamEval
 import com.rabbitmq.client.Channel
 import fs2.{Sink, Stream}
 
-class PublishingProgram[F[_] : Sync](implicit SE: StreamEval[F]) extends PublishingAlg[Stream[F, ?], Sink[F, ?]] {
+class PublishingProgram[F[_]: Sync](implicit SE: StreamEval[F]) extends PublishingAlg[Stream[F, ?], Sink[F, ?]] {
 
   override def createPublisher(channel: Channel,
                                exchangeName: ExchangeName,
@@ -31,7 +31,10 @@ class PublishingProgram[F[_] : Sync](implicit SE: StreamEval[F]) extends Publish
     SE.evalF {
       _.flatMap { msg =>
         SE.evalF[Unit] {
-          channel.basicPublish(exchangeName.value, routingKey.value, msg.properties.asBasicProps, msg.payload.getBytes("UTF-8"))
+          channel.basicPublish(exchangeName.value,
+                               routingKey.value,
+                               msg.properties.asBasicProps,
+                               msg.payload.getBytes("UTF-8"))
         }
       }
     }

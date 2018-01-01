@@ -31,8 +31,8 @@ import fs2.{Pipe, Sink, Stream}
 import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext
 
-class AmqpClientProgram[F[_]](config: F[Fs2RabbitConfig])
-                             (implicit F: Async[F], SE: StreamEval[F]) extends AmqpClientAlg[Stream[F, ?], Sink[F, ?]] {
+class AmqpClientProgram[F[_]](config: F[Fs2RabbitConfig])(implicit F: Async[F], SE: StreamEval[F])
+    extends AmqpClientAlg[Stream[F, ?], Sink[F, ?]] {
 
   private def defaultConsumer(channel: Channel): (mutable.Queue[IO, Either[Throwable, AmqpEnvelope]], Consumer) = {
     implicit val queueEC: ExecutionContext = ExecutionContext.fromExecutor(Executors.newCachedThreadPool())
@@ -41,9 +41,8 @@ class AmqpClientProgram[F[_]](config: F[Fs2RabbitConfig])
 
     val consumer = new DefaultConsumer(channel) {
 
-      override def handleCancel(consumerTag: String): Unit = {
+      override def handleCancel(consumerTag: String): Unit =
         daQ.enqueue1(Left(new Exception(s"Queue might have been DELETED! $consumerTag"))).unsafeRunSync()
-      }
 
       override def handleDelivery(consumerTag: String,
                                   envelope: Envelope,
@@ -68,8 +67,8 @@ class AmqpClientProgram[F[_]](config: F[Fs2RabbitConfig])
 
   override def createAcker(channel: Channel): Sink[F, AckResult] =
     SE.liftSink[AckResult] {
-      case Ack(tag)   => F.delay(channel.basicAck(tag.value, false))
-      case NAck(tag)  => config.map(c => channel.basicNack(tag.value, false, c.requeueOnNack))
+      case Ack(tag)  => F.delay(channel.basicAck(tag.value, false))
+      case NAck(tag) => config.map(c => channel.basicNack(tag.value, false, c.requeueOnNack))
     }
 
   override def createConsumer(queueName: QueueName,
@@ -82,9 +81,10 @@ class AmqpClientProgram[F[_]](config: F[Fs2RabbitConfig])
                               args: Map[String, AnyRef] = Map.empty[String, AnyRef]): StreamConsumer[F] = {
     val (daQ, dc) = defaultConsumer(channel)
     for {
-      _         <- SE.evalF[Unit](channel.basicQos(basicQos.prefetchSize, basicQos.prefetchCount, basicQos.global))
-      _         <- SE.evalF[String](channel.basicConsume(queueName.value, autoAck, consumerTag, noLocal, exclusive, args.asJava, dc))
-      consumer  <- Stream.repeatEval(daQ.dequeue1.to[F]) through resilientConsumer
+      _ <- SE.evalF[Unit](channel.basicQos(basicQos.prefetchSize, basicQos.prefetchCount, basicQos.global))
+      _ <- SE.evalF[String](
+            channel.basicConsume(queueName.value, autoAck, consumerTag, noLocal, exclusive, args.asJava, dc))
+      consumer <- Stream.repeatEval(daQ.dequeue1.to[F]) through resilientConsumer
     } yield consumer
   }
 

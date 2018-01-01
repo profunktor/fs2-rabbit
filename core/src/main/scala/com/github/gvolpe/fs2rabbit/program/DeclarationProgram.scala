@@ -27,7 +27,7 @@ import fs2.Stream
 
 import scala.collection.JavaConverters._
 
-class DeclarationProgram[F[_] : Sync](implicit SE: StreamEval[F]) extends DeclarationAlg[Stream[F, ?]] {
+class DeclarationProgram[F[_]: Sync](implicit SE: StreamEval[F]) extends DeclarationAlg[Stream[F, ?]] {
 
   override def declareExchange(channel: Channel,
                                exchangeName: ExchangeName,

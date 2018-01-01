@@ -27,7 +27,7 @@ import com.rabbitmq.client.AMQP.{Exchange, Queue}
 import com.rabbitmq.client.Channel
 import fs2.Stream
 
-class Fs2RabbitInterpreter[F[_] : Async](config: F[Fs2RabbitConfig]) {
+class Fs2RabbitInterpreter[F[_]: Async](config: F[Fs2RabbitConfig]) {
 
   private implicit val amqpClientProgram: AmqpClientProgram[F] =
     new AmqpClientProgram[F](config)
@@ -54,61 +54,53 @@ class Fs2RabbitInterpreter[F[_] : Async](config: F[Fs2RabbitConfig]) {
 
   def createAckerConsumer(queueName: QueueName,
                           basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
-                          consumerArgs: Option[ConsumerArgs] = None)(implicit channel: Channel): Stream[F, (StreamAcker[F], StreamConsumer[F])] =
+                          consumerArgs: Option[ConsumerArgs] = None)(
+      implicit channel: Channel): Stream[F, (StreamAcker[F], StreamConsumer[F])] =
     consumingProgram.createAckerConsumer(channel, queueName, basicQos, consumerArgs)
 
-  def createAutoAckConsumer(queueName: QueueName,
-                            basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
-                            consumerArgs: Option[ConsumerArgs] = None)(implicit channel: Channel): Stream[F, StreamConsumer[F]] =
+  def createAutoAckConsumer(
+      queueName: QueueName,
+      basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
+      consumerArgs: Option[ConsumerArgs] = None)(implicit channel: Channel): Stream[F, StreamConsumer[F]] =
     consumingProgram.createAutoAckConsumer(channel, queueName, basicQos, consumerArgs)
 
-  def createPublisher(exchangeName: ExchangeName,
-                      routingKey: RoutingKey)(implicit channel: Channel): Stream[F, StreamPublisher[F]] =
+  def createPublisher(exchangeName: ExchangeName, routingKey: RoutingKey)(
+      implicit channel: Channel): Stream[F, StreamPublisher[F]] =
     publishingProgram.createPublisher(channel, exchangeName, routingKey)
 
-  def bindQueue(queueName: QueueName,
-                exchangeName: ExchangeName,
-                routingKey: RoutingKey)(implicit channel: Channel): Stream[F, Queue.BindOk] =
+  def bindQueue(queueName: QueueName, exchangeName: ExchangeName, routingKey: RoutingKey)(
+      implicit channel: Channel): Stream[F, Queue.BindOk] =
     bindingProgram.bindQueue(channel, queueName, exchangeName, routingKey)
 
-  def bindQueue(queueName: QueueName,
-                exchangeName: ExchangeName,
-                routingKey: RoutingKey,
-                args: QueueBindingArgs)(implicit channel: Channel): Stream[F, Queue.BindOk] =
+  def bindQueue(queueName: QueueName, exchangeName: ExchangeName, routingKey: RoutingKey, args: QueueBindingArgs)(
+      implicit channel: Channel): Stream[F, Queue.BindOk] =
     bindingProgram.bindQueue(channel, queueName, exchangeName, routingKey, args)
 
-  def bindQueueNoWait(queueName: QueueName,
-                      exchangeName: ExchangeName,
-                      routingKey: RoutingKey,
-                      args: QueueBindingArgs)(implicit channel: Channel): Stream[F, Unit] =
+  def bindQueueNoWait(queueName: QueueName, exchangeName: ExchangeName, routingKey: RoutingKey, args: QueueBindingArgs)(
+      implicit channel: Channel): Stream[F, Unit] =
     bindingProgram.bindQueueNoWait(channel, queueName, exchangeName, routingKey, args)
 
-  def unbindQueue(queueName: QueueName,
-                  exchangeName: ExchangeName,
-                  routingKey: RoutingKey)(implicit channel: Channel): Stream[F, Queue.UnbindOk] =
+  def unbindQueue(queueName: QueueName, exchangeName: ExchangeName, routingKey: RoutingKey)(
+      implicit channel: Channel): Stream[F, Queue.UnbindOk] =
     bindingProgram.unbindQueue(channel, queueName, exchangeName, routingKey)
 
-  def bindExchange(destination: ExchangeName,
-                   source: ExchangeName,
-                   routingKey: RoutingKey,
-                   args: ExchangeBindingArgs)(implicit channel: Channel): Stream[F, Exchange.BindOk] =
+  def bindExchange(destination: ExchangeName, source: ExchangeName, routingKey: RoutingKey, args: ExchangeBindingArgs)(
+      implicit channel: Channel): Stream[F, Exchange.BindOk] =
     bindingProgram.bindExchange(channel, destination, source, routingKey, args)
 
-  def declareExchange(exchangeName: ExchangeName,
-                      exchangeType: ExchangeType)(implicit channel: Channel): Stream[F, Exchange.DeclareOk] =
+  def declareExchange(exchangeName: ExchangeName, exchangeType: ExchangeType)(
+      implicit channel: Channel): Stream[F, Exchange.DeclareOk] =
     declarationProgram.declareExchange(channel, exchangeName, exchangeType)
 
   def declareQueue(queueName: QueueName)(implicit channel: Channel): Stream[F, Queue.DeclareOk] =
     declarationProgram.declareQueue(channel, queueName)
 
-  def deleteQueue(queueName: QueueName,
-                  ifUnused: Boolean = true,
-                  ifEmpty: Boolean = true)(implicit channel: Channel): Stream[F, Queue.DeleteOk] =
+  def deleteQueue(queueName: QueueName, ifUnused: Boolean = true, ifEmpty: Boolean = true)(
+      implicit channel: Channel): Stream[F, Queue.DeleteOk] =
     deletionProgram.deleteQueue(channel, queueName, ifUnused, ifEmpty)
 
-  def deleteQueueNoWait(queueName: QueueName,
-                        ifUnused: Boolean = true,
-                        ifEmpty: Boolean = true)(implicit channel: Channel): Stream[F,Unit] =
+  def deleteQueueNoWait(queueName: QueueName, ifUnused: Boolean = true, ifEmpty: Boolean = true)(
+      implicit channel: Channel): Stream[F, Unit] =
     deletionProgram.deleteQueueNoWait(channel, queueName, ifUnused, ifEmpty)
 
 }

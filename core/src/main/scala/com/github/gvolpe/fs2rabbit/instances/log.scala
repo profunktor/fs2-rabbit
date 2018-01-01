@@ -27,7 +27,7 @@ object log {
   implicit def syncLogInstance[F[_]](implicit F: Sync[F]): Log[F] =
     new Log[F] {
       override def error(error: Throwable): F[Unit] = F.delay(logger.error(error.getMessage, error))
-      override def info(value: String): F[Unit] = F.delay(logger.info(value))
+      override def info(value: String): F[Unit]     = F.delay(logger.info(value))
     }
 
 }

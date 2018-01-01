@@ -21,8 +21,6 @@ import com.rabbitmq.client.Channel
 
 trait PublishingAlg[F[_], G[_]] {
 
-  def createPublisher(channel: Channel,
-                      exchangeName: ExchangeName,
-                      routingKey: RoutingKey): F[G[AmqpMessage[String]]]
+  def createPublisher(channel: Channel, exchangeName: ExchangeName, routingKey: RoutingKey): F[G[AmqpMessage[String]]]
 
 }

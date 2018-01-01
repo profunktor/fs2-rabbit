@@ -23,22 +23,22 @@ import com.github.gvolpe.fs2rabbit.typeclasses.StreamEval
 import com.rabbitmq.client.Channel
 import fs2.{Sink, Stream}
 
-class ConsumingProgram[F[_] : Async](implicit C: AmqpClientAlg[Stream[F, ?], Sink[F, ?]],
-                                              SE: StreamEval[F]) extends ConsumingAlg[Stream[F, ?], Sink[F, ?]] {
+class ConsumingProgram[F[_]: Async](implicit C: AmqpClientAlg[Stream[F, ?], Sink[F, ?]], SE: StreamEval[F])
+    extends ConsumingAlg[Stream[F, ?], Sink[F, ?]] {
 
-  override def createAckerConsumer(channel: Channel,
-                                   queueName: QueueName,
-                                   basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
-                                   consumerArgs: Option[ConsumerArgs] = None): Stream[F, (StreamAcker[F], StreamConsumer[F])] = {
+  override def createAckerConsumer(
+      channel: Channel,
+      queueName: QueueName,
+      basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
+      consumerArgs: Option[ConsumerArgs] = None): Stream[F, (StreamAcker[F], StreamConsumer[F])] = {
     val consumer = consumerArgs.fold(C.createConsumer(queueName, channel, basicQos)) { args =>
-      C.createConsumer(
-        queueName = queueName,
-        channel = channel,
-        basicQos = basicQos,
-        noLocal = args.noLocal,
-        exclusive = args.exclusive,
-        consumerTag = args.consumerTag,
-        args = args.args)
+      C.createConsumer(queueName = queueName,
+                       channel = channel,
+                       basicQos = basicQos,
+                       noLocal = args.noLocal,
+                       exclusive = args.exclusive,
+                       consumerTag = args.consumerTag,
+                       args = args.args)
     }
     SE.evalF((C.createAcker(channel), consumer))
   }

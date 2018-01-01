@@ -30,11 +30,10 @@ object MonixTaskDemo extends IOApp {
 
   private lazy val config = new Fs2RabbitConfigManager[Task].config
 
-  implicit val appS: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
+  implicit val appS: ExecutionContext                  = scala.concurrent.ExecutionContext.Implicits.global
   implicit val interpreter: Fs2RabbitInterpreter[Task] = new Fs2RabbitInterpreter[Task](config)
 
-  override def start(args: List[String]): IO[Unit] = {
+  override def start(args: List[String]): IO[Unit] =
     StreamLoop.run(() => new GenericDemo[Task].program)
-  }
 
 }

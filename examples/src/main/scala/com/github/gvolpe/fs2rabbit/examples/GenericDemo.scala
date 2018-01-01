@@ -25,13 +25,11 @@ import fs2.{Pipe, Stream}
 
 import scala.concurrent.ExecutionContext
 
-class GenericDemo[F[_] : Effect](implicit F: Fs2RabbitInterpreter[F],
-                                 EC: ExecutionContext,
-                                 SE: StreamEval[F]) {
+class GenericDemo[F[_]: Effect](implicit F: Fs2RabbitInterpreter[F], EC: ExecutionContext, SE: StreamEval[F]) {
 
-  private val queueName     = "testQ".as[QueueName]
-  private val exchangeName  = "testEX".as[ExchangeName]
-  private val routingKey    = "testRK".as[RoutingKey]
+  private val queueName    = "testQ".as[QueueName]
+  private val exchangeName = "testEX".as[ExchangeName]
+  private val routingKey   = "testRK".as[RoutingKey]
 
   def logPipe: Pipe[F, AmqpEnvelope, AckResult] = { streamMsg =>
     for {
@@ -54,11 +52,10 @@ class GenericDemo[F[_] : Effect](implicit F: Fs2RabbitInterpreter[F],
 
 }
 
-class Flow[F[_] : Effect](consumer: StreamConsumer[F],
-                          acker: StreamAcker[F],
-                          logger: Pipe[F, AmqpEnvelope, AckResult],
-                          publisher: StreamPublisher[F])
-                          (implicit ec: ExecutionContext, SE: StreamEval[F]) {
+class Flow[F[_]: Effect](consumer: StreamConsumer[F],
+                         acker: StreamAcker[F],
+                         logger: Pipe[F, AmqpEnvelope, AckResult],
+                         publisher: StreamPublisher[F])(implicit ec: ExecutionContext, SE: StreamEval[F]) {
 
   import io.circe.generic.auto._
 
@@ -68,13 +65,14 @@ class Flow[F[_] : Effect](consumer: StreamConsumer[F],
   private val jsonEncoder = new Fs2JsonEncoder[F]
   import jsonEncoder.jsonEncode
 
-  val simpleMessage = AmqpMessage("Hey!", AmqpProperties(None, None, Map("demoId" -> LongVal(123), "app" -> StringVal("fs2RabbitDemo"))))
-  val classMessage  = AmqpMessage(Person(1L, "Sherlock", Address(212, "Baker St")), AmqpProperties.empty)
+  val simpleMessage =
+    AmqpMessage("Hey!", AmqpProperties(None, None, Map("demoId" -> LongVal(123), "app" -> StringVal("fs2RabbitDemo"))))
+  val classMessage = AmqpMessage(Person(1L, "Sherlock", Address(212, "Baker St")), AmqpProperties.empty)
 
   val flow: Stream[F, Unit] =
     Stream(
       Stream(simpleMessage).covary[F] to publisher,
-      Stream(classMessage).covary[F]  through jsonEncode[Person] to publisher,
+      Stream(classMessage).covary[F] through jsonEncode[Person] to publisher,
       consumer through logger to acker
     ).join(3)
 

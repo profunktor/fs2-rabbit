@@ -25,10 +25,8 @@ import com.github.gvolpe.fs2rabbit.typeclasses.{Log, StreamEval}
 import com.rabbitmq.client.{Channel, Connection, ConnectionFactory}
 import fs2.Stream
 
-class ConnectionProgram[F[_]](config: F[Fs2RabbitConfig])
-                             (implicit F: Sync[F],
-                                       L: Log[F],
-                                       SE: StreamEval[F]) extends ConnectionAlg[F, Stream[F, ?]] {
+class ConnectionProgram[F[_]](config: F[Fs2RabbitConfig])(implicit F: Sync[F], L: Log[F], SE: StreamEval[F])
+    extends ConnectionAlg[F, Stream[F, ?]] {
 
   private lazy val connFactory: F[ConnectionFactory] =
     config.map { c =>
@@ -58,8 +56,8 @@ class ConnectionProgram[F[_]](config: F[Fs2RabbitConfig])
     **/
   override def createConnectionChannel: Stream[F, Channel] =
     Stream.bracket(acquireConnection)(
-      { case (_, channel) => SE.evalF[Channel](channel) },
-      { case (conn, channel) =>
+      { case (_, channel) => SE.evalF[Channel](channel) }, {
+        case (conn, channel) =>
           for {
             _ <- L.info(s"Releasing connection: $conn previously acquired.")
             _ <- F.delay { if (channel.isOpen) channel.close() }
