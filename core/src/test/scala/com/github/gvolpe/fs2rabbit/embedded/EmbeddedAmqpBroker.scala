@@ -20,7 +20,7 @@ import java.io.File
 import java.security.Principal
 
 import cats.effect.IO
-import com.github.gvolpe.fs2rabbit.Fs2Utils.evalF
+import com.github.gvolpe.fs2rabbit.utils.Fs2Utils.evalF
 import com.google.common.io.Files
 import fs2._
 import org.apache.qpid.server.configuration.updater.{TaskExecutor, TaskExecutorImpl}

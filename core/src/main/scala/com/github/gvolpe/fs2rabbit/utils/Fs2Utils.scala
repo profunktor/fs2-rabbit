@@ -14,13 +14,20 @@
  * limitations under the License.
  */
 
-package com.github.gvolpe.fs2rabbit.examples.runner
+package com.github.gvolpe.fs2rabbit.utils
 
-import cats.effect.IO
-import com.github.gvolpe.fs2rabbit.typeclasses.EffectUnsafeSyncRunner
+import cats.effect.Sync
+import fs2.{Pipe, Sink, Stream}
 
-object IOEffectRunner extends EffectUnsafeSyncRunner[IO] {
+object Fs2Utils {
 
-  override def unsafeRunSync(effect: IO[Unit]): Unit = effect.unsafeRunSync()
+  def evalF[F[_], A](body: => A)(implicit F: Sync[F]): Stream[F, A] =
+    Stream.eval[F, A](F.delay(body))
+
+  def liftSink[F[_], A](f: A => F[Unit]): Sink[F, A] =
+    liftPipe[F, A, Unit](f)
+
+  def liftPipe[F[_], A, B](f: A => F[B]): Pipe[F, A, B] =
+    _.evalMap (f)
 
 }

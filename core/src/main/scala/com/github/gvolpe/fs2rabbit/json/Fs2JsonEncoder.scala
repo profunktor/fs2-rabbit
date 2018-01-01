@@ -17,7 +17,7 @@
 package com.github.gvolpe.fs2rabbit.json
 
 import cats.effect.Sync
-import com.github.gvolpe.fs2rabbit.Fs2Utils.evalF
+import com.github.gvolpe.fs2rabbit.utils.Fs2Utils.evalF
 import com.github.gvolpe.fs2rabbit.model.AmqpMessage
 import fs2.Pipe
 import io.circe.Encoder

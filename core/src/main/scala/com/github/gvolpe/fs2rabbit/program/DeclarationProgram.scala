@@ -17,7 +17,7 @@
 package com.github.gvolpe.fs2rabbit.program
 
 import cats.effect.Sync
-import com.github.gvolpe.fs2rabbit.Fs2Utils.evalF
+import com.github.gvolpe.fs2rabbit.utils.Fs2Utils.evalF
 import com.github.gvolpe.fs2rabbit.algebra.DeclarationAlg
 import com.github.gvolpe.fs2rabbit.model.{ExchangeName, QueueName}
 import com.github.gvolpe.fs2rabbit.model.ExchangeType.ExchangeType

@@ -17,7 +17,7 @@
 package com.github.gvolpe.fs2rabbit.program
 
 import cats.effect.Async
-import com.github.gvolpe.fs2rabbit.Fs2Utils._
+import com.github.gvolpe.fs2rabbit.utils.Fs2Utils._
 import com.github.gvolpe.fs2rabbit.algebra.{AmqpClientAlg, ConsumingAlg}
 import com.github.gvolpe.fs2rabbit.model.{BasicQos, ConsumerArgs, QueueName, StreamAcker, StreamConsumer}
 import com.rabbitmq.client.Channel

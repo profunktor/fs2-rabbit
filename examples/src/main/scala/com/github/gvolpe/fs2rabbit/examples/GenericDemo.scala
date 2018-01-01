@@ -17,7 +17,7 @@
 package com.github.gvolpe.fs2rabbit.examples
 
 import cats.effect.Effect
-import com.github.gvolpe.fs2rabbit.Fs2Utils.evalF
+import com.github.gvolpe.fs2rabbit.utils.Fs2Utils.evalF
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2RabbitInterpreter
 import com.github.gvolpe.fs2rabbit.json.Fs2JsonEncoder
 import com.github.gvolpe.fs2rabbit.model._

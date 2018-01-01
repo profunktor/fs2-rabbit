@@ -17,9 +17,9 @@
 package com.github.gvolpe.fs2rabbit.json
 
 import cats.effect.Sync
-import com.github.gvolpe.fs2rabbit.Fs2Utils.evalF
+import com.github.gvolpe.fs2rabbit.utils.Fs2Utils.evalF
 import com.github.gvolpe.fs2rabbit.model.{AmqpEnvelope, DeliveryTag}
-import com.github.gvolpe.fs2rabbit.typeclasses.Log
+import com.github.gvolpe.fs2rabbit.utils.Log
 import fs2.{Pipe, Stream}
 import io.circe.parser.decode
 import io.circe.{Decoder, Error}

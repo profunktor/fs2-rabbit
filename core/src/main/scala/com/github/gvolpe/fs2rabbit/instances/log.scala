@@ -17,7 +17,7 @@
 package com.github.gvolpe.fs2rabbit.instances
 
 import cats.effect.Sync
-import com.github.gvolpe.fs2rabbit.typeclasses.Log
+import com.github.gvolpe.fs2rabbit.utils.Log
 import org.slf4j.LoggerFactory
 
 object log {

@@ -19,10 +19,10 @@ package com.github.gvolpe.fs2rabbit.program
 import cats.effect.Sync
 import cats.syntax.flatMap._
 import cats.syntax.functor._
-import com.github.gvolpe.fs2rabbit.Fs2Utils.evalF
+import com.github.gvolpe.fs2rabbit.utils.Fs2Utils.evalF
 import com.github.gvolpe.fs2rabbit.algebra.ConnectionAlg
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
-import com.github.gvolpe.fs2rabbit.typeclasses.Log
+import com.github.gvolpe.fs2rabbit.utils.Log
 import com.rabbitmq.client.{Channel, Connection, ConnectionFactory}
 import fs2.Stream
 

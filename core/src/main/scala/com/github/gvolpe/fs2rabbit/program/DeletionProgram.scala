@@ -17,7 +17,7 @@
 package com.github.gvolpe.fs2rabbit.program
 
 import cats.effect.Sync
-import com.github.gvolpe.fs2rabbit.Fs2Utils.evalF
+import com.github.gvolpe.fs2rabbit.utils.Fs2Utils.evalF
 import com.github.gvolpe.fs2rabbit.algebra.DeletionAlg
 import com.github.gvolpe.fs2rabbit.model.QueueName
 import com.rabbitmq.client.AMQP.Queue

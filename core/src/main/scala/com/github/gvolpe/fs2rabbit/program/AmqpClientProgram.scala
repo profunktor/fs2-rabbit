@@ -19,7 +19,7 @@ package com.github.gvolpe.fs2rabbit.program
 import java.util.concurrent.Executors
 
 import cats.effect.{Async, IO, Sync}
-import com.github.gvolpe.fs2rabbit.Fs2Utils.{evalF, liftSink}
+import com.github.gvolpe.fs2rabbit.utils.Fs2Utils.{evalF, liftSink}
 import com.github.gvolpe.fs2rabbit.algebra.AmqpClientAlg
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 import com.github.gvolpe.fs2rabbit.model._

@@ -17,8 +17,8 @@
 package com.github.gvolpe.fs2rabbit
 
 import cats.effect.IO
-import Fs2Utils.evalF
-import com.github.gvolpe.fs2rabbit.typeclasses.{EffectScheduler, EffectUnsafeSyncRunner}
+import com.github.gvolpe.fs2rabbit.utils.Fs2Utils
+import com.github.gvolpe.fs2rabbit.utils.Fs2Utils.evalF
 import fs2._
 import org.scalatest.{FlatSpecLike, Matchers}
 
@@ -27,17 +27,7 @@ import scala.concurrent.duration._
 
 class StreamLoopSpec extends FlatSpecLike with Matchers {
 
-  implicit val ec = scala.concurrent.ExecutionContext.Implicits.global
-
-  implicit val es = new EffectScheduler[IO] {
-    override def schedule[A](effect: IO[A], delay: FiniteDuration)(implicit ec: ExecutionContext) = {
-      Scheduler[IO](2).flatMap(_.sleep[IO](delay)).run.flatMap(_ => effect)
-    }
-  }
-
-  implicit val runner = new EffectUnsafeSyncRunner[IO] {
-    override def unsafeRunSync(effect: IO[Unit]) = effect.unsafeRunSync()
-  }
+  implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
 
   it should "run a stream until it's finished" in {
     val sink = Fs2Utils.liftSink[IO, Int](n => IO(println(n)))
