@@ -30,7 +30,8 @@ import fs2.Stream
 // TODO: Remove Channel param from all the methods and make it implicit
 class Fs2RabbitInterpreter[F[_] : Async] {
 
-  private lazy val config: Fs2RabbitConfig = Fs2RabbitConfigManager.config
+  private lazy val config: F[Fs2RabbitConfig] =
+    new Fs2RabbitConfigManager[F].config
 
   private implicit val amqpClientProgram: AmqpClientProgram[F] =
     new AmqpClientProgram[F](config)

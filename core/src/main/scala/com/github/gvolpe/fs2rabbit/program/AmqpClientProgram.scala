@@ -18,7 +18,8 @@ package com.github.gvolpe.fs2rabbit.program
 
 import java.util.concurrent.Executors
 
-import cats.effect.{Async, IO, Sync}
+import cats.effect.{Async, IO}
+import cats.syntax.functor._
 import com.github.gvolpe.fs2rabbit.algebra.AmqpClientAlg
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 import com.github.gvolpe.fs2rabbit.model._
@@ -30,7 +31,7 @@ import fs2.{Pipe, Sink, Stream}
 import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext
 
-class AmqpClientProgram[F[_]](config: Fs2RabbitConfig)
+class AmqpClientProgram[F[_]](config: F[Fs2RabbitConfig])
                              (implicit F: Async[F], SE: StreamEval[F]) extends AmqpClientAlg[Stream[F, ?], Sink[F, ?]] {
 
   private def defaultConsumer(channel: Channel): (mutable.Queue[IO, Either[Throwable, AmqpEnvelope]], Consumer) = {
@@ -67,8 +68,8 @@ class AmqpClientProgram[F[_]](config: Fs2RabbitConfig)
 
   override def createAcker(channel: Channel): Sink[F, AckResult] =
     SE.liftSink[AckResult] {
-      case Ack(tag)   => Sync[F].delay(channel.basicAck(tag.value, false))
-      case NAck(tag)  => Sync[F].delay(channel.basicNack(tag.value, false, config.requeueOnNack))
+      case Ack(tag)   => F.delay(channel.basicAck(tag.value, false))
+      case NAck(tag)  => config.map(c => channel.basicNack(tag.value, false, c.requeueOnNack))
     }
 
   override def createConsumer(queueName: QueueName,

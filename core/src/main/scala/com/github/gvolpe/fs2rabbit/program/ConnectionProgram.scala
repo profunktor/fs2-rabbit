@@ -25,24 +25,25 @@ import com.github.gvolpe.fs2rabbit.typeclasses.{Log, StreamEval}
 import com.rabbitmq.client.{Channel, Connection, ConnectionFactory}
 import fs2.Stream
 
-class ConnectionProgram[F[_]](config: Fs2RabbitConfig)
+class ConnectionProgram[F[_]](config: F[Fs2RabbitConfig])
                              (implicit F: Sync[F],
                                        L: Log[F],
                                        SE: StreamEval[F]) extends ConnectionAlg[F, Stream[F, ?]] {
 
-  private lazy val connFactory: F[ConnectionFactory] = F.delay {
-    val factory = new ConnectionFactory()
-    factory.setHost(config.host)
-    factory.setPort(config.port)
-    factory.setVirtualHost(config.virtualHost)
-    factory.setConnectionTimeout(config.connectionTimeout)
-    if (config.useSsl) {
-      factory.useSslProtocol()
+  private lazy val connFactory: F[ConnectionFactory] =
+    config.map { c =>
+      val factory = new ConnectionFactory()
+      factory.setHost(c.host)
+      factory.setPort(c.port)
+      factory.setVirtualHost(c.virtualHost)
+      factory.setConnectionTimeout(c.connectionTimeout)
+      if (c.useSsl) {
+        factory.useSslProtocol()
+      }
+      c.username.foreach(factory.setUsername)
+      c.password.foreach(factory.setPassword)
+      factory
     }
-    config.username.foreach(factory.setUsername)
-    config.password.foreach(factory.setPassword)
-    factory
-  }
 
   override def acquireConnection: F[(Connection, Channel)] =
     for {
