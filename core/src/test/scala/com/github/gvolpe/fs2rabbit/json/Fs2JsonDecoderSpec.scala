@@ -21,7 +21,6 @@ import cats.syntax.functor._
 import com.github.gvolpe.fs2rabbit.model.{AmqpEnvelope, AmqpProperties, DeliveryTag}
 import fs2._
 import io.circe._
-import io.circe.generic.auto._
 import org.scalatest.prop.PropertyChecks
 import org.scalatest.{FlatSpecLike, Matchers}
 
@@ -29,7 +28,7 @@ import scala.concurrent.duration._
 
 class Fs2JsonDecoderSpec extends Fs2JsonDecoderFixture with FlatSpecLike with Matchers {
 
-  behavior of "Fs2JsonDecoder"
+  import io.circe.generic.auto._
 
   forAll(examples){ (description, json, decoder, expected) =>
     it should description in {
@@ -65,9 +64,10 @@ class Fs2JsonDecoderSpec extends Fs2JsonDecoderFixture with FlatSpecLike with Ma
 trait Fs2JsonDecoderFixture extends PropertyChecks {
 
   import com.github.gvolpe.fs2rabbit.instances.log._
+  import io.circe.generic.auto._
 
   val fs2JsonDecoder = new Fs2JsonDecoder[IO]
-  import fs2JsonDecoder._
+  import fs2JsonDecoder.jsonDecode
 
   case class Address(number: Int, streetName: String)
   case class Person(name: String, address: Address)
