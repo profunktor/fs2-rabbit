@@ -27,7 +27,7 @@ import com.rabbitmq.client.ConnectionFactory
   * */
 class Fs2RabbitConfigManager[F[_]](implicit F: Sync[F]) {
 
-  private val baseConfPath        = "fs2-rabbit.connection"
+  private val baseConfPath = "fs2-rabbit.connection"
 
   private val safeConfig: F[SafeConfigReader] = F.delay {
     val configuration = ConfigFactory.load()

@@ -40,17 +40,17 @@ class GenericDemo[F[_] : Effect](implicit F: Fs2RabbitInterpreter[F],
     } yield Ack(amqpMsg.deliveryTag)
   }
 
-  val program: Stream[F, Unit] =
+  val program: Stream[F, Unit] = F.createConnectionChannel flatMap { implicit channel =>
     for {
-      channel           <- F.createConnectionChannel
-      _                 <- F.declareQueue(channel, queueName)
-      _                 <- F.declareExchange(channel, exchangeName, ExchangeType.Topic)
-      _                 <- F.bindQueue(channel, queueName, exchangeName, routingKey)
-      ackerConsumer     <- F.createAckerConsumer(channel, queueName)
+      _                 <- F.declareQueue(queueName)
+      _                 <- F.declareExchange(exchangeName, ExchangeType.Topic)
+      _                 <- F.bindQueue(queueName, exchangeName, routingKey)
+      ackerConsumer     <- F.createAckerConsumer(queueName)
       (acker, consumer) = ackerConsumer
-      publisher         <- F.createPublisher(channel, exchangeName, routingKey)
+      publisher         <- F.createPublisher(exchangeName, routingKey)
       result            <- new Flow(consumer, acker, logPipe, publisher).flow
     } yield result
+  }
 
 }
 
