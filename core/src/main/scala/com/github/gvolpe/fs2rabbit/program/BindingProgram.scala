@@ -17,16 +17,16 @@
 package com.github.gvolpe.fs2rabbit.program
 
 import cats.effect.Sync
-import com.github.gvolpe.fs2rabbit.utils.Fs2Utils.evalF
 import com.github.gvolpe.fs2rabbit.algebra.BindingAlg
 import com.github.gvolpe.fs2rabbit.model.{ExchangeBindingArgs, ExchangeName, QueueBindingArgs, QueueName, RoutingKey}
+import com.github.gvolpe.fs2rabbit.typeclasses.StreamEval
 import com.rabbitmq.client.AMQP.{Exchange, Queue}
 import com.rabbitmq.client.Channel
 import fs2.Stream
 
 import scala.collection.JavaConverters._
 
-class BindingProgram[F[_] : Sync] extends BindingAlg[Stream[F, ?]] {
+class BindingProgram[F[_] : Sync](implicit SE: StreamEval[F]) extends BindingAlg[Stream[F, ?]] {
 
   /**
     * Binds a queue to an exchange, with extra arguments.
@@ -35,7 +35,7 @@ class BindingProgram[F[_] : Sync] extends BindingAlg[Stream[F, ?]] {
                          queueName: QueueName,
                          exchangeName: ExchangeName,
                          routingKey: RoutingKey): Stream[F, Queue.BindOk] =
-    evalF[F, Queue.BindOk] {
+    SE.evalF[Queue.BindOk] {
       channel.queueBind(queueName.value, exchangeName.value, routingKey.value)
     }
 
@@ -47,7 +47,7 @@ class BindingProgram[F[_] : Sync] extends BindingAlg[Stream[F, ?]] {
                          exchangeName: ExchangeName,
                          routingKey: RoutingKey,
                          args: QueueBindingArgs): Stream[F, Queue.BindOk] =
-    evalF[F, Queue.BindOk] {
+    SE.evalF[Queue.BindOk] {
       channel.queueBind(queueName.value, exchangeName.value, routingKey.value, args.value.asJava)
     }
 
@@ -60,7 +60,7 @@ class BindingProgram[F[_] : Sync] extends BindingAlg[Stream[F, ?]] {
                                exchangeName: ExchangeName,
                                routingKey: RoutingKey,
                                args: QueueBindingArgs): Stream[F, Unit] =
-    evalF[F, Unit] {
+    SE.evalF[Unit] {
       channel.queueBindNoWait(queueName.value, exchangeName.value, routingKey.value, args.value.asJava)
     }
 
@@ -71,7 +71,7 @@ class BindingProgram[F[_] : Sync] extends BindingAlg[Stream[F, ?]] {
                            queueName: QueueName,
                            exchangeName: ExchangeName,
                            routingKey: RoutingKey): Stream[F, Queue.UnbindOk] =
-    evalF[F, Queue.UnbindOk] {
+    SE.evalF[Queue.UnbindOk] {
       channel.queueUnbind(queueName.value, exchangeName.value, routingKey.value)
     }
 
@@ -83,7 +83,7 @@ class BindingProgram[F[_] : Sync] extends BindingAlg[Stream[F, ?]] {
                             source: ExchangeName,
                             routingKey: RoutingKey,
                             args: ExchangeBindingArgs): Stream[F, Exchange.BindOk] =
-    evalF[F, Exchange.BindOk]{
+    SE.evalF[Exchange.BindOk]{
       channel.exchangeBind(destination.value, source.value, routingKey.value, args.value.asJava)
     }
 }

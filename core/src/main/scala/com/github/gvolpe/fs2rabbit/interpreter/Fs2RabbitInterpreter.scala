@@ -19,6 +19,7 @@ package com.github.gvolpe.fs2rabbit.interpreter
 import cats.effect.Async
 import com.github.gvolpe.fs2rabbit.config.{Fs2RabbitConfig, Fs2RabbitConfigManager}
 import com.github.gvolpe.fs2rabbit.instances.log._
+import com.github.gvolpe.fs2rabbit.instances.streameval._
 import com.github.gvolpe.fs2rabbit.model.ExchangeType.ExchangeType
 import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.program._
@@ -26,6 +27,7 @@ import com.rabbitmq.client.AMQP.{Exchange, Queue}
 import com.rabbitmq.client.Channel
 import fs2.Stream
 
+// TODO: Remove Channel param from all the methods and make it implicit
 class Fs2RabbitInterpreter[F[_] : Async] {
 
   private lazy val config: Fs2RabbitConfig = Fs2RabbitConfigManager.config

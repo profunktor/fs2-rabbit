@@ -17,27 +17,27 @@
 package com.github.gvolpe.fs2rabbit.program
 
 import cats.effect.Sync
-import com.github.gvolpe.fs2rabbit.utils.Fs2Utils.evalF
 import com.github.gvolpe.fs2rabbit.algebra.DeclarationAlg
 import com.github.gvolpe.fs2rabbit.model.{ExchangeName, QueueName}
 import com.github.gvolpe.fs2rabbit.model.ExchangeType.ExchangeType
+import com.github.gvolpe.fs2rabbit.typeclasses.StreamEval
 import com.rabbitmq.client.AMQP.{Exchange, Queue}
 import com.rabbitmq.client.Channel
 import fs2.Stream
 
 import scala.collection.JavaConverters._
 
-class DeclarationProgram[F[_] : Sync] extends DeclarationAlg[Stream[F, ?]] {
+class DeclarationProgram[F[_] : Sync](implicit SE: StreamEval[F]) extends DeclarationAlg[Stream[F, ?]] {
 
   override def declareExchange(channel: Channel,
                                exchangeName: ExchangeName,
                                exchangeType: ExchangeType): Stream[F, Exchange.DeclareOk] =
-    evalF[F, Exchange.DeclareOk] {
+    SE.evalF[Exchange.DeclareOk] {
       channel.exchangeDeclare(exchangeName.value, exchangeType.toString.toLowerCase)
     }
 
   override def declareQueue(channel: Channel, queueName: QueueName): Stream[F, Queue.DeclareOk] =
-    evalF[F, Queue.DeclareOk] {
+    SE.evalF[Queue.DeclareOk] {
       channel.queueDeclare(queueName.value, false, false, false, Map.empty[String, AnyRef].asJava)
     }
 

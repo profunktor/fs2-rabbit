@@ -19,10 +19,10 @@ package com.github.gvolpe.fs2rabbit.program
 import java.util.concurrent.Executors
 
 import cats.effect.{Async, IO, Sync}
-import com.github.gvolpe.fs2rabbit.utils.Fs2Utils.{evalF, liftSink}
 import com.github.gvolpe.fs2rabbit.algebra.AmqpClientAlg
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 import com.github.gvolpe.fs2rabbit.model._
+import com.github.gvolpe.fs2rabbit.typeclasses.StreamEval
 import com.rabbitmq.client._
 import fs2.async.mutable
 import fs2.{Pipe, Sink, Stream}
@@ -31,7 +31,7 @@ import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext
 
 class AmqpClientProgram[F[_]](config: Fs2RabbitConfig)
-                             (implicit F: Async[F]) extends AmqpClientAlg[Stream[F, ?], Sink[F, ?]] {
+                             (implicit F: Async[F], SE: StreamEval[F]) extends AmqpClientAlg[Stream[F, ?], Sink[F, ?]] {
 
   private def defaultConsumer(channel: Channel): (mutable.Queue[IO, Either[Throwable, AmqpEnvelope]], Consumer) = {
     implicit val queueEC: ExecutionContext = ExecutionContext.fromExecutor(Executors.newCachedThreadPool())
@@ -62,11 +62,11 @@ class AmqpClientProgram[F[_]](config: Fs2RabbitConfig)
   private def resilientConsumer: Pipe[F, Either[Throwable, AmqpEnvelope], AmqpEnvelope] =
     _.flatMap {
       case Left(err)  => Stream.raiseError(err)
-      case Right(env) => evalF[F, AmqpEnvelope](env)
+      case Right(env) => SE.evalF[AmqpEnvelope](env)
     }
 
   override def createAcker(channel: Channel): Sink[F, AckResult] =
-    liftSink[F, AckResult] {
+    SE.liftSink[AckResult] {
       case Ack(tag)   => Sync[F].delay(channel.basicAck(tag.value, false))
       case NAck(tag)  => Sync[F].delay(channel.basicNack(tag.value, false, config.requeueOnNack))
     }
@@ -81,8 +81,8 @@ class AmqpClientProgram[F[_]](config: Fs2RabbitConfig)
                               args: Map[String, AnyRef] = Map.empty[String, AnyRef]): StreamConsumer[F] = {
     val (daQ, dc) = defaultConsumer(channel)
     for {
-      _         <- evalF[F, Unit](channel.basicQos(basicQos.prefetchSize, basicQos.prefetchCount, basicQos.global))
-      _         <- evalF[F, String](channel.basicConsume(queueName.value, autoAck, consumerTag, noLocal, exclusive, args.asJava, dc))
+      _         <- SE.evalF[Unit](channel.basicQos(basicQos.prefetchSize, basicQos.prefetchCount, basicQos.global))
+      _         <- SE.evalF[String](channel.basicConsume(queueName.value, autoAck, consumerTag, noLocal, exclusive, args.asJava, dc))
       consumer  <- Stream.repeatEval(daQ.dequeue1.to[F]) through resilientConsumer
     } yield consumer
   }

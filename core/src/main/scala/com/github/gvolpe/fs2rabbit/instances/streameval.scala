@@ -14,11 +14,24 @@
  * limitations under the License.
  */
 
-package com.github.gvolpe.fs2rabbit.utils
+package com.github.gvolpe.fs2rabbit.instances
 
-import cats.effect.IO
+import cats.effect.Sync
+import com.github.gvolpe.fs2rabbit.typeclasses.StreamEval
+import fs2.{Pipe, Sink, Stream}
 
-trait IOApp {
-  def start(args: List[String]): IO[Unit]
-  def main(args: Array[String]): Unit = start(args.toList).unsafeRunSync()
+object streameval {
+
+  implicit def syncStreamEvalInstance[F[_]](implicit F: Sync[F]): StreamEval[F] =
+    new StreamEval[F] {
+      override def evalF[A](body: => A): Stream[F, A] =
+        Stream.eval[F, A](F.delay(body))
+
+      override def liftSink[A](f: A => F[Unit]): Sink[F, A] =
+        liftPipe[A, Unit](f)
+
+      override def liftPipe[A, B](f: A => F[B]): Pipe[F, A, B] =
+        _.evalMap (f)
+    }
+
 }

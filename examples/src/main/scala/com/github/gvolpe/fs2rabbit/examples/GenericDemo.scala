@@ -17,15 +17,17 @@
 package com.github.gvolpe.fs2rabbit.examples
 
 import cats.effect.Effect
-import com.github.gvolpe.fs2rabbit.utils.Fs2Utils.evalF
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2RabbitInterpreter
 import com.github.gvolpe.fs2rabbit.json.Fs2JsonEncoder
 import com.github.gvolpe.fs2rabbit.model._
+import com.github.gvolpe.fs2rabbit.typeclasses.StreamEval
 import fs2.{Pipe, Stream}
 
 import scala.concurrent.ExecutionContext
 
-class GenericDemo[F[_] : Effect](implicit F: Fs2RabbitInterpreter[F], EC: ExecutionContext) {
+class GenericDemo[F[_] : Effect](implicit F: Fs2RabbitInterpreter[F],
+                                 EC: ExecutionContext,
+                                 SE: StreamEval[F]) {
 
   private val queueName     = "testQ".as[QueueName]
   private val exchangeName  = "testEX".as[ExchangeName]
@@ -34,7 +36,7 @@ class GenericDemo[F[_] : Effect](implicit F: Fs2RabbitInterpreter[F], EC: Execut
   def logPipe: Pipe[F, AmqpEnvelope, AckResult] = { streamMsg =>
     for {
       amqpMsg <- streamMsg
-      _       <- evalF[F, Unit](println(s"Consumed: $amqpMsg"))
+      _       <- SE.evalF[Unit](println(s"Consumed: $amqpMsg"))
     } yield Ack(amqpMsg.deliveryTag)
   }
 
@@ -56,7 +58,7 @@ class Flow[F[_] : Effect](consumer: StreamConsumer[F],
                           acker: StreamAcker[F],
                           logger: Pipe[F, AmqpEnvelope, AckResult],
                           publisher: StreamPublisher[F])
-                          (implicit ec: ExecutionContext) {
+                          (implicit ec: ExecutionContext, SE: StreamEval[F]) {
 
   import io.circe.generic.auto._
 

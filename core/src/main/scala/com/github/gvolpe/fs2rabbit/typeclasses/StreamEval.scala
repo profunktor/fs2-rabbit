@@ -14,9 +14,16 @@
  * limitations under the License.
  */
 
-package com.github.gvolpe.fs2rabbit.utils
+package com.github.gvolpe.fs2rabbit.typeclasses
 
-trait Log[F[_]] {
-  def info(value: String): F[Unit]
-  def error(error: Throwable): F[Unit]
+import fs2.{Pipe, Sink, Stream}
+
+trait StreamEval[F[_]] {
+
+  def evalF[A](body: => A): Stream[F, A]
+
+  def liftSink[A](f: A => F[Unit]): Sink[F, A]
+
+  def liftPipe[A, B](f: A => F[B]): Pipe[F, A, B]
+
 }

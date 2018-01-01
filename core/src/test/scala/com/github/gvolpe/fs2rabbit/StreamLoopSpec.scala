@@ -17,8 +17,6 @@
 package com.github.gvolpe.fs2rabbit
 
 import cats.effect.IO
-import com.github.gvolpe.fs2rabbit.utils.Fs2Utils
-import com.github.gvolpe.fs2rabbit.utils.Fs2Utils.evalF
 import fs2._
 import org.scalatest.{FlatSpecLike, Matchers}
 
@@ -30,7 +28,7 @@ class StreamLoopSpec extends FlatSpecLike with Matchers {
   implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
 
   it should "run a stream until it's finished" in {
-    val sink = Fs2Utils.liftSink[IO, Int](n => IO(println(n)))
+    val sink: Sink[IO, Int] = _.evalMap (n => IO(println(n)))
     val program = Stream(1,2,3).covary[IO] to sink
     StreamLoop.run(() => program)
   }
@@ -45,7 +43,7 @@ class StreamLoopSpec extends FlatSpecLike with Matchers {
     var trigger: Int = 2
 
     val p: Stream[IO, Unit] = program.handleErrorWith { t =>
-      if (trigger == 0) evalF[IO, Unit](())
+      if (trigger == 0) Stream.eval(IO.unit)
       else {
         trigger = trigger - 1
         Stream.raiseError(t)

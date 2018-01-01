@@ -14,20 +14,11 @@
  * limitations under the License.
  */
 
-package com.github.gvolpe.fs2rabbit.utils
+package com.github.gvolpe.fs2rabbit.examples
 
-import cats.effect.Sync
-import fs2.{Pipe, Sink, Stream}
+import cats.effect.IO
 
-object Fs2Utils {
-
-  def evalF[F[_], A](body: => A)(implicit F: Sync[F]): Stream[F, A] =
-    Stream.eval[F, A](F.delay(body))
-
-  def liftSink[F[_], A](f: A => F[Unit]): Sink[F, A] =
-    liftPipe[F, A, Unit](f)
-
-  def liftPipe[F[_], A, B](f: A => F[B]): Pipe[F, A, B] =
-    _.evalMap (f)
-
+trait IOApp {
+  def start(args: List[String]): IO[Unit]
+  def main(args: Array[String]): Unit = start(args.toList).unsafeRunSync()
 }

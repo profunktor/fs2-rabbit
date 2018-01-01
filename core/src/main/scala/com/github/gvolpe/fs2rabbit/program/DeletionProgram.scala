@@ -17,21 +17,20 @@
 package com.github.gvolpe.fs2rabbit.program
 
 import cats.effect.Sync
-import com.github.gvolpe.fs2rabbit.utils.Fs2Utils.evalF
 import com.github.gvolpe.fs2rabbit.algebra.DeletionAlg
 import com.github.gvolpe.fs2rabbit.model.QueueName
+import com.github.gvolpe.fs2rabbit.typeclasses.StreamEval
 import com.rabbitmq.client.AMQP.Queue
 import com.rabbitmq.client.Channel
 import fs2.Stream
 
-// TODO: Remove Channel param from all the methods and make it implicit
-class DeletionProgram[F[_] : Sync] extends DeletionAlg[Stream[F, ?]] {
+class DeletionProgram[F[_] : Sync](implicit SE: StreamEval[F]) extends DeletionAlg[Stream[F, ?]] {
 
   override def deleteQueue(channel: Channel,
                            queueName: QueueName,
                            ifUnused: Boolean = true,
                            ifEmpty: Boolean = true): Stream[F, Queue.DeleteOk] =
-    evalF[F, Queue.DeleteOk] {
+    SE.evalF[Queue.DeleteOk] {
       channel.queueDelete(queueName.value, ifUnused, ifEmpty)
     }
 
@@ -42,7 +41,7 @@ class DeletionProgram[F[_] : Sync] extends DeletionAlg[Stream[F, ?]] {
                                  queueName: QueueName,
                                  ifUnused: Boolean = true,
                                  ifEmpty: Boolean = true): Stream[F,Unit] =
-    evalF[F, Unit] {
+    SE.evalF[Unit] {
       channel.queueDeleteNoWait(queueName.value, ifUnused, ifEmpty)
     }
 
