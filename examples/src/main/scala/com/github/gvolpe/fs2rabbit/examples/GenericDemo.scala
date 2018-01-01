@@ -19,7 +19,7 @@ package com.github.gvolpe.fs2rabbit.examples
 import cats.effect.Effect
 import com.github.gvolpe.fs2rabbit.Fs2Utils.evalF
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2RabbitInterpreter
-import com.github.gvolpe.fs2rabbit.json.Fs2JsonEncoder.jsonEncode
+import com.github.gvolpe.fs2rabbit.json.Fs2JsonEncoder
 import com.github.gvolpe.fs2rabbit.model._
 import fs2.{Pipe, Stream}
 
@@ -63,13 +63,16 @@ class Flow[F[_] : Effect](consumer: StreamConsumer[F],
   case class Address(number: Int, streetName: String)
   case class Person(id: Long, name: String, address: Address)
 
+  private val jsonEncoder = new Fs2JsonEncoder[F]
+  import jsonEncoder.jsonEncode
+
   val simpleMessage = AmqpMessage("Hey!", AmqpProperties(None, None, Map("demoId" -> LongVal(123), "app" -> StringVal("fs2RabbitDemo"))))
   val classMessage  = AmqpMessage(Person(1L, "Sherlock", Address(212, "Baker St")), AmqpProperties.empty)
 
   val flow: Stream[F, Unit] =
     Stream(
       Stream(simpleMessage).covary[F] to publisher,
-      Stream(classMessage).covary[F]  through jsonEncode[F, Person] to publisher,
+      Stream(classMessage).covary[F]  through jsonEncode[Person] to publisher,
       consumer through logger to acker
     ).join(3)
 
