@@ -22,7 +22,7 @@ import cats.effect.{Async, IO, Sync}
 import com.github.gvolpe.fs2rabbit.Fs2Utils.{evalF, liftSink}
 import com.github.gvolpe.fs2rabbit.algebra.AmqpClientAlg
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
-import com.github.gvolpe.fs2rabbit.model.{Ack, AckResult, AmqpEnvelope, AmqpProperties, BasicQos, DeliveryTag, NAck, QueueName, StreamConsumer}
+import com.github.gvolpe.fs2rabbit.model._
 import com.rabbitmq.client._
 import fs2.async.mutable
 import fs2.{Pipe, Sink, Stream}

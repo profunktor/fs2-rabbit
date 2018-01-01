@@ -18,7 +18,6 @@ package com.github.gvolpe.fs2rabbit.json
 
 import cats.effect.IO
 import cats.syntax.functor._
-import com.github.gvolpe.fs2rabbit.json.Fs2JsonDecoder.jsonDecode
 import com.github.gvolpe.fs2rabbit.model.{AmqpEnvelope, AmqpProperties, DeliveryTag}
 import fs2._
 import io.circe._
@@ -52,7 +51,7 @@ class Fs2JsonDecoderSpec extends Fs2JsonDecoderFixture with FlatSpecLike with Ma
     val envelope = AmqpEnvelope(new DeliveryTag(1), json, AmqpProperties.empty)
 
     val test = for {
-      parsed          <- Stream(envelope).covary[IO] through jsonDecode[IO, Person]
+      parsed          <- Stream(envelope).covary[IO] through fs2JsonDecoder.jsonDecode[Person]
       (validated, _)  = parsed
     } yield {
       validated shouldBe a[Left[_, Person]]
@@ -64,6 +63,11 @@ class Fs2JsonDecoderSpec extends Fs2JsonDecoderFixture with FlatSpecLike with Ma
 }
 
 trait Fs2JsonDecoderFixture extends PropertyChecks {
+
+  import com.github.gvolpe.fs2rabbit.instances.log._
+
+  val fs2JsonDecoder = new Fs2JsonDecoder[IO]
+  import fs2JsonDecoder._
 
   case class Address(number: Int, streetName: String)
   case class Person(name: String, address: Address)
@@ -101,10 +105,10 @@ trait Fs2JsonDecoderFixture extends PropertyChecks {
 
   val examples = Table(
     ("description", "json", "clazz", "expected"),
-    ("decode a simple case class", simpleJson, jsonDecode[IO, Address], Right(Address(212, "Baker St"))),
-    ("decode a nested case class", nestedJson, jsonDecode[IO, Person], Right(Person("Sherlock", Address(212, "Baker St")))),
-    ("decode an adt 1", """ { "one": "the one" } """, jsonDecode[IO, Message], Right(One("the one"))),
-    ("decode an adt 2", """ { "two": "the two" } """, jsonDecode[IO, Message], Right(Two("the two")))
+    ("decode a simple case class", simpleJson, jsonDecode[Address], Right(Address(212, "Baker St"))),
+    ("decode a nested case class", nestedJson, jsonDecode[Person], Right(Person("Sherlock", Address(212, "Baker St")))),
+    ("decode an adt 1", """ { "one": "the one" } """, jsonDecode[Message], Right(One("the one"))),
+    ("decode an adt 2", """ { "two": "the two" } """, jsonDecode[Message], Right(Two("the two")))
   )
 
 }

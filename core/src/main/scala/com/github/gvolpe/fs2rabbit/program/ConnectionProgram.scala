@@ -56,14 +56,13 @@ class ConnectionProgram[F[_]](config: Fs2RabbitConfig)
     **/
   override def createConnectionChannel: Stream[F, Channel] =
     Stream.bracket(acquireConnection)(
-      cc => evalF[F, Channel](cc._2),
-      cc => {
-        val (conn, channel) = cc
-        for {
-          _ <- L.info(s"Releasing connection: $conn previously acquired.")
-          _ <- F.delay { if (channel.isOpen) channel.close() }
-          _ <- F.delay { if (conn.isOpen) conn.close() }
-        } yield ()
+      { case (_, channel) => evalF[F, Channel](channel) },
+      { case (conn, channel) =>
+          for {
+            _ <- L.info(s"Releasing connection: $conn previously acquired.")
+            _ <- F.delay { if (channel.isOpen) channel.close() }
+            _ <- F.delay { if (conn.isOpen) conn.close() }
+          } yield ()
       }
     )
 
