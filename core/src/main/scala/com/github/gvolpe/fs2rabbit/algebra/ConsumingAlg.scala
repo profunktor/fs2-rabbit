@@ -29,6 +29,6 @@ trait ConsumingAlg[F[_], G[_]] {
   def createAutoAckConsumer(channel: Channel,
                             queueName: QueueName,
                             basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
-                            consumerArgs: Option[ConsumerArgs] = None): F[AmqpEnvelope]
+                            consumerArgs: Option[ConsumerArgs] = None): F[F[AmqpEnvelope]]
 
 }

@@ -36,10 +36,9 @@ object EmbeddedAmqpBroker {
 
   def createBroker: Stream[IO, Unit] =
     Stream.bracket[IO, (File, SystemConfig[_]), Unit](acquireSystemConfig)(
-      _  => Stream.eval(IO.unit),
-      fs => {
-        val (file, systemConfig) = fs
-        shutdown(file, systemConfig).map(_ => ())
+      _ => Stream.eval(IO.unit), {
+        case (file, systemConfig) =>
+          shutdown(file, systemConfig).map(_ => ())
       }
     )
 
@@ -49,28 +48,30 @@ object EmbeddedAmqpBroker {
   }
 
   private[EmbeddedAmqpBroker] def acquireSystemConfig: IO[(File, SystemConfig[_])] = IO {
-    val taskExecutor: TaskExecutor    = new TaskExecutorImpl
-    val messageLogger: MessageLogger  = new LoggingMessageLogger
-    val eventLogger: EventLogger      = new EventLogger
+    val taskExecutor: TaskExecutor   = new TaskExecutorImpl
+    val messageLogger: MessageLogger = new LoggingMessageLogger
+    val eventLogger: EventLogger     = new EventLogger
     eventLogger.setMessageLogger(messageLogger)
 
-    val configFactoryLoader = new PluggableFactoryLoader(classOf[SystemConfigFactory[_ <: SystemConfig[_]]])
+    val configFactoryLoader =
+      new PluggableFactoryLoader(classOf[SystemConfigFactory[_ <: SystemConfig[_]]])
     val configFactory = configFactoryLoader.get(JsonSystemConfigImpl.SYSTEM_CONFIG_TYPE)
-    val initialConfigurationUrl: String = getClass.getClassLoader.getResource("amqp-config.json").toExternalForm
+    val initialConfigurationUrl: String =
+      getClass.getClassLoader.getResource("amqp-config.json").toExternalForm
 
     val workDir = Files.createTempDir()
 
     val context = Map(
-      "qpid.work_dir"   -> workDir.getAbsolutePath,
-      "qpid.amqp_port"  -> "45947",
+      "qpid.work_dir"                                -> workDir.getAbsolutePath,
+      "qpid.amqp_port"                               -> "45947",
       "qpid.broker.defaultPreferenceStoreAttributes" -> "{\"type\": \"Noop\"}}"
     )
 
     val attributes = Map(
       "initialConfigurationLocation" -> initialConfigurationUrl,
-      "context"   -> context.asJava,
-      "storePath" -> s"$${json:qpid.work_dir}$${file.separator}config.json",
-      "startupLoggedToSystemOut" -> "false"
+      "context"                      -> context.asJava,
+      "storePath"                    -> s"$${json:qpid.work_dir}$${file.separator}config.json",
+      "startupLoggedToSystemOut"     -> "false"
     )
 
     val systemConfig = configFactory.newInstance(taskExecutor, eventLogger, new Principal {

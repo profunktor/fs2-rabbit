@@ -39,7 +39,7 @@ class Fs2JsonEncoderSpec extends FlatSpecLike with Matchers {
     val test = for {
       json <- Stream(AmqpMessage(payload, AmqpProperties.empty)).covary[IO] through jsonEncode[Address]
     } yield {
-      json should be (AmqpMessage(payload.asJson.noSpaces, AmqpProperties.empty))
+      json should be(AmqpMessage(payload.asJson.noSpaces, AmqpProperties.empty))
     }
 
     test.run.unsafeRunTimed(2.seconds)
@@ -50,7 +50,7 @@ class Fs2JsonEncoderSpec extends FlatSpecLike with Matchers {
     val test = for {
       json <- Stream(AmqpMessage(payload, AmqpProperties.empty)).covary[IO] through jsonEncode[Person]
     } yield {
-      json should be (AmqpMessage(payload.asJson.noSpaces, AmqpProperties.empty))
+      json should be(AmqpMessage(payload.asJson.noSpaces, AmqpProperties.empty))
     }
 
     test.run.unsafeRunTimed(2.seconds)

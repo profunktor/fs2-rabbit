@@ -30,15 +30,15 @@ class Fs2JsonDecoderSpec extends Fs2JsonDecoderFixture with FlatSpecLike with Ma
 
   import io.circe.generic.auto._
 
-  forAll(examples){ (description, json, decoder, expected) =>
+  forAll(examples) { (description, json, decoder, expected) =>
     it should description in {
       val envelope = AmqpEnvelope(new DeliveryTag(1), json, AmqpProperties.empty)
 
       val test = for {
-        parsed          <- Stream(envelope).covary[IO] through decoder
-        (validated, _)  = parsed
+        parsed         <- Stream(envelope).covary[IO] through decoder
+        (validated, _) = parsed
       } yield {
-        validated should be (expected)
+        validated should be(expected)
       }
 
       test.run.unsafeRunTimed(2.seconds)
@@ -46,12 +46,12 @@ class Fs2JsonDecoderSpec extends Fs2JsonDecoderFixture with FlatSpecLike with Ma
   }
 
   it should "fail decoding the wrong class" in {
-    val json = """ { "two": "the two" } """
+    val json     = """ { "two": "the two" } """
     val envelope = AmqpEnvelope(new DeliveryTag(1), json, AmqpProperties.empty)
 
     val test = for {
-      parsed          <- Stream(envelope).covary[IO] through fs2JsonDecoder.jsonDecode[Person]
-      (validated, _)  = parsed
+      parsed         <- Stream(envelope).covary[IO] through fs2JsonDecoder.jsonDecode[Person]
+      (validated, _) = parsed
     } yield {
       validated shouldBe a[Left[_, Person]]
     }
@@ -73,9 +73,9 @@ trait Fs2JsonDecoderFixture extends PropertyChecks {
   case class Address(number: Int, streetName: String)
   case class Person(name: String, address: Address)
 
-  sealed trait Message extends Product with Serializable
-  final case class One(one: String) extends Message
-  final case class Two(two: String) extends Message
+  sealed trait Message               extends Product with Serializable
+  final case class One(one: String)  extends Message
+  final case class Two(two: String)  extends Message
   final case class Three(three: Int) extends Message
 
   implicit def msgDecoder[A >: Message]: Decoder[A] =

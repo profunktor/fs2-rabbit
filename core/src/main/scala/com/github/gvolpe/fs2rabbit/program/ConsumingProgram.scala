@@ -46,8 +46,8 @@ class ConsumingProgram[F[_] : Async](implicit C: AmqpClientAlg[Stream[F, ?], Sin
   override def createAutoAckConsumer(channel: Channel,
                                      queueName: QueueName,
                                      basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
-                                     consumerArgs: Option[ConsumerArgs] = None): StreamConsumer[F] = {
-    consumerArgs.fold(C.createConsumer(queueName, channel, basicQos, autoAck = true)) { args =>
+                                     consumerArgs: Option[ConsumerArgs] = None): Stream[F, StreamConsumer[F]] = {
+    val consumer = consumerArgs.fold(C.createConsumer(queueName, channel, basicQos, autoAck = true)) { args =>
       C.createConsumer(
         queueName = queueName,
         channel = channel,
@@ -59,6 +59,7 @@ class ConsumingProgram[F[_] : Async](implicit C: AmqpClientAlg[Stream[F, ?], Sin
         args = args.args
       )
     }
+    SE.evalF(consumer)
   }
 
 }

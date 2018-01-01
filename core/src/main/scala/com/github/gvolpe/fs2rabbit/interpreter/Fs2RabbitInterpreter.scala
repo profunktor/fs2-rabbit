@@ -17,7 +17,7 @@
 package com.github.gvolpe.fs2rabbit.interpreter
 
 import cats.effect.Async
-import com.github.gvolpe.fs2rabbit.config.{Fs2RabbitConfig, Fs2RabbitConfigManager}
+import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 import com.github.gvolpe.fs2rabbit.instances.log._
 import com.github.gvolpe.fs2rabbit.instances.streameval._
 import com.github.gvolpe.fs2rabbit.model.ExchangeType.ExchangeType
@@ -27,10 +27,7 @@ import com.rabbitmq.client.AMQP.{Exchange, Queue}
 import com.rabbitmq.client.Channel
 import fs2.Stream
 
-class Fs2RabbitInterpreter[F[_] : Async] {
-
-  private lazy val config: F[Fs2RabbitConfig] =
-    new Fs2RabbitConfigManager[F].config
+class Fs2RabbitInterpreter[F[_] : Async](config: F[Fs2RabbitConfig]) {
 
   private implicit val amqpClientProgram: AmqpClientProgram[F] =
     new AmqpClientProgram[F](config)
@@ -62,7 +59,7 @@ class Fs2RabbitInterpreter[F[_] : Async] {
 
   def createAutoAckConsumer(queueName: QueueName,
                             basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
-                            consumerArgs: Option[ConsumerArgs] = None)(implicit channel: Channel): StreamConsumer[F] =
+                            consumerArgs: Option[ConsumerArgs] = None)(implicit channel: Channel): Stream[F, StreamConsumer[F]] =
     consumingProgram.createAutoAckConsumer(channel, queueName, basicQos, consumerArgs)
 
   def createPublisher(exchangeName: ExchangeName,
