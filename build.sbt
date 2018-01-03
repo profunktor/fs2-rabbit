@@ -47,7 +47,7 @@ val commonSettings = Seq(
     "-language:existentials",
     "-language:higherKinds"
   ),
-  coverageExcludedPackages := "com\\.github\\.gvolpe\\.fs2rabbit\\.examples.*;.*UnderlyingAmqpClient*",
+  coverageExcludedPackages := "com\\.github\\.gvolpe\\.fs2rabbit\\.examples.*;.*QueueName*;.*RoutingKey*;.*ExchangeName*;.*DeliveryTag*",
   publishTo := {
     val sonatype = "https://oss.sonatype.org/"
     if (isSnapshot.value)

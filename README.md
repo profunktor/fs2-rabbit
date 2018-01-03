@@ -114,12 +114,14 @@ Both `createAckerConsumer` and `createAutoackConsumer` methods support two extra
 A stream-based Json Decoder that can be connected to a StreamConsumer is provided out of the box. Implicit decoders for your classes must be on scope (you can use Circe's codec auto derivation):
 
 ```scala
-import com.github.gvolpe.fs2rabbit.json.Fs2JsonDecoder._
 import io.circe._
 import io.circe.generic.auto._
 
 case class Address(number: Int, streetName: String)
 case class Person(id: Long, name: String, address: Address)
+
+private val jsonDecoder = new Fs2JsonDecoder[F]
+import jsonDecoder._
 
 (consumer through jsonDecode[Person]) flatMap {
   case (Left(error), tag) => (Stream.eval(F.delay(error)) to errorSink).map(_ => Nack(tag)) to acker
@@ -145,13 +147,15 @@ Stream(message).covary[F] to publisher
 A stream-based Json Encoder that can be connected to a StreamPublisher is provided out of the box. Very similar to the Json Decoder shown above, but in this case, implicit encoders for your classes must be on scope (again you can use Circe's codec auto derivation):
 
 ```scala
-import com.github.gvolpe.fs2rabbit.json.Fs2JsonEncoder._
 import com.github.gvolpe.fs2rabbit.model._
 import io.circe.generic.auto._
 import fs2._
 
 case class Address(number: Int, streetName: String)
 case class Person(id: Long, name: String, address: Address)
+
+private val jsonEncoder = new Fs2JsonEncoder[F]
+import jsonEncoder._
 
 val message = AmqpMessage(Person(1L, "Sherlock", Address(212, "Baker St")), AmqpProperties.empty)
 
