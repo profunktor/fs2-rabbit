@@ -17,62 +17,62 @@
 package com.github.gvolpe.fs2rabbit.examples
 
 import cats.effect.Effect
-import com.github.gvolpe.fs2rabbit.Fs2Rabbit._
-import com.github.gvolpe.fs2rabbit.Fs2Utils.asyncF
-import com.github.gvolpe.fs2rabbit.{EffectScheduler, EffectUnsafeSyncRunner, StreamLoop}
-import com.github.gvolpe.fs2rabbit.json.Fs2JsonEncoder.jsonEncode
+import com.github.gvolpe.fs2rabbit.interpreter.Fs2RabbitInterpreter
+import com.github.gvolpe.fs2rabbit.json.Fs2JsonEncoder
 import com.github.gvolpe.fs2rabbit.model._
+import com.github.gvolpe.fs2rabbit.typeclasses.StreamEval
 import fs2.{Pipe, Stream}
 
 import scala.concurrent.ExecutionContext
 
-class GenericDemo[F[_] : Effect : EffectScheduler : EffectUnsafeSyncRunner]() {
+class GenericDemo[F[_]: Effect](implicit F: Fs2RabbitInterpreter[F], EC: ExecutionContext, SE: StreamEval[F]) {
 
-  implicit val appS = scala.concurrent.ExecutionContext.Implicits.global
-
-  val queueName     = "testQ".as[QueueName]
-  val exchangeName  = "testEX".as[ExchangeName]
-  val routingKey    = "testRK".as[RoutingKey]
+  private val queueName    = "testQ".as[QueueName]
+  private val exchangeName = "testEX".as[ExchangeName]
+  private val routingKey   = "testRK".as[RoutingKey]
 
   def logPipe: Pipe[F, AmqpEnvelope, AckResult] = { streamMsg =>
     for {
       amqpMsg <- streamMsg
-      _       <- asyncF[F, Unit](println(s"Consumed: $amqpMsg"))
+      _       <- SE.evalF[Unit](println(s"Consumed: $amqpMsg"))
     } yield Ack(amqpMsg.deliveryTag)
   }
 
-  val program = for {
-    channel           <- createConnectionChannel[F]()
-    _                 <- declareQueue[F](channel, queueName)
-    _                 <- declareExchange[F](channel, exchangeName, ExchangeType.Topic)
-    _                 <- bindQueue[F](channel, queueName, exchangeName, routingKey)
-    (acker, consumer) = createAckerConsumer[F](channel, queueName)
-    publisher         = createPublisher[F](channel, exchangeName, routingKey)
-    result            <- new Flow(consumer, acker, logPipe, publisher).flow
-  } yield result
-
-  StreamLoop.run(() => program)
+  val program: Stream[F, Unit] = F.createConnectionChannel flatMap { implicit channel =>
+    for {
+      _                 <- F.declareQueue(queueName)
+      _                 <- F.declareExchange(exchangeName, ExchangeType.Topic)
+      _                 <- F.bindQueue(queueName, exchangeName, routingKey)
+      ackerConsumer     <- F.createAckerConsumer(queueName)
+      (acker, consumer) = ackerConsumer
+      publisher         <- F.createPublisher(exchangeName, routingKey)
+      result            <- new Flow(consumer, acker, logPipe, publisher).flow
+    } yield result
+  }
 
 }
 
-class Flow[F[_] : Effect](consumer: StreamConsumer[F],
-                          acker: StreamAcker[F],
-                          logger: Pipe[F, AmqpEnvelope, AckResult],
-                          publisher: StreamPublisher[F])
-                          (implicit ec: ExecutionContext) {
+class Flow[F[_]: Effect](consumer: StreamConsumer[F],
+                         acker: StreamAcker[F],
+                         logger: Pipe[F, AmqpEnvelope, AckResult],
+                         publisher: StreamPublisher[F])(implicit ec: ExecutionContext, SE: StreamEval[F]) {
 
   import io.circe.generic.auto._
 
   case class Address(number: Int, streetName: String)
   case class Person(id: Long, name: String, address: Address)
 
-  val simpleMessage = AmqpMessage("Hey!", AmqpProperties(None, None, Map("demoId" -> LongVal(123), "app" -> StringVal("fs2RabbitDemo"))))
-  val classMessage  = AmqpMessage(Person(1L, "Sherlock", Address(212, "Baker St")), AmqpProperties.empty)
+  private val jsonEncoder = new Fs2JsonEncoder[F]
+  import jsonEncoder.jsonEncode
+
+  val simpleMessage =
+    AmqpMessage("Hey!", AmqpProperties(None, None, Map("demoId" -> LongVal(123), "app" -> StringVal("fs2RabbitDemo"))))
+  val classMessage = AmqpMessage(Person(1L, "Sherlock", Address(212, "Baker St")), AmqpProperties.empty)
 
   val flow: Stream[F, Unit] =
     Stream(
       Stream(simpleMessage).covary[F] to publisher,
-      Stream(classMessage).covary[F]  through jsonEncode[F, Person] to publisher,
+      Stream(classMessage).covary[F] through jsonEncode[Person] to publisher,
       consumer through logger to acker
     ).join(3)
 

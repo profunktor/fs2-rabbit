@@ -39,8 +39,8 @@ class SafeConfigReader(config: Config) {
         Some(value)
     }
 
-  def string(key: String): Option[String] = safeRead[String](config.getString)(key)
-  def int(key: String): Option[Int] = safeRead[Int](config.getInt)(key)
+  def string(key: String): Option[String]   = safeRead[String](config.getString)(key)
+  def int(key: String): Option[Int]         = safeRead[Int](config.getInt)(key)
   def boolean(key: String): Option[Boolean] = safeRead[Boolean](config.getBoolean)(key)
 
 }

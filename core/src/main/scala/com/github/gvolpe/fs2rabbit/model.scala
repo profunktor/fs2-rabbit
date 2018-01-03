@@ -24,10 +24,18 @@ import scala.reflect.ClassTag
 
 object model {
 
-  class ExchangeName(val value: String) extends AnyVal
-  class QueueName(val value: String) extends AnyVal
-  class RoutingKey(val value: String) extends AnyVal
-  class DeliveryTag(val value: Long) extends AnyVal
+  class ExchangeName(val value: String) extends AnyVal {
+    override def toString: String = value
+  }
+  class QueueName(val value: String) extends AnyVal {
+    override def toString: String = value
+  }
+  class RoutingKey(val value: String) extends AnyVal {
+    override def toString: String = value
+  }
+  class DeliveryTag(val value: Long) extends AnyVal {
+    override def toString: String = value.toString
+  }
 
   case class ConsumerArgs(consumerTag: String, noLocal: Boolean, exclusive: Boolean, args: Map[String, AnyRef])
   case class BasicQos(prefetchSize: Int, prefetchCount: Int, global: Boolean = false)
@@ -37,14 +45,14 @@ object model {
     val Direct, FanOut, Headers, Topic = Value
   }
 
-  sealed trait AckResult extends Product with Serializable
-  final case class Ack(deliveryTag: DeliveryTag) extends AckResult
+  sealed trait AckResult                          extends Product with Serializable
+  final case class Ack(deliveryTag: DeliveryTag)  extends AckResult
   final case class NAck(deliveryTag: DeliveryTag) extends AckResult
 
-  type StreamAcker[F[_]]          = Sink[F, AckResult]
-  type StreamConsumer[F[_]]       = Stream[F, AmqpEnvelope]
-  type StreamAckerConsumer[F[_]]  = (StreamAcker[F], StreamConsumer[F])
-  type StreamPublisher[F[_]]      = Sink[F, AmqpMessage[String]]
+  type StreamAcker[F[_]]         = Sink[F, AckResult]
+  type StreamConsumer[F[_]]      = Stream[F, AmqpEnvelope]
+  type StreamAckerConsumer[F[_]] = (StreamAcker[F], StreamConsumer[F])
+  type StreamPublisher[F[_]]     = Sink[F, AmqpMessage[String]]
 
   sealed trait AmqpHeaderVal extends Product with Serializable {
     def impure: AnyRef = this match {
@@ -79,18 +87,20 @@ object model {
       AmqpProperties(
         Option(basicProps.getContentType),
         Option(basicProps.getContentEncoding),
-        Option(basicProps.getHeaders).fold(Map.empty[String, Object])(_.asScala.toMap)
+        Option(basicProps.getHeaders)
+          .fold(Map.empty[String, Object])(_.asScala.toMap)
           .map {
-            case (k,v) => k -> AmqpHeaderVal.from(v)
+            case (k, v) => k -> AmqpHeaderVal.from(v)
           }
       )
 
     implicit class AmqpPropertiesOps(props: AmqpProperties) {
-      def asBasicProps: AMQP.BasicProperties = new AMQP.BasicProperties.Builder()
-        .contentType(props.contentType.orNull)
-        .contentEncoding(props.contentEncoding.orNull)
-        .headers(props.headers.mapValues[AnyRef](_.impure).asJava)
-        .build()
+      def asBasicProps: AMQP.BasicProperties =
+        new AMQP.BasicProperties.Builder()
+          .contentType(props.contentType.orNull)
+          .contentEncoding(props.contentEncoding.orNull)
+          .headers(props.headers.mapValues[AnyRef](_.impure).asJava)
+          .build()
     }
   }
 
@@ -99,8 +109,16 @@ object model {
   case class AmqpMessage[A](payload: A, properties: AmqpProperties)
 
   implicit class StringValueClasses(value: String) {
-    def as[A : ClassTag]: A =
+    def as[A: ClassTag]: A =
       implicitly[ClassTag[A]].runtimeClass.getConstructors.head.newInstance(value).asInstanceOf[A]
   }
+
+  // Binding
+  case class QueueBindingArgs(value: Map[String, AnyRef])
+  case class ExchangeBindingArgs(value: Map[String, AnyRef])
+
+  // Declaration
+  case class QueueDeclarationArgs(value: Map[String, AnyRef])
+  case class ExchangeDeclarationArgs(value: Map[String, AnyRef])
 
 }

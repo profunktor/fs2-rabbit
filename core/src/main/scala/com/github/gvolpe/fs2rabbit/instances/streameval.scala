@@ -14,19 +14,24 @@
  * limitations under the License.
  */
 
-package com.github.gvolpe.fs2rabbit.examples.scheduler
+package com.github.gvolpe.fs2rabbit.instances
 
-import com.github.gvolpe.fs2rabbit.EffectScheduler
-import monix.eval.Task
+import cats.effect.Sync
+import com.github.gvolpe.fs2rabbit.typeclasses.StreamEval
+import fs2.{Pipe, Sink, Stream}
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.FiniteDuration
+object streameval {
 
-object MonixEffectScheduler extends EffectScheduler[Task] {
+  implicit def syncStreamEvalInstance[F[_]](implicit F: Sync[F]): StreamEval[F] =
+    new StreamEval[F] {
+      override def evalF[A](body: => A): Stream[F, A] =
+        Stream.eval[F, A](F.delay(body))
 
-  override def schedule[A](effect: Task[A], delay: FiniteDuration)
-                          (implicit ec: ExecutionContext): Task[A] = {
-    effect.delayExecution(delay)
-  }
+      override def liftSink[A](f: A => F[Unit]): Sink[F, A] =
+        liftPipe[A, Unit](f)
+
+      override def liftPipe[A, B](f: A => F[B]): Pipe[F, A, B] =
+        _.evalMap(f)
+    }
 
 }

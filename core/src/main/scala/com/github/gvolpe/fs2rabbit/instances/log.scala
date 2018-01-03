@@ -14,16 +14,20 @@
  * limitations under the License.
  */
 
-package com.github.gvolpe.fs2rabbit
+package com.github.gvolpe.fs2rabbit.instances
 
-import com.github.gvolpe.fs2rabbit.examples.runner.{IOEffectRunner, MonixEffectRunner}
-import com.github.gvolpe.fs2rabbit.examples.scheduler.{IOEffectScheduler, MonixEffectScheduler}
+import cats.effect.Sync
+import com.github.gvolpe.fs2rabbit.typeclasses.Log
+import org.slf4j.LoggerFactory
 
-package object examples {
+object log {
 
-  implicit val iOEffectScheduler    = IOEffectScheduler
-  implicit val ioEffectRunner       = IOEffectRunner
-  implicit val monixEffectScheduler = MonixEffectScheduler
-  implicit val monixEffectRunner    = MonixEffectRunner
+  private val logger = LoggerFactory.getLogger(this.getClass)
+
+  implicit def syncLogInstance[F[_]](implicit F: Sync[F]): Log[F] =
+    new Log[F] {
+      override def error(error: Throwable): F[Unit] = F.delay(logger.error(error.getMessage, error))
+      override def info(value: String): F[Unit]     = F.delay(logger.info(value))
+    }
 
 }

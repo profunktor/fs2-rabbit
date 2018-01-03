@@ -14,13 +14,17 @@
  * limitations under the License.
  */
 
-package com.github.gvolpe.fs2rabbit.examples.runner
+package com.github.gvolpe.fs2rabbit.algebra
 
-import cats.effect.IO
-import com.github.gvolpe.fs2rabbit.EffectUnsafeSyncRunner
+import com.github.gvolpe.fs2rabbit.model.{ExchangeName, QueueName}
+import com.github.gvolpe.fs2rabbit.model.ExchangeType.ExchangeType
+import com.rabbitmq.client.AMQP.{Exchange, Queue}
+import com.rabbitmq.client.Channel
 
-object IOEffectRunner extends EffectUnsafeSyncRunner[IO] {
+trait DeclarationAlg[F[_]] {
 
-  override def unsafeRunSync(effect: IO[Unit]): Unit = effect.unsafeRunSync()
+  def declareExchange(channel: Channel, exchangeName: ExchangeName, exchangeType: ExchangeType): F[Exchange.DeclareOk]
+
+  def declareQueue(channel: Channel, queueName: QueueName): F[Queue.DeclareOk]
 
 }

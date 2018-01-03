@@ -16,9 +16,10 @@
 
 package com.github.gvolpe.fs2rabbit
 
-import cats.effect.Effect
-import fs2.Stream
-import org.slf4j.LoggerFactory
+import cats.effect.{Effect, IO}
+import com.github.gvolpe.fs2rabbit.instances.log._
+import com.github.gvolpe.fs2rabbit.typeclasses.Log
+import fs2.{Scheduler, Stream}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
@@ -33,19 +34,23 @@ import scala.concurrent.duration._
   * */
 object StreamLoop {
 
-  private val log = LoggerFactory.getLogger(getClass)
+  def run[F[_]](program: () => Stream[F, Unit], retry: FiniteDuration = 5.seconds)(implicit F: Effect[F],
+                                                                                   ec: ExecutionContext): IO[Unit] =
+    F.runAsync(loop(program(), retry).run) {
+      case Right(_) => IO.unit
+      case Left(e)  => IO.raiseError(e)
+    }
 
-  def run[F[_] : Effect : EffectScheduler : EffectUnsafeSyncRunner](program: () => Stream[F, Unit], retry: FiniteDuration = 5.seconds)
-         (implicit ec: ExecutionContext): Unit = {
-    EffectUnsafeSyncRunner[F].unsafeRunSync(loop(program(), retry).run)
-  }
-
-  private def loop[F[_] : Effect : EffectScheduler](program: Stream[F, Unit], retry: FiniteDuration)
-                        (implicit ec: ExecutionContext): Stream[F, Unit] = {
+  private def loop[F[_]: Effect](program: Stream[F, Unit], retry: FiniteDuration)(
+      implicit ec: ExecutionContext): Stream[F, Unit] = {
+    val log = implicitly[Log[F]]
     program.handleErrorWith { err =>
-      log.error(s"$err")
-      log.info(s"Restarting in $retry...")
-      loop[F](Stream.eval(EffectScheduler[F].schedule[Unit](program.run, retry)), retry)
+      val scheduledProgram = Scheduler[F](2).flatMap(_.sleep[F](retry)).flatMap(_ => program)
+      for {
+        _ <- Stream.eval(log.error(err))
+        _ <- Stream.eval(log.info(s"Restarting in $retry..."))
+        p <- loop[F](scheduledProgram, retry)
+      } yield p
     }
   }
 

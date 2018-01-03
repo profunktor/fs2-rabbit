@@ -17,20 +17,17 @@
 package com.github.gvolpe.fs2rabbit.json
 
 import cats.effect.Sync
-import com.github.gvolpe.fs2rabbit.Fs2Utils.asyncF
 import com.github.gvolpe.fs2rabbit.model.{AmqpEnvelope, DeliveryTag}
-import fs2.Pipe
+import com.github.gvolpe.fs2rabbit.typeclasses.{Log, StreamEval}
+import fs2.{Pipe, Stream}
 import io.circe.parser.decode
 import io.circe.{Decoder, Error}
-import org.slf4j.LoggerFactory
 
 /**
   * Stream-based Json Decoder that exposes only one method as a streaming transformation
   * using [[fs2.Pipe]] and depends on the Circe library.
   * */
-object Fs2JsonDecoder {
-
-  private val log = LoggerFactory.getLogger(getClass)
+class Fs2JsonDecoder[F[_]: Sync](implicit L: Log[F], SE: StreamEval[F]) {
 
   /**
     * It tries to decode an [[AmqpEnvelope.payload]] into a case class determined by the parameter [A].
@@ -50,12 +47,12 @@ object Fs2JsonDecoder {
     *
     * The result will be a tuple ([[Either]] of [[Error]] and [[A]], [[DeliveryTag]])
     * */
-  def jsonDecode[F[_] : Sync, A : Decoder]: Pipe[F, AmqpEnvelope, (Either[Error, A], DeliveryTag)] =
+  def jsonDecode[A: Decoder]: Pipe[F, AmqpEnvelope, (Either[Error, A], DeliveryTag)] =
     streamMsg =>
       for {
         amqpMsg <- streamMsg
-        parsed  <- asyncF[F, Either[Error, A]](decode[A](amqpMsg.payload))
-        _       <- asyncF[F, Unit](log.debug(s"Parsed: $parsed"))
+        parsed  <- SE.evalF[Either[Error, A]](decode[A](amqpMsg.payload))
+        _       <- Stream.eval(L.info(s"Parsed: $parsed"))
       } yield (parsed, amqpMsg.deliveryTag)
 
 }

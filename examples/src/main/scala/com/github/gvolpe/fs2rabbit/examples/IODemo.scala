@@ -17,5 +17,21 @@
 package com.github.gvolpe.fs2rabbit.examples
 
 import cats.effect.IO
+import com.github.gvolpe.fs2rabbit.StreamLoop
+import com.github.gvolpe.fs2rabbit.config.{Fs2RabbitConfig, Fs2RabbitConfigManager}
+import com.github.gvolpe.fs2rabbit.instances.streameval._
+import com.github.gvolpe.fs2rabbit.interpreter.Fs2RabbitInterpreter
 
-object IODemo extends GenericDemo[IO] with App
+import scala.concurrent.ExecutionContext
+
+object IODemo extends IOApp {
+
+  private lazy val config = new Fs2RabbitConfigManager[IO].config
+
+  implicit val appS: ExecutionContext                = scala.concurrent.ExecutionContext.Implicits.global
+  implicit val interpreter: Fs2RabbitInterpreter[IO] = new Fs2RabbitInterpreter[IO](config)
+
+  override def start(args: List[String]): IO[Unit] =
+    StreamLoop.run(() => new GenericDemo[IO]().program)
+
+}

@@ -14,19 +14,11 @@
  * limitations under the License.
  */
 
-package com.github.gvolpe.fs2rabbit.examples.runner
+package com.github.gvolpe.fs2rabbit.examples
 
-import com.github.gvolpe.fs2rabbit.EffectUnsafeSyncRunner
-import monix.eval.Task
-import monix.execution.Scheduler.Implicits.global
+import cats.effect.IO
 
-import scala.concurrent.Await
-import scala.concurrent.duration.Duration
-
-object MonixEffectRunner extends EffectUnsafeSyncRunner[Task] {
-
-  override def unsafeRunSync(effect: Task[Unit]): Unit = {
-    Await.result(effect.runAsync, Duration.Inf)
-  }
-
+trait IOApp {
+  def start(args: List[String]): IO[Unit]
+  def main(args: Array[String]): Unit = start(args.toList).unsafeRunSync()
 }

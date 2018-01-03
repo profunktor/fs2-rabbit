@@ -17,8 +17,8 @@
 package com.github.gvolpe.fs2rabbit.json
 
 import cats.effect.Sync
-import com.github.gvolpe.fs2rabbit.Fs2Utils.asyncF
 import com.github.gvolpe.fs2rabbit.model.AmqpMessage
+import com.github.gvolpe.fs2rabbit.typeclasses.StreamEval
 import fs2.Pipe
 import io.circe.Encoder
 import io.circe.syntax._
@@ -27,7 +27,7 @@ import io.circe.syntax._
   * Stream-based Json Encoder that exposes only one method as a streaming transformation
   * using [[fs2.Pipe]] and depends on the Circe library.
   * */
-object Fs2JsonEncoder {
+class Fs2JsonEncoder[F[_]: Sync](implicit SE: StreamEval[F]) {
 
   /**
     * It tries to encode a given case class encapsulated in an  [[AmqpMessage]] into a
@@ -46,11 +46,11 @@ object Fs2JsonEncoder {
     *
     * The result will be an [[AmqpMessage]] of type [[String]]
     * */
-  def jsonEncode[F[_] : Sync, A : Encoder]: Pipe[F, AmqpMessage[A], AmqpMessage[String]] =
+  def jsonEncode[A: Encoder]: Pipe[F, AmqpMessage[A], AmqpMessage[String]] =
     streamMsg =>
       for {
         amqpMsg <- streamMsg
-        json    <- asyncF[F, String](amqpMsg.payload.asJson.noSpaces)
+        json    <- SE.evalF[String](amqpMsg.payload.asJson.noSpaces)
       } yield AmqpMessage(json, amqpMsg.properties)
 
 }

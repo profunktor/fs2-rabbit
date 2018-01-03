@@ -18,11 +18,9 @@ package com.github.gvolpe.fs2rabbit.json
 
 import cats.effect.IO
 import cats.syntax.functor._
-import com.github.gvolpe.fs2rabbit.json.Fs2JsonDecoder.jsonDecode
 import com.github.gvolpe.fs2rabbit.model.{AmqpEnvelope, AmqpProperties, DeliveryTag}
 import fs2._
 import io.circe._
-import io.circe.generic.auto._
 import org.scalatest.prop.PropertyChecks
 import org.scalatest.{FlatSpecLike, Matchers}
 
@@ -30,17 +28,17 @@ import scala.concurrent.duration._
 
 class Fs2JsonDecoderSpec extends Fs2JsonDecoderFixture with FlatSpecLike with Matchers {
 
-  behavior of "Fs2JsonDecoder"
+  import io.circe.generic.auto._
 
-  forAll(examples){ (description, json, decoder, expected) =>
+  forAll(examples) { (description, json, decoder, expected) =>
     it should description in {
       val envelope = AmqpEnvelope(new DeliveryTag(1), json, AmqpProperties.empty)
 
       val test = for {
-        parsed          <- Stream(envelope).covary[IO] through decoder
-        (validated, _)  = parsed
+        parsed         <- Stream(envelope).covary[IO] through decoder
+        (validated, _) = parsed
       } yield {
-        validated should be (expected)
+        validated should be(expected)
       }
 
       test.run.unsafeRunTimed(2.seconds)
@@ -48,12 +46,12 @@ class Fs2JsonDecoderSpec extends Fs2JsonDecoderFixture with FlatSpecLike with Ma
   }
 
   it should "fail decoding the wrong class" in {
-    val json = """ { "two": "the two" } """
+    val json     = """ { "two": "the two" } """
     val envelope = AmqpEnvelope(new DeliveryTag(1), json, AmqpProperties.empty)
 
     val test = for {
-      parsed          <- Stream(envelope).covary[IO] through jsonDecode[IO, Person]
-      (validated, _)  = parsed
+      parsed         <- Stream(envelope).covary[IO] through fs2JsonDecoder.jsonDecode[Person]
+      (validated, _) = parsed
     } yield {
       validated shouldBe a[Left[_, Person]]
     }
@@ -65,12 +63,19 @@ class Fs2JsonDecoderSpec extends Fs2JsonDecoderFixture with FlatSpecLike with Ma
 
 trait Fs2JsonDecoderFixture extends PropertyChecks {
 
+  import com.github.gvolpe.fs2rabbit.instances.log._
+  import com.github.gvolpe.fs2rabbit.instances.streameval._
+  import io.circe.generic.auto._
+
+  val fs2JsonDecoder = new Fs2JsonDecoder[IO]
+  import fs2JsonDecoder.jsonDecode
+
   case class Address(number: Int, streetName: String)
   case class Person(name: String, address: Address)
 
-  sealed trait Message extends Product with Serializable
-  final case class One(one: String) extends Message
-  final case class Two(two: String) extends Message
+  sealed trait Message               extends Product with Serializable
+  final case class One(one: String)  extends Message
+  final case class Two(two: String)  extends Message
   final case class Three(three: Int) extends Message
 
   implicit def msgDecoder[A >: Message]: Decoder[A] =
@@ -101,10 +106,10 @@ trait Fs2JsonDecoderFixture extends PropertyChecks {
 
   val examples = Table(
     ("description", "json", "clazz", "expected"),
-    ("decode a simple case class", simpleJson, jsonDecode[IO, Address], Right(Address(212, "Baker St"))),
-    ("decode a nested case class", nestedJson, jsonDecode[IO, Person], Right(Person("Sherlock", Address(212, "Baker St")))),
-    ("decode an adt 1", """ { "one": "the one" } """, jsonDecode[IO, Message], Right(One("the one"))),
-    ("decode an adt 2", """ { "two": "the two" } """, jsonDecode[IO, Message], Right(Two("the two")))
+    ("decode a simple case class", simpleJson, jsonDecode[Address], Right(Address(212, "Baker St"))),
+    ("decode a nested case class", nestedJson, jsonDecode[Person], Right(Person("Sherlock", Address(212, "Baker St")))),
+    ("decode an adt 1", """ { "one": "the one" } """, jsonDecode[Message], Right(One("the one"))),
+    ("decode an adt 2", """ { "two": "the two" } """, jsonDecode[Message], Right(Two("the two")))
   )
 
 }

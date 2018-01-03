@@ -14,20 +14,16 @@
  * limitations under the License.
  */
 
-package com.github.gvolpe.fs2rabbit
+package com.github.gvolpe.fs2rabbit.typeclasses
 
-import cats.effect.Sync
 import fs2.{Pipe, Sink, Stream}
 
-object Fs2Utils {
+trait StreamEval[F[_]] {
 
-  def asyncF[F[_] : Sync, A](body: => A): Stream[F, A] =
-    Stream.eval[F, A] { Sync[F].delay(body) }
+  def evalF[A](body: => A): Stream[F, A]
 
-  def liftSink[F[_], A](f: A => F[Unit]): Sink[F, A] =
-    liftPipe[F, A, Unit](f)
+  def liftSink[A](f: A => F[Unit]): Sink[F, A]
 
-  def liftPipe[F[_], A, B](f: A => F[B]): Pipe[F, A, B] =
-    _.evalMap (f)
+  def liftPipe[A, B](f: A => F[B]): Pipe[F, A, B]
 
 }

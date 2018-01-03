@@ -28,17 +28,17 @@ class AmqpPropertiesSpec extends FlatSpecLike with Matchers with AmqpPropertiesA
   forAll { (amqpProperties: AmqpProperties) =>
     it should s"convert from and to Java AMQP.BasicProperties for $amqpProperties" in {
       val basicProps = amqpProperties.asBasicProps
-      AmqpProperties.from(basicProps) should be (amqpProperties)
+      AmqpProperties.from(basicProps) should be(amqpProperties)
     }
   }
 
   it should "create an empty amqp properties" in {
-    AmqpProperties.empty should be (AmqpProperties(None, None, Map.empty[String, AmqpHeaderVal]))
+    AmqpProperties.empty should be(AmqpProperties(None, None, Map.empty[String, AmqpHeaderVal]))
   }
 
   it should "handle null values in Java AMQP.BasicProperties" in {
     val basic = new AMQP.BasicProperties()
-    AmqpProperties.from(basic) should be (AmqpProperties.empty)
+    AmqpProperties.from(basic) should be(AmqpProperties.empty)
   }
 
 }
