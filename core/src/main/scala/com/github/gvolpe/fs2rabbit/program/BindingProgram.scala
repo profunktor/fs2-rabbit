@@ -16,7 +16,6 @@
 
 package com.github.gvolpe.fs2rabbit.program
 
-import cats.data.IndexedStateT
 import cats.effect.Sync
 import com.github.gvolpe.fs2rabbit.algebra.BindingAlg
 import com.github.gvolpe.fs2rabbit.model.{ExchangeBindingArgs, ExchangeName, QueueBindingArgs, QueueName, RoutingKey}
@@ -29,21 +28,16 @@ import scala.collection.JavaConverters._
 
 class BindingProgram[F[_]: Sync](implicit SE: StreamEval[F]) extends BindingAlg[Stream[F, ?]] {
 
-  type Program[SA, SB, A] = IndexedStateT[Stream[F, ?], SA, SB, A]
-
   /**
     * Binds a queue to an exchange, with extra arguments.
     **/
   override def bindQueue(channel: Channel,
                          queueName: QueueName,
                          exchangeName: ExchangeName,
-                         routingKey: RoutingKey): Program[Fs2RabbitState, QueueBound, Queue.BindOk] = {
-    IndexedStateT { _ =>
-      SE.evalF[(QueueBound, Queue.BindOk)] {
-        (QueueBound(), channel.queueBind(queueName.value, exchangeName.value, routingKey.value))
-      }
+                         routingKey: RoutingKey): Stream[F, Queue.BindOk] =
+    SE.evalF[Queue.BindOk] {
+      channel.queueBind(queueName.value, exchangeName.value, routingKey.value)
     }
-  }
 
   /**
     * Binds a queue to an exchange with the given arguments.
