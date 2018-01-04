@@ -36,7 +36,7 @@ object StreamLoop {
 
   def run[F[_]](program: () => Stream[F, Unit], retry: FiniteDuration = 5.seconds)(implicit F: Effect[F],
                                                                                    ec: ExecutionContext): IO[Unit] =
-    F.runAsync(loop(program(), retry).run) {
+    F.runAsync(loop(program(), retry).compile.drain) {
       case Right(_) => IO.unit
       case Left(e)  => IO.raiseError(e)
     }

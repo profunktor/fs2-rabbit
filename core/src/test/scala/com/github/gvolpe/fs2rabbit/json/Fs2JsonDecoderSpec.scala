@@ -41,7 +41,7 @@ class Fs2JsonDecoderSpec extends Fs2JsonDecoderFixture with FlatSpecLike with Ma
         validated should be(expected)
       }
 
-      test.run.unsafeRunTimed(2.seconds)
+      test.compile.drain.unsafeRunTimed(2.seconds)
     }
   }
 
@@ -56,7 +56,7 @@ class Fs2JsonDecoderSpec extends Fs2JsonDecoderFixture with FlatSpecLike with Ma
       validated shouldBe a[Left[_, Person]]
     }
 
-    test.run.unsafeRunTimed(2.seconds)
+    test.compile.drain.unsafeRunTimed(2.seconds)
   }
 
 }

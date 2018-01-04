@@ -2,11 +2,11 @@ name := """fs2-rabbit-root"""
 
 organization in ThisBuild := "com.github.gvolpe"
 
-version in ThisBuild := "0.0.21-SNAPSHOT"
+version in ThisBuild := "0.1-M1"
 
 crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.4")
 
-val circeVersion = "0.9.0-M3"
+val circeVersion = "0.9.0"
 val qpidBrokerVersion = "6.1.2"
 
 val commonSettings = Seq(
@@ -17,7 +17,7 @@ val commonSettings = Seq(
   addCompilerPlugin("org.spire-math" % "kind-projector" % "0.9.5" cross CrossVersion.binary),
   libraryDependencies ++= Seq(
     "com.rabbitmq"    %  "amqp-client"      % "4.1.0",
-    "co.fs2"          %% "fs2-core"         % "0.10.0-M10",
+    "co.fs2"          %% "fs2-core"         % "0.10.0-M11",
     "com.typesafe"    % "config"            % "1.3.1",
 
     // Json libraries
@@ -84,7 +84,8 @@ val ExamplesDependencies: Seq[ModuleID] = Seq(
 lazy val noPublish = Seq(
   publish := {},
   publishLocal := {},
-  publishArtifact := false
+  publishArtifact := false,
+  skip in publish := true
 )
 
 lazy val root = project.in(file("."))
