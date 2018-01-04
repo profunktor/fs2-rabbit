@@ -15,8 +15,6 @@ Stream-based library for [RabbitMQ](https://www.rabbitmq.com/) built-in on top o
 Add the only dependency to your build.sbt:
 
 ```scala
-resolvers += Opts.resolver.sonatypeSnapshots
-
 libraryDependencies += "com.github.gvolpe" %% "fs2-rabbit" % "0.1-M1"
 ```
 
