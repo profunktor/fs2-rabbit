@@ -59,22 +59,21 @@ Connection and Channel will be acquired in a safe way, so in case of an error, t
 `F` represents the effect type. In the examples both `cats.effect.IO` and `monix.eval.Task` are used but it's possible to use any other effect with an implicit instance of `cats.effect.Effect[F]` available.
 
 ```scala
-import com.github.gvolpe.fs2rabbit.Fs2Rabbit._
-
-implicit val ec = scala.concurrent.ExecutionContext.Implicits.global
+implicit val ec: ExecutionContext = ???
+implicit val F: Fs2RabbitInterpreter[IO] = ???
 
 val exchangeName  = ExchangeName("ex")
 val queueName     = QueueName("daQ")
 val routingKey    = RoutingKey("rk")
 
-val program = createConnectionChannel flatMap { implicit channel => // Stream[F, Channel]
+val program = F.createConnectionChannel flatMap { implicit channel => 	      // Stream[F, Channel]
   for {
-    _                 <- declareQueue(queueName)                              // Stream[F, Queue.DeclareOk]
-    _                 <- declareExchange(exchangeName, ExchangeType.Topic)    // Stream[F, Exchange.DeclareOk]
-    _                 <- bindQueue(queueName, exchangeName, routingKey)       // Stream[F, Queue.BindOk]
-    ackerConsumer     <- createAckerConsumer(queueName)	                      // (StreamAcker[F], StreamConsumer[F])
+    _                 <- F.declareQueue(queueName)                            // Stream[F, Queue.DeclareOk]
+    _                 <- F.declareExchange(exchangeName, ExchangeType.Topic)  // Stream[F, Exchange.DeclareOk]
+    _                 <- F.bindQueue(queueName, exchangeName, routingKey)     // Stream[F, Queue.BindOk]
+    ackerConsumer     <- F.createAckerConsumer(queueName)	              // (StreamAcker[F], StreamConsumer[F])
     (acker, consumer) = ackerConsumer
-    publisher         <- createPublisher(exchangeName, routingKey)	      // StreamPublisher[F]
+    publisher         <- F.createPublisher(exchangeName, routingKey)	      // StreamPublisher[F]
     _                 <- doSomething(consumer, acker, publisher)
   } yield ()
 }

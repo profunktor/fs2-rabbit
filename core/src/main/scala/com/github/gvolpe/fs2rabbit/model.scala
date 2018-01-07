@@ -109,8 +109,8 @@ object model {
   case class AmqpMessage[A](payload: A, properties: AmqpProperties)
 
   implicit class StringValueClasses(value: String) {
-    def as[A: ClassTag]: A =
-      implicitly[ClassTag[A]].runtimeClass.getConstructors.head.newInstance(value).asInstanceOf[A]
+    def as[A](implicit ct: ClassTag[A]): A =
+      ct.runtimeClass.getConstructors.head.newInstance(value).asInstanceOf[A]
   }
 
   // Binding
