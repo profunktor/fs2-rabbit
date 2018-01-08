@@ -42,7 +42,7 @@ class Fs2JsonEncoderSpec extends FlatSpecLike with Matchers {
       json should be(AmqpMessage(payload.asJson.noSpaces, AmqpProperties.empty))
     }
 
-    test.run.unsafeRunTimed(2.seconds)
+    test.compile.drain.unsafeRunTimed(2.seconds)
   }
 
   it should "encode a nested case class" in {
@@ -53,7 +53,7 @@ class Fs2JsonEncoderSpec extends FlatSpecLike with Matchers {
       json should be(AmqpMessage(payload.asJson.noSpaces, AmqpProperties.empty))
     }
 
-    test.run.unsafeRunTimed(2.seconds)
+    test.compile.drain.unsafeRunTimed(2.seconds)
   }
 
 }
