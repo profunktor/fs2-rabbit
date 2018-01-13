@@ -1,13 +1,12 @@
+import Dependencies._
+
 name := """fs2-rabbit-root"""
 
 organization in ThisBuild := "com.github.gvolpe"
 
-version in ThisBuild := "0.1-M1"
+version in ThisBuild := "0.1-M2"
 
 crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.4")
-
-val circeVersion = "0.9.0"
-val qpidBrokerVersion = "6.1.2"
 
 val commonSettings = Seq(
   organizationName := "Fs2 Rabbit",
@@ -16,25 +15,19 @@ val commonSettings = Seq(
   homepage := Some(url("https://github.com/gvolpe/fs2-rabbit")),
   addCompilerPlugin("org.spire-math" % "kind-projector" % "0.9.5" cross CrossVersion.binary),
   libraryDependencies ++= Seq(
-    "com.rabbitmq"    %  "amqp-client"      % "4.1.0",
-    "co.fs2"          %% "fs2-core"         % "0.10.0-M11",
-    "com.typesafe"    % "config"            % "1.3.1",
-
-    // Json libraries
-    "io.circe" %% "circe-core"    % circeVersion,
-    "io.circe" %% "circe-generic" % circeVersion,
-    "io.circe" %% "circe-parser"  % circeVersion,
-
-    // Qpid Broker libraries for test
-    "org.apache.qpid"           % "qpid-broker-core"                      % qpidBrokerVersion % "test",
-    "org.apache.qpid"           % "qpid-broker-plugins-memory-store"      % qpidBrokerVersion % "test",
-    "org.apache.qpid"           % "qpid-broker-plugins-amqp-0-8-protocol" % qpidBrokerVersion % "test",
-    "org.apache.qpid"           % "qpid-client"                           % qpidBrokerVersion % "test",
-    "org.apache.geronimo.specs" % "geronimo-jms_1.1_spec"                 % "1.1.1"           % "test",
-
-    // Scala test libraries
-    "org.scalatest"   %% "scalatest"  % "3.0.1" % "test",
-    "org.scalacheck"  %% "scalacheck" % "1.13.4" % "test"
+    Libraries.amqpClient,
+    Libraries.fs2Core,
+    Libraries.typesafeConfig,
+    Libraries.circeCore,
+    Libraries.circeGeneric,
+    Libraries.circeParser,
+    Libraries.qpidBrokerCore,
+    Libraries.qpidMemoryStore,
+    Libraries.qpidAmqpProtocol,
+    Libraries.qpidClient,
+    Libraries.geronimoJmsSpec,
+    Libraries.scalaTest,
+    Libraries.scalaCheck
   ),
   resolvers += "Apache public" at "https://repository.apache.org/content/groups/public/",
   scalacOptions ++= Seq(
@@ -73,12 +66,12 @@ val commonSettings = Seq(
 )
 
 val CoreDependencies: Seq[ModuleID] = Seq(
-  "ch.qos.logback" % "logback-classic" % "1.1.3" % "test"
+  Libraries.logback % "test"
 )
 
 val ExamplesDependencies: Seq[ModuleID] = Seq(
-  "io.monix"        %% "monix"              % "3.0.0-M3",
-  "ch.qos.logback"  %  "logback-classic"    % "1.1.3" % "runtime"
+  Libraries.monix,
+  Libraries.logback % "runtime"
 )
 
 lazy val noPublish = Seq(
