@@ -3,8 +3,8 @@ import sbt._
 object Dependencies {
 
   object Versions {
-    val fs2             = "0.10.0-RC1"
-    val circe           = "0.9.0"
+    val fs2             = "0.10.0-RC2"
+    val circe           = "0.9.1"
     val qpidBroker      = "6.1.2"
     val amqpClient      = "4.1.0"
     val typesafeConfig  = "1.3.1"
