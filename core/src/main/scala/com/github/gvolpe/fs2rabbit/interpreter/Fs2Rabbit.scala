@@ -19,7 +19,7 @@ package com.github.gvolpe.fs2rabbit.interpreter
 import java.util.concurrent.Executors
 
 import cats.effect.{Effect, IO}
-import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfigManager
+import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 import com.github.gvolpe.fs2rabbit.instances.log._
 import com.github.gvolpe.fs2rabbit.instances.streameval._
 import com.github.gvolpe.fs2rabbit.model.ExchangeType.ExchangeType
@@ -31,11 +31,10 @@ import fs2.Stream
 
 import scala.concurrent.ExecutionContext
 
-class Fs2Rabbit[F[_]: Effect] {
+class Fs2Rabbit[F[_]: Effect](config: F[Fs2RabbitConfig]) {
 
   implicit val queueEC: ExecutionContext = ExecutionContext.fromExecutor(Executors.newCachedThreadPool())
 
-  private val config    = new Fs2RabbitConfigManager[F].config
   private val internalQ = fs2.async.boundedQueue[IO, Either[Throwable, AmqpEnvelope]](100).unsafeRunSync()
 
   private implicit val amqpClient: AmqpClientStream[F] =

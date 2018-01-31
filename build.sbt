@@ -88,7 +88,7 @@ lazy val root = project.in(file("."))
 lazy val `fs2-rabbit` = project.in(file("core"))
   .settings(commonSettings: _*)
   .settings(libraryDependencies ++= CoreDependencies)
-  .settings(parallelExecution in Test := false) // qpid fails on tests run in parallel
+  .settings(parallelExecution in Test := false)
   .enablePlugins(AutomateHeaderPlugin)
 
 lazy val `fs2-rabbit-examples` = project.in(file("examples"))

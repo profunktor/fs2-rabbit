@@ -106,6 +106,7 @@ object TestChannel extends Channel {
   override def clearReturnListeners() = ???
   override def waitForConfirms() = ???
   override def waitForConfirms(timeout: Long) = ???
+  @deprecated("","")
   override def addFlowListener(listener: FlowListener) = ???
   override def messageCount(queue: String) = ???
   override def getDefaultConsumer = ???
@@ -152,6 +153,7 @@ object TestChannel extends Channel {
   override def basicConsume(queue: String, autoAck: Boolean, arguments: util.Map[String, AnyRef], callback: Consumer) = ???
   override def basicConsume(queue: String, autoAck: Boolean, consumerTag: String, callback: Consumer) = ???
   override def basicConsume(queue: String, autoAck: Boolean, consumerTag: String, noLocal: Boolean, exclusive: Boolean, arguments: util.Map[String, AnyRef], callback: Consumer) = ???
+  @deprecated("","")
   override def removeFlowListener(listener: FlowListener) = ???
   override def basicAck(deliveryTag: Long, multiple: Boolean) = ???
   override def exchangeDeclarePassive(name: String) = ???
