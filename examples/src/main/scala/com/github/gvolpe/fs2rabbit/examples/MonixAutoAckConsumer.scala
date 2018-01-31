@@ -26,7 +26,7 @@ import monix.execution.Scheduler.Implicits.global
 
 import scala.concurrent.ExecutionContext
 
-object MonixTaskDemo extends IOApp {
+object MonixAutoAckConsumer extends IOApp {
 
   private val config = new Fs2RabbitConfigManager[Task].config
 
@@ -34,6 +34,6 @@ object MonixTaskDemo extends IOApp {
   implicit val interpreter: Fs2Rabbit[Task] = new Fs2Rabbit[Task](config)
 
   override def start(args: List[String]): IO[Unit] =
-    StreamLoop.run(() => new GenericDemo[Task].program)
+    StreamLoop.run(() => new AutoAckConsumerDemo[Task].program)
 
 }

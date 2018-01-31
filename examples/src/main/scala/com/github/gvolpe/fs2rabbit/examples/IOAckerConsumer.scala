@@ -24,7 +24,7 @@ import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
 
 import scala.concurrent.ExecutionContext
 
-object IODemo extends IOApp {
+object IOAckerConsumer extends IOApp {
 
   private val config = new Fs2RabbitConfigManager[IO].config
 
@@ -32,6 +32,6 @@ object IODemo extends IOApp {
   implicit val interpreter: Fs2Rabbit[IO] = new Fs2Rabbit[IO](config)
 
   override def start(args: List[String]): IO[Unit] =
-    StreamLoop.run(() => new GenericDemo[IO]().program)
+    StreamLoop.run(() => new AckerConsumerDemo[IO]().program)
 
 }

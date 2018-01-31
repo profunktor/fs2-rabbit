@@ -25,7 +25,7 @@ import fs2.{Pipe, Stream}
 
 import scala.concurrent.ExecutionContext
 
-class GenericDemo[F[_]: Effect](implicit F: Fs2Rabbit[F], EC: ExecutionContext, SE: StreamEval[F]) {
+class AckerConsumerDemo[F[_]: Effect](implicit F: Fs2Rabbit[F], EC: ExecutionContext, SE: StreamEval[F]) {
 
   private val queueName    = QueueName("testQ")
   private val exchangeName = ExchangeName("testEX")
