@@ -17,25 +17,21 @@
 package com.github.gvolpe.fs2rabbit.program
 
 import cats.effect.Sync
-import com.github.gvolpe.fs2rabbit.algebra.PublishingAlg
+import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, Publishing}
 import com.github.gvolpe.fs2rabbit.model.{ExchangeName, RoutingKey, StreamPublisher}
 import com.github.gvolpe.fs2rabbit.typeclasses.StreamEval
 import com.rabbitmq.client.Channel
 import fs2.{Sink, Stream}
 
-class PublishingProgram[F[_]: Sync](implicit SE: StreamEval[F]) extends PublishingAlg[Stream[F, ?], Sink[F, ?]] {
+class PublishingProgram[F[_]: Sync](implicit SE: StreamEval[F], AMQP: AMQPClient[Stream[F, ?]])
+    extends Publishing[Stream[F, ?], Sink[F, ?]] {
 
   override def createPublisher(channel: Channel,
                                exchangeName: ExchangeName,
                                routingKey: RoutingKey): Stream[F, StreamPublisher[F]] =
     SE.evalF {
       _.flatMap { msg =>
-        SE.evalF[Unit] {
-          channel.basicPublish(exchangeName.value,
-                               routingKey.value,
-                               msg.properties.asBasicProps,
-                               msg.payload.getBytes("UTF-8"))
-        }
+        AMQP.basicPublish(channel, exchangeName, routingKey, msg)
       }
     }
 

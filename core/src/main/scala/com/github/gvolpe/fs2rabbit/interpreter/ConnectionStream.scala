@@ -14,19 +14,19 @@
  * limitations under the License.
  */
 
-package com.github.gvolpe.fs2rabbit.program
+package com.github.gvolpe.fs2rabbit.interpreter
 
 import cats.effect.Sync
 import cats.syntax.flatMap._
 import cats.syntax.functor._
-import com.github.gvolpe.fs2rabbit.algebra.ConnectionAlg
+import com.github.gvolpe.fs2rabbit.algebra.Connection
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 import com.github.gvolpe.fs2rabbit.typeclasses.{Log, StreamEval}
-import com.rabbitmq.client.{Channel, Connection, ConnectionFactory}
+import com.rabbitmq.client.{Channel, ConnectionFactory, Connection => RabbitMQConnection}
 import fs2.Stream
 
-class ConnectionProgram[F[_]](config: F[Fs2RabbitConfig])(implicit F: Sync[F], L: Log[F], SE: StreamEval[F])
-    extends ConnectionAlg[F, Stream[F, ?]] {
+class ConnectionStream[F[_]](config: F[Fs2RabbitConfig])(implicit F: Sync[F], L: Log[F], SE: StreamEval[F])
+    extends Connection[F, Stream[F, ?]] {
 
   private lazy val connFactory: F[ConnectionFactory] =
     config.map { c =>
@@ -43,7 +43,7 @@ class ConnectionProgram[F[_]](config: F[Fs2RabbitConfig])(implicit F: Sync[F], L
       factory
     }
 
-  override def acquireConnection: F[(Connection, Channel)] =
+  override def acquireConnection: F[(RabbitMQConnection, Channel)] =
     for {
       factory <- connFactory
       conn    <- F.delay(factory.newConnection)

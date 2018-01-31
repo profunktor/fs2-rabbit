@@ -16,15 +16,11 @@
 
 package com.github.gvolpe.fs2rabbit.algebra
 
-import com.github.gvolpe.fs2rabbit.model.{ExchangeName, QueueName}
-import com.github.gvolpe.fs2rabbit.model.ExchangeType.ExchangeType
-import com.rabbitmq.client.AMQP.{Exchange, Queue}
+import com.github.gvolpe.fs2rabbit.model.{AmqpMessage, ExchangeName, RoutingKey}
 import com.rabbitmq.client.Channel
 
-trait DeclarationAlg[F[_]] {
+trait Publishing[F[_], G[_]] {
 
-  def declareExchange(channel: Channel, exchangeName: ExchangeName, exchangeType: ExchangeType): F[Exchange.DeclareOk]
-
-  def declareQueue(channel: Channel, queueName: QueueName): F[Queue.DeclareOk]
+  def createPublisher(channel: Channel, exchangeName: ExchangeName, routingKey: RoutingKey): F[G[AmqpMessage[String]]]
 
 }

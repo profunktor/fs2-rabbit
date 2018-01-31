@@ -16,11 +16,20 @@
 
 package com.github.gvolpe.fs2rabbit.algebra
 
-import com.github.gvolpe.fs2rabbit.model.{AmqpMessage, ExchangeName, RoutingKey}
+import com.github.gvolpe.fs2rabbit.model.{AckResult, AmqpEnvelope, BasicQos, QueueName}
 import com.rabbitmq.client.Channel
 
-trait PublishingAlg[F[_], G[_]] {
+trait AckerConsumer[F[_], G[_]] {
 
-  def createPublisher(channel: Channel, exchangeName: ExchangeName, routingKey: RoutingKey): F[G[AmqpMessage[String]]]
+  def createAcker(channel: Channel): G[AckResult]
+
+  def createConsumer(queueName: QueueName,
+                     channel: Channel,
+                     basicQos: BasicQos,
+                     autoAck: Boolean = false,
+                     noLocal: Boolean = false,
+                     exclusive: Boolean = false,
+                     consumerTag: String = "",
+                     args: Map[String, AnyRef] = Map.empty[String, AnyRef]): F[AmqpEnvelope]
 
 }

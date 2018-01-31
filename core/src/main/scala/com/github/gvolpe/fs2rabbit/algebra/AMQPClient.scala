@@ -16,11 +16,29 @@
 
 package com.github.gvolpe.fs2rabbit.algebra
 
-import com.github.gvolpe.fs2rabbit.model.{ExchangeBindingArgs, ExchangeName, QueueBindingArgs, QueueName, RoutingKey}
+import com.github.gvolpe.fs2rabbit.model.ExchangeType.ExchangeType
+import com.github.gvolpe.fs2rabbit.model._
 import com.rabbitmq.client.AMQP.{Exchange, Queue}
 import com.rabbitmq.client.Channel
 
-trait BindingAlg[F[_]] {
+trait AMQPClient[F[_]] extends Binding[F] with Declaration[F] with Deletion[F] {
+  def basicAck(channel: Channel, tag: DeliveryTag, multiple: Boolean): F[Unit]
+  def basicNack(channel: Channel, tag: DeliveryTag, multiple: Boolean, requeue: Boolean): F[Unit]
+  def basicQos(channel: Channel, basicQos: BasicQos): F[Unit]
+  def basicConsume(channel: Channel,
+                   queueName: QueueName,
+                   autoAck: Boolean,
+                   consumerTag: String,
+                   noLocal: Boolean,
+                   exclusive: Boolean,
+                   args: Map[String, AnyRef]): F[String]
+  def basicPublish(channel: Channel,
+                   exchangeName: ExchangeName,
+                   routingKey: RoutingKey,
+                   msg: AmqpMessage[String]): F[Unit]
+}
+
+trait Binding[F[_]] {
 
   def bindQueue(channel: Channel,
                 queueName: QueueName,
@@ -50,4 +68,20 @@ trait BindingAlg[F[_]] {
                    routingKey: RoutingKey,
                    args: ExchangeBindingArgs): F[Exchange.BindOk]
 
+}
+
+trait Declaration[F[_]] {
+  def declareExchange(channel: Channel, exchangeName: ExchangeName, exchangeType: ExchangeType): F[Exchange.DeclareOk]
+  def declareQueue(channel: Channel, queueName: QueueName): F[Queue.DeclareOk]
+}
+
+trait Deletion[F[_]] {
+  def deleteQueue(channel: Channel,
+                  queueName: QueueName,
+                  ifUnused: Boolean = true,
+                  ifEmpty: Boolean = true): F[Queue.DeleteOk]
+  def deleteQueueNoWait(channel: Channel,
+                        queueName: QueueName,
+                        ifUnused: Boolean = true,
+                        ifEmpty: Boolean = true): F[Unit]
 }

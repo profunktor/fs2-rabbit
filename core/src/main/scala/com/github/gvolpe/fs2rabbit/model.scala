@@ -24,18 +24,10 @@ import scala.reflect.ClassTag
 
 object model {
 
-  class ExchangeName(val value: String) extends AnyVal {
-    override def toString: String = value
-  }
-  class QueueName(val value: String) extends AnyVal {
-    override def toString: String = value
-  }
-  class RoutingKey(val value: String) extends AnyVal {
-    override def toString: String = value
-  }
-  class DeliveryTag(val value: Long) extends AnyVal {
-    override def toString: String = value.toString
-  }
+  case class ExchangeName(value: String) extends AnyVal
+  case class QueueName(value: String)    extends AnyVal
+  case class RoutingKey(value: String)   extends AnyVal
+  case class DeliveryTag(value: Long)    extends AnyVal
 
   case class ConsumerArgs(consumerTag: String, noLocal: Boolean, exclusive: Boolean, args: Map[String, AnyRef])
   case class BasicQos(prefetchSize: Int, prefetchCount: Int, global: Boolean = false)
@@ -108,17 +100,12 @@ object model {
 
   case class AmqpMessage[A](payload: A, properties: AmqpProperties)
 
-  implicit class StringValueClasses(value: String) {
-    def as[A](implicit ct: ClassTag[A]): A =
-      ct.runtimeClass.getConstructors.head.newInstance(value).asInstanceOf[A]
-  }
-
   // Binding
-  case class QueueBindingArgs(value: Map[String, AnyRef])
-  case class ExchangeBindingArgs(value: Map[String, AnyRef])
+  case class QueueBindingArgs(value: Map[String, AnyRef])    extends AnyVal
+  case class ExchangeBindingArgs(value: Map[String, AnyRef]) extends AnyVal
 
   // Declaration
-  case class QueueDeclarationArgs(value: Map[String, AnyRef])
-  case class ExchangeDeclarationArgs(value: Map[String, AnyRef])
+  case class QueueDeclarationArgs(value: Map[String, AnyRef])    extends AnyVal
+  case class ExchangeDeclarationArgs(value: Map[String, AnyRef]) extends AnyVal
 
 }

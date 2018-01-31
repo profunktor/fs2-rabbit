@@ -16,20 +16,12 @@
 
 package com.github.gvolpe.fs2rabbit.algebra
 
-import com.github.gvolpe.fs2rabbit.model.{AckResult, AmqpEnvelope, BasicQos, QueueName}
-import com.rabbitmq.client.Channel
+import com.rabbitmq.client.{Channel, Connection => RabbitMQConnection}
 
-trait AmqpClientAlg[F[_], G[_]] {
+trait Connection[F[_], G[_]] {
 
-  def createAcker(channel: Channel): G[AckResult]
+  def acquireConnection: F[(RabbitMQConnection, Channel)]
 
-  def createConsumer(queueName: QueueName,
-                     channel: Channel,
-                     basicQos: BasicQos,
-                     autoAck: Boolean = false,
-                     noLocal: Boolean = false,
-                     exclusive: Boolean = false,
-                     consumerTag: String = "",
-                     args: Map[String, AnyRef] = Map.empty[String, AnyRef]): F[AmqpEnvelope]
+  def createConnectionChannel: G[Channel]
 
 }

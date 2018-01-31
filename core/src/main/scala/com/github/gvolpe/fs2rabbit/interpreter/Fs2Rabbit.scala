@@ -16,8 +16,10 @@
 
 package com.github.gvolpe.fs2rabbit.interpreter
 
-import cats.effect.Async
-import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
+import java.util.concurrent.Executors
+
+import cats.effect.{Effect, IO}
+import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfigManager
 import com.github.gvolpe.fs2rabbit.instances.log._
 import com.github.gvolpe.fs2rabbit.instances.streameval._
 import com.github.gvolpe.fs2rabbit.model.ExchangeType.ExchangeType
@@ -27,13 +29,23 @@ import com.rabbitmq.client.AMQP.{Exchange, Queue}
 import com.rabbitmq.client.Channel
 import fs2.Stream
 
-class Fs2RabbitInterpreter[F[_]: Async](config: F[Fs2RabbitConfig]) {
+import scala.concurrent.ExecutionContext
 
-  private implicit val amqpClientProgram: AmqpClientProgram[F] =
-    new AmqpClientProgram[F](config)
+class Fs2Rabbit[F[_]: Effect] {
 
-  private val connectionProgram: ConnectionProgram[F] =
-    new ConnectionProgram[F](config)
+  implicit val queueEC: ExecutionContext = ExecutionContext.fromExecutor(Executors.newCachedThreadPool())
+
+  private val config    = new Fs2RabbitConfigManager[F].config
+  private val internalQ = fs2.async.boundedQueue[IO, Either[Throwable, AmqpEnvelope]](100).unsafeRunSync()
+
+  private implicit val amqpClient: AmqpClientStream[F] =
+    new AmqpClientStream[F](internalQ)
+
+  private val connectionStream: ConnectionStream[F] =
+    new ConnectionStream[F](config)
+
+  private implicit val ackerConsumerProgram: AckerConsumerProgram[F] =
+    new AckerConsumerProgram[F](internalQ, config)
 
   private val consumingProgram: ConsumingProgram[F] =
     new ConsumingProgram[F]
@@ -41,16 +53,7 @@ class Fs2RabbitInterpreter[F[_]: Async](config: F[Fs2RabbitConfig]) {
   private val publishingProgram: PublishingProgram[F] =
     new PublishingProgram[F]
 
-  private val bindingProgram: BindingProgram[F] =
-    new BindingProgram[F]
-
-  private val declarationProgram: DeclarationProgram[F] =
-    new DeclarationProgram[F]
-
-  private val deletionProgram: DeletionProgram[F] =
-    new DeletionProgram[F]
-
-  def createConnectionChannel: Stream[F, Channel] = connectionProgram.createConnectionChannel
+  def createConnectionChannel: Stream[F, Channel] = connectionStream.createConnectionChannel
 
   def createAckerConsumer(queueName: QueueName,
                           basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
@@ -70,37 +73,37 @@ class Fs2RabbitInterpreter[F[_]: Async](config: F[Fs2RabbitConfig]) {
 
   def bindQueue(queueName: QueueName, exchangeName: ExchangeName, routingKey: RoutingKey)(
       implicit channel: Channel): Stream[F, Queue.BindOk] =
-    bindingProgram.bindQueue(channel, queueName, exchangeName, routingKey)
+    amqpClient.bindQueue(channel, queueName, exchangeName, routingKey)
 
   def bindQueue(queueName: QueueName, exchangeName: ExchangeName, routingKey: RoutingKey, args: QueueBindingArgs)(
       implicit channel: Channel): Stream[F, Queue.BindOk] =
-    bindingProgram.bindQueue(channel, queueName, exchangeName, routingKey, args)
+    amqpClient.bindQueue(channel, queueName, exchangeName, routingKey, args)
 
   def bindQueueNoWait(queueName: QueueName, exchangeName: ExchangeName, routingKey: RoutingKey, args: QueueBindingArgs)(
       implicit channel: Channel): Stream[F, Unit] =
-    bindingProgram.bindQueueNoWait(channel, queueName, exchangeName, routingKey, args)
+    amqpClient.bindQueueNoWait(channel, queueName, exchangeName, routingKey, args)
 
   def unbindQueue(queueName: QueueName, exchangeName: ExchangeName, routingKey: RoutingKey)(
       implicit channel: Channel): Stream[F, Queue.UnbindOk] =
-    bindingProgram.unbindQueue(channel, queueName, exchangeName, routingKey)
+    amqpClient.unbindQueue(channel, queueName, exchangeName, routingKey)
 
   def bindExchange(destination: ExchangeName, source: ExchangeName, routingKey: RoutingKey, args: ExchangeBindingArgs)(
       implicit channel: Channel): Stream[F, Exchange.BindOk] =
-    bindingProgram.bindExchange(channel, destination, source, routingKey, args)
+    amqpClient.bindExchange(channel, destination, source, routingKey, args)
 
   def declareExchange(exchangeName: ExchangeName, exchangeType: ExchangeType)(
       implicit channel: Channel): Stream[F, Exchange.DeclareOk] =
-    declarationProgram.declareExchange(channel, exchangeName, exchangeType)
+    amqpClient.declareExchange(channel, exchangeName, exchangeType)
 
   def declareQueue(queueName: QueueName)(implicit channel: Channel): Stream[F, Queue.DeclareOk] =
-    declarationProgram.declareQueue(channel, queueName)
+    amqpClient.declareQueue(channel, queueName)
 
   def deleteQueue(queueName: QueueName, ifUnused: Boolean = true, ifEmpty: Boolean = true)(
       implicit channel: Channel): Stream[F, Queue.DeleteOk] =
-    deletionProgram.deleteQueue(channel, queueName, ifUnused, ifEmpty)
+    amqpClient.deleteQueue(channel, queueName, ifUnused, ifEmpty)
 
   def deleteQueueNoWait(queueName: QueueName, ifUnused: Boolean = true, ifEmpty: Boolean = true)(
       implicit channel: Channel): Stream[F, Unit] =
-    deletionProgram.deleteQueueNoWait(channel, queueName, ifUnused, ifEmpty)
+    amqpClient.deleteQueueNoWait(channel, queueName, ifUnused, ifEmpty)
 
 }

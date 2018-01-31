@@ -18,9 +18,8 @@ package com.github.gvolpe.fs2rabbit.examples
 
 import cats.effect.IO
 import com.github.gvolpe.fs2rabbit.StreamLoop
-import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfigManager
 import com.github.gvolpe.fs2rabbit.instances.streameval._
-import com.github.gvolpe.fs2rabbit.interpreter.Fs2RabbitInterpreter
+import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
 import monix.eval.Task
 import monix.execution.Scheduler.Implicits.global
 
@@ -28,10 +27,8 @@ import scala.concurrent.ExecutionContext
 
 object MonixTaskDemo extends IOApp {
 
-  private lazy val config = new Fs2RabbitConfigManager[Task].config
-
-  implicit val appS: ExecutionContext                  = scala.concurrent.ExecutionContext.Implicits.global
-  implicit val interpreter: Fs2RabbitInterpreter[Task] = new Fs2RabbitInterpreter[Task](config)
+  implicit val appS: ExecutionContext       = scala.concurrent.ExecutionContext.Implicits.global
+  implicit val interpreter: Fs2Rabbit[Task] = new Fs2Rabbit[Task]
 
   override def start(args: List[String]): IO[Unit] =
     StreamLoop.run(() => new GenericDemo[Task].program)
