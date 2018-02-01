@@ -35,11 +35,11 @@ object Fs2Rabbit {
   def apply[F[_]](implicit F: Effect[F]): Fs2Rabbit[F] = {
     implicit val queueEC: ExecutionContext = ExecutionContext.fromExecutor(Executors.newCachedThreadPool())
     val interpreter = for {
-      internalQ   <- fs2.async.boundedQueue[IO, Either[Throwable, AmqpEnvelope]](500)
-      amqpClient  <- IO(new AmqpClientStream[F](internalQ))
-      config      <- IO(new Fs2RabbitConfigManager[F].config)
-      connStream  <- IO(new ConnectionStream[F](config))
-      fs2Rabbit   <- IO(new Fs2Rabbit[F](config, connStream, internalQ)(F, amqpClient))
+      internalQ  <- fs2.async.boundedQueue[IO, Either[Throwable, AmqpEnvelope]](500)
+      amqpClient <- IO(new AmqpClientStream[F](internalQ))
+      config     <- IO(new Fs2RabbitConfigManager[F].config)
+      connStream <- IO(new ConnectionStream[F](config))
+      fs2Rabbit  <- IO(new Fs2Rabbit[F](config, connStream, internalQ)(F, amqpClient))
     } yield fs2Rabbit
     interpreter.unsafeRunSync()
   }
@@ -47,8 +47,8 @@ object Fs2Rabbit {
 
 class Fs2Rabbit[F[_]](config: F[Fs2RabbitConfig],
                       connectionStream: Connection[F, Stream[F, ?]],
-                      internalQ: Queue[IO, Either[Throwable, AmqpEnvelope]])
-                     (implicit F: Effect[F], amqpClient: AMQPClient[Stream[F, ?]]) {
+                      internalQ: Queue[IO, Either[Throwable, AmqpEnvelope]])(implicit F: Effect[F],
+                                                                             amqpClient: AMQPClient[Stream[F, ?]]) {
 
   private implicit val ackerConsumerProgram: AckerConsumerProgram[F] =
     new AckerConsumerProgram[F](internalQ, config)

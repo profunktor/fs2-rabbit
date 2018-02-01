@@ -1,10 +1,10 @@
 ![logo](fs2-rabbit.png) fs2-rabbit
 ==========
 
-[![Codeship Status for gvolpe/fs2-rabbit](https://app.codeship.com/projects/ae5afcb0-28c2-0135-02b9-5656a7048432/status?branch=master)](https://app.codeship.com/projects/223399)
+[![Build Status](https://travis-ci.org/gvolpe/fs2-rabbit.svg?branch=master)](https://travis-ci.org/gvolpe/fs2-rabbit)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/011c5931cd3945b3a88eb725f18bbf88)](https://www.codacy.com/app/volpegabriel/fs2-rabbit?utm_source=github.com&utm_medium=referral&utm_content=gvolpe/fs2-rabbit&utm_campaign=badger)
 [![Gitter Chat](https://badges.gitter.im/fs2-rabbit/fs2-rabbit.svg)](https://gitter.im/fs2-rabbit/fs2-rabbit)
-[![Coverage Status](https://coveralls.io/repos/github/gvolpe/fs2-rabbit/badge.svg?branch=master)](https://coveralls.io/github/gvolpe/fs2-rabbit?branch=master)
+[![codecov](https://codecov.io/gh/gvolpe/fs2-rabbit/branch/master/graph/badge.svg)](https://codecov.io/gh/gvolpe/fs2-rabbit)
 
 Stream-based library for [RabbitMQ](https://www.rabbitmq.com/) built-in on top of [Fs2](https://github.com/functional-streams-for-scala/fs2) and the [RabbitMq Java Client](https://github.com/rabbitmq/rabbitmq-java-client).
 

@@ -57,7 +57,7 @@ class ConnectionStream[F[_]](config: F[Fs2RabbitConfig])(implicit F: Sync[F], L:
     **/
   override def createConnectionChannel: Stream[F, AMQPChannel] =
     Stream.bracket(acquireConnection)(
-      { case (_,  channel) => SE.evalF[AMQPChannel](channel) }, {
+      { case (_, channel) => SE.evalF[AMQPChannel](channel) }, {
         case (conn, RabbitChannel(channel)) =>
           for {
             _ <- L.info(s"Releasing connection: $conn previously acquired.")
