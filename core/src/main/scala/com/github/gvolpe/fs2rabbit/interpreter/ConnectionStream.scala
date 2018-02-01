@@ -27,7 +27,7 @@ import com.rabbitmq.client.{ConnectionFactory, Connection => RabbitMQConnection}
 import fs2.Stream
 
 class ConnectionStream[F[_]](config: F[Fs2RabbitConfig])(implicit F: Sync[F], L: Log[F], SE: StreamEval[F])
-    extends Connection[F, Stream[F, ?]] {
+    extends Connection[Stream[F, ?]] {
 
   private lazy val connFactory: F[ConnectionFactory] =
     config.map { c =>

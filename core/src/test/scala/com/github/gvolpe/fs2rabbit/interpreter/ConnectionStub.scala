@@ -23,7 +23,7 @@ import com.github.gvolpe.fs2rabbit.typeclasses.StreamEval
 import com.rabbitmq.client.Channel
 import fs2.Stream
 
-class ConnectionStub(implicit SE: StreamEval[IO]) extends Connection[IO, Stream[IO, ?]] {
+class ConnectionStub(implicit SE: StreamEval[IO]) extends Connection[Stream[IO, ?]] {
 
   case class ChannelStub(value: Channel = null) extends AMQPChannel
 

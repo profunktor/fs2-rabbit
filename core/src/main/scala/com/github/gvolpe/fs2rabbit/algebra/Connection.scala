@@ -18,6 +18,6 @@ package com.github.gvolpe.fs2rabbit.algebra
 
 import com.github.gvolpe.fs2rabbit.model.AMQPChannel
 
-trait Connection[F[_], G[_]] {
-  def createConnectionChannel: G[AMQPChannel]
+trait Connection[F[_]] {
+  def createConnectionChannel: F[AMQPChannel]
 }

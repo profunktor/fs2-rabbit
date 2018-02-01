@@ -46,7 +46,7 @@ object Fs2Rabbit {
 }
 
 class Fs2Rabbit[F[_]](config: F[Fs2RabbitConfig],
-                      connectionStream: Connection[F, Stream[F, ?]],
+                      connectionStream: Connection[Stream[F, ?]],
                       internalQ: Queue[IO, Either[Throwable, AmqpEnvelope]])(implicit F: Effect[F],
                                                                              amqpClient: AMQPClient[Stream[F, ?]]) {
 
