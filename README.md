@@ -60,7 +60,7 @@ Connection and Channel will be acquired in a safe way, so in case of an error, t
 
 ```scala
 implicit val ec: ExecutionContext = ???
-implicit val F: Fs2RabbitInterpreter[IO] = ???
+implicit val F: Fs2Rabbit[IO] = Fs2Rabbit[IO]
 
 val exchangeName  = ExchangeName("ex")
 val queueName     = QueueName("daQ")
