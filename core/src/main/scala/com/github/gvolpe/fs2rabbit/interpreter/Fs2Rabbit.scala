@@ -19,27 +19,36 @@ package com.github.gvolpe.fs2rabbit.interpreter
 import java.util.concurrent.Executors
 
 import cats.effect.{Effect, IO}
-import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
+import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, Connection}
+import com.github.gvolpe.fs2rabbit.config.{Fs2RabbitConfig, Fs2RabbitConfigManager}
 import com.github.gvolpe.fs2rabbit.instances.log._
 import com.github.gvolpe.fs2rabbit.instances.streameval._
 import com.github.gvolpe.fs2rabbit.model.ExchangeType.ExchangeType
 import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.program._
 import fs2.Stream
+import fs2.async.mutable.Queue
 
 import scala.concurrent.ExecutionContext
 
-class Fs2Rabbit[F[_]: Effect](config: F[Fs2RabbitConfig]) {
+object Fs2Rabbit {
+  def apply[F[_]](implicit F: Effect[F]): Fs2Rabbit[F] = {
+    implicit val queueEC: ExecutionContext = ExecutionContext.fromExecutor(Executors.newCachedThreadPool())
+    val interpreter = for {
+      internalQ   <- fs2.async.boundedQueue[IO, Either[Throwable, AmqpEnvelope]](500)
+      amqpClient  <- IO(new AmqpClientStream[F](internalQ))
+      config      <- IO(new Fs2RabbitConfigManager[F].config)
+      connStream  <- IO(new ConnectionStream[F](config))
+      fs2Rabbit   <- IO(new Fs2Rabbit[F](config, connStream, internalQ)(F, amqpClient))
+    } yield fs2Rabbit
+    interpreter.unsafeRunSync()
+  }
+}
 
-  implicit val queueEC: ExecutionContext = ExecutionContext.fromExecutor(Executors.newCachedThreadPool())
-
-  private val internalQ = fs2.async.boundedQueue[IO, Either[Throwable, AmqpEnvelope]](500).unsafeRunSync()
-
-  private implicit val amqpClient: AmqpClientStream[F] =
-    new AmqpClientStream[F](internalQ)
-
-  private val connectionStream: ConnectionStream[F] =
-    new ConnectionStream[F](config)
+class Fs2Rabbit[F[_]](config: F[Fs2RabbitConfig],
+                      connectionStream: Connection[F, Stream[F, ?]],
+                      internalQ: Queue[IO, Either[Throwable, AmqpEnvelope]])
+                     (implicit F: Effect[F], amqpClient: AMQPClient[Stream[F, ?]]) {
 
   private implicit val ackerConsumerProgram: AckerConsumerProgram[F] =
     new AckerConsumerProgram[F](internalQ, config)

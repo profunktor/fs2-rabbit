@@ -21,7 +21,7 @@ import cats.syntax.flatMap._
 import cats.syntax.functor._
 import com.github.gvolpe.fs2rabbit.algebra.Connection
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
-import com.github.gvolpe.fs2rabbit.model.{AMQPChannel, RabbitChannel, RabbitConnection}
+import com.github.gvolpe.fs2rabbit.model.{AMQPChannel, RabbitChannel}
 import com.github.gvolpe.fs2rabbit.typeclasses.{Log, StreamEval}
 import com.rabbitmq.client.{ConnectionFactory, Connection => RabbitMQConnection}
 import fs2.Stream
@@ -57,13 +57,14 @@ class ConnectionStream[F[_]](config: F[Fs2RabbitConfig])(implicit F: Sync[F], L:
     **/
   override def createConnectionChannel: Stream[F, AMQPChannel] =
     Stream.bracket(acquireConnection)(
-      { case (_, channel) => SE.evalF[AMQPChannel](channel) }, {
+      { case (_,  channel) => SE.evalF[AMQPChannel](channel) }, {
         case (conn, RabbitChannel(channel)) =>
           for {
             _ <- L.info(s"Releasing connection: $conn previously acquired.")
             _ <- F.delay { if (channel.isOpen) channel.close() }
             _ <- F.delay { if (conn.isOpen) conn.close() }
           } yield ()
+        case (_, _) => F.raiseError[Unit](new Exception("Unreacheable"))
       }
     )
 
