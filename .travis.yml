@@ -16,11 +16,8 @@ before_cache:
   - find $HOME/.ivy2 -name "ivydata-*.properties" -delete
   - find $HOME/.sbt -name "*.lock" -delete
 
-services:
-  - rabbitmq
-
 script:
-  - sbt clean coverage test coverageReport coverageAggregate
+  - sbt clean +coverage +test +coverageReport +coverageAggregate
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
