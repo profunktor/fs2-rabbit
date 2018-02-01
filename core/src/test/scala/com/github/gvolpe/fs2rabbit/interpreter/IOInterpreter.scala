@@ -23,8 +23,6 @@ import com.github.gvolpe.fs2rabbit.instances.streameval._
 import com.github.gvolpe.fs2rabbit.model.ExchangeType.ExchangeType
 import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.program._
-import com.rabbitmq.client.AMQP.{Exchange, Queue}
-import com.rabbitmq.client.Channel
 import fs2.Stream
 import fs2.async.mutable.{Queue => Fs2Queue}
 
@@ -35,6 +33,8 @@ class IOInterpreter(config: IO[Fs2RabbitConfig],
   private implicit val amqpClient: AMQPClient[Stream[IO, ?]] =
     new AMQPClientInMemory(testQ, ackerQ)
 
+  private val connectionStub: ConnectionStub = new ConnectionStub()
+
   private implicit val ackerConsumerProgram: AckerConsumerProgram[IO] =
     new AckerConsumerProgram[IO](testQ, config)
 
@@ -42,55 +42,58 @@ class IOInterpreter(config: IO[Fs2RabbitConfig],
 
   private val publishingProgram = new PublishingProgram[IO]
 
+  def createConnectionChannel: Stream[IO, AMQPChannel] =
+    connectionStub.createConnectionChannel
+
   def createAckerConsumer(queueName: QueueName,
                           basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
                           consumerArgs: Option[ConsumerArgs] = None)(
-                           implicit channel: Channel): Stream[IO, (StreamAcker[IO], StreamConsumer[IO])] =
-    consumingProgram.createAckerConsumer(channel, queueName, basicQos, consumerArgs)
+                           implicit channel: AMQPChannel): Stream[IO, (StreamAcker[IO], StreamConsumer[IO])] =
+    consumingProgram.createAckerConsumer(channel.value, queueName, basicQos, consumerArgs)
 
   def createAutoAckConsumer(
                              queueName: QueueName,
                              basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
-                             consumerArgs: Option[ConsumerArgs] = None)(implicit channel: Channel): Stream[IO, StreamConsumer[IO]] =
-    consumingProgram.createAutoAckConsumer(channel, queueName, basicQos, consumerArgs)
+                             consumerArgs: Option[ConsumerArgs] = None)(implicit channel: AMQPChannel): Stream[IO, StreamConsumer[IO]] =
+    consumingProgram.createAutoAckConsumer(channel.value, queueName, basicQos, consumerArgs)
 
   def createPublisher(exchangeName: ExchangeName, routingKey: RoutingKey)(
-    implicit channel: Channel): Stream[IO, StreamPublisher[IO]] =
-    publishingProgram.createPublisher(channel, exchangeName, routingKey)
+    implicit channel: AMQPChannel): Stream[IO, StreamPublisher[IO]] =
+    publishingProgram.createPublisher(channel.value, exchangeName, routingKey)
 
   def bindQueue(queueName: QueueName, exchangeName: ExchangeName, routingKey: RoutingKey)(
-    implicit channel: Channel): Stream[IO, Queue.BindOk] =
-    amqpClient.bindQueue(channel, queueName, exchangeName, routingKey)
+    implicit channel: AMQPChannel): Stream[IO, Unit] =
+    amqpClient.bindQueue(channel.value, queueName, exchangeName, routingKey)
 
   def bindQueue(queueName: QueueName, exchangeName: ExchangeName, routingKey: RoutingKey, args: QueueBindingArgs)(
-    implicit channel: Channel): Stream[IO, Queue.BindOk] =
-    amqpClient.bindQueue(channel, queueName, exchangeName, routingKey, args)
+    implicit channel: AMQPChannel): Stream[IO, Unit] =
+    amqpClient.bindQueue(channel.value, queueName, exchangeName, routingKey, args)
 
   def bindQueueNoWait(queueName: QueueName, exchangeName: ExchangeName, routingKey: RoutingKey, args: QueueBindingArgs)(
-    implicit channel: Channel): Stream[IO, Unit] =
-    amqpClient.bindQueueNoWait(channel, queueName, exchangeName, routingKey, args)
+    implicit channel: AMQPChannel): Stream[IO, Unit] =
+    amqpClient.bindQueueNoWait(channel.value, queueName, exchangeName, routingKey, args)
 
   def unbindQueue(queueName: QueueName, exchangeName: ExchangeName, routingKey: RoutingKey)(
-    implicit channel: Channel): Stream[IO, Queue.UnbindOk] =
-    amqpClient.unbindQueue(channel, queueName, exchangeName, routingKey)
+    implicit channel: AMQPChannel): Stream[IO, Unit] =
+    amqpClient.unbindQueue(channel.value, queueName, exchangeName, routingKey)
 
   def bindExchange(destination: ExchangeName, source: ExchangeName, routingKey: RoutingKey, args: ExchangeBindingArgs)(
-    implicit channel: Channel): Stream[IO, Exchange.BindOk] =
-    amqpClient.bindExchange(channel, destination, source, routingKey, args)
+    implicit channel: AMQPChannel): Stream[IO, Unit] =
+    amqpClient.bindExchange(channel.value, destination, source, routingKey, args)
 
   def declareExchange(exchangeName: ExchangeName, exchangeType: ExchangeType)(
-    implicit channel: Channel): Stream[IO, Exchange.DeclareOk] =
-    amqpClient.declareExchange(channel, exchangeName, exchangeType)
+    implicit channel: AMQPChannel): Stream[IO, Unit] =
+    amqpClient.declareExchange(channel.value, exchangeName, exchangeType)
 
-  def declareQueue(queueName: QueueName)(implicit channel: Channel): Stream[IO, Queue.DeclareOk] =
-    amqpClient.declareQueue(channel, queueName)
+  def declareQueue(queueName: QueueName)(implicit channel: AMQPChannel): Stream[IO, Unit] =
+    amqpClient.declareQueue(channel.value, queueName)
 
   def deleteQueue(queueName: QueueName, ifUnused: Boolean = true, ifEmpty: Boolean = true)(
-    implicit channel: Channel): Stream[IO, Queue.DeleteOk] =
-    amqpClient.deleteQueue(channel, queueName, ifUnused, ifEmpty)
+    implicit channel: AMQPChannel): Stream[IO, Unit] =
+    amqpClient.deleteQueue(channel.value, queueName, ifUnused, ifEmpty)
 
   def deleteQueueNoWait(queueName: QueueName, ifUnused: Boolean = true, ifEmpty: Boolean = true)(
-    implicit channel: Channel): Stream[IO, Unit] =
-    amqpClient.deleteQueueNoWait(channel, queueName, ifUnused, ifEmpty)
+    implicit channel: AMQPChannel): Stream[IO, Unit] =
+    amqpClient.deleteQueueNoWait(channel.value, queueName, ifUnused, ifEmpty)
 
 }

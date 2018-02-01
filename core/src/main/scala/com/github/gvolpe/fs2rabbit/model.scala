@@ -17,12 +17,18 @@
 package com.github.gvolpe.fs2rabbit
 
 import com.rabbitmq.client.impl.LongStringHelper
-import com.rabbitmq.client.{AMQP, LongString}
+import com.rabbitmq.client.{AMQP, Channel, LongString, Connection => RabbitMQConnection}
 import fs2.{Sink, Stream}
 
-import scala.reflect.ClassTag
-
 object model {
+
+  trait AMQPConnection
+  case class RabbitConnection(connection: RabbitMQConnection) extends AMQPConnection
+
+  trait AMQPChannel {
+    def value: Channel
+  }
+  case class RabbitChannel(value: Channel) extends AMQPChannel
 
   case class ExchangeName(value: String) extends AnyVal
   case class QueueName(value: String)    extends AnyVal

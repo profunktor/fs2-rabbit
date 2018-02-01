@@ -18,15 +18,14 @@ package com.github.gvolpe.fs2rabbit
 
 import cats.effect.IO
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
-import com.github.gvolpe.fs2rabbit.interpreter.{IOInterpreter, TestChannel}
+import com.github.gvolpe.fs2rabbit.interpreter.IOInterpreter
 import com.github.gvolpe.fs2rabbit.model._
-import com.rabbitmq.client.Channel
 import fs2.{Stream, async}
-import org.scalatest.{FlatSpecLike, Matchers}
+import org.scalatest.{BeforeAndAfterEach, FlatSpecLike, Matchers}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class IOInterpreterSpec extends FlatSpecLike with Matchers {
+class IOInterpreterSpec extends FlatSpecLike with Matchers with BeforeAndAfterEach {
 
   private val config = IO(
       Fs2RabbitConfig("localhost",
@@ -53,45 +52,53 @@ class IOInterpreterSpec extends FlatSpecLike with Matchers {
   private val fs2RabbitInterpreter      = new IOInterpreter(config, daQ, ackerQ)
   private val fs2RabbitNackInterpreter  = new IOInterpreter(nackConfig, daQ, ackerQ)
 
-  private implicit val channel: Channel = TestChannel
-
   private val exchangeName = ExchangeName("ex")
   private val queueName    = QueueName("daQ")
   private val routingKey   = RoutingKey("rk")
 
-  it should "create a queue and an exchange" in StreamAssertion {
-    import fs2RabbitInterpreter._
-    for {
-      _ <- declareQueue(queueName)
-      _ <- declareExchange(exchangeName, ExchangeType.Topic)
-    } yield ()
+  override protected def beforeEach(): Unit = {
+    super.beforeEach()
+//    daQ.dequeueAvailable.compile.drain.unsafeRunSync()
+    Thread.sleep(500)
   }
 
-  ignore should "create an acker consumer and verify both envelope and ack result" in StreamAssertion {
+  it should "create a connection, queue and an exchange" in StreamAssertion {
     import fs2RabbitInterpreter._
-    for {
-      testQ             <- Stream.eval(async.boundedQueue[IO, AmqpEnvelope](100))
-      ackerQ            <- Stream.eval(async.boundedQueue[IO, AckResult](100))
-      _                 <- declareExchange(exchangeName, ExchangeType.Direct)
-      _                 <- declareQueue(queueName)
-      _                 <- bindQueue(queueName, exchangeName, routingKey, QueueBindingArgs(Map.empty[String, AnyRef]))
-      publisher         <- createPublisher(exchangeName, routingKey)
-      msg               = Stream(AmqpMessage("acker-test", AmqpProperties.empty))
-      _                 <- msg.covary[IO] to publisher
-      ackerConsumer     <- createAckerConsumer(queueName)
-      (acker, consumer) = ackerConsumer
-      _ <- Stream(
-            consumer to testQ.enqueue,
-            Stream(Ack(DeliveryTag(1))).covary[IO].observe(ackerQ.enqueue) to acker
-          ).join(2).take(1)
-      result    <- Stream.eval(testQ.dequeue1)
-//      ackResult <- Stream.eval(ackerQ.dequeue1)
-    } yield {
-      result should be(
-        AmqpEnvelope(DeliveryTag(1),
-                     "acker-test",
-                     AmqpProperties(None, None, Map.empty[String, AmqpHeaderVal])))
-//      ackResult should be(Ack(DeliveryTag(1)))
+    createConnectionChannel flatMap { implicit channel =>
+      for {
+        _ <- declareQueue(queueName)
+        _ <- declareExchange(exchangeName, ExchangeType.Topic)
+      } yield ()
+    }
+  }
+
+  it should "create an acker consumer and verify both envelope and ack result" in StreamAssertion {
+    import fs2RabbitInterpreter._
+    createConnectionChannel flatMap { implicit channel =>
+      for {
+        testQ             <- Stream.eval(async.boundedQueue[IO, AmqpEnvelope](100))
+        ackerQ            <- Stream.eval(async.boundedQueue[IO, AckResult](100))
+        _                 <- declareExchange(exchangeName, ExchangeType.Topic)
+        _                 <- declareQueue(queueName)
+        _                 <- bindQueue(queueName, exchangeName, routingKey, QueueBindingArgs(Map.empty[String, AnyRef]))
+        publisher         <- createPublisher(exchangeName, routingKey)
+        msg               = Stream(AmqpMessage("acker-test", AmqpProperties.empty))
+        _                 <- msg.covary[IO] to publisher
+        ackerConsumer     <- createAckerConsumer(queueName)
+        (acker, consumer) = ackerConsumer
+        _ <- Stream(
+              consumer.take(1) to testQ.enqueue,
+              Stream(Ack(DeliveryTag(1))).covary[IO].observe(ackerQ.enqueue) to acker
+            ).join(2).take(1)
+        result    <- Stream.eval(testQ.dequeue1)
+        ackResult <- Stream.eval(ackerQ.dequeue1)
+      } yield {
+        result should be(
+          AmqpEnvelope(DeliveryTag(1),
+                       "acker-test",
+                       AmqpProperties(None, None, Map.empty[String, AmqpHeaderVal])))
+        ackResult should be(Ack(DeliveryTag(1)))
+      }
     }
   }
 
@@ -153,31 +160,26 @@ class IOInterpreterSpec extends FlatSpecLike with Matchers {
   //      }
   //    }
   //  }
-  //
-  //  it should "create a publisher, an auto-ack consumer, publish a message and consume it" in StreamAssertion {
-  //    import fs2RabbitInterpreter._
-  //    EmbeddedAmqpBroker.createBroker flatMap { broker =>
-  //      createConnectionChannel flatMap { implicit channel =>
-  //        for {
-  //          testQ     <- Stream.eval(async.boundedQueue[IO, AmqpEnvelope](100))
-  //          _         <- declareExchange(exchangeName, ExchangeType.Direct)
-  //          _         <- declareQueue(queueName)
-  //          _         <- bindQueue(queueName, exchangeName, routingKey)
-  //          publisher <- createPublisher(exchangeName, routingKey)
-  //          consumer  <- createAutoAckConsumer(queueName)
-  //          msg       = Stream(AmqpMessage("test", AmqpProperties.empty))
-  //          _         <- msg.covary[IO] to publisher
-  //          _         <- (consumer to testQ.enqueue).take(1)
-  //          result    <- Stream.eval(testQ.dequeue1)
-  //        } yield {
-  //          result should be(
-  //            AmqpEnvelope(new DeliveryTag(1), "test", AmqpProperties(None, None, Map.empty[String, AmqpHeaderVal])))
-  //          broker
-  //        }
-  //      }
-  //    }
-  //  }
-  //
+
+  it should "create a publisher, an auto-ack consumer, publish a message and consume it" in StreamAssertion {
+    import fs2RabbitInterpreter._
+    createConnectionChannel flatMap { implicit channel =>
+      for {
+        _         <- declareExchange(exchangeName, ExchangeType.Topic)
+        _         <- declareQueue(queueName)
+        _         <- bindQueue(queueName, exchangeName, routingKey)
+        publisher <- createPublisher(exchangeName, routingKey)
+        consumer  <- createAutoAckConsumer(queueName)
+        msg       = Stream(AmqpMessage("test", AmqpProperties.empty))
+        _         <- msg.covary[IO] to publisher
+        result    <- consumer.take(1)
+      } yield {
+        result should be(
+          AmqpEnvelope(DeliveryTag(1), "test", AmqpProperties(None, None, Map.empty[String, AmqpHeaderVal])))
+      }
+    }
+  }
+
   //  it should "create an exclusive auto-ack consumer with specific BasicQos" in StreamAssertion {
   //    import fs2RabbitInterpreter._
   //    EmbeddedAmqpBroker.createBroker flatMap { broker =>

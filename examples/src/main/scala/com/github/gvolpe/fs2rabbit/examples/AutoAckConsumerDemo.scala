@@ -40,21 +40,20 @@ class AutoAckConsumerDemo[F[_]: Effect](implicit F: Fs2Rabbit[F], EC: ExecutionC
 
   val program: Stream[F, Unit] = F.createConnectionChannel flatMap { implicit channel =>
     for {
-      _                 <- F.declareQueue(queueName)
-      _                 <- F.declareExchange(exchangeName, ExchangeType.Topic)
-      _                 <- F.bindQueue(queueName, exchangeName, routingKey)
+      _         <- F.declareQueue(queueName)
+      _         <- F.declareExchange(exchangeName, ExchangeType.Topic)
+      _         <- F.bindQueue(queueName, exchangeName, routingKey)
       consumer  <- F.createAutoAckConsumer(queueName)
-      publisher         <- F.createPublisher(exchangeName, routingKey)
-      result            <- new AutoAckFlow(consumer, logPipe, publisher).flow
+      publisher <- F.createPublisher(exchangeName, routingKey)
+      result    <- new AutoAckFlow(consumer, logPipe, publisher).flow
     } yield result
   }
 
 }
 
 class AutoAckFlow[F[_]](consumer: StreamConsumer[F],
-                         logger: Pipe[F, AmqpEnvelope, AckResult],
-                         publisher: StreamPublisher[F])
-                       (implicit ec: ExecutionContext, SE: StreamEval[F], F: Effect[F]) {
+                        logger: Pipe[F, AmqpEnvelope, AckResult],
+                        publisher: StreamPublisher[F])(implicit ec: ExecutionContext, SE: StreamEval[F], F: Effect[F]) {
 
   import io.circe.generic.auto._
 

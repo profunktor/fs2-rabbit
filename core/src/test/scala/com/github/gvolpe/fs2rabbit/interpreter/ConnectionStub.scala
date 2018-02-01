@@ -14,11 +14,19 @@
  * limitations under the License.
  */
 
-package com.github.gvolpe.fs2rabbit.algebra
+package com.github.gvolpe.fs2rabbit.interpreter
 
-import com.github.gvolpe.fs2rabbit.model.{AmqpMessage, ExchangeName, RoutingKey}
+import cats.effect.IO
+import com.github.gvolpe.fs2rabbit.algebra.Connection
+import com.github.gvolpe.fs2rabbit.model.AMQPChannel
+import com.github.gvolpe.fs2rabbit.typeclasses.StreamEval
 import com.rabbitmq.client.Channel
+import fs2.Stream
 
-trait Publishing[F[_], G[_]] {
-  def createPublisher(channel: Channel, exchangeName: ExchangeName, routingKey: RoutingKey): F[G[AmqpMessage[String]]]
+class ConnectionStub(implicit SE: StreamEval[IO]) extends Connection[IO, Stream[IO, ?]] {
+
+  case class ChannelStub(value: Channel = null) extends AMQPChannel
+
+  override def createConnectionChannel: Stream[IO, AMQPChannel] = SE.evalF(ChannelStub())
+
 }

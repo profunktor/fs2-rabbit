@@ -21,8 +21,9 @@ import cats.syntax.flatMap._
 import cats.syntax.functor._
 import com.github.gvolpe.fs2rabbit.algebra.Connection
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
+import com.github.gvolpe.fs2rabbit.model.{AMQPChannel, RabbitChannel, RabbitConnection}
 import com.github.gvolpe.fs2rabbit.typeclasses.{Log, StreamEval}
-import com.rabbitmq.client.{Channel, ConnectionFactory, Connection => RabbitMQConnection}
+import com.rabbitmq.client.{ConnectionFactory, Connection => RabbitMQConnection}
 import fs2.Stream
 
 class ConnectionStream[F[_]](config: F[Fs2RabbitConfig])(implicit F: Sync[F], L: Log[F], SE: StreamEval[F])
@@ -43,21 +44,21 @@ class ConnectionStream[F[_]](config: F[Fs2RabbitConfig])(implicit F: Sync[F], L:
       factory
     }
 
-  override def acquireConnection: F[(RabbitMQConnection, Channel)] =
+  private def acquireConnection: F[(RabbitMQConnection, AMQPChannel)] =
     for {
       factory <- connFactory
       conn    <- F.delay(factory.newConnection)
       channel <- F.delay(conn.createChannel)
-    } yield (conn, channel)
+    } yield (conn, RabbitChannel(channel))
 
   /**
     * Creates a connection and a channel in a safe way using Stream.bracket.
     * In case of failure, the resources will be cleaned up properly.
     **/
-  override def createConnectionChannel: Stream[F, Channel] =
+  override def createConnectionChannel: Stream[F, AMQPChannel] =
     Stream.bracket(acquireConnection)(
-      { case (_, channel) => SE.evalF[Channel](channel) }, {
-        case (conn, channel) =>
+      { case (_, channel) => SE.evalF[AMQPChannel](channel) }, {
+        case (conn, RabbitChannel(channel)) =>
           for {
             _ <- L.info(s"Releasing connection: $conn previously acquired.")
             _ <- F.delay { if (channel.isOpen) channel.close() }

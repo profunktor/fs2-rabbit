@@ -23,7 +23,6 @@ import com.github.gvolpe.fs2rabbit.algebra.AMQPClient
 import com.github.gvolpe.fs2rabbit.model.ExchangeType.ExchangeType
 import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.typeclasses.StreamEval
-import com.rabbitmq.client.AMQP.{Exchange, Queue}
 import com.rabbitmq.client._
 import fs2.async.mutable
 import fs2.Stream
@@ -93,7 +92,7 @@ class AmqpClientStream[F[_]](internalQ: mutable.Queue[IO, Either[Throwable, Amqp
   override def bindQueue(channel: Channel,
                          queueName: QueueName,
                          exchangeName: ExchangeName,
-                         routingKey: RoutingKey): Stream[F, Queue.BindOk] = SE.evalF {
+                         routingKey: RoutingKey): Stream[F, Unit] = SE.evalF {
     channel.queueBind(queueName.value, exchangeName.value, routingKey.value)
   }
 
@@ -101,7 +100,7 @@ class AmqpClientStream[F[_]](internalQ: mutable.Queue[IO, Either[Throwable, Amqp
                          queueName: QueueName,
                          exchangeName: ExchangeName,
                          routingKey: RoutingKey,
-                         args: QueueBindingArgs): Stream[F, Queue.BindOk] = SE.evalF {
+                         args: QueueBindingArgs): Stream[F, Unit] = SE.evalF {
     channel.queueBind(queueName.value, exchangeName.value, routingKey.value, args.value.asJava)
   }
 
@@ -116,7 +115,7 @@ class AmqpClientStream[F[_]](internalQ: mutable.Queue[IO, Either[Throwable, Amqp
   override def unbindQueue(channel: Channel,
                            queueName: QueueName,
                            exchangeName: ExchangeName,
-                           routingKey: RoutingKey): Stream[F, Queue.UnbindOk] = SE.evalF {
+                           routingKey: RoutingKey): Stream[F, Unit] = SE.evalF {
     channel.queueUnbind(queueName.value, exchangeName.value, routingKey.value)
   }
 
@@ -124,24 +123,24 @@ class AmqpClientStream[F[_]](internalQ: mutable.Queue[IO, Either[Throwable, Amqp
                             destination: ExchangeName,
                             source: ExchangeName,
                             routingKey: RoutingKey,
-                            args: ExchangeBindingArgs): Stream[F, Exchange.BindOk] = SE.evalF {
+                            args: ExchangeBindingArgs): Stream[F, Unit] = SE.evalF {
     channel.exchangeBind(destination.value, source.value, routingKey.value, args.value.asJava)
   }
 
   override def declareExchange(channel: Channel,
                                exchangeName: ExchangeName,
-                               exchangeType: ExchangeType): Stream[F, Exchange.DeclareOk] = SE.evalF {
+                               exchangeType: ExchangeType): Stream[F, Unit] = SE.evalF {
     channel.exchangeDeclare(exchangeName.value, exchangeType.toString.toLowerCase)
   }
 
-  override def declareQueue(channel: Channel, queueName: QueueName): Stream[F, Queue.DeclareOk] = SE.evalF {
+  override def declareQueue(channel: Channel, queueName: QueueName): Stream[F, Unit] = SE.evalF {
     channel.queueDeclare(queueName.value, false, false, false, Map.empty[String, AnyRef].asJava)
   }
 
   override def deleteQueue(channel: Channel,
                            queueName: QueueName,
                            ifUnused: Boolean,
-                           ifEmpty: Boolean): Stream[F, Queue.DeleteOk] = SE.evalF {
+                           ifEmpty: Boolean): Stream[F, Unit] = SE.evalF {
     channel.queueDelete(queueName.value, ifUnused, ifEmpty)
   }
 
