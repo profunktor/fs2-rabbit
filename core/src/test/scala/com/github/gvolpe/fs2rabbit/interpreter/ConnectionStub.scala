@@ -14,14 +14,19 @@
  * limitations under the License.
  */
 
-package com.github.gvolpe.fs2rabbit.algebra
+package com.github.gvolpe.fs2rabbit.interpreter
 
-import com.rabbitmq.client.{Channel, Connection}
+import cats.effect.IO
+import com.github.gvolpe.fs2rabbit.algebra.Connection
+import com.github.gvolpe.fs2rabbit.model.AMQPChannel
+import com.github.gvolpe.fs2rabbit.typeclasses.StreamEval
+import com.rabbitmq.client.Channel
+import fs2.Stream
 
-trait ConnectionAlg[F[_], G[_]] {
+class ConnectionStub(implicit SE: StreamEval[IO]) extends Connection[IO, Stream[IO, ?]] {
 
-  def acquireConnection: F[(Connection, Channel)]
+  case class ChannelStub(value: Channel = null) extends AMQPChannel
 
-  def createConnectionChannel: G[Channel]
+  override def createConnectionChannel: Stream[IO, AMQPChannel] = SE.evalF(ChannelStub())
 
 }

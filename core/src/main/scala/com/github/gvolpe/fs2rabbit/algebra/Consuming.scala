@@ -19,7 +19,7 @@ package com.github.gvolpe.fs2rabbit.algebra
 import com.github.gvolpe.fs2rabbit.model.{AckResult, AmqpEnvelope, BasicQos, ConsumerArgs, QueueName}
 import com.rabbitmq.client.Channel
 
-trait ConsumingAlg[F[_], G[_]] {
+trait Consuming[F[_], G[_]] {
 
   def createAckerConsumer(channel: Channel,
                           queueName: QueueName,

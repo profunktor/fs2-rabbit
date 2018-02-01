@@ -17,25 +17,23 @@
 package com.github.gvolpe.fs2rabbit
 
 import com.rabbitmq.client.impl.LongStringHelper
-import com.rabbitmq.client.{AMQP, LongString}
+import com.rabbitmq.client.{AMQP, Channel, LongString, Connection => RabbitMQConnection}
 import fs2.{Sink, Stream}
-
-import scala.reflect.ClassTag
 
 object model {
 
-  class ExchangeName(val value: String) extends AnyVal {
-    override def toString: String = value
+  trait AMQPConnection
+  case class RabbitConnection(connection: RabbitMQConnection) extends AMQPConnection
+
+  trait AMQPChannel {
+    def value: Channel
   }
-  class QueueName(val value: String) extends AnyVal {
-    override def toString: String = value
-  }
-  class RoutingKey(val value: String) extends AnyVal {
-    override def toString: String = value
-  }
-  class DeliveryTag(val value: Long) extends AnyVal {
-    override def toString: String = value.toString
-  }
+  case class RabbitChannel(value: Channel) extends AMQPChannel
+
+  case class ExchangeName(value: String) extends AnyVal
+  case class QueueName(value: String)    extends AnyVal
+  case class RoutingKey(value: String)   extends AnyVal
+  case class DeliveryTag(value: Long)    extends AnyVal
 
   case class ConsumerArgs(consumerTag: String, noLocal: Boolean, exclusive: Boolean, args: Map[String, AnyRef])
   case class BasicQos(prefetchSize: Int, prefetchCount: Int, global: Boolean = false)
@@ -108,17 +106,12 @@ object model {
 
   case class AmqpMessage[A](payload: A, properties: AmqpProperties)
 
-  implicit class StringValueClasses(value: String) {
-    def as[A](implicit ct: ClassTag[A]): A =
-      ct.runtimeClass.getConstructors.head.newInstance(value).asInstanceOf[A]
-  }
-
   // Binding
-  case class QueueBindingArgs(value: Map[String, AnyRef])
-  case class ExchangeBindingArgs(value: Map[String, AnyRef])
+  case class QueueBindingArgs(value: Map[String, AnyRef])    extends AnyVal
+  case class ExchangeBindingArgs(value: Map[String, AnyRef]) extends AnyVal
 
   // Declaration
-  case class QueueDeclarationArgs(value: Map[String, AnyRef])
-  case class ExchangeDeclarationArgs(value: Map[String, AnyRef])
+  case class QueueDeclarationArgs(value: Map[String, AnyRef])    extends AnyVal
+  case class ExchangeDeclarationArgs(value: Map[String, AnyRef]) extends AnyVal
 
 }

@@ -16,15 +16,8 @@
 
 package com.github.gvolpe.fs2rabbit.algebra
 
-import com.github.gvolpe.fs2rabbit.model.{ExchangeName, QueueName}
-import com.github.gvolpe.fs2rabbit.model.ExchangeType.ExchangeType
-import com.rabbitmq.client.AMQP.{Exchange, Queue}
-import com.rabbitmq.client.Channel
+import com.github.gvolpe.fs2rabbit.model.AMQPChannel
 
-trait DeclarationAlg[F[_]] {
-
-  def declareExchange(channel: Channel, exchangeName: ExchangeName, exchangeType: ExchangeType): F[Exchange.DeclareOk]
-
-  def declareQueue(channel: Channel, queueName: QueueName): F[Queue.DeclareOk]
-
+trait Connection[F[_], G[_]] {
+  def createConnectionChannel: G[AMQPChannel]
 }

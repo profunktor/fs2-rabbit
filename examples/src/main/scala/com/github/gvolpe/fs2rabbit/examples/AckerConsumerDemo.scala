@@ -17,7 +17,7 @@
 package com.github.gvolpe.fs2rabbit.examples
 
 import cats.effect.Effect
-import com.github.gvolpe.fs2rabbit.interpreter.Fs2RabbitInterpreter
+import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
 import com.github.gvolpe.fs2rabbit.json.Fs2JsonEncoder
 import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.typeclasses.StreamEval
@@ -25,11 +25,11 @@ import fs2.{Pipe, Stream}
 
 import scala.concurrent.ExecutionContext
 
-class GenericDemo[F[_]: Effect](implicit F: Fs2RabbitInterpreter[F], EC: ExecutionContext, SE: StreamEval[F]) {
+class AckerConsumerDemo[F[_]: Effect](implicit F: Fs2Rabbit[F], EC: ExecutionContext, SE: StreamEval[F]) {
 
-  private val queueName    = "testQ".as[QueueName]
-  private val exchangeName = "testEX".as[ExchangeName]
-  private val routingKey   = "testRK".as[RoutingKey]
+  private val queueName    = QueueName("testQ")
+  private val exchangeName = ExchangeName("testEX")
+  private val routingKey   = RoutingKey("testRK")
 
   def logPipe: Pipe[F, AmqpEnvelope, AckResult] = { streamMsg =>
     for {

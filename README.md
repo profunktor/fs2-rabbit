@@ -15,7 +15,7 @@ Stream-based library for [RabbitMQ](https://www.rabbitmq.com/) built-in on top o
 Add the only dependency to your build.sbt:
 
 ```scala
-libraryDependencies += "com.github.gvolpe" %% "fs2-rabbit" % "0.1-M3"
+libraryDependencies += "com.github.gvolpe" %% "fs2-rabbit" % "0.1"
 ```
 
 `fs2-rabbit` has the following dependencies and it's cross compiled to Scala `2.11.12` and `2.12.4`:
@@ -24,7 +24,7 @@ libraryDependencies += "com.github.gvolpe" %% "fs2-rabbit" % "0.1-M3"
 | ----------- |:----------:|
 | cats        | 1.0.1      |
 | cats-effect | 0.8        |
-| fs2         | 0.10.0-RC2 |
+| fs2         | 0.10.0     |
 | circe       | 0.9.1      |
 | amqp-client | 4.1.0      | 
 
@@ -66,11 +66,11 @@ val exchangeName  = ExchangeName("ex")
 val queueName     = QueueName("daQ")
 val routingKey    = RoutingKey("rk")
 
-val program = F.createConnectionChannel flatMap { implicit channel => 	      // Stream[F, Channel]
+val program = F.createConnectionChannel flatMap { implicit channel => 	      // Stream[F, AMQPChannel]
   for {
-    _                 <- F.declareQueue(queueName)                            // Stream[F, Queue.DeclareOk]
-    _                 <- F.declareExchange(exchangeName, ExchangeType.Topic)  // Stream[F, Exchange.DeclareOk]
-    _                 <- F.bindQueue(queueName, exchangeName, routingKey)     // Stream[F, Queue.BindOk]
+    _                 <- F.declareQueue(queueName)                            // Stream[F, Unit]
+    _                 <- F.declareExchange(exchangeName, ExchangeType.Topic)  // Stream[F, Unit]
+    _                 <- F.bindQueue(queueName, exchangeName, routingKey)     // Stream[F, Unit]
     ackerConsumer     <- F.createAckerConsumer(queueName)	              // (StreamAcker[F], StreamConsumer[F])
     (acker, consumer) = ackerConsumer
     publisher         <- F.createPublisher(exchangeName, routingKey)	      // StreamPublisher[F]
