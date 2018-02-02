@@ -16,6 +16,7 @@
 
 package com.github.gvolpe.fs2rabbit.algebra
 
+import com.github.gvolpe.fs2rabbit.config.QueueConfig
 import com.github.gvolpe.fs2rabbit.model.ExchangeType.ExchangeType
 import com.github.gvolpe.fs2rabbit.model._
 import com.rabbitmq.client.Channel
@@ -39,7 +40,9 @@ trait Binding[F[_]] {
 
 trait Declaration[F[_]] {
   def declareExchange(channel: Channel, exchangeName: ExchangeName, exchangeType: ExchangeType): F[Unit]
-  def declareQueue(channel: Channel, queueName: QueueName): F[Unit]
+  def declareQueue(channel: Channel, queueConfig: QueueConfig): F[Unit]
+  def declareQueueNoWait(channel: Channel, queueConfig: QueueConfig): F[Unit]
+  def declareQueuePassive(channel: Channel, queueName: QueueName): F[Unit]
 }
 
 trait Deletion[F[_]] {

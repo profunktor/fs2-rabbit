@@ -20,7 +20,7 @@ import java.util.concurrent.Executors
 
 import cats.effect.{Effect, IO}
 import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, Connection}
-import com.github.gvolpe.fs2rabbit.config.{Fs2RabbitConfig, Fs2RabbitConfigManager}
+import com.github.gvolpe.fs2rabbit.config.{Fs2RabbitConfig, Fs2RabbitConfigManager, QueueConfig}
 import com.github.gvolpe.fs2rabbit.instances.log._
 import com.github.gvolpe.fs2rabbit.instances.streameval._
 import com.github.gvolpe.fs2rabbit.model.ExchangeType.ExchangeType
@@ -101,8 +101,14 @@ class Fs2Rabbit[F[_]](config: F[Fs2RabbitConfig],
       implicit channel: AMQPChannel): Stream[F, Unit] =
     amqpClient.declareExchange(channel.value, exchangeName, exchangeType)
 
-  def declareQueue(queueName: QueueName)(implicit channel: AMQPChannel): Stream[F, Unit] =
-    amqpClient.declareQueue(channel.value, queueName)
+  def declareQueue(queueConfig: QueueConfig)(implicit channel: AMQPChannel): Stream[F, Unit] =
+    amqpClient.declareQueue(channel.value, queueConfig)
+
+  def declareQueueNoWait(queueConfig: QueueConfig)(implicit channel: AMQPChannel): Stream[F, Unit] =
+    amqpClient.declareQueueNoWait(channel.value, queueConfig)
+
+  def declareQueuePassive(queueName: QueueName)(implicit channel: AMQPChannel): Stream[F, Unit] =
+    amqpClient.declareQueuePassive(channel.value, queueName)
 
   def deleteQueue(queueName: QueueName, ifUnused: Boolean = true, ifEmpty: Boolean = true)(
       implicit channel: AMQPChannel): Stream[F, Unit] =
