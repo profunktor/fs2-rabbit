@@ -18,6 +18,7 @@ package com.github.gvolpe.fs2rabbit.interpreter
 
 import cats.effect.{Effect, IO}
 import com.github.gvolpe.fs2rabbit.StreamAssertion
+import com.github.gvolpe.fs2rabbit.config.QueueConfig.{AutoDelete, Durable, Exclusive}
 import com.github.gvolpe.fs2rabbit.config.{Fs2RabbitConfig, QueueConfig}
 import com.github.gvolpe.fs2rabbit.instances.streameval._
 import com.github.gvolpe.fs2rabbit.model._
@@ -75,6 +76,16 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
     createConnectionChannel flatMap { implicit channel =>
       for {
         _ <- declareQueue(QueueConfig.default(queueName))
+        _ <- declareExchange(exchangeName, ExchangeType.Topic)
+      } yield ()
+    }
+  }
+
+  it should "create a connection and a queue with options enabled" in StreamAssertion {
+    import fs2RabbitInterpreter._
+    createConnectionChannel flatMap { implicit channel =>
+      for {
+        _ <- declareQueue(QueueConfig(queueName, Durable, Exclusive, AutoDelete, Map.empty))
         _ <- declareExchange(exchangeName, ExchangeType.Topic)
       } yield ()
     }

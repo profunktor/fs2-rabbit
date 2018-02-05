@@ -29,25 +29,29 @@ object QueueConfig {
   def default(queueName: QueueName): QueueConfig =
     QueueConfig(queueName, NonDurable, NonExclusive, NonAutoDelete, Map.empty)
 
-  sealed trait DurableCfg extends Product with Serializable {
+  sealed trait DurableCfg extends BooleanCfg {
     def asBoolean: Boolean =
       this == Durable
   }
   case object Durable    extends DurableCfg
   case object NonDurable extends DurableCfg
 
-  sealed trait ExclusiveCfg extends Product with Serializable {
+  sealed trait ExclusiveCfg extends BooleanCfg {
     def asBoolean: Boolean =
       this == Exclusive
   }
   case object Exclusive    extends ExclusiveCfg
   case object NonExclusive extends ExclusiveCfg
 
-  sealed trait AutoDeleteCfg extends Product with Serializable {
+  sealed trait AutoDeleteCfg extends BooleanCfg {
     def asBoolean: Boolean =
       this == AutoDelete
   }
   case object AutoDelete    extends AutoDeleteCfg
   case object NonAutoDelete extends AutoDeleteCfg
+
+  sealed trait BooleanCfg {
+    def asBoolean: Boolean
+  }
 
 }
