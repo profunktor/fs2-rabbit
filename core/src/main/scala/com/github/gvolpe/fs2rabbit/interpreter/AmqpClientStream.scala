@@ -20,6 +20,7 @@ import java.util.concurrent.Executors
 
 import cats.effect.{Effect, IO}
 import com.github.gvolpe.fs2rabbit.algebra.AMQPClient
+import com.github.gvolpe.fs2rabbit.config.QueueConfig
 import com.github.gvolpe.fs2rabbit.model.ExchangeType.ExchangeType
 import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.typeclasses.StreamEval
@@ -133,8 +134,17 @@ class AmqpClientStream[F[_]](internalQ: mutable.Queue[IO, Either[Throwable, Amqp
     channel.exchangeDeclare(exchangeName.value, exchangeType.toString.toLowerCase)
   }
 
-  override def declareQueue(channel: Channel, queueName: QueueName): Stream[F, Unit] = SE.evalF {
-    channel.queueDeclare(queueName.value, false, false, false, Map.empty[String, AnyRef].asJava)
+  override def declareQueue(channel: Channel, queueConfig: QueueConfig): Stream[F, Unit] = SE.evalF {
+    channel.queueDeclare(queueConfig.queueName.value, queueConfig.durable.asBoolean, queueConfig.exclusive.asBoolean, queueConfig.autoDelete.asBoolean, queueConfig.arguments.asJava)
+  }
+
+  override def declareQueueNoWait(channel: Channel, queueConfig: QueueConfig): Stream[F, Unit] =
+    SE.evalF {
+      channel.queueDeclareNoWait(queueConfig.queueName.value, queueConfig.durable.asBoolean, queueConfig.exclusive.asBoolean, queueConfig.autoDelete.asBoolean, queueConfig.arguments.asJava)
+    }
+
+  override def declareQueuePassive(channel: Channel, queueName: QueueName): Stream[F, Unit] = SE.evalF {
+    channel.queueDeclarePassive(queueName.value)
   }
 
   override def deleteQueue(channel: Channel,
