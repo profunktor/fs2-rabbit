@@ -17,7 +17,6 @@
 package com.github.gvolpe.fs2rabbit
 
 import cats.effect.{Effect, IO}
-import com.github.gvolpe.fs2rabbit.instances.log._
 import com.github.gvolpe.fs2rabbit.typeclasses.Log
 import fs2.{Scheduler, Stream}
 

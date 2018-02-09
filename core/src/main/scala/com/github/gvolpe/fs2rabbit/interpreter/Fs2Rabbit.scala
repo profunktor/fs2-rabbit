@@ -21,8 +21,6 @@ import java.util.concurrent.Executors
 import cats.effect.{Effect, IO}
 import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, Connection}
 import com.github.gvolpe.fs2rabbit.config.{Fs2RabbitConfig, Fs2RabbitConfigManager, QueueConfig}
-import com.github.gvolpe.fs2rabbit.instances.log._
-import com.github.gvolpe.fs2rabbit.instances.streameval._
 import com.github.gvolpe.fs2rabbit.model.ExchangeType.ExchangeType
 import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.program._

@@ -26,8 +26,6 @@ import scala.concurrent.duration._
 
 class Fs2JsonEncoderSpec extends FlatSpecLike with Matchers {
 
-  import com.github.gvolpe.fs2rabbit.instances.streameval._
-
   case class Address(number: Int, streetName: String)
   case class Person(name: String, address: Address)
 

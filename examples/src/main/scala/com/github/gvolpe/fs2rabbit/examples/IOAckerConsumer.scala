@@ -18,7 +18,6 @@ package com.github.gvolpe.fs2rabbit.examples
 
 import cats.effect.IO
 import com.github.gvolpe.fs2rabbit.StreamLoop
-import com.github.gvolpe.fs2rabbit.instances.streameval._
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
 
 import scala.concurrent.ExecutionContext

@@ -20,7 +20,6 @@ import cats.effect.{Effect, IO}
 import com.github.gvolpe.fs2rabbit.StreamAssertion
 import com.github.gvolpe.fs2rabbit.config.QueueConfig.{AutoDelete, Durable, Exclusive}
 import com.github.gvolpe.fs2rabbit.config.{Fs2RabbitConfig, QueueConfig}
-import com.github.gvolpe.fs2rabbit.instances.streameval._
 import com.github.gvolpe.fs2rabbit.model._
 import fs2.{Stream, async}
 import org.scalatest.{FlatSpecLike, Matchers}

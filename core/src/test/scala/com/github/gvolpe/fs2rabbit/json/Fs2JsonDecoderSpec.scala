@@ -63,8 +63,6 @@ class Fs2JsonDecoderSpec extends Fs2JsonDecoderFixture with FlatSpecLike with Ma
 
 trait Fs2JsonDecoderFixture extends PropertyChecks {
 
-  import com.github.gvolpe.fs2rabbit.instances.log._
-  import com.github.gvolpe.fs2rabbit.instances.streameval._
   import io.circe.generic.auto._
 
   val fs2JsonDecoder = new Fs2JsonDecoder[IO]
