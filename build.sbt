@@ -4,7 +4,7 @@ name := """fs2-rabbit-root"""
 
 organization in ThisBuild := "com.github.gvolpe"
 
-version in ThisBuild := "0.1"
+version in ThisBuild := "0.1.1"
 
 crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.4")
 
@@ -21,11 +21,6 @@ val commonSettings = Seq(
     Libraries.circeCore,
     Libraries.circeGeneric,
     Libraries.circeParser,
-    Libraries.qpidBrokerCore,
-    Libraries.qpidMemoryStore,
-    Libraries.qpidAmqpProtocol,
-    Libraries.qpidClient,
-    Libraries.geronimoJmsSpec,
     Libraries.scalaTest,
     Libraries.scalaCheck
   ),

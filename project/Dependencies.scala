@@ -3,7 +3,7 @@ import sbt._
 object Dependencies {
 
   object Versions {
-    val fs2             = "0.10.0"
+    val fs2             = "0.10.1"
     val circe           = "0.9.1"
     val qpidBroker      = "6.1.2"
     val amqpClient      = "4.1.0"
@@ -28,13 +28,6 @@ object Dependencies {
     lazy val circeCore      = "io.circe" %% "circe-core"    % Versions.circe
     lazy val circeGeneric   = "io.circe" %% "circe-generic" % Versions.circe
     lazy val circeParser    = "io.circe" %% "circe-parser"  % Versions.circe
-
-    // Qpid Broker libraries for test
-    lazy val qpidBrokerCore   = "org.apache.qpid"           % "qpid-broker-core"                      % Versions.qpidBroker % "test"
-    lazy val qpidMemoryStore  = "org.apache.qpid"           % "qpid-broker-plugins-memory-store"      % Versions.qpidBroker % "test"
-    lazy val qpidAmqpProtocol = "org.apache.qpid"           % "qpid-broker-plugins-amqp-0-8-protocol" % Versions.qpidBroker % "test"
-    lazy val qpidClient       = "org.apache.qpid"           % "qpid-client"                           % Versions.qpidBroker % "test"
-    lazy val geronimoJmsSpec  = "org.apache.geronimo.specs" % "geronimo-jms_1.1_spec"                 % "1.1.1"           % "test"
 
     // Scala test libraries
     lazy val scalaTest  = "org.scalatest"   %% "scalatest"  % Versions.scalaTest  % "test"
