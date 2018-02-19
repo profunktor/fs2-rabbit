@@ -47,3 +47,4 @@ worker*.log
 derby.log
 /work
 /${json:qpid.work_dir}
+tags
