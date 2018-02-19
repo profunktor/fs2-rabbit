@@ -5,6 +5,7 @@
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/011c5931cd3945b3a88eb725f18bbf88)](https://www.codacy.com/app/volpegabriel/fs2-rabbit?utm_source=github.com&utm_medium=referral&utm_content=gvolpe/fs2-rabbit&utm_campaign=badger)
 [![Gitter Chat](https://badges.gitter.im/fs2-rabbit/fs2-rabbit.svg)](https://gitter.im/fs2-rabbit/fs2-rabbit)
 [![codecov](https://codecov.io/gh/gvolpe/fs2-rabbit/branch/master/graph/badge.svg)](https://codecov.io/gh/gvolpe/fs2-rabbit)
+[![Latest version](https://index.scala-lang.org/gvolpe/fs2-rabbit/fs2-rabbit/latest.svg?color=orange)](https://index.scala-lang.org/gvolpe/fs2-rabbit/fs2-rabbit)
 
 Stream-based library for [RabbitMQ](https://www.rabbitmq.com/) built-in on top of [Fs2](https://github.com/functional-streams-for-scala/fs2) and the [RabbitMq Java Client](https://github.com/rabbitmq/rabbitmq-java-client).
 
