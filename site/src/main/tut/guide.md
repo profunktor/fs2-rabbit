@@ -1,11 +1,11 @@
 ---
 layout: page
-title:  "Usage Guide"
+title:  "Guide"
 section: "guide"
-position: 0
+position: 1
 ---
 
-# Usage Guide
+# Guide
 
 #### Configuration
 
@@ -80,7 +80,6 @@ class Demo[F[_]](implicit F: Effect[F]) {
   // StreamConsumer is a type alias for Stream[F, AmqpEnvelope]
   // StreamPublisher is a type alias for Sink[F, AmqpMessage[String]]
 }
-
 ```
 
 #### Message Consuming and Acknowledge
