@@ -4,21 +4,25 @@
 
 <p>By default, fs2-rabbit will look into the <strong>application.conf</strong> file for the configuration of the library, here’s an example:</p>
 
-<p>```
-fs2-rabbit {
+<p>```</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>fs2-rabbit {
   connection {
-    virtual-host = “/”
-    host = “127.0.0.1”
-    username = “guest”
-    password = “guest”
+    virtual-host = "/"
+    host = "127.0.0.1"
+    username = "guest"
+    password = "guest"
     port = 5672
     ssl = false
     connection-timeout = 3
-  }</p>
+  }
 
-<p>requeue-on-nack = false
+  requeue-on-nack = false
 }
-```</p>
+</code></pre>
+</div>
+
+<p>```</p>
 
 <p>See reference.conf for more.</p>
 
@@ -28,30 +32,30 @@ fs2-rabbit {
 
 <p><code class="highlighter-rouge">F</code> represents the effect type. In the examples both <code class="highlighter-rouge">cats.effect.IO</code> and <code class="highlighter-rouge">monix.eval.Task</code> are used but it’s possible to use any other effect with an implicit instance of <code class="highlighter-rouge">cats.effect.Effect[F]</code> available.</p>
 
-<p>```scala
-import cats.effect.{Effect, IO}
+<p>```scala</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>import cats.effect.{Effect, IO}
 import com.github.gvolpe.fs2rabbit.config.QueueConfig
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
 import com.github.gvolpe.fs2rabbit.model._
-import fs2.Stream</p>
+import fs2.Stream
+import scala.concurrent.ExecutionContext
 
-<p>import scala.concurrent.ExecutionContext</p>
+class Demo[F[_]](implicit F: Effect[F]) {
 
-<p>class Demo<a href="implicit F: Effect[F]">F[_]</a> {</p>
+  implicit val ec: ExecutionContext = ExecutionContext.Implicits.global
+  implicit val R: Fs2Rabbit[F] = Fs2Rabbit[F]
 
-<p>implicit val ec: ExecutionContext = ExecutionContext.Implicits.global
-  implicit val R: Fs2Rabbit[F] = Fs2Rabbit[F]</p>
+  val exchangeName  = ExchangeName("ex")
+  val queueName     = QueueName("daQ")
+  val routingKey    = RoutingKey("rk")
 
-<p>val exchangeName  = ExchangeName(“ex”)
-  val queueName     = QueueName(“daQ”)
-  val routingKey    = RoutingKey(“rk”)</p>
-
-<p>def doSomething(consumer: StreamConsumer[F],
+  def doSomething(consumer: StreamConsumer[F],
                   acker: StreamAcker[F],
                   publisher: StreamPublisher[F]): Stream[F, Unit] =
-    Stream.eval(F.unit)</p>
+     Stream.eval(F.unit)
 
-<p>val program = R.createConnectionChannel flatMap { implicit channel =&gt; 	    // Stream[F, AMQPChannel]
+  val program = R.createConnectionChannel flatMap { implicit channel =&gt; 	    // Stream[F, AMQPChannel]
     for {
       _                 &lt;- R.declareQueue(QueueConfig.default(queueName))       // Stream[F, Unit]
       _                 &lt;- R.declareExchange(exchangeName, ExchangeType.Topic)  // Stream[F, Unit]
@@ -61,42 +65,47 @@ import fs2.Stream</p>
       publisher         &lt;- R.createPublisher(exchangeName, routingKey)	        // StreamPublisher[F]
       _                 &lt;- doSomething(consumer, acker, publisher)
     } yield ()
-  }</p>
+  }
 
-<p>// this will give you an Effect describing your program F[Unit]
-  val effect: F[Unit] = program.compile.drain</p>
+  // this will give you an Effect describing your program F[Unit]
+  val effect: F[Unit] = program.compile.drain
 
-<p>// if using cats.effect.IO you can execute it like this
-  // effect.unsafeRunSync()</p>
+  // if using cats.effect.IO you can execute it like this
+  // effect.unsafeRunSync()
 
-<p>// StreamAcker is a type alias for Sink[F, AckResult]
+  // StreamAcker is a type alias for Sink[F, AckResult]
   // StreamConsumer is a type alias for Stream[F, AmqpEnvelope]
   // StreamPublisher is a type alias for Sink[F, AmqpMessage[String]]
-}
-```</p>
+} ```
+</code></pre>
+</div>
 
 <h4 id="message-consuming-and-acknowledge">Message Consuming and Acknowledge</h4>
 
 <p>It is possible to create either an <strong>autoAckConsumer</strong> or an <strong>ackerConsumer</strong>. If we choose the first one then we only need to worry about consuming the message. If we choose the latter instead, then we are in control of acking / nacking back to RabbitMQ. Here’s a simple example on how you can do it:</p>
 
-<p>```scala
-import cats.effect.Sync
+<p>```scala</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>import cats.effect.Sync
 import com.github.gvolpe.fs2rabbit.model._
-import fs2.{Pipe, Stream}</p>
+import fs2.{Pipe, Stream}
 
-<p>class LogDemo<a href="consumer: StreamConsumer[F], acker: StreamAcker[F]">F[_]</a>(implicit F: Sync[F]) {</p>
+class LogDemo[F[_]](consumer: StreamConsumer[F], acker: StreamAcker[F])(implicit F: Sync[F]) {
 
-<p>def logPipe: Pipe[F, AmqpEnvelope, AckResult] = { streamMsg =&gt;
+  def logPipe: Pipe[F, AmqpEnvelope, AckResult] = { streamMsg =&gt;
     for {
       amqpMsg &lt;- streamMsg
-      _       &lt;- Stream.eval(F.delay(println(s”Consumed: $amqpMsg”)))
+      _       &lt;- Stream.eval(F.delay(println(s"Consumed: $amqpMsg")))
     } yield Ack(amqpMsg.deliveryTag)
-  }</p>
+  }
 
-<p>def run: Stream[F, Unit] = consumer through logPipe to acker</p>
+  def run: Stream[F, Unit] = consumer through logPipe to acker
 
-<p>}
-```</p>
+}
+</code></pre>
+</div>
+
+<p>```</p>
 
 <h4 id="consumer-options">Consumer options</h4>
 
@@ -108,73 +117,85 @@ import fs2.{Pipe, Stream}</p>
 
 <p>A stream-based Json Decoder that can be connected to a StreamConsumer is provided out of the box. Implicit decoders for your classes must be on scope (you can use Circe’s codec auto derivation):</p>
 
-<p>```scala
-import cats.effect.Sync
+<p>```scala</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>import cats.effect.Sync
 import com.github.gvolpe.fs2rabbit.json.Fs2JsonDecoder
 import com.github.gvolpe.fs2rabbit.model._
 import fs2.{Sink, Stream}
 import io.circe._
-import io.circe.generic.auto._</p>
+import io.circe.generic.auto._
 
-<p>case class Address(number: Int, streetName: String)
-case class Person(id: Long, name: String, address: Address)</p>
+case class Address(number: Int, streetName: String)
+case class Person(id: Long, name: String, address: Address)
 
-<p>class JsonDemo<a href="consumer: StreamConsumer[F], acker: StreamAcker[F], errorSink: Sink[F, Error], processorSink: Sink[F, (Person, DeliveryTag)]">F[_]</a>(implicit F: Sync[F]) {</p>
+class JsonDemo[F[_]](consumer: StreamConsumer[F], acker: StreamAcker[F], errorSink: Sink[F, Error], processorSink: Sink[F, (Person, DeliveryTag)])(implicit F: Sync[F]) {
 
-<p>private val jsonDecoder = new Fs2JsonDecoder[F]
-  import jsonDecoder._</p>
+  private val jsonDecoder = new Fs2JsonDecoder[F]
+  import jsonDecoder._
 
-<p>(consumer through jsonDecode[Person]) flatMap {
+  (consumer through jsonDecode[Person]) flatMap {
     case (Left(error), tag) =&gt; (Stream.eval(F.delay(error)) to errorSink).map(_ =&gt; NAck(tag)) to acker
     case (Right(msg), tag)  =&gt; Stream.eval(F.delay((msg, tag))) to processorSink
   }
 }
-```</p>
+</code></pre>
+</div>
+
+<p>```</p>
 
 <h4 id="publishing">Publishing</h4>
 
 <p>To publish a simple String message is very simple:</p>
 
-<p>```scala
-import cats.effect.Sync
+<p>```scala</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>import cats.effect.Sync
 import com.github.gvolpe.fs2rabbit.model._
-import fs2.Stream</p>
+import fs2.Stream
 
-<p>class PublishingDemo<a href="publisher: StreamPublisher[F]">F[_]</a>(implicit F: Sync[F]) {</p>
+class PublishingDemo[F[_]](publisher: StreamPublisher[F])(implicit F: Sync[F]) {
 
-<p>def run: Stream[F, Unit] = {
-    val message = AmqpMessage(“Hello world!”, AmqpProperties.empty)
+  def run: Stream[F, Unit] = {
+    val message = AmqpMessage("Hello world!", AmqpProperties.empty)
     Stream(message).covary[F] to publisher
-  }</p>
+  }
 
-<p>}
-```</p>
+}
+</code></pre>
+</div>
+
+<p>```</p>
 
 <h4 id="publishing-json-messages">Publishing Json Messages</h4>
 
 <p>A stream-based Json Encoder that can be connected to a StreamPublisher is provided out of the box. Very similar to the Json Decoder shown above, but in this case, implicit encoders for your classes must be on scope (again you can use Circe’s codec auto derivation):</p>
 
-<p>```scala
-import cats.effect.Sync
+<p>```scala</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>import cats.effect.Sync
 import com.github.gvolpe.fs2rabbit.json.Fs2JsonEncoder
 import com.github.gvolpe.fs2rabbit.model._
 import io.circe.generic.auto._
-import fs2._</p>
+import fs2._
 
-<p>case class Address(number: Int, streetName: String)
-case class Person(id: Long, name: String, address: Address)</p>
+case class Address(number: Int, streetName: String)
+case class Person(id: Long, name: String, address: Address)
 
-<p>class PublishingJsonDemo<a href="publisher: StreamPublisher[F]">F[_]</a>(implicit F: Sync[F]) {</p>
+class PublishingJsonDemo[F[_]](publisher: StreamPublisher[F])(implicit F: Sync[F]) {
 
-<p>private val jsonEncoder = new Fs2JsonEncoder[F]
-  import jsonEncoder._</p>
+  private val jsonEncoder = new Fs2JsonEncoder[F]
+  import jsonEncoder._
 
-<p>def run: Stream[F, Unit] = {
-    val message = AmqpMessage(Person(1L, “Sherlock”, Address(212, “Baker St”)), AmqpProperties.empty)
+  def run: Stream[F, Unit] = {
+    val message = AmqpMessage(Person(1L, "Sherlock", Address(212, "Baker St")), AmqpProperties.empty)
     Stream(message).covary[F] through jsonEncode[Person] to publisher
   }
 }
-```</p>
+</code></pre>
+</div>
+
+<p>```</p>
 
 <h4 id="resiliency">Resiliency</h4>
 
@@ -182,18 +203,22 @@ case class Person(id: Long, name: String, address: Address)</p>
 
 <p>So, for the program defined above, this would be an example of a resilient app that restarts after 1 second and then exponentially (1, 2, 4, 8, etc) in case of failure:</p>
 
-<p>```scala
-import cats.effect.IO
+<p>```scala</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>import cats.effect.IO
 import com.github.gvolpe.fs2rabbit.StreamLoop
-import fs2.Stream</p>
+import fs2.Stream
 
-<p>import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._</p>
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
 
-<p>val program: Stream[IO, Unit] = Stream.eval(IO.unit)</p>
+val program: Stream[IO, Unit] = Stream.eval(IO.unit)
 
-<p>StreamLoop.run(() =&gt; program, 1.second)
-```</p>
+StreamLoop.run(() =&gt; program, 1.second)
+</code></pre>
+</div>
+
+<p>```</p>
 
 <p>See the <a href="https://github.com/gvolpe/fs2-rabbit/tree/master/examples/src/main/scala/com/github/gvolpe/fs2rabbit/examples">examples</a> to learn more!</p>
 </div></div></section></main><footer id="site-footer"><div class="container"><div class="row"><div class="col-xs-6"><p>Fs2 Rabbit is designed and developed by <a href="https://github.com/gvolpe/fs2-rabbit" target="_blank">Gabriel Volpe</a></p></div><div class="col-xs-6"><p class="text-right"><a href="https://github.com/gvolpe/fs2-rabbit"><span class="fa fa-github"></span>View on GitHub</a></p></div></div><div class="row"><div class="col-xs-6"><p>Website built with <a href="https://47deg.github.io/sbt-microsites/" target="_blank">Sbt-microsites</a> - © 2016 <a href="https://www.47deg.com/" target="_blank">47 Degrees</a></p></div></div></div></footer><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script><script src="/fs2-rabbit/highlight/highlight.pack.js"></script><script>hljs.configure({
