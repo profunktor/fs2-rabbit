@@ -29,6 +29,7 @@ import fs2.async.mutable.Queue
 
 import scala.concurrent.ExecutionContext
 
+// $COVERAGE-OFF$
 object Fs2Rabbit {
   def apply[F[_]](implicit F: Effect[F]): Fs2Rabbit[F] = {
     implicit val queueEC: ExecutionContext = ExecutionContext.fromExecutor(Executors.newCachedThreadPool())
@@ -42,6 +43,7 @@ object Fs2Rabbit {
     interpreter.unsafeRunSync()
   }
 }
+// $COVERAGE-ON$
 
 class Fs2Rabbit[F[_]](config: F[Fs2RabbitConfig],
                       connectionStream: Connection[Stream[F, ?]],

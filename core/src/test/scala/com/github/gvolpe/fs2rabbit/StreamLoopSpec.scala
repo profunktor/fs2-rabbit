@@ -30,15 +30,11 @@ class StreamLoopSpec extends FlatSpecLike with Matchers {
   it should "run a stream until it's finished" in {
     val sink: Sink[IO, Int] = _.evalMap(n => IO(println(n)))
     val program             = Stream(1, 2, 3).covary[IO] to sink
-    StreamLoop.run(() => program)
+    StreamLoop.run(() => program).unsafeRunSync()
   }
 
   it should "run a stream and recover in case of failure" in {
-    val sink: Sink[IO, Int] = streamN => {
-      streamN.map { n =>
-        println(n)
-      }
-    }
+    val sink: Sink[IO, Int] = _.evalMap(n => IO(println(n)))
 
     val program = Stream.raiseError(new Exception("on purpose")).covary[IO] to sink
 
@@ -52,7 +48,7 @@ class StreamLoopSpec extends FlatSpecLike with Matchers {
       }
     }
 
-    StreamLoop.run(() => p, 1.second)
+    StreamLoop.run(() => p, 1.second).unsafeRunSync()
   }
 
 }

@@ -17,6 +17,7 @@
 package com.github.gvolpe.fs2rabbit.interpreter
 
 import cats.effect.IO
+import cats.syntax.apply._
 import com.github.gvolpe.fs2rabbit.algebra.AMQPClient
 import com.github.gvolpe.fs2rabbit.config.{Fs2RabbitConfig, QueueConfig}
 import com.github.gvolpe.fs2rabbit.model
@@ -78,12 +79,12 @@ class AMQPClientInMemory(internalQ: mutable.Queue[IO, Either[Throwable, AmqpEnve
   override def deleteQueue(channel: Channel,
                            queueName: model.QueueName,
                            ifUnused: Boolean,
-                           ifEmpty: Boolean): Stream[IO, Unit] = Stream.eval(IO(queues -= queueName)).map(_ => ())
+                           ifEmpty: Boolean): Stream[IO, Unit] = Stream.eval(IO(queues -= queueName) *> IO.unit)
 
   override def deleteQueueNoWait(channel: Channel,
                                  queueName: model.QueueName,
                                  ifUnused: Boolean,
-                                 ifEmpty: Boolean): Stream[IO, Unit] = Stream.eval(IO(queues -= queueName)).map(_ => ())
+                                 ifEmpty: Boolean): Stream[IO, Unit] = Stream.eval(IO(queues -= queueName) *> IO.unit)
 
   override def bindQueue(channel: Channel,
                          queueName: model.QueueName,
@@ -118,12 +119,12 @@ class AMQPClientInMemory(internalQ: mutable.Queue[IO, Either[Throwable, AmqpEnve
                                exchangeType: ExchangeType): Stream[IO, Unit] = Stream.eval(IO.unit)
 
   override def declareQueue(channel: Channel, queueConfig: QueueConfig): Stream[IO, Unit] =
-    Stream.eval(IO(queues += queueConfig.queueName)).drain
+    Stream.eval(IO(queues += queueConfig.queueName) *> IO.unit)
 
   override def declareQueueNoWait(channel: Channel, queueConfig: QueueConfig): Stream[IO, Unit] =
-    Stream.eval(IO(queues += queueConfig.queueName)).drain
+    Stream.eval(IO(queues += queueConfig.queueName) *> IO.unit)
 
   override def declareQueuePassive(channel: Channel, queueName: QueueName): Stream[IO, Unit] =
-    Stream.eval(IO(queues += queueName)).drain
+    Stream.eval(IO(queues += queueName) *> IO.unit)
 
 }

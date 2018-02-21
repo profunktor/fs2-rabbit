@@ -47,9 +47,6 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
                     username = None,
                     password = None))
 
-  private val daQ    = fs2.async.boundedQueue[IO, Either[Throwable, AmqpEnvelope]](100).unsafeRunSync()
-  private val ackerQ = fs2.async.boundedQueue[IO, AckResult](100).unsafeRunSync()
-
   object TestFs2Rabbit {
     def apply(config: IO[Fs2RabbitConfig]): Fs2Rabbit[IO] = {
       val interpreter = for {
@@ -259,7 +256,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
     }
   }
 
-  it should "delete a queue" in StreamAssertion {
+  it should "try to delete a queue twice (only first time should be okay)" in StreamAssertion {
     import fs2RabbitInterpreter._
     val QtoDelete = QueueName("deleteMe")
     createConnectionChannel flatMap { implicit channel =>
@@ -267,6 +264,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
         _        <- declareExchange(exchangeName, ExchangeType.Direct)
         _        <- declareQueue(QueueConfig.default(queueName))
         _        <- deleteQueue(QtoDelete)
+        _        <- deleteQueueNoWait(QtoDelete)
         consumer <- createAutoAckConsumer(QtoDelete)
         either   <- consumer.attempt.take(1)
       } yield {

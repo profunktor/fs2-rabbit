@@ -37,7 +37,7 @@ object StreamLoop {
                                                                                    ec: ExecutionContext): IO[Unit] =
     F.runAsync(loop(program(), retry).compile.drain) {
       case Right(_) => IO.unit
-      case Left(e)  => IO.raiseError(e)
+      case Left(e)  => IO.raiseError(e) // Should be unreachable
     }
 
   private def loop[F[_]: Effect](program: Stream[F, Unit], retry: FiniteDuration)(
