@@ -103,6 +103,7 @@ lazy val microsite = project.in(file("site"))
   .settings(
     micrositeName := "Fs2 Rabbit",
     micrositeDescription := "Stream-based client for RabbitMQ built on top of Fs2",
+    micrositeAuthor := "Gabriel Volpe",
     micrositeGithubOwner := "gvolpe",
     micrositeGithubRepo := "fs2-rabbit",
     micrositeBaseUrl := "/fs2-rabbit",
@@ -112,5 +113,8 @@ lazy val microsite = project.in(file("site"))
         "home",
         Map("title" -> "Home", "section" -> "home", "position" -> "0")
       )
-    )
+    ),
+    micrositeGitterChannel := false,
+    micrositePushSiteWith := GitHub4s,
+    micrositeGithubToken := sys.env.get("GITHUB_TOKEN")
   )
