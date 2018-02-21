@@ -107,14 +107,15 @@ lazy val microsite = project.in(file("site"))
     micrositeGithubOwner := "gvolpe",
     micrositeGithubRepo := "fs2-rabbit",
     micrositeBaseUrl := "/fs2-rabbit",
-    micrositeExtraMdFiles := Map(
-      file("README.md") -> ExtraMdFileConfig(
-        "index.md",
-        "home",
-        Map("title" -> "Home", "section" -> "home", "position" -> "0")
-      )
-    ),
+//    micrositeExtraMdFiles := Map(
+//      file("README.md") -> ExtraMdFileConfig(
+//        "index.md",
+//        "home",
+//        Map("title" -> "Home", "section" -> "home", "position" -> "0")
+//      )
+//    ),
     micrositeGitterChannel := false,
     micrositePushSiteWith := GitHub4s,
     micrositeGithubToken := sys.env.get("GITHUB_TOKEN")
   )
+  .dependsOn(`fs2-rabbit`)
