@@ -135,12 +135,24 @@ class AmqpClientStream[F[_]](internalQ: mutable.Queue[IO, Either[Throwable, Amqp
   }
 
   override def declareQueue(channel: Channel, queueConfig: QueueConfig): Stream[F, Unit] = SE.evalF {
-    channel.queueDeclare(queueConfig.queueName.value, queueConfig.durable.asBoolean, queueConfig.exclusive.asBoolean, queueConfig.autoDelete.asBoolean, queueConfig.arguments.asJava)
+    channel.queueDeclare(
+      queueConfig.queueName.value,
+      queueConfig.durable.asBoolean,
+      queueConfig.exclusive.asBoolean,
+      queueConfig.autoDelete.asBoolean,
+      queueConfig.arguments.asJava
+    )
   }
 
   override def declareQueueNoWait(channel: Channel, queueConfig: QueueConfig): Stream[F, Unit] =
     SE.evalF {
-      channel.queueDeclareNoWait(queueConfig.queueName.value, queueConfig.durable.asBoolean, queueConfig.exclusive.asBoolean, queueConfig.autoDelete.asBoolean, queueConfig.arguments.asJava)
+      channel.queueDeclareNoWait(
+        queueConfig.queueName.value,
+        queueConfig.durable.asBoolean,
+        queueConfig.exclusive.asBoolean,
+        queueConfig.autoDelete.asBoolean,
+        queueConfig.arguments.asJava
+      )
     }
 
   override def declareQueuePassive(channel: Channel, queueName: QueueName): Stream[F, Unit] = SE.evalF {

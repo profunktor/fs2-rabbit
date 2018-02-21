@@ -12,3 +12,5 @@ addSbtPlugin("com.jsuereth" % "sbt-pgp" % "1.1.0")
 addSbtPlugin("de.heikoseeberger" % "sbt-header" % "4.0.0")
 
 addSbtPlugin("com.lucidchart" %  "sbt-scalafmt" % "1.15")
+
+addSbtPlugin("com.47deg"  % "sbt-microsites" % "0.7.16")

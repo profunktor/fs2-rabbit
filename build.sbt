@@ -1,4 +1,5 @@
 import Dependencies._
+import microsites.ExtraMdFileConfig
 
 name := """fs2-rabbit-root"""
 
@@ -7,6 +8,8 @@ organization in ThisBuild := "com.github.gvolpe"
 version in ThisBuild := "0.2"
 
 crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.4")
+
+sonatypeProfileName := "com.github.gvolpe"
 
 val commonSettings = Seq(
   organizationName := "Fs2 Rabbit",
@@ -35,6 +38,7 @@ val commonSettings = Seq(
     "-language:existentials",
     "-language:higherKinds"
   ),
+  scalafmtOnCompile := true,
   coverageExcludedPackages := "com\\.github\\.gvolpe\\.fs2rabbit\\.examples.*;com\\.github\\.gvolpe\\.fs2rabbit\\.typeclasses.*;com\\.github\\.gvolpe\\.fs2rabbit\\.instances.*;.*QueueName*;.*RoutingKey*;.*ExchangeName*;.*DeliveryTag*;.*AmqpClientStream*;.*ConnectionStream*;",
   publishTo := {
     val sonatype = "https://oss.sonatype.org/"
@@ -93,7 +97,20 @@ lazy val `fs2-rabbit-examples` = project.in(file("examples"))
   .enablePlugins(AutomateHeaderPlugin)
   .dependsOn(`fs2-rabbit`)
 
-sonatypeProfileName := "com.github.gvolpe"
-
-//resolvers += Resolver.sonatypeRepo("releases")
-//addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full)
+lazy val microsite = project.in(file("site"))
+  .enablePlugins(MicrositesPlugin)
+  .settings(commonSettings: _*)
+  .settings(
+    micrositeName := "Fs2 Rabbit",
+    micrositeDescription := "Stream-based client for RabbitMQ built on top of Fs2",
+    micrositeGithubOwner := "gvolpe",
+    micrositeGithubRepo := "fs2-rabbit",
+    micrositeBaseUrl := "/fs2-rabbit",
+    micrositeExtraMdFiles := Map(
+      file("README.md") -> ExtraMdFileConfig(
+        "index.md",
+        "home",
+        Map("title" -> "Home", "section" -> "home", "position" -> "0")
+      )
+    )
+  )
