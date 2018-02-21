@@ -17,7 +17,9 @@
 package com.github.gvolpe.fs2rabbit
 
 import cats.effect.IO
+import cats.syntax.apply._
 import fs2._
+import fs2.async.Ref
 import org.scalatest.{FlatSpecLike, Matchers}
 
 import scala.concurrent.ExecutionContext
@@ -27,28 +29,29 @@ class StreamLoopSpec extends FlatSpecLike with Matchers {
 
   implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
 
-  it should "run a stream until it's finished" in {
-    val sink: Sink[IO, Int] = _.evalMap(n => IO(println(n)))
-    val program             = Stream(1, 2, 3).covary[IO] to sink
-    StreamLoop.run(() => program).unsafeRunSync()
+  private val sink: Sink[IO, Int] = _.evalMap(n => IO(println(n)))
+
+  object IOAssertion {
+    def apply[A](ioa: IO[A]): A = ioa.unsafeRunSync()
   }
 
-  it should "run a stream and recover in case of failure" in {
-    val sink: Sink[IO, Int] = _.evalMap(n => IO(println(n)))
+  it should "run a stream until it's finished" in IOAssertion {
+    val program = Stream(1, 2, 3).covary[IO] to sink
+    StreamLoop.run(() => program)
+  }
 
-    val program = Stream.raiseError(new Exception("on purpose")).covary[IO] to sink
+  it should "run a stream and recover in case of failure" in IOAssertion {
+    val errorProgram = Stream.raiseError(new Exception("on purpose")).covary[IO] to sink
 
-    var trigger: Int = 2
-
-    val p: Stream[IO, Unit] = program.handleErrorWith { t =>
-      if (trigger == 0) Stream.eval(IO.unit)
-      else {
-        trigger = trigger - 1
-        Stream.raiseError(t)
+    def p(ref: Ref[IO, Int]): Stream[IO, Unit] =
+      errorProgram.handleErrorWith { t =>
+        Stream.eval(ref.get) flatMap { n =>
+          if (n == 0) Stream.eval(IO.unit)
+          else Stream.eval(ref.modify(_ - 1) *> IO.raiseError(t))
+        }
       }
-    }
 
-    StreamLoop.run(() => p, 1.second).unsafeRunSync()
+    async.refOf[IO, Int](2).flatMap(ref => StreamLoop.run(() => p(ref), 1.second))
   }
 
 }
