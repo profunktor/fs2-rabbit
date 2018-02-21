@@ -32,7 +32,7 @@ class StreamLoopSpec extends FlatSpecLike with Matchers {
   private val sink: Sink[IO, Int] = _.evalMap(n => IO(println(n)))
 
   object IOAssertion {
-    def apply[A](ioa: IO[A]): Unit = ioa.unsafeRunSync()
+    def apply[A](ioa: IO[A]): A = ioa.unsafeRunSync()
   }
 
   it should "run a stream until it's finished" in IOAssertion {
@@ -43,19 +43,15 @@ class StreamLoopSpec extends FlatSpecLike with Matchers {
   it should "run a stream and recover in case of failure" in IOAssertion {
     val errorProgram = Stream.raiseError(new Exception("on purpose")).covary[IO] to sink
 
-    def errorHandler(ref: Ref[IO, Int], t: Throwable): Stream[IO, Unit] =
-      Stream.eval(ref.get) flatMap { n =>
-        if (n == 0) Stream.eval(IO.unit)
-        else Stream.eval(ref.modify(_ - 1) *> IO.raiseError(t))
+    def p(ref: Ref[IO, Int]): Stream[IO, Unit] =
+      errorProgram.handleErrorWith { t =>
+        Stream.eval(ref.get) flatMap { n =>
+          if (n == 0) Stream.eval(IO.unit)
+          else Stream.eval(ref.modify(_ - 1) *> IO.raiseError(t))
+        }
       }
 
-    val p: Stream[IO, Unit] =
-      for {
-        ref <- Stream.eval(async.refOf[IO, Int](2))
-        _   <- errorProgram.handleErrorWith(errorHandler(ref, _))
-      } yield ()
-
-    StreamLoop.run(() => p, 1.second)
+    async.refOf[IO, Int](2).flatMap(ref => StreamLoop.run(() => p(ref), 1.second))
   }
 
 }
