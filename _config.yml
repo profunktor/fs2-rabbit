@@ -1,0 +1,11 @@
+name: Fs2 Rabbit
+baseurl: /fs2-rabbit
+description: Stream-based client for RabbitMQ built on top of Fs2
+highlighter: rouge
+docs: true
+collections:
+  tut:
+    output: true
+version: '0.2'
+org: Fs2 Rabbit
+markdown: kramdown
