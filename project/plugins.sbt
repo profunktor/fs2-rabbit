@@ -14,3 +14,5 @@ addSbtPlugin("de.heikoseeberger" % "sbt-header" % "4.0.0")
 addSbtPlugin("com.lucidchart" %  "sbt-scalafmt" % "1.15")
 
 addSbtPlugin("com.47deg"  % "sbt-microsites" % "0.7.16")
+
+addSbtPlugin("com.scalapenos" % "sbt-prompt" % "1.0.2")

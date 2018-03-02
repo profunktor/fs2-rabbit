@@ -1,3 +1,5 @@
+import com.scalapenos.sbt.prompt.SbtPrompt.autoImport._
+import com.scalapenos.sbt.prompt._
 import Dependencies._
 import microsites.ExtraMdFileConfig
 
@@ -10,6 +12,11 @@ version in ThisBuild := "0.2"
 crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.4")
 
 sonatypeProfileName := "com.github.gvolpe"
+
+promptTheme := PromptTheme(List(
+  text("[SBT] ", fg(136)),
+  text(_ => "fs2-rabbit", fg(64)).padRight(" λ ")
+ ))
 
 val commonSettings = Seq(
   organizationName := "Fs2 Rabbit",
@@ -80,7 +87,7 @@ lazy val noPublish = Seq(
   skip in publish := true
 )
 
-lazy val root = project.in(file("."))
+lazy val `fs2-rabbit-root` = project.in(file("."))
   .aggregate(`fs2-rabbit`, `fs2-rabbit-examples`)
   .settings(noPublish)
 
