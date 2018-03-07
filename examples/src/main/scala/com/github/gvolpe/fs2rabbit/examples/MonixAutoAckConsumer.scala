@@ -26,10 +26,10 @@ import scala.concurrent.ExecutionContext
 
 object MonixAutoAckConsumer extends IOApp {
 
-  implicit val appS: ExecutionContext       = scala.concurrent.ExecutionContext.Implicits.global
-  implicit val interpreter: Fs2Rabbit[Task] = Fs2Rabbit[Task]
+  implicit val appS: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
 
   override def start(args: List[String]): IO[Unit] =
-    StreamLoop.run(() => new AutoAckConsumerDemo[Task].program)
-
+    Fs2Rabbit[Task].flatMap { implicit interpreter =>
+      StreamLoop.run(() => new AutoAckConsumerDemo[Task].program)
+    }.toIO
 }

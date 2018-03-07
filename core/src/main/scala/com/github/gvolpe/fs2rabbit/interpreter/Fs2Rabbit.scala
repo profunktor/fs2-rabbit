@@ -19,6 +19,7 @@ package com.github.gvolpe.fs2rabbit.interpreter
 import java.util.concurrent.Executors
 
 import cats.effect.{Effect, IO}
+import cats.syntax.all._
 import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, Connection}
 import com.github.gvolpe.fs2rabbit.config.{Fs2RabbitConfig, Fs2RabbitConfigManager, QueueConfig}
 import com.github.gvolpe.fs2rabbit.model.ExchangeType.ExchangeType
@@ -31,17 +32,14 @@ import scala.concurrent.ExecutionContext
 
 // $COVERAGE-OFF$
 object Fs2Rabbit {
-  def apply[F[_]](implicit F: Effect[F]): Fs2Rabbit[F] = {
-    implicit val queueEC: ExecutionContext = ExecutionContext.fromExecutor(Executors.newCachedThreadPool())
-    val interpreter = for {
-      internalQ  <- fs2.async.boundedQueue[IO, Either[Throwable, AmqpEnvelope]](500)
-      amqpClient <- IO(new AmqpClientStream[F](internalQ))
-      config     <- IO(new Fs2RabbitConfigManager[F].config)
-      connStream <- IO(new ConnectionStream[F](config))
-      fs2Rabbit  <- IO(new Fs2Rabbit[F](config, connStream, internalQ)(F, amqpClient))
+  def apply[F[_]](implicit F: Effect[F], ec: ExecutionContext): F[Fs2Rabbit[F]] =
+    for {
+      internalQ  <- F.liftIO(fs2.async.boundedQueue[IO, Either[Throwable, AmqpEnvelope]](500))
+      amqpClient <- F.delay(new AmqpClientStream[F](internalQ))
+      config     <- F.delay(new Fs2RabbitConfigManager[F].config)
+      connStream <- F.delay(new ConnectionStream[F](config))
+      fs2Rabbit  <- F.delay(new Fs2Rabbit[F](config, connStream, internalQ)(F, amqpClient))
     } yield fs2Rabbit
-    interpreter.unsafeRunSync()
-  }
 }
 // $COVERAGE-ON$
 
