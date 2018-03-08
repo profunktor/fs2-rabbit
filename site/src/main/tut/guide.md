@@ -36,18 +36,13 @@ Connection and Channel will be acquired in a safe way, so in case of an error, t
 `F` represents the effect type. In the examples both `cats.effect.IO` and `monix.eval.Task` are used but it's possible to use any other effect with an implicit instance of `cats.effect.Effect[F]` available.
 
 ```tut:silent
-import cats.effect.{Effect, IO}
+import cats.effect._
 import com.github.gvolpe.fs2rabbit.config.QueueConfig
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
 import com.github.gvolpe.fs2rabbit.model._
-import fs2.Stream
+import fs2._
 
-import scala.concurrent.ExecutionContext
-
-class Demo[F[_]](implicit F: Effect[F]) {
-
-  implicit val ec: ExecutionContext = ExecutionContext.Implicits.global
-  implicit val R: Fs2Rabbit[F] = Fs2Rabbit[F]
+class Demo[F[_]](implicit F: Effect[F], R: Fs2Rabbit[F]) {
 
   val exchangeName  = ExchangeName("ex")
   val queueName     = QueueName("daQ")
@@ -82,15 +77,21 @@ class Demo[F[_]](implicit F: Effect[F]) {
 }
 ```
 
+You should create the `Fs2Rabbit[F[_]` interpreter at the very beginning of your program where all the instances are created, commonly in a `for-comprehention` or just a `flatMap` if there's not too many things to create. For example:
+
+```tut:silent
+import scala.concurrent.ExecutionContext.Implicits.global
+
+Stream.eval(Fs2Rabbit[IO]).flatMap { implicit interpreter =>
+  new Demo[IO].program
+}
+```
+
 #### Message Consuming and Acknowledge
 
 It is possible to create either an **autoAckConsumer** or an **ackerConsumer**. If we choose the first one then we only need to worry about consuming the message. If we choose the latter instead, then we are in control of acking / nacking back to RabbitMQ. Here's a simple example on how you can do it:
 
 ```tut:silent
-import cats.effect.Sync
-import com.github.gvolpe.fs2rabbit.model._
-import fs2.{Pipe, Stream}
-
 class LogDemo[F[_]](consumer: StreamConsumer[F], acker: StreamAcker[F])(implicit F: Sync[F]) {
 
   def logPipe: Pipe[F, AmqpEnvelope, AckResult] = { streamMsg =>
@@ -116,10 +117,7 @@ Both `createAckerConsumer` and `createAutoackConsumer` methods support two extra
 A stream-based Json Decoder that can be connected to a StreamConsumer is provided out of the box. Implicit decoders for your classes must be on scope (you can use Circe's codec auto derivation):
 
 ```tut:silent
-import cats.effect.Sync
 import com.github.gvolpe.fs2rabbit.json.Fs2JsonDecoder
-import com.github.gvolpe.fs2rabbit.model._
-import fs2.{Sink, Stream}
 import io.circe._
 import io.circe.generic.auto._
 
@@ -143,10 +141,6 @@ class JsonDemo[F[_]](consumer: StreamConsumer[F], acker: StreamAcker[F], errorSi
 To publish a simple String message is very simple:
 
 ```tut:silent
-import cats.effect.Sync
-import com.github.gvolpe.fs2rabbit.model._
-import fs2.Stream
-
 class PublishingDemo[F[_]](publisher: StreamPublisher[F])(implicit F: Sync[F]) {
 
   def run: Stream[F, Unit] = {
@@ -162,11 +156,7 @@ class PublishingDemo[F[_]](publisher: StreamPublisher[F])(implicit F: Sync[F]) {
 A stream-based Json Encoder that can be connected to a StreamPublisher is provided out of the box. Very similar to the Json Decoder shown above, but in this case, implicit encoders for your classes must be on scope (again you can use Circe's codec auto derivation):
 
 ```tut:silent
-import cats.effect.Sync
 import com.github.gvolpe.fs2rabbit.json.Fs2JsonEncoder
-import com.github.gvolpe.fs2rabbit.model._
-import io.circe.generic.auto._
-import fs2._
 
 case class Address(number: Int, streetName: String)
 case class Person(id: Long, name: String, address: Address)
@@ -190,11 +180,8 @@ If you want your program to run forever with automatic error recovery you can ch
 So, for the program defined above, this would be an example of a resilient app that restarts after 1 second and then exponentially (1, 2, 4, 8, etc) in case of failure:
 
 ```tut:silent
-import cats.effect.IO
 import com.github.gvolpe.fs2rabbit.StreamLoop
-import fs2.Stream
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
 val program: Stream[IO, Unit] = Stream.eval(IO.unit)

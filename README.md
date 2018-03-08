@@ -16,7 +16,7 @@ Stream-based library for [RabbitMQ](https://www.rabbitmq.com/) built-in on top o
 Add the only dependency to your build.sbt:
 
 ```scala
-libraryDependencies += "com.github.gvolpe" %% "fs2-rabbit" % "0.2"
+libraryDependencies += "com.github.gvolpe" %% "fs2-rabbit" % "0.3"
 ```
 
 `fs2-rabbit` has the following dependencies and it's cross compiled to Scala `2.11.12` and `2.12.4`:
@@ -24,7 +24,7 @@ libraryDependencies += "com.github.gvolpe" %% "fs2-rabbit" % "0.2"
 | Dependency  | Version    |
 | ----------- |:----------:|
 | cats        | 1.0.1      |
-| cats-effect | 0.8        |
+| cats-effect | 0.9        |
 | fs2         | 0.10.2     |
 | circe       | 0.9.1      |
 | amqp-client | 4.1.0      |
@@ -32,6 +32,13 @@ libraryDependencies += "com.github.gvolpe" %% "fs2-rabbit" % "0.2"
 ## Usage Guide
 
 Check the [official guide](https://gvolpe.github.io/fs2-rabbit/guide.html) for updated compiling examples.
+
+## Adopters
+
+| Company | Description |
+| ------- | ----------- |
+| [Philips Lighting](http://www.lighting.philips.com/main/home) | Internal microservices interaction. |
+| [Klarna](https://www.klarna.com/us/) | Fintech services. |
 
 ## LICENSE
 

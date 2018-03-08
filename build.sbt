@@ -7,7 +7,7 @@ name := """fs2-rabbit-root"""
 
 organization in ThisBuild := "com.github.gvolpe"
 
-version in ThisBuild := "0.2"
+version in ThisBuild := "0.3"
 
 crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.4")
 
@@ -26,6 +26,7 @@ val commonSettings = Seq(
   addCompilerPlugin("org.spire-math" % "kind-projector" % "0.9.5" cross CrossVersion.binary),
   libraryDependencies ++= Seq(
     Libraries.amqpClient,
+    Libraries.catsEffect,
     Libraries.fs2Core,
     Libraries.typesafeConfig,
     Libraries.circeCore,

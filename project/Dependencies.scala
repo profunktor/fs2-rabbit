@@ -3,6 +3,7 @@ import sbt._
 object Dependencies {
 
   object Versions {
+    val catsEffect      = "0.9"
     val fs2             = "0.10.2"
     val circe           = "0.9.1"
     val qpidBroker      = "6.1.2"
@@ -17,6 +18,7 @@ object Dependencies {
 
   object Libraries {
     lazy val amqpClient     = "com.rabbitmq"    %  "amqp-client"      % Versions.amqpClient
+    lazy val catsEffect     = "org.typelevel"   %% "cats-effect"      % Versions.catsEffect
     lazy val fs2Core        = "co.fs2"          %% "fs2-core"         % Versions.fs2
     lazy val typesafeConfig = "com.typesafe"    % "config"            % Versions.typesafeConfig
 
@@ -25,9 +27,11 @@ object Dependencies {
     lazy val logback        = "ch.qos.logback"  % "logback-classic"   % Versions.logback
 
     // Json libraries
-    lazy val circeCore      = "io.circe" %% "circe-core"    % Versions.circe
-    lazy val circeGeneric   = "io.circe" %% "circe-generic" % Versions.circe
-    lazy val circeParser    = "io.circe" %% "circe-parser"  % Versions.circe
+    def circe(artifact: String): ModuleID = "io.circe" %% artifact % Versions.circe
+
+    lazy val circeCore      = circe("circe-core")
+    lazy val circeGeneric   = circe("circe-generic")
+    lazy val circeParser    = circe("circe-parser")
 
     // Scala test libraries
     lazy val scalaTest  = "org.scalatest"   %% "scalatest"  % Versions.scalaTest  % "test"
