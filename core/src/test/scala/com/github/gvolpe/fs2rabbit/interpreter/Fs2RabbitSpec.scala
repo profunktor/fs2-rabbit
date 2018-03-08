@@ -28,27 +28,28 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 class Fs2RabbitSpec extends FlatSpecLike with Matchers {
 
-  private val config = IO(
+  private val config =
     Fs2RabbitConfig("localhost",
                     45947,
                     "hostnameAlias",
                     3,
-                    useSsl = false,
-                    requeueOnNack = false,
+                    ssl = false,
                     username = None,
-                    password = None))
-  private val nackConfig = IO(
+                    password = None,
+                    requeueOnNack = false)
+
+  private val nackConfig =
     Fs2RabbitConfig("localhost",
                     45947,
                     "hostnameAlias",
                     3,
-                    useSsl = false,
-                    requeueOnNack = true,
+                    ssl = false,
                     username = None,
-                    password = None))
+                    password = None,
+                    requeueOnNack = true)
 
   object TestFs2Rabbit {
-    def apply(config: IO[Fs2RabbitConfig]): Fs2Rabbit[IO] = {
+    def apply(config: Fs2RabbitConfig): Fs2Rabbit[IO] = {
       val interpreter = for {
         internalQ  <- fs2.async.boundedQueue[IO, Either[Throwable, AmqpEnvelope]](500)
         ackerQ     <- fs2.async.boundedQueue[IO, AckResult](500)

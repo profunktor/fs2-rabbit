@@ -31,7 +31,7 @@ import scala.collection.mutable.{Set => MutableSet}
 
 class AMQPClientInMemory(internalQ: mutable.Queue[IO, Either[Throwable, AmqpEnvelope]],
                          ackerQ: mutable.Queue[IO, AckResult],
-                         config: IO[Fs2RabbitConfig])
+                         config: Fs2RabbitConfig)
     extends AMQPClient[Stream[IO, ?]] {
 
   private val queues: MutableSet[QueueName] = MutableSet.empty[QueueName]
@@ -47,8 +47,7 @@ class AMQPClientInMemory(internalQ: mutable.Queue[IO, Either[Throwable, AmqpEnve
     val envelope = AmqpEnvelope(DeliveryTag(1), "requeued msg", AmqpProperties.empty)
     for {
       _ <- Stream.eval(ackerQ.enqueue1(NAck(tag)))
-      c <- Stream.eval(config)
-      _ <- if (c.requeueOnNack) Stream.eval(internalQ.enqueue1(Right(envelope))) else Stream.eval(IO.unit)
+      _ <- if (config.requeueOnNack) Stream.eval(internalQ.enqueue1(Right(envelope))) else Stream.eval(IO.unit)
     } yield ()
   }
 

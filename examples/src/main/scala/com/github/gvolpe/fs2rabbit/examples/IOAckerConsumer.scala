@@ -18,6 +18,7 @@ package com.github.gvolpe.fs2rabbit.examples
 
 import cats.effect.IO
 import com.github.gvolpe.fs2rabbit.StreamLoop
+import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
 
 import scala.concurrent.ExecutionContext
@@ -26,8 +27,17 @@ object IOAckerConsumer extends IOApp {
 
   implicit val appS: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
 
+  private val config: Fs2RabbitConfig = Fs2RabbitConfig(virtualHost = "/",
+                                                        host = "127.0.0.1",
+                                                        username = Some("guest"),
+                                                        password = Some("guest"),
+                                                        port = 5672,
+                                                        ssl = false,
+                                                        connectionTimeout = 3,
+                                                        requeueOnNack = false)
+
   override def start(args: List[String]): IO[Unit] =
-    Fs2Rabbit[IO].flatMap { implicit interpreter =>
+    Fs2Rabbit[IO](config).flatMap { implicit interpreter =>
       StreamLoop.run(() => new AckerConsumerDemo[IO]().program)
     }
 }

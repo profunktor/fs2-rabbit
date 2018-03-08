@@ -26,21 +26,21 @@ import com.github.gvolpe.fs2rabbit.typeclasses.{Log, StreamEval}
 import com.rabbitmq.client.{ConnectionFactory, Connection => RabbitMQConnection}
 import fs2.Stream
 
-class ConnectionStream[F[_]](config: F[Fs2RabbitConfig])(implicit F: Sync[F], L: Log[F], SE: StreamEval[F])
+class ConnectionStream[F[_]](config: Fs2RabbitConfig)(implicit F: Sync[F], L: Log[F], SE: StreamEval[F])
     extends Connection[Stream[F, ?]] {
 
   private lazy val connFactory: F[ConnectionFactory] =
-    config.map { c =>
+    F.delay {
       val factory = new ConnectionFactory()
-      factory.setHost(c.host)
-      factory.setPort(c.port)
-      factory.setVirtualHost(c.virtualHost)
-      factory.setConnectionTimeout(c.connectionTimeout)
-      if (c.useSsl) {
+      factory.setHost(config.host)
+      factory.setPort(config.port)
+      factory.setVirtualHost(config.virtualHost)
+      factory.setConnectionTimeout(config.connectionTimeout)
+      if (config.ssl) {
         factory.useSslProtocol()
       }
-      c.username.foreach(factory.setUsername)
-      c.password.foreach(factory.setPassword)
+      config.username.foreach(factory.setUsername)
+      config.password.foreach(factory.setPassword)
       factory
     }
 
