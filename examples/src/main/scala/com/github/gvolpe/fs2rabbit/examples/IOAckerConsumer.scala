@@ -24,10 +24,10 @@ import scala.concurrent.ExecutionContext
 
 object IOAckerConsumer extends IOApp {
 
-  implicit val appS: ExecutionContext     = scala.concurrent.ExecutionContext.Implicits.global
-  implicit val interpreter: Fs2Rabbit[IO] = Fs2Rabbit[IO]
+  implicit val appS: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
 
   override def start(args: List[String]): IO[Unit] =
-    StreamLoop.run(() => new AckerConsumerDemo[IO]().program)
-
+    Fs2Rabbit[IO].flatMap { implicit interpreter =>
+      StreamLoop.run(() => new AckerConsumerDemo[IO]().program)
+    }
 }

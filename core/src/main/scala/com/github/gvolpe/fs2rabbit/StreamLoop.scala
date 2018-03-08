@@ -34,10 +34,12 @@ import scala.concurrent.duration._
 object StreamLoop {
 
   def run[F[_]](program: () => Stream[F, Unit], retry: FiniteDuration = 5.seconds)(implicit F: Effect[F],
-                                                                                   ec: ExecutionContext): IO[Unit] =
-    F.runAsync(loop(program(), retry).compile.drain) {
-      case Right(_) => IO.unit
-      case Left(e)  => IO.raiseError(e) // Should be unreachable
+                                                                                   ec: ExecutionContext): F[Unit] =
+    F.liftIO {
+      F.runAsync(loop(program(), retry).compile.drain) {
+        case Right(_) => IO.unit
+        case Left(e)  => IO.raiseError(e) // Should be unreachable
+      }
     }
 
   private def loop[F[_]: Effect](program: Stream[F, Unit], retry: FiniteDuration)(
