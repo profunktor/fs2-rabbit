@@ -32,12 +32,11 @@ import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext
 
 class AmqpClientStream[F[_]](internalQ: mutable.Queue[IO, Either[Throwable, AmqpEnvelope]])(implicit F: Effect[F],
-                                                                                            SE: StreamEval[F])
+                                                                                            SE: StreamEval[F],
+                                                                                            EC: ExecutionContext)
     extends AMQPClient[Stream[F, ?]] {
 
-  private def defaultConsumer(channel: Channel): Consumer = {
-    implicit val queueEC: ExecutionContext = ExecutionContext.fromExecutor(Executors.newCachedThreadPool())
-
+  private def defaultConsumer(channel: Channel): Consumer =
     new DefaultConsumer(channel) {
 
       override def handleCancel(consumerTag: String): Unit =
@@ -52,9 +51,7 @@ class AmqpClientStream[F[_]](internalQ: mutable.Queue[IO, Either[Throwable, Amqp
         val props = AmqpProperties.from(properties)
         internalQ.enqueue1(Right(AmqpEnvelope(DeliveryTag(tag), msg, props))).unsafeRunSync()
       }
-
     }
-  }
 
   override def basicAck(channel: Channel, tag: DeliveryTag, multiple: Boolean): Stream[F, Unit] = SE.evalF {
     channel.basicAck(tag.value, multiple)
