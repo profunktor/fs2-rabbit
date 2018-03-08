@@ -54,7 +54,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
         ackerQ     <- fs2.async.boundedQueue[IO, AckResult](500)
         amqpClient <- IO(new AMQPClientInMemory(internalQ, ackerQ, config))
         connStream <- IO(new ConnectionStub)
-        fs2Rabbit  <- IO(new Fs2Rabbit[IO](config, connStream, internalQ)(Effect[IO], amqpClient))
+        fs2Rabbit  <- IO(new Fs2Rabbit[IO](config, connStream, internalQ)(Effect[IO], amqpClient, global))
       } yield fs2Rabbit
       interpreter.unsafeRunSync()
     }

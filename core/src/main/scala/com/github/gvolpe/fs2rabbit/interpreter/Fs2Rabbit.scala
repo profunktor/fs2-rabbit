@@ -38,7 +38,7 @@ object Fs2Rabbit {
       amqpClient <- F.delay(new AmqpClientStream[F](internalQ))
       config     <- F.delay(new Fs2RabbitConfigManager[F].config)
       connStream <- F.delay(new ConnectionStream[F](config))
-      fs2Rabbit  <- F.delay(new Fs2Rabbit[F](config, connStream, internalQ)(F, amqpClient))
+      fs2Rabbit  <- F.delay(new Fs2Rabbit[F](config, connStream, internalQ)(F, amqpClient, ec))
     } yield fs2Rabbit
 }
 // $COVERAGE-ON$
@@ -46,7 +46,8 @@ object Fs2Rabbit {
 class Fs2Rabbit[F[_]](config: F[Fs2RabbitConfig],
                       connectionStream: Connection[Stream[F, ?]],
                       internalQ: Queue[IO, Either[Throwable, AmqpEnvelope]])(implicit F: Effect[F],
-                                                                             amqpClient: AMQPClient[Stream[F, ?]]) {
+                                                                             amqpClient: AMQPClient[Stream[F, ?]],
+                                                                             EC: ExecutionContext) {
 
   private implicit val ackerConsumerProgram: AckerConsumerProgram[F] =
     new AckerConsumerProgram[F](internalQ, config)

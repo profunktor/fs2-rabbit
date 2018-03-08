@@ -25,9 +25,13 @@ import com.rabbitmq.client.Channel
 import fs2.async.mutable
 import fs2.{Pipe, Sink, Stream}
 
-class AckerConsumerProgram[F[_]](
-    internalQ: mutable.Queue[IO, Either[Throwable, AmqpEnvelope]],
-    config: F[Fs2RabbitConfig])(implicit F: Async[F], SE: StreamEval[F], AMQP: AMQPClient[Stream[F, ?]])
+import scala.concurrent.ExecutionContext
+
+class AckerConsumerProgram[F[_]](internalQ: mutable.Queue[IO, Either[Throwable, AmqpEnvelope]],
+                                 config: F[Fs2RabbitConfig])(implicit F: Async[F],
+                                                             SE: StreamEval[F],
+                                                             AMQP: AMQPClient[Stream[F, ?]],
+                                                             EC: ExecutionContext)
     extends AckerConsumer[Stream[F, ?], Sink[F, ?]] {
 
   private def resilientConsumer: Pipe[F, Either[Throwable, AmqpEnvelope], AmqpEnvelope] =
