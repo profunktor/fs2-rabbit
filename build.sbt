@@ -59,10 +59,6 @@ val commonSettings = Seq(
   publishArtifact in Test := false,
   pomIncludeRepository := { _ => false },
   pomExtra :=
-    <scm>
-      <url>git@github.com:gvolpe/fs2-rabbit.git</url>
-      <connection>scm:git:git@github.com:gvolpe/fs2-rabbit.git</connection>
-    </scm>
       <developers>
         <developer>
           <id>gvolpe</id>
