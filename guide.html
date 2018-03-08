@@ -4,7 +4,7 @@
 
 <p>By default, fs2-rabbit will look into the <strong>application.conf</strong> file for the configuration of the library, here’s an example:</p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code>fs2-rabbit {
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>fs2-rabbit {
   connection {
     virtual-host = "/"
     host = "127.0.0.1"
@@ -17,8 +17,7 @@
 
   requeue-on-nack = false
 }
-</code></pre>
-</div>
+</code></pre></div></div>
 
 <p>See reference.conf for more.</p>
 
@@ -28,18 +27,13 @@
 
 <p><code class="highlighter-rouge">F</code> represents the effect type. In the examples both <code class="highlighter-rouge">cats.effect.IO</code> and <code class="highlighter-rouge">monix.eval.Task</code> are used but it’s possible to use any other effect with an implicit instance of <code class="highlighter-rouge">cats.effect.Effect[F]</code> available.</p>
 
-<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="k">import</span> <span class="nn">cats.effect.</span><span class="o">{</span><span class="nc">Effect</span><span class="o">,</span> <span class="nc">IO</span><span class="o">}</span>
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="nn">cats.effect._</span>
 <span class="k">import</span> <span class="nn">com.github.gvolpe.fs2rabbit.config.QueueConfig</span>
 <span class="k">import</span> <span class="nn">com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit</span>
 <span class="k">import</span> <span class="nn">com.github.gvolpe.fs2rabbit.model._</span>
-<span class="k">import</span> <span class="nn">fs2.Stream</span>
+<span class="k">import</span> <span class="nn">fs2._</span>
 
-<span class="k">import</span> <span class="nn">scala.concurrent.ExecutionContext</span>
-
-<span class="k">class</span> <span class="nc">Demo</span><span class="o">[</span><span class="kt">F</span><span class="o">[</span><span class="k">_</span><span class="o">]](</span><span class="k">implicit</span> <span class="n">F</span><span class="k">:</span> <span class="kt">Effect</span><span class="o">[</span><span class="kt">F</span><span class="o">])</span> <span class="o">{</span>
-
-  <span class="k">implicit</span> <span class="k">val</span> <span class="n">ec</span><span class="k">:</span> <span class="kt">ExecutionContext</span> <span class="o">=</span> <span class="nc">ExecutionContext</span><span class="o">.</span><span class="nc">Implicits</span><span class="o">.</span><span class="n">global</span>
-  <span class="k">implicit</span> <span class="k">val</span> <span class="n">R</span><span class="k">:</span> <span class="kt">Fs2Rabbit</span><span class="o">[</span><span class="kt">F</span><span class="o">]</span> <span class="k">=</span> <span class="nc">Fs2Rabbit</span><span class="o">[</span><span class="kt">F</span><span class="o">]</span>
+<span class="k">class</span> <span class="nc">Demo</span><span class="o">[</span><span class="kt">F</span><span class="o">[</span><span class="k">_</span><span class="o">]](</span><span class="k">implicit</span> <span class="n">F</span><span class="k">:</span> <span class="kt">Effect</span><span class="o">[</span><span class="kt">F</span><span class="o">],</span> <span class="n">R</span><span class="k">:</span> <span class="kt">Fs2Rabbit</span><span class="o">[</span><span class="kt">F</span><span class="o">])</span> <span class="o">{</span>
 
   <span class="k">val</span> <span class="n">exchangeName</span>  <span class="k">=</span> <span class="nc">ExchangeName</span><span class="o">(</span><span class="s">"ex"</span><span class="o">)</span>
   <span class="k">val</span> <span class="n">queueName</span>     <span class="k">=</span> <span class="nc">QueueName</span><span class="o">(</span><span class="s">"daQ"</span><span class="o">)</span>
@@ -72,18 +66,22 @@
 </span>  <span class="c1">// StreamConsumer is a type alias for Stream[F, AmqpEnvelope]
 </span>  <span class="c1">// StreamPublisher is a type alias for Sink[F, AmqpMessage[String]]
 </span><span class="o">}</span>
-</code></pre>
-</div>
+</code></pre></div></div>
+
+<p>You should create the <code class="highlighter-rouge">Fs2Rabbit[F[_]</code> interpreter at the very beginning of your program where all the instances are created, commonly in a <code class="highlighter-rouge">for-comprehention</code> or just a <code class="highlighter-rouge">flatMap</code> if there’s not too many things to create. For example:</p>
+
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="nn">scala.concurrent.ExecutionContext.Implicits.global</span>
+
+<span class="nc">Stream</span><span class="o">.</span><span class="n">eval</span><span class="o">(</span><span class="nc">Fs2Rabbit</span><span class="o">[</span><span class="kt">IO</span><span class="o">]).</span><span class="n">flatMap</span> <span class="o">{</span> <span class="k">implicit</span> <span class="n">interpreter</span> <span class="k">=&gt;</span>
+  <span class="k">new</span> <span class="nc">Demo</span><span class="o">[</span><span class="kt">IO</span><span class="o">].</span><span class="n">program</span>
+<span class="o">}</span>
+</code></pre></div></div>
 
 <h4 id="message-consuming-and-acknowledge">Message Consuming and Acknowledge</h4>
 
 <p>It is possible to create either an <strong>autoAckConsumer</strong> or an <strong>ackerConsumer</strong>. If we choose the first one then we only need to worry about consuming the message. If we choose the latter instead, then we are in control of acking / nacking back to RabbitMQ. Here’s a simple example on how you can do it:</p>
 
-<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="k">import</span> <span class="nn">cats.effect.Sync</span>
-<span class="k">import</span> <span class="nn">com.github.gvolpe.fs2rabbit.model._</span>
-<span class="k">import</span> <span class="nn">fs2.</span><span class="o">{</span><span class="nc">Pipe</span><span class="o">,</span> <span class="nc">Stream</span><span class="o">}</span>
-
-<span class="k">class</span> <span class="nc">LogDemo</span><span class="o">[</span><span class="kt">F</span><span class="o">[</span><span class="k">_</span><span class="o">]](</span><span class="n">consumer</span><span class="k">:</span> <span class="kt">StreamConsumer</span><span class="o">[</span><span class="kt">F</span><span class="o">],</span> <span class="n">acker</span><span class="k">:</span> <span class="kt">StreamAcker</span><span class="o">[</span><span class="kt">F</span><span class="o">])(</span><span class="k">implicit</span> <span class="n">F</span><span class="k">:</span> <span class="kt">Sync</span><span class="o">[</span><span class="kt">F</span><span class="o">])</span> <span class="o">{</span>
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">class</span> <span class="nc">LogDemo</span><span class="o">[</span><span class="kt">F</span><span class="o">[</span><span class="k">_</span><span class="o">]](</span><span class="n">consumer</span><span class="k">:</span> <span class="kt">StreamConsumer</span><span class="o">[</span><span class="kt">F</span><span class="o">],</span> <span class="n">acker</span><span class="k">:</span> <span class="kt">StreamAcker</span><span class="o">[</span><span class="kt">F</span><span class="o">])(</span><span class="k">implicit</span> <span class="n">F</span><span class="k">:</span> <span class="kt">Sync</span><span class="o">[</span><span class="kt">F</span><span class="o">])</span> <span class="o">{</span>
 
   <span class="k">def</span> <span class="n">logPipe</span><span class="k">:</span> <span class="kt">Pipe</span><span class="o">[</span><span class="kt">F</span>, <span class="kt">AmqpEnvelope</span>, <span class="kt">AckResult</span><span class="o">]</span> <span class="k">=</span> <span class="o">{</span> <span class="n">streamMsg</span> <span class="k">=&gt;</span>
     <span class="k">for</span> <span class="o">{</span>
@@ -95,8 +93,7 @@
   <span class="k">def</span> <span class="n">run</span><span class="k">:</span> <span class="kt">Stream</span><span class="o">[</span><span class="kt">F</span>, <span class="kt">Unit</span><span class="o">]</span> <span class="k">=</span> <span class="n">consumer</span> <span class="n">through</span> <span class="n">logPipe</span> <span class="n">to</span> <span class="n">acker</span>
 
 <span class="o">}</span>
-</code></pre>
-</div>
+</code></pre></div></div>
 
 <h4 id="consumer-options">Consumer options</h4>
 
@@ -108,10 +105,7 @@
 
 <p>A stream-based Json Decoder that can be connected to a StreamConsumer is provided out of the box. Implicit decoders for your classes must be on scope (you can use Circe’s codec auto derivation):</p>
 
-<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="k">import</span> <span class="nn">cats.effect.Sync</span>
-<span class="k">import</span> <span class="nn">com.github.gvolpe.fs2rabbit.json.Fs2JsonDecoder</span>
-<span class="k">import</span> <span class="nn">com.github.gvolpe.fs2rabbit.model._</span>
-<span class="k">import</span> <span class="nn">fs2.</span><span class="o">{</span><span class="nc">Sink</span><span class="o">,</span> <span class="nc">Stream</span><span class="o">}</span>
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="nn">com.github.gvolpe.fs2rabbit.json.Fs2JsonDecoder</span>
 <span class="k">import</span> <span class="nn">io.circe._</span>
 <span class="k">import</span> <span class="nn">io.circe.generic.auto._</span>
 
@@ -128,18 +122,13 @@
     <span class="k">case</span> <span class="o">(</span><span class="nc">Right</span><span class="o">(</span><span class="n">msg</span><span class="o">),</span> <span class="n">tag</span><span class="o">)</span>  <span class="k">=&gt;</span> <span class="nc">Stream</span><span class="o">.</span><span class="n">eval</span><span class="o">(</span><span class="n">F</span><span class="o">.</span><span class="n">delay</span><span class="o">((</span><span class="n">msg</span><span class="o">,</span> <span class="n">tag</span><span class="o">)))</span> <span class="n">to</span> <span class="n">processorSink</span>
   <span class="o">}</span>
 <span class="o">}</span>
-</code></pre>
-</div>
+</code></pre></div></div>
 
 <h4 id="publishing">Publishing</h4>
 
 <p>To publish a simple String message is very simple:</p>
 
-<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="k">import</span> <span class="nn">cats.effect.Sync</span>
-<span class="k">import</span> <span class="nn">com.github.gvolpe.fs2rabbit.model._</span>
-<span class="k">import</span> <span class="nn">fs2.Stream</span>
-
-<span class="k">class</span> <span class="nc">PublishingDemo</span><span class="o">[</span><span class="kt">F</span><span class="o">[</span><span class="k">_</span><span class="o">]](</span><span class="n">publisher</span><span class="k">:</span> <span class="kt">StreamPublisher</span><span class="o">[</span><span class="kt">F</span><span class="o">])(</span><span class="k">implicit</span> <span class="n">F</span><span class="k">:</span> <span class="kt">Sync</span><span class="o">[</span><span class="kt">F</span><span class="o">])</span> <span class="o">{</span>
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">class</span> <span class="nc">PublishingDemo</span><span class="o">[</span><span class="kt">F</span><span class="o">[</span><span class="k">_</span><span class="o">]](</span><span class="n">publisher</span><span class="k">:</span> <span class="kt">StreamPublisher</span><span class="o">[</span><span class="kt">F</span><span class="o">])(</span><span class="k">implicit</span> <span class="n">F</span><span class="k">:</span> <span class="kt">Sync</span><span class="o">[</span><span class="kt">F</span><span class="o">])</span> <span class="o">{</span>
 
   <span class="k">def</span> <span class="n">run</span><span class="k">:</span> <span class="kt">Stream</span><span class="o">[</span><span class="kt">F</span>, <span class="kt">Unit</span><span class="o">]</span> <span class="k">=</span> <span class="o">{</span>
     <span class="k">val</span> <span class="n">message</span> <span class="k">=</span> <span class="nc">AmqpMessage</span><span class="o">(</span><span class="s">"Hello world!"</span><span class="o">,</span> <span class="nc">AmqpProperties</span><span class="o">.</span><span class="n">empty</span><span class="o">)</span>
@@ -147,18 +136,13 @@
   <span class="o">}</span>
 
 <span class="o">}</span>
-</code></pre>
-</div>
+</code></pre></div></div>
 
 <h4 id="publishing-json-messages">Publishing Json Messages</h4>
 
 <p>A stream-based Json Encoder that can be connected to a StreamPublisher is provided out of the box. Very similar to the Json Decoder shown above, but in this case, implicit encoders for your classes must be on scope (again you can use Circe’s codec auto derivation):</p>
 
-<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="k">import</span> <span class="nn">cats.effect.Sync</span>
-<span class="k">import</span> <span class="nn">com.github.gvolpe.fs2rabbit.json.Fs2JsonEncoder</span>
-<span class="k">import</span> <span class="nn">com.github.gvolpe.fs2rabbit.model._</span>
-<span class="k">import</span> <span class="nn">io.circe.generic.auto._</span>
-<span class="k">import</span> <span class="nn">fs2._</span>
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="nn">com.github.gvolpe.fs2rabbit.json.Fs2JsonEncoder</span>
 
 <span class="k">case</span> <span class="k">class</span> <span class="nc">Address</span><span class="o">(</span><span class="n">number</span><span class="k">:</span> <span class="kt">Int</span><span class="o">,</span> <span class="n">streetName</span><span class="k">:</span> <span class="kt">String</span><span class="o">)</span>
 <span class="k">case</span> <span class="k">class</span> <span class="nc">Person</span><span class="o">(</span><span class="n">id</span><span class="k">:</span> <span class="kt">Long</span><span class="o">,</span> <span class="n">name</span><span class="k">:</span> <span class="kt">String</span><span class="o">,</span> <span class="n">address</span><span class="k">:</span> <span class="kt">Address</span><span class="o">)</span>
@@ -173,8 +157,7 @@
     <span class="nc">Stream</span><span class="o">(</span><span class="n">message</span><span class="o">).</span><span class="n">covary</span><span class="o">[</span><span class="kt">F</span><span class="o">]</span> <span class="n">through</span> <span class="n">jsonEncode</span><span class="o">[</span><span class="kt">Person</span><span class="o">]</span> <span class="n">to</span> <span class="n">publisher</span>
   <span class="o">}</span>
 <span class="o">}</span>
-</code></pre>
-</div>
+</code></pre></div></div>
 
 <h4 id="resiliency">Resiliency</h4>
 
@@ -182,18 +165,14 @@
 
 <p>So, for the program defined above, this would be an example of a resilient app that restarts after 1 second and then exponentially (1, 2, 4, 8, etc) in case of failure:</p>
 
-<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="k">import</span> <span class="nn">cats.effect.IO</span>
-<span class="k">import</span> <span class="nn">com.github.gvolpe.fs2rabbit.StreamLoop</span>
-<span class="k">import</span> <span class="nn">fs2.Stream</span>
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="nn">com.github.gvolpe.fs2rabbit.StreamLoop</span>
 
-<span class="k">import</span> <span class="nn">scala.concurrent.ExecutionContext.Implicits.global</span>
 <span class="k">import</span> <span class="nn">scala.concurrent.duration._</span>
 
 <span class="k">val</span> <span class="n">program</span><span class="k">:</span> <span class="kt">Stream</span><span class="o">[</span><span class="kt">IO</span>, <span class="kt">Unit</span><span class="o">]</span> <span class="k">=</span> <span class="nc">Stream</span><span class="o">.</span><span class="n">eval</span><span class="o">(</span><span class="nc">IO</span><span class="o">.</span><span class="n">unit</span><span class="o">)</span>
 
 <span class="nc">StreamLoop</span><span class="o">.</span><span class="n">run</span><span class="o">(()</span> <span class="k">=&gt;</span> <span class="n">program</span><span class="o">,</span> <span class="mf">1.</span><span class="n">second</span><span class="o">)</span>
-</code></pre>
-</div>
+</code></pre></div></div>
 
 <p>See the <a href="https://github.com/gvolpe/fs2-rabbit/tree/master/examples/src/main/scala/com/github/gvolpe/fs2rabbit/examples">examples</a> to learn more!</p>
 </div></div></section></main><footer id="site-footer"><div class="container"><div class="row"><div class="col-xs-6"><p>Fs2 Rabbit is designed and developed by <a href="https://github.com/gvolpe/fs2-rabbit" target="_blank">Gabriel Volpe</a></p></div><div class="col-xs-6"><p class="text-right"><a href="https://github.com/gvolpe/fs2-rabbit"><span class="fa fa-github"></span>View on GitHub</a></p></div></div><div class="row"><div class="col-xs-6"><p>Website built with <a href="https://47deg.github.io/sbt-microsites/" target="_blank">Sbt-microsites</a> - © 2016 <a href="https://www.47deg.com/" target="_blank">47 Degrees</a></p></div></div></div></footer><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script><script src="/fs2-rabbit/highlight/highlight.pack.js"></script><script>hljs.configure({
