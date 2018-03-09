@@ -1,25 +1,48 @@
 <html><head><title>Fs2 Rabbit: Guide</title><meta charset="utf-8" /><meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="author" content="Gabriel Volpe" /><meta name="description" content="Stream-based client for RabbitMQ built on top of Fs2" /><meta name="og:image" content="/fs2-rabbit/img/poster.png" /><meta name="og:title" content="Fs2 Rabbit: Guide" /><meta name="og:site_name" content="Fs2 Rabbit" /><meta name="og:url" content="https://github.com/gvolpe/fs2-rabbit" /><meta name="og:type" content="website" /><meta name="og:description" content="Stream-based client for RabbitMQ built on top of Fs2" /><link rel="icon" type="image/png" href="/fs2-rabbit/img/favicon.png" /><meta name="twitter:title" content="Fs2 Rabbit: Guide" /><meta name="twitter:image" content="https://github.com/gvolpe/fs2-rabbitimg/poster.png" /><meta name="twitter:description" content="Stream-based client for RabbitMQ built on top of Fs2" /><meta name="twitter:card" content="summary_large_image" /><link rel="icon" type="image/png" sizes="16x16" href="/fs2-rabbit/img/favicon16x16.png" /><link rel="icon" type="image/png" sizes="24x24" href="/fs2-rabbit/img/favicon24x24.png" /><link rel="icon" type="image/png" sizes="32x32" href="/fs2-rabbit/img/favicon32x32.png" /><link rel="icon" type="image/png" sizes="48x48" href="/fs2-rabbit/img/favicon48x48.png" /><link rel="icon" type="image/png" sizes="57x57" href="/fs2-rabbit/img/favicon57x57.png" /><link rel="icon" type="image/png" sizes="60x60" href="/fs2-rabbit/img/favicon60x60.png" /><link rel="icon" type="image/png" sizes="64x64" href="/fs2-rabbit/img/favicon64x64.png" /><link rel="icon" type="image/png" sizes="70x70" href="/fs2-rabbit/img/favicon70x70.png" /><link rel="icon" type="image/png" sizes="72x72" href="/fs2-rabbit/img/favicon72x72.png" /><link rel="icon" type="image/png" sizes="76x76" href="/fs2-rabbit/img/favicon76x76.png" /><link rel="icon" type="image/png" sizes="96x96" href="/fs2-rabbit/img/favicon96x96.png" /><link rel="icon" type="image/png" sizes="114x114" href="/fs2-rabbit/img/favicon114x114.png" /><link rel="icon" type="image/png" sizes="120x120" href="/fs2-rabbit/img/favicon120x120.png" /><link rel="icon" type="image/png" sizes="128x128" href="/fs2-rabbit/img/favicon128x128.png" /><link rel="icon" type="image/png" sizes="144x144" href="/fs2-rabbit/img/favicon144x144.png" /><link rel="icon" type="image/png" sizes="150x150" href="/fs2-rabbit/img/favicon150x150.png" /><link rel="icon" type="image/png" sizes="152x152" href="/fs2-rabbit/img/favicon152x152.png" /><link rel="icon" type="image/png" sizes="196x196" href="/fs2-rabbit/img/favicon196x196.png" /><link rel="icon" type="image/png" sizes="310x310" href="/fs2-rabbit/img/favicon310x310.png" /><link rel="icon" type="image/png" sizes="310x150" href="/fs2-rabbit/img/favicon310x150.png" /><link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" /><link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" /><link rel="stylesheet" href="/fs2-rabbit/highlight/styles/default.css" /><link rel="stylesheet" href="/fs2-rabbit/css/style.css" /><link rel="stylesheet" href="/fs2-rabbit/css/palette.css" /><link rel="stylesheet" href="/fs2-rabbit/css/codemirror.css" /></head><body><header id="site-header"><div class="navbar-wrapper navbar-inverse"><div class="container"><div class="navbar-header"><button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false"><span class="sr-only">Toggle navigation</span><span class="icon-bar"></span><span class="icon-bar"></span><span class="icon-bar"></span></button><a href="/fs2-rabbit/" class="brand"><div class="icon-wrapper"><span>Fs2 Rabbit</span></div></a></div><nav class="text-right"><ul class=""><li><a href="https://github.com/gvolpe/fs2-rabbit"><i class="fa fa-github"></i><span class="hidden-xs">GitHub</span></a></li></ul></nav></div></div><div class="jumbotron" style="background-image:url('/fs2-rabbit/img/jumbotron_pattern.png')"></div><div><ul class="horizontalNav">     <li><a class="" href="/fs2-rabbit/">Home</a></li>  <li><a class=" active " href="/fs2-rabbit/guide.html">Guide</a></li> </ul></div></header><main id="site-main"><section class="use"><div class="container"><div id="content"><h1 id="guide">Guide</h1>
 
-<h4 id="configuration">Configuration</h4>
+<h4 id="fs2-rabbit-interpreter">Fs2 Rabbit Interpreter</h4>
 
-<p>By default, fs2-rabbit will look into the <strong>application.conf</strong> file for the configuration of the library, here’s an example:</p>
+<p>To get started, you need to create an <code class="highlighter-rouge">Fs2Rabbit[F[_]</code> interpreter by providing a <code class="highlighter-rouge">Fs2RabbitConfig</code> and an implicit <code class="highlighter-rouge">ExecutionContext</code>, the only one that will be used for all the internal operations. It’s recommended to do it at the very beginning of your program where all the instances are created, commonly in a <code class="highlighter-rouge">for-comprehention</code> or just a <code class="highlighter-rouge">flatMap</code> if there’s not too many things to create. For example:</p>
 
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>fs2-rabbit {
-  connection {
-    virtual-host = "/"
-    host = "127.0.0.1"
-    username = "guest"
-    password = "guest"
-    port = 5672
-    ssl = false
-    connection-timeout = 3
-  }
-
-  requeue-on-nack = false
-}
-</code></pre></div></div>
-
-<p>See reference.conf for more.</p>
+<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="k">import</span> <span class="nn">cats.effect._</span>
+<span class="c1">// import cats.effect._
+</span>
+<span class="k">import</span> <span class="nn">com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig</span>
+<span class="c1">// import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
+</span>
+<span class="k">import</span> <span class="nn">com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit</span>
+<span class="c1">// import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
+</span>
+<span class="k">import</span> <span class="nn">com.github.gvolpe.fs2rabbit.model._</span>
+<span class="c1">// import com.github.gvolpe.fs2rabbit.model._
+</span>
+<span class="k">import</span> <span class="nn">fs2._</span>
+<span class="c1">// import fs2._
+</span>
+<span class="k">import</span> <span class="nn">scala.concurrent.ExecutionContext.Implicits.global</span>
+<span class="c1">// import scala.concurrent.ExecutionContext.Implicits.global
+</span>
+<span class="k">val</span> <span class="n">config</span> <span class="k">=</span> <span class="nc">Fs2RabbitConfig</span><span class="o">(</span>
+  <span class="n">virtualHost</span> <span class="k">=</span> <span class="s">"/"</span><span class="o">,</span>
+  <span class="n">host</span> <span class="k">=</span> <span class="s">"127.0.0.1"</span><span class="o">,</span>
+  <span class="n">username</span> <span class="k">=</span> <span class="nc">Some</span><span class="o">(</span><span class="s">"guest"</span><span class="o">),</span>
+  <span class="n">password</span> <span class="k">=</span> <span class="nc">Some</span><span class="o">(</span><span class="s">"guest"</span><span class="o">),</span>
+  <span class="n">port</span> <span class="k">=</span> <span class="mi">5672</span><span class="o">,</span>
+  <span class="n">ssl</span> <span class="k">=</span> <span class="kc">false</span><span class="o">,</span>
+  <span class="n">connectionTimeout</span> <span class="k">=</span> <span class="mi">3</span><span class="o">,</span>
+  <span class="n">requeueOnNack</span> <span class="k">=</span> <span class="kc">false</span>
+<span class="o">)</span>
+<span class="c1">// config: com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig = Fs2RabbitConfig(127.0.0.1,5672,/,3,false,Some(guest),Some(guest),false)
+</span>
+<span class="k">def</span> <span class="n">yourProgram</span><span class="o">[</span><span class="kt">F</span><span class="o">[</span><span class="k">_</span><span class="o">]](</span><span class="k">implicit</span> <span class="n">R</span><span class="k">:</span> <span class="kt">Fs2Rabbit</span><span class="o">[</span><span class="kt">F</span><span class="o">])</span><span class="k">:</span> <span class="kt">Stream</span><span class="o">[</span><span class="kt">F</span>, <span class="kt">Unit</span><span class="o">]</span> <span class="k">=</span> <span class="o">???</span>
+<span class="c1">// yourProgram: [F[_]](implicit R: com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit[F])fs2.Stream[F,Unit]
+</span>
+<span class="nc">Stream</span><span class="o">.</span><span class="n">eval</span><span class="o">(</span><span class="nc">Fs2Rabbit</span><span class="o">[</span><span class="kt">IO</span><span class="o">](</span><span class="n">config</span><span class="o">)).</span><span class="n">flatMap</span> <span class="o">{</span> <span class="k">implicit</span> <span class="n">interpreter</span> <span class="k">=&gt;</span>
+  <span class="n">yourProgram</span><span class="o">[</span><span class="kt">IO</span><span class="o">]</span>
+<span class="o">}</span>
+<span class="c1">// res0: fs2.Stream[cats.effect.IO,Unit] = Stream(..)
+</span></code></pre>
+</div>
 
 <h4 id="creating-connection-channel-acker-consumer-and-publisher--declare-queue-and-exchange--binding-queue">Creating connection, channel, “acker-consumer” and publisher + declare queue and exchange + binding queue</h4>
 
@@ -27,11 +50,7 @@
 
 <p><code class="highlighter-rouge">F</code> represents the effect type. In the examples both <code class="highlighter-rouge">cats.effect.IO</code> and <code class="highlighter-rouge">monix.eval.Task</code> are used but it’s possible to use any other effect with an implicit instance of <code class="highlighter-rouge">cats.effect.Effect[F]</code> available.</p>
 
-<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="nn">cats.effect._</span>
-<span class="k">import</span> <span class="nn">com.github.gvolpe.fs2rabbit.config.QueueConfig</span>
-<span class="k">import</span> <span class="nn">com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit</span>
-<span class="k">import</span> <span class="nn">com.github.gvolpe.fs2rabbit.model._</span>
-<span class="k">import</span> <span class="nn">fs2._</span>
+<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="k">import</span> <span class="nn">com.github.gvolpe.fs2rabbit.config.QueueConfig</span>
 
 <span class="k">class</span> <span class="nc">Demo</span><span class="o">[</span><span class="kt">F</span><span class="o">[</span><span class="k">_</span><span class="o">]](</span><span class="k">implicit</span> <span class="n">F</span><span class="k">:</span> <span class="kt">Effect</span><span class="o">[</span><span class="kt">F</span><span class="o">],</span> <span class="n">R</span><span class="k">:</span> <span class="kt">Fs2Rabbit</span><span class="o">[</span><span class="kt">F</span><span class="o">])</span> <span class="o">{</span>
 
@@ -66,22 +85,14 @@
 </span>  <span class="c1">// StreamConsumer is a type alias for Stream[F, AmqpEnvelope]
 </span>  <span class="c1">// StreamPublisher is a type alias for Sink[F, AmqpMessage[String]]
 </span><span class="o">}</span>
-</code></pre></div></div>
-
-<p>You should create the <code class="highlighter-rouge">Fs2Rabbit[F[_]</code> interpreter at the very beginning of your program where all the instances are created, commonly in a <code class="highlighter-rouge">for-comprehention</code> or just a <code class="highlighter-rouge">flatMap</code> if there’s not too many things to create. For example:</p>
-
-<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="nn">scala.concurrent.ExecutionContext.Implicits.global</span>
-
-<span class="nc">Stream</span><span class="o">.</span><span class="n">eval</span><span class="o">(</span><span class="nc">Fs2Rabbit</span><span class="o">[</span><span class="kt">IO</span><span class="o">]).</span><span class="n">flatMap</span> <span class="o">{</span> <span class="k">implicit</span> <span class="n">interpreter</span> <span class="k">=&gt;</span>
-  <span class="k">new</span> <span class="nc">Demo</span><span class="o">[</span><span class="kt">IO</span><span class="o">].</span><span class="n">program</span>
-<span class="o">}</span>
-</code></pre></div></div>
+</code></pre>
+</div>
 
 <h4 id="message-consuming-and-acknowledge">Message Consuming and Acknowledge</h4>
 
 <p>It is possible to create either an <strong>autoAckConsumer</strong> or an <strong>ackerConsumer</strong>. If we choose the first one then we only need to worry about consuming the message. If we choose the latter instead, then we are in control of acking / nacking back to RabbitMQ. Here’s a simple example on how you can do it:</p>
 
-<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">class</span> <span class="nc">LogDemo</span><span class="o">[</span><span class="kt">F</span><span class="o">[</span><span class="k">_</span><span class="o">]](</span><span class="n">consumer</span><span class="k">:</span> <span class="kt">StreamConsumer</span><span class="o">[</span><span class="kt">F</span><span class="o">],</span> <span class="n">acker</span><span class="k">:</span> <span class="kt">StreamAcker</span><span class="o">[</span><span class="kt">F</span><span class="o">])(</span><span class="k">implicit</span> <span class="n">F</span><span class="k">:</span> <span class="kt">Sync</span><span class="o">[</span><span class="kt">F</span><span class="o">])</span> <span class="o">{</span>
+<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="k">class</span> <span class="nc">LogDemo</span><span class="o">[</span><span class="kt">F</span><span class="o">[</span><span class="k">_</span><span class="o">]](</span><span class="n">consumer</span><span class="k">:</span> <span class="kt">StreamConsumer</span><span class="o">[</span><span class="kt">F</span><span class="o">],</span> <span class="n">acker</span><span class="k">:</span> <span class="kt">StreamAcker</span><span class="o">[</span><span class="kt">F</span><span class="o">])(</span><span class="k">implicit</span> <span class="n">F</span><span class="k">:</span> <span class="kt">Sync</span><span class="o">[</span><span class="kt">F</span><span class="o">])</span> <span class="o">{</span>
 
   <span class="k">def</span> <span class="n">logPipe</span><span class="k">:</span> <span class="kt">Pipe</span><span class="o">[</span><span class="kt">F</span>, <span class="kt">AmqpEnvelope</span>, <span class="kt">AckResult</span><span class="o">]</span> <span class="k">=</span> <span class="o">{</span> <span class="n">streamMsg</span> <span class="k">=&gt;</span>
     <span class="k">for</span> <span class="o">{</span>
@@ -93,7 +104,8 @@
   <span class="k">def</span> <span class="n">run</span><span class="k">:</span> <span class="kt">Stream</span><span class="o">[</span><span class="kt">F</span>, <span class="kt">Unit</span><span class="o">]</span> <span class="k">=</span> <span class="n">consumer</span> <span class="n">through</span> <span class="n">logPipe</span> <span class="n">to</span> <span class="n">acker</span>
 
 <span class="o">}</span>
-</code></pre></div></div>
+</code></pre>
+</div>
 
 <h4 id="consumer-options">Consumer options</h4>
 
@@ -105,7 +117,7 @@
 
 <p>A stream-based Json Decoder that can be connected to a StreamConsumer is provided out of the box. Implicit decoders for your classes must be on scope (you can use Circe’s codec auto derivation):</p>
 
-<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="nn">com.github.gvolpe.fs2rabbit.json.Fs2JsonDecoder</span>
+<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="k">import</span> <span class="nn">com.github.gvolpe.fs2rabbit.json.Fs2JsonDecoder</span>
 <span class="k">import</span> <span class="nn">io.circe._</span>
 <span class="k">import</span> <span class="nn">io.circe.generic.auto._</span>
 
@@ -122,13 +134,14 @@
     <span class="k">case</span> <span class="o">(</span><span class="nc">Right</span><span class="o">(</span><span class="n">msg</span><span class="o">),</span> <span class="n">tag</span><span class="o">)</span>  <span class="k">=&gt;</span> <span class="nc">Stream</span><span class="o">.</span><span class="n">eval</span><span class="o">(</span><span class="n">F</span><span class="o">.</span><span class="n">delay</span><span class="o">((</span><span class="n">msg</span><span class="o">,</span> <span class="n">tag</span><span class="o">)))</span> <span class="n">to</span> <span class="n">processorSink</span>
   <span class="o">}</span>
 <span class="o">}</span>
-</code></pre></div></div>
+</code></pre>
+</div>
 
 <h4 id="publishing">Publishing</h4>
 
 <p>To publish a simple String message is very simple:</p>
 
-<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">class</span> <span class="nc">PublishingDemo</span><span class="o">[</span><span class="kt">F</span><span class="o">[</span><span class="k">_</span><span class="o">]](</span><span class="n">publisher</span><span class="k">:</span> <span class="kt">StreamPublisher</span><span class="o">[</span><span class="kt">F</span><span class="o">])(</span><span class="k">implicit</span> <span class="n">F</span><span class="k">:</span> <span class="kt">Sync</span><span class="o">[</span><span class="kt">F</span><span class="o">])</span> <span class="o">{</span>
+<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="k">class</span> <span class="nc">PublishingDemo</span><span class="o">[</span><span class="kt">F</span><span class="o">[</span><span class="k">_</span><span class="o">]](</span><span class="n">publisher</span><span class="k">:</span> <span class="kt">StreamPublisher</span><span class="o">[</span><span class="kt">F</span><span class="o">])(</span><span class="k">implicit</span> <span class="n">F</span><span class="k">:</span> <span class="kt">Sync</span><span class="o">[</span><span class="kt">F</span><span class="o">])</span> <span class="o">{</span>
 
   <span class="k">def</span> <span class="n">run</span><span class="k">:</span> <span class="kt">Stream</span><span class="o">[</span><span class="kt">F</span>, <span class="kt">Unit</span><span class="o">]</span> <span class="k">=</span> <span class="o">{</span>
     <span class="k">val</span> <span class="n">message</span> <span class="k">=</span> <span class="nc">AmqpMessage</span><span class="o">(</span><span class="s">"Hello world!"</span><span class="o">,</span> <span class="nc">AmqpProperties</span><span class="o">.</span><span class="n">empty</span><span class="o">)</span>
@@ -136,13 +149,14 @@
   <span class="o">}</span>
 
 <span class="o">}</span>
-</code></pre></div></div>
+</code></pre>
+</div>
 
 <h4 id="publishing-json-messages">Publishing Json Messages</h4>
 
 <p>A stream-based Json Encoder that can be connected to a StreamPublisher is provided out of the box. Very similar to the Json Decoder shown above, but in this case, implicit encoders for your classes must be on scope (again you can use Circe’s codec auto derivation):</p>
 
-<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="nn">com.github.gvolpe.fs2rabbit.json.Fs2JsonEncoder</span>
+<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="k">import</span> <span class="nn">com.github.gvolpe.fs2rabbit.json.Fs2JsonEncoder</span>
 
 <span class="k">case</span> <span class="k">class</span> <span class="nc">Address</span><span class="o">(</span><span class="n">number</span><span class="k">:</span> <span class="kt">Int</span><span class="o">,</span> <span class="n">streetName</span><span class="k">:</span> <span class="kt">String</span><span class="o">)</span>
 <span class="k">case</span> <span class="k">class</span> <span class="nc">Person</span><span class="o">(</span><span class="n">id</span><span class="k">:</span> <span class="kt">Long</span><span class="o">,</span> <span class="n">name</span><span class="k">:</span> <span class="kt">String</span><span class="o">,</span> <span class="n">address</span><span class="k">:</span> <span class="kt">Address</span><span class="o">)</span>
@@ -157,7 +171,8 @@
     <span class="nc">Stream</span><span class="o">(</span><span class="n">message</span><span class="o">).</span><span class="n">covary</span><span class="o">[</span><span class="kt">F</span><span class="o">]</span> <span class="n">through</span> <span class="n">jsonEncode</span><span class="o">[</span><span class="kt">Person</span><span class="o">]</span> <span class="n">to</span> <span class="n">publisher</span>
   <span class="o">}</span>
 <span class="o">}</span>
-</code></pre></div></div>
+</code></pre>
+</div>
 
 <h4 id="resiliency">Resiliency</h4>
 
@@ -165,14 +180,15 @@
 
 <p>So, for the program defined above, this would be an example of a resilient app that restarts after 1 second and then exponentially (1, 2, 4, 8, etc) in case of failure:</p>
 
-<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="nn">com.github.gvolpe.fs2rabbit.StreamLoop</span>
+<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="k">import</span> <span class="nn">com.github.gvolpe.fs2rabbit.StreamLoop</span>
 
 <span class="k">import</span> <span class="nn">scala.concurrent.duration._</span>
 
 <span class="k">val</span> <span class="n">program</span><span class="k">:</span> <span class="kt">Stream</span><span class="o">[</span><span class="kt">IO</span>, <span class="kt">Unit</span><span class="o">]</span> <span class="k">=</span> <span class="nc">Stream</span><span class="o">.</span><span class="n">eval</span><span class="o">(</span><span class="nc">IO</span><span class="o">.</span><span class="n">unit</span><span class="o">)</span>
 
 <span class="nc">StreamLoop</span><span class="o">.</span><span class="n">run</span><span class="o">(()</span> <span class="k">=&gt;</span> <span class="n">program</span><span class="o">,</span> <span class="mf">1.</span><span class="n">second</span><span class="o">)</span>
-</code></pre></div></div>
+</code></pre>
+</div>
 
 <p>See the <a href="https://github.com/gvolpe/fs2-rabbit/tree/master/examples/src/main/scala/com/github/gvolpe/fs2rabbit/examples">examples</a> to learn more!</p>
 </div></div></section></main><footer id="site-footer"><div class="container"><div class="row"><div class="col-xs-6"><p>Fs2 Rabbit is designed and developed by <a href="https://github.com/gvolpe/fs2-rabbit" target="_blank">Gabriel Volpe</a></p></div><div class="col-xs-6"><p class="text-right"><a href="https://github.com/gvolpe/fs2-rabbit"><span class="fa fa-github"></span>View on GitHub</a></p></div></div><div class="row"><div class="col-xs-6"><p>Website built with <a href="https://47deg.github.io/sbt-microsites/" target="_blank">Sbt-microsites</a> - © 2016 <a href="https://www.47deg.com/" target="_blank">47 Degrees</a></p></div></div></div></footer><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script><script src="/fs2-rabbit/highlight/highlight.pack.js"></script><script>hljs.configure({
