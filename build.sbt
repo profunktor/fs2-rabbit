@@ -28,7 +28,6 @@ val commonSettings = Seq(
     Libraries.amqpClient,
     Libraries.catsEffect,
     Libraries.fs2Core,
-    Libraries.typesafeConfig,
     Libraries.circeCore,
     Libraries.circeGeneric,
     Libraries.circeParser,
