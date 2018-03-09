@@ -174,7 +174,7 @@ If you want your program to run forever with automatic error recovery you can ch
 
 So, for the program defined above, this would be an example of a resilient app that restarts after 1 second and then exponentially (1, 2, 4, 8, etc) in case of failure:
 
-```tut:silent
+```tut:book
 import com.github.gvolpe.fs2rabbit.StreamLoop
 
 import scala.concurrent.duration._
