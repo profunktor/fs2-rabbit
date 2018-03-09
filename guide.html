@@ -181,13 +181,17 @@
 <p>So, for the program defined above, this would be an example of a resilient app that restarts after 1 second and then exponentially (1, 2, 4, 8, etc) in case of failure:</p>
 
 <div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="k">import</span> <span class="nn">com.github.gvolpe.fs2rabbit.StreamLoop</span>
-
+<span class="c1">// import com.github.gvolpe.fs2rabbit.StreamLoop
+</span>
 <span class="k">import</span> <span class="nn">scala.concurrent.duration._</span>
-
+<span class="c1">// import scala.concurrent.duration._
+</span>
 <span class="k">val</span> <span class="n">program</span><span class="k">:</span> <span class="kt">Stream</span><span class="o">[</span><span class="kt">IO</span>, <span class="kt">Unit</span><span class="o">]</span> <span class="k">=</span> <span class="nc">Stream</span><span class="o">.</span><span class="n">eval</span><span class="o">(</span><span class="nc">IO</span><span class="o">.</span><span class="n">unit</span><span class="o">)</span>
-
+<span class="c1">// program: fs2.Stream[cats.effect.IO,Unit] = Stream(..)
+</span>
 <span class="nc">StreamLoop</span><span class="o">.</span><span class="n">run</span><span class="o">(()</span> <span class="k">=&gt;</span> <span class="n">program</span><span class="o">,</span> <span class="mf">1.</span><span class="n">second</span><span class="o">)</span>
-</code></pre>
+<span class="c1">// res6: cats.effect.IO[Unit] = IO$1415046864
+</span></code></pre>
 </div>
 
 <p>See the <a href="https://github.com/gvolpe/fs2-rabbit/tree/master/examples/src/main/scala/com/github/gvolpe/fs2rabbit/examples">examples</a> to learn more!</p>
