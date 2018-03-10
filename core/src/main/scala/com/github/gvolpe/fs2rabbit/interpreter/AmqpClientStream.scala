@@ -24,6 +24,7 @@ import com.github.gvolpe.fs2rabbit.model.ExchangeType.ExchangeType
 import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.typeclasses.StreamEval
 import com.github.gvolpe.fs2rabbit.config.declaration.DeclarationQueueConfig
+import com.github.gvolpe.fs2rabbit.config.deletion
 import com.github.gvolpe.fs2rabbit.config.deletion.DeletionQueueConfig
 import com.github.gvolpe.fs2rabbit.typeclasses.BoolValue.syntax._
 import com.rabbitmq.client._
@@ -166,4 +167,12 @@ class AmqpClientStream[F[_]](internalQ: mutable.Queue[IO, Either[Throwable, Amqp
     channel.queueDeleteNoWait(config.queueName.value, config.ifUnused.isTrue, config.ifEmpty.isTrue)
   }
 
+  override def deleteExchange(channel: Channel, config: deletion.DeletionExchangeConfig): Stream[F, Unit] = SE.evalF {
+    channel.exchangeDelete(config.exchangeName.value, config.ifUnused.isTrue)
+  }
+
+  override def deleteExchangeNoWait(channel: Channel, config: deletion.DeletionExchangeConfig): Stream[F, Unit] =
+    SE.evalF {
+      channel.exchangeDeleteNoWait(config.exchangeName.value, config.ifUnused.isTrue)
+    }
 }

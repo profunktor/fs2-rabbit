@@ -19,7 +19,7 @@ package com.github.gvolpe.fs2rabbit.interpreter
 import cats.effect.{Effect, IO}
 import com.github.gvolpe.fs2rabbit.StreamAssertion
 import com.github.gvolpe.fs2rabbit.config.declaration.{AutoDelete, DeclarationQueueConfig, Durable, Exclusive}
-import com.github.gvolpe.fs2rabbit.config.deletion.DeletionQueueConfig
+import com.github.gvolpe.fs2rabbit.config.deletion.{DeletionExchangeConfig, DeletionQueueConfig}
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 import com.github.gvolpe.fs2rabbit.model._
 import fs2.{Stream, async}
@@ -269,6 +269,32 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
         _        <- deleteQueueNoWait(DeletionQueueConfig.default(QtoDelete))
         consumer <- createAutoAckConsumer(QtoDelete)
         either   <- consumer.attempt.take(1)
+      } yield {
+        either shouldBe a[Left[_, _]]
+        either.left.get shouldBe a[java.io.IOException]
+      }
+    }
+  }
+
+  it should "delete an exchange successfully" in StreamAssertion {
+    import fs2RabbitInterpreter._
+    createConnectionChannel flatMap { implicit channel =>
+      for {
+        _      <- declareExchange(exchangeName, ExchangeType.Direct)
+        either <- deleteExchangeNoWait(DeletionExchangeConfig.default(exchangeName)).attempt.take(1)
+      } yield {
+        either shouldBe a[Right[_, _]]
+      }
+    }
+  }
+
+  it should "try to delete an exchange twice (only first time should be okay)" in StreamAssertion {
+    import fs2RabbitInterpreter._
+    createConnectionChannel flatMap { implicit channel =>
+      for {
+        _      <- declareExchange(exchangeName, ExchangeType.Direct)
+        _      <- deleteExchange(DeletionExchangeConfig.default(exchangeName))
+        either <- deleteExchangeNoWait(DeletionExchangeConfig.default(exchangeName)).attempt.take(1)
       } yield {
         either shouldBe a[Left[_, _]]
         either.left.get shouldBe a[java.io.IOException]

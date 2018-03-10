@@ -17,7 +17,7 @@
 package com.github.gvolpe.fs2rabbit.algebra
 
 import com.github.gvolpe.fs2rabbit.config.declaration.DeclarationQueueConfig
-import com.github.gvolpe.fs2rabbit.config.deletion.DeletionQueueConfig
+import com.github.gvolpe.fs2rabbit.config.deletion.{DeletionExchangeConfig, DeletionQueueConfig}
 import com.github.gvolpe.fs2rabbit.model.ExchangeType.ExchangeType
 import com.github.gvolpe.fs2rabbit.model._
 import com.rabbitmq.client.Channel
@@ -49,4 +49,7 @@ trait Declaration[F[_]] {
 trait Deletion[F[_]] {
   def deleteQueue(channel: Channel, config: DeletionQueueConfig): F[Unit]
   def deleteQueueNoWait(channel: Channel, config: DeletionQueueConfig): F[Unit]
+
+  def deleteExchange(channel: Channel, config: DeletionExchangeConfig): F[Unit]
+  def deleteExchangeNoWait(channel: Channel, config: DeletionExchangeConfig): F[Unit]
 }
