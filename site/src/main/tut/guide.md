@@ -45,7 +45,7 @@ Connection and Channel will be acquired in a safe way, so in case of an error, t
 `F` represents the effect type. In the examples both `cats.effect.IO` and `monix.eval.Task` are used but it's possible to use any other effect with an implicit instance of `cats.effect.Effect[F]` available.
 
 ```tut:silent
-import com.github.gvolpe.fs2rabbit.config.QueueConfig
+import com.github.gvolpe.fs2rabbit.config.DeclarationQueueConfig
 
 class Demo[F[_]](implicit F: Effect[F], R: Fs2Rabbit[F]) {
 
@@ -58,14 +58,14 @@ class Demo[F[_]](implicit F: Effect[F], R: Fs2Rabbit[F]) {
                   publisher: StreamPublisher[F]): Stream[F, Unit] =
     Stream.eval(F.unit)
 
-  val program = R.createConnectionChannel flatMap { implicit channel => 	    // Stream[F, AMQPChannel]
+  val program = R.createConnectionChannel flatMap { implicit channel => 	         // Stream[F, AMQPChannel]
     for {
-      _                 <- R.declareQueue(QueueConfig.default(queueName))       // Stream[F, Unit]
-      _                 <- R.declareExchange(exchangeName, ExchangeType.Topic)  // Stream[F, Unit]
-      _                 <- R.bindQueue(queueName, exchangeName, routingKey)     // Stream[F, Unit]
-      ackerConsumer     <- R.createAckerConsumer(queueName)	                    // (StreamAcker[F], StreamConsumer[F])
+      _                 <- R.declareQueue(DeclarationQueueConfig.default(queueName)) // Stream[F, Unit]
+      _                 <- R.declareExchange(exchangeName, ExchangeType.Topic)       // Stream[F, Unit]
+      _                 <- R.bindQueue(queueName, exchangeName, routingKey)          // Stream[F, Unit]
+      ackerConsumer     <- R.createAckerConsumer(queueName)	                         // (StreamAcker[F], StreamConsumer[F])
       (acker, consumer) = ackerConsumer
-      publisher         <- R.createPublisher(exchangeName, routingKey)	        // StreamPublisher[F]
+      publisher         <- R.createPublisher(exchangeName, routingKey)	             // StreamPublisher[F]
       _                 <- doSomething(consumer, acker, publisher)
     } yield ()
   }

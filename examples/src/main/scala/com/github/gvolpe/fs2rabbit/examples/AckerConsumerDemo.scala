@@ -17,7 +17,7 @@
 package com.github.gvolpe.fs2rabbit.examples
 
 import cats.effect.Effect
-import com.github.gvolpe.fs2rabbit.config.QueueConfig
+import com.github.gvolpe.fs2rabbit.config.declaration.DeclarationQueueConfig
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
 import com.github.gvolpe.fs2rabbit.json.Fs2JsonEncoder
 import com.github.gvolpe.fs2rabbit.model._
@@ -41,7 +41,7 @@ class AckerConsumerDemo[F[_]: Effect](implicit F: Fs2Rabbit[F], EC: ExecutionCon
 
   val program: Stream[F, Unit] = F.createConnectionChannel flatMap { implicit channel =>
     for {
-      _                 <- F.declareQueue(QueueConfig.default(queueName))
+      _                 <- F.declareQueue(DeclarationQueueConfig.default(queueName))
       _                 <- F.declareExchange(exchangeName, ExchangeType.Topic)
       _                 <- F.bindQueue(queueName, exchangeName, routingKey)
       ackerConsumer     <- F.createAckerConsumer(queueName)
