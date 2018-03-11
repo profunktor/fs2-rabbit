@@ -18,8 +18,9 @@ package com.github.gvolpe.fs2rabbit.interpreter
 
 import cats.effect.{Effect, IO}
 import com.github.gvolpe.fs2rabbit.StreamAssertion
-import com.github.gvolpe.fs2rabbit.config.QueueConfig.{AutoDelete, Durable, Exclusive}
-import com.github.gvolpe.fs2rabbit.config.{Fs2RabbitConfig, QueueConfig}
+import com.github.gvolpe.fs2rabbit.config.declaration.{AutoDelete, DeclarationQueueConfig, Durable, Exclusive}
+import com.github.gvolpe.fs2rabbit.config.deletion.DeletionQueueConfig
+import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 import com.github.gvolpe.fs2rabbit.model._
 import fs2.{Stream, async}
 import org.scalatest.{FlatSpecLike, Matchers}
@@ -72,7 +73,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
     import fs2RabbitInterpreter._
     createConnectionChannel flatMap { implicit channel =>
       for {
-        _ <- declareQueue(QueueConfig.default(queueName))
+        _ <- declareQueue(DeclarationQueueConfig.default(queueName))
         _ <- declareExchange(exchangeName, ExchangeType.Topic)
       } yield ()
     }
@@ -82,7 +83,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
     import fs2RabbitInterpreter._
     createConnectionChannel flatMap { implicit channel =>
       for {
-        _ <- declareQueue(QueueConfig(queueName, Durable, Exclusive, AutoDelete, Map.empty))
+        _ <- declareQueue(DeclarationQueueConfig(queueName, Durable, Exclusive, AutoDelete, Map.empty))
         _ <- declareExchange(exchangeName, ExchangeType.Topic)
       } yield ()
     }
@@ -92,7 +93,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
     import fs2RabbitInterpreter._
     createConnectionChannel flatMap { implicit channel =>
       for {
-        _ <- declareQueueNoWait(QueueConfig.default(queueName))
+        _ <- declareQueueNoWait(DeclarationQueueConfig.default(queueName))
         _ <- declareExchange(exchangeName, ExchangeType.Topic)
       } yield ()
     }
@@ -112,7 +113,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
     import fs2RabbitInterpreter._
     createConnectionChannel flatMap { implicit channel =>
       for {
-        _ <- declareQueue(QueueConfig.default(queueName))
+        _ <- declareQueue(DeclarationQueueConfig.default(queueName))
         _ <- declareExchange(exchangeName, ExchangeType.Topic)
       } yield ()
     }
@@ -125,7 +126,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
         testQ             <- Stream.eval(async.boundedQueue[IO, AmqpEnvelope](100))
         ackerQ            <- Stream.eval(async.boundedQueue[IO, AckResult](100))
         _                 <- declareExchange(exchangeName, ExchangeType.Topic)
-        _                 <- declareQueue(QueueConfig.default(queueName))
+        _                 <- declareQueue(DeclarationQueueConfig.default(queueName))
         _                 <- bindQueue(queueName, exchangeName, routingKey, QueueBindingArgs(Map.empty[String, AnyRef]))
         publisher         <- createPublisher(exchangeName, routingKey)
         msg               = Stream(AmqpMessage("acker-test", AmqpProperties.empty))
@@ -152,7 +153,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
       for {
         ackerQ            <- Stream.eval(async.boundedQueue[IO, AckResult](100))
         _                 <- declareExchange(exchangeName, ExchangeType.Topic)
-        _                 <- declareQueue(QueueConfig.default(queueName))
+        _                 <- declareQueue(DeclarationQueueConfig.default(queueName))
         _                 <- bindQueue(queueName, exchangeName, routingKey, QueueBindingArgs(Map.empty[String, AnyRef]))
         publisher         <- createPublisher(exchangeName, routingKey)
         msg               = Stream(AmqpMessage("NAck-test", AmqpProperties.empty))
@@ -175,7 +176,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
     createConnectionChannel flatMap { implicit channel =>
       for {
         _         <- declareExchange(exchangeName, ExchangeType.Topic)
-        _         <- declareQueue(QueueConfig.default(queueName))
+        _         <- declareQueue(DeclarationQueueConfig.default(queueName))
         _         <- bindQueue(queueName, exchangeName, routingKey)
         publisher <- createPublisher(exchangeName, routingKey)
         consumer  <- createAutoAckConsumer(queueName)
@@ -194,7 +195,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
     createConnectionChannel flatMap { implicit channel =>
       for {
         _         <- declareExchange(exchangeName, ExchangeType.Topic)
-        _         <- declareQueue(QueueConfig.default(queueName))
+        _         <- declareQueue(DeclarationQueueConfig.default(queueName))
         _         <- bindQueue(queueName, exchangeName, routingKey)
         publisher <- createPublisher(exchangeName, routingKey)
         consumerArgs = ConsumerArgs(consumerTag = "XclusiveConsumer",
@@ -219,7 +220,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
         testQ     <- Stream.eval(async.boundedQueue[IO, AmqpEnvelope](100))
         ackerQ    <- Stream.eval(async.boundedQueue[IO, AckResult](100))
         _         <- declareExchange(exchangeName, ExchangeType.Topic)
-        _         <- declareQueue(QueueConfig.default(queueName))
+        _         <- declareQueue(DeclarationQueueConfig.default(queueName))
         _         <- bindQueue(queueName, exchangeName, routingKey)
         publisher <- createPublisher(exchangeName, routingKey)
         consumerArgs = ConsumerArgs(consumerTag = "XclusiveConsumer",
@@ -251,7 +252,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
     createConnectionChannel flatMap { implicit channel =>
       for {
         _ <- declareExchange(exchangeName, ExchangeType.Topic)
-        _ <- declareQueue(QueueConfig.default(queueName))
+        _ <- declareQueue(DeclarationQueueConfig.default(queueName))
         _ <- bindQueueNoWait(queueName, exchangeName, routingKey, QueueBindingArgs(Map.empty[String, AnyRef]))
       } yield ()
     }
@@ -263,9 +264,9 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
     createConnectionChannel flatMap { implicit channel =>
       for {
         _        <- declareExchange(exchangeName, ExchangeType.Direct)
-        _        <- declareQueue(QueueConfig.default(queueName))
-        _        <- deleteQueue(QtoDelete)
-        _        <- deleteQueueNoWait(QtoDelete)
+        _        <- declareQueue(DeclarationQueueConfig.default(queueName))
+        _        <- deleteQueue(DeletionQueueConfig.default(QtoDelete))
+        _        <- deleteQueueNoWait(DeletionQueueConfig.default(QtoDelete))
         consumer <- createAutoAckConsumer(QtoDelete)
         either   <- consumer.attempt.take(1)
       } yield {
@@ -280,7 +281,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
     createConnectionChannel flatMap { implicit channel =>
       for {
         _ <- declareExchange(exchangeName, ExchangeType.Direct)
-        _ <- declareQueue(QueueConfig.default(queueName))
+        _ <- declareQueue(DeclarationQueueConfig.default(queueName))
         _ <- unbindQueue(queueName, exchangeName, routingKey)
       } yield ()
     }
@@ -291,7 +292,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
     createConnectionChannel flatMap { implicit channel =>
       for {
         _ <- declareExchange(exchangeName, ExchangeType.Direct)
-        _ <- declareQueue(QueueConfig.default(queueName))
+        _ <- declareQueue(DeclarationQueueConfig.default(queueName))
         _ <- bindQueue(queueName, exchangeName, routingKey)
         _ <- unbindQueue(queueName, exchangeName, routingKey)
       } yield ()
@@ -309,7 +310,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
         ackerQ <- Stream.eval(async.boundedQueue[IO, AckResult](100))
         _      <- declareExchange(sourceExchangeName, ExchangeType.Direct)
         _      <- declareExchange(destinationExchangeName, ExchangeType.Direct)
-        _      <- declareQueue(QueueConfig.default(queueName))
+        _      <- declareQueue(DeclarationQueueConfig.default(queueName))
         _      <- bindQueue(queueName, destinationExchangeName, routingKey)
         _ <- bindExchange(destinationExchangeName,
                           sourceExchangeName,
@@ -346,7 +347,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
       for {
         ackerQ            <- Stream.eval(async.boundedQueue[IO, AckResult](100))
         _                 <- declareExchange(exchangeName, ExchangeType.Topic)
-        _                 <- declareQueue(QueueConfig.default(queueName))
+        _                 <- declareQueue(DeclarationQueueConfig.default(queueName))
         _                 <- bindQueue(queueName, exchangeName, routingKey, QueueBindingArgs(Map.empty[String, AnyRef]))
         publisher         <- createPublisher(exchangeName, routingKey)
         msg               = Stream(AmqpMessage("NAck-test", AmqpProperties.empty))

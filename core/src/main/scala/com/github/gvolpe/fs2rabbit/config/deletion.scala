@@ -16,28 +16,22 @@
 
 package com.github.gvolpe.fs2rabbit.config
 
-import com.github.gvolpe.fs2rabbit.config.QueueConfig._
-import org.scalatest.{FlatSpecLike, Matchers}
-import org.scalatest.prop.TableDrivenPropertyChecks._
+import com.github.gvolpe.fs2rabbit.model.QueueName
 
-class QueueConfigSpec extends FlatSpecLike with Matchers with QueueConfigFixture {
+object deletion {
 
-  forAll(table) { (config, boolValue) =>
-    s"$config" should s"return $boolValue as its boolean value" in {
-      config.asBoolean shouldBe boolValue
-    }
+  final case class DeletionQueueConfig(queueName: QueueName, ifUnused: IfUnusedCfg, ifEmpty: IfEmptyCfg)
 
+  object DeletionQueueConfig {
+    def default(queueName: QueueName): DeletionQueueConfig =
+      DeletionQueueConfig(queueName, Unused, Empty)
   }
-}
 
-trait QueueConfigFixture {
-  val table = Table(
-    ("configuration", "boolean value"),
-    (Durable, true),
-    (NonDurable, false),
-    (Exclusive, true),
-    (NonExclusive, false),
-    (AutoDelete, true),
-    (NonAutoDelete, false)
-  )
+  sealed trait IfEmptyCfg extends Product with Serializable
+  case object Empty       extends IfEmptyCfg
+  case object NonEmpty    extends IfEmptyCfg
+
+  sealed trait IfUnusedCfg extends Product with Serializable
+  case object Unused       extends IfUnusedCfg
+  case object Used         extends IfUnusedCfg
 }

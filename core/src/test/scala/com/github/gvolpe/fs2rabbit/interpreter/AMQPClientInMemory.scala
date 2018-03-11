@@ -19,7 +19,9 @@ package com.github.gvolpe.fs2rabbit.interpreter
 import cats.effect.IO
 import cats.syntax.apply._
 import com.github.gvolpe.fs2rabbit.algebra.AMQPClient
-import com.github.gvolpe.fs2rabbit.config.{Fs2RabbitConfig, QueueConfig}
+import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
+import com.github.gvolpe.fs2rabbit.config.declaration.DeclarationQueueConfig
+import com.github.gvolpe.fs2rabbit.config.deletion.DeletionQueueConfig
 import com.github.gvolpe.fs2rabbit.model
 import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.model.ExchangeType.ExchangeType
@@ -75,15 +77,11 @@ class AMQPClientInMemory(internalQ: mutable.Queue[IO, Either[Throwable, AmqpEnve
     Stream.eval(internalQ.enqueue1(Right(envelope)))
   }
 
-  override def deleteQueue(channel: Channel,
-                           queueName: model.QueueName,
-                           ifUnused: Boolean,
-                           ifEmpty: Boolean): Stream[IO, Unit] = Stream.eval(IO(queues -= queueName) *> IO.unit)
+  override def deleteQueue(channel: Channel, config: DeletionQueueConfig): Stream[IO, Unit] =
+    Stream.eval(IO(queues -= config.queueName) *> IO.unit)
 
-  override def deleteQueueNoWait(channel: Channel,
-                                 queueName: model.QueueName,
-                                 ifUnused: Boolean,
-                                 ifEmpty: Boolean): Stream[IO, Unit] = Stream.eval(IO(queues -= queueName) *> IO.unit)
+  override def deleteQueueNoWait(channel: Channel, config: DeletionQueueConfig): Stream[IO, Unit] =
+    Stream.eval(IO(queues -= config.queueName) *> IO.unit)
 
   override def bindQueue(channel: Channel,
                          queueName: model.QueueName,
@@ -117,10 +115,10 @@ class AMQPClientInMemory(internalQ: mutable.Queue[IO, Either[Throwable, AmqpEnve
                                exchangeName: model.ExchangeName,
                                exchangeType: ExchangeType): Stream[IO, Unit] = Stream.eval(IO.unit)
 
-  override def declareQueue(channel: Channel, queueConfig: QueueConfig): Stream[IO, Unit] =
+  override def declareQueue(channel: Channel, queueConfig: DeclarationQueueConfig): Stream[IO, Unit] =
     Stream.eval(IO(queues += queueConfig.queueName) *> IO.unit)
 
-  override def declareQueueNoWait(channel: Channel, queueConfig: QueueConfig): Stream[IO, Unit] =
+  override def declareQueueNoWait(channel: Channel, queueConfig: DeclarationQueueConfig): Stream[IO, Unit] =
     Stream.eval(IO(queues += queueConfig.queueName) *> IO.unit)
 
   override def declareQueuePassive(channel: Channel, queueName: QueueName): Stream[IO, Unit] =
