@@ -45,7 +45,7 @@ Connection and Channel will be acquired in a safe way, so in case of an error, t
 `F` represents the effect type. In the examples both `cats.effect.IO` and `monix.eval.Task` are used but it's possible to use any other effect with an implicit instance of `cats.effect.Effect[F]` available.
 
 ```tut:silent
-import com.github.gvolpe.fs2rabbit.config.DeclarationQueueConfig
+import com.github.gvolpe.fs2rabbit.config.declaration.DeclarationQueueConfig
 
 class Demo[F[_]](implicit F: Effect[F], R: Fs2Rabbit[F]) {
 
