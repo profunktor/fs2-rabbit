@@ -84,7 +84,7 @@ lazy val noPublish = Seq(
 )
 
 lazy val `fs2-rabbit-root` = project.in(file("."))
-  .aggregate(`fs2-rabbit`, `fs2-rabbit-examples`)
+  .aggregate(`fs2-rabbit`, `fs2-rabbit-examples`, microsite)
   .settings(noPublish)
 
 lazy val `fs2-rabbit` = project.in(file("core"))
@@ -122,3 +122,7 @@ lazy val microsite = project.in(file("site"))
     micrositeGithubToken := sys.env.get("GITHUB_TOKEN")
   )
   .dependsOn(`fs2-rabbit`)
+
+// CI build
+addCommandAlias("buildFs2Rabbit", ";clean;+coverage;+test;+coverageReport;+coverageAggregate;tut")
+
