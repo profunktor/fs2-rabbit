@@ -124,5 +124,5 @@ lazy val microsite = project.in(file("site"))
   .dependsOn(`fs2-rabbit`)
 
 // CI build
-addCommandAlias("buildFs2Rabbit", ";clean;+coverage;+test;+coverageReport;+coverageAggregate;makeMicrosite")
+addCommandAlias("buildFs2Rabbit", ";clean;+coverage;+test;+coverageReport;+coverageAggregate;tut")
 
