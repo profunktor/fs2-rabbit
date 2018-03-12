@@ -19,7 +19,7 @@ package com.github.gvolpe.fs2rabbit.interpreter
 import cats.effect.IO
 import cats.syntax.apply._
 import com.github.gvolpe.fs2rabbit.algebra.AMQPClient
-import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
+import com.github.gvolpe.fs2rabbit.config.{Fs2RabbitConfig, deletion}
 import com.github.gvolpe.fs2rabbit.config.declaration.DeclarationQueueConfig
 import com.github.gvolpe.fs2rabbit.config.deletion.DeletionQueueConfig
 import com.github.gvolpe.fs2rabbit.model
@@ -36,7 +36,11 @@ class AMQPClientInMemory(internalQ: mutable.Queue[IO, Either[Throwable, AmqpEnve
                          config: Fs2RabbitConfig)
     extends AMQPClient[Stream[IO, ?]] {
 
-  private val queues: MutableSet[QueueName] = MutableSet.empty[QueueName]
+  private val queues: MutableSet[QueueName]       = MutableSet.empty[QueueName]
+  private val exchanges: MutableSet[ExchangeName] = MutableSet.empty[ExchangeName]
+
+  private def raiseError[A](message: String): Stream[IO, A] =
+    Stream.raiseError[A](new java.io.IOException(message)).covary[IO]
 
   override def basicAck(channel: Channel, tag: model.DeliveryTag, multiple: Boolean): Stream[IO, Unit] =
     Stream.eval(ackerQ.enqueue1(Ack(tag)))
@@ -63,7 +67,7 @@ class AMQPClientInMemory(internalQ: mutable.Queue[IO, Either[Throwable, AmqpEnve
                             exclusive: Boolean,
                             args: Map[String, AnyRef]): Stream[IO, String] = {
     val ifError =
-      Stream.raiseError[String](new java.io.IOException(s"Queue ${queueName.value} does not exist!")).covary[IO]
+      raiseError[String](s"Queue ${queueName.value} does not exist!")
     queues.find(_.value == queueName.value).fold(ifError) { _ =>
       Stream.eval(IO("dequeue1 happens in AckerConsumerProgram.createConsumer"))
     }
@@ -82,6 +86,15 @@ class AMQPClientInMemory(internalQ: mutable.Queue[IO, Either[Throwable, AmqpEnve
 
   override def deleteQueueNoWait(channel: Channel, config: DeletionQueueConfig): Stream[IO, Unit] =
     Stream.eval(IO(queues -= config.queueName) *> IO.unit)
+
+  override def deleteExchange(channel: Channel, config: deletion.DeletionExchangeConfig): Stream[IO, Unit] =
+    exchanges
+      .find(_ == config.exchangeName)
+      .fold(raiseError[Unit](s"Exchange ${config.exchangeName} does not exist"))(exchange =>
+        Stream.eval(IO(exchanges -= exchange) *> IO.unit))
+
+  override def deleteExchangeNoWait(channel: Channel, config: deletion.DeletionExchangeConfig): Stream[IO, Unit] =
+    deleteExchange(channel, config)
 
   override def bindQueue(channel: Channel,
                          queueName: model.QueueName,
@@ -113,7 +126,8 @@ class AMQPClientInMemory(internalQ: mutable.Queue[IO, Either[Throwable, AmqpEnve
 
   override def declareExchange(channel: Channel,
                                exchangeName: model.ExchangeName,
-                               exchangeType: ExchangeType): Stream[IO, Unit] = Stream.eval(IO.unit)
+                               exchangeType: ExchangeType): Stream[IO, Unit] =
+    Stream.eval(IO(exchanges += exchangeName) *> IO.unit)
 
   override def declareQueue(channel: Channel, queueConfig: DeclarationQueueConfig): Stream[IO, Unit] =
     Stream.eval(IO(queues += queueConfig.queueName) *> IO.unit)

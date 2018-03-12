@@ -16,7 +16,7 @@
 
 package com.github.gvolpe.fs2rabbit.config
 
-import com.github.gvolpe.fs2rabbit.model.QueueName
+import com.github.gvolpe.fs2rabbit.model.{ExchangeName, QueueName}
 
 object deletion {
 
@@ -25,6 +25,13 @@ object deletion {
   object DeletionQueueConfig {
     def default(queueName: QueueName): DeletionQueueConfig =
       DeletionQueueConfig(queueName, Unused, Empty)
+  }
+
+  final case class DeletionExchangeConfig(exchangeName: ExchangeName, ifUnused: IfUnusedCfg)
+
+  object DeletionExchangeConfig {
+    def default(exchangeName: ExchangeName): DeletionExchangeConfig =
+      DeletionExchangeConfig(exchangeName, Unused)
   }
 
   sealed trait IfEmptyCfg extends Product with Serializable
