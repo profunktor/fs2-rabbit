@@ -7,7 +7,7 @@ name := """fs2-rabbit-root"""
 
 organization in ThisBuild := "com.github.gvolpe"
 
-version in ThisBuild := "0.4-SNAPSHOT"
+version in ThisBuild := "0.4"
 
 crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.4")
 
@@ -103,6 +103,7 @@ lazy val `fs2-rabbit-examples` = project.in(file("examples"))
 lazy val microsite = project.in(file("site"))
   .enablePlugins(MicrositesPlugin)
   .settings(commonSettings: _*)
+  .settings(noPublish)
   .settings(
     micrositeName := "Fs2 Rabbit",
     micrositeDescription := "Stream-based client for RabbitMQ built on top of Fs2",

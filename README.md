@@ -16,7 +16,7 @@ Stream-based library for [RabbitMQ](https://www.rabbitmq.com/) built-in on top o
 Add the only dependency to your build.sbt:
 
 ```scala
-libraryDependencies += "com.github.gvolpe" %% "fs2-rabbit" % "0.4-SNAPSHOT"
+libraryDependencies += "com.github.gvolpe" %% "fs2-rabbit" % "0.4"
 ```
 
 `fs2-rabbit` has the following dependencies and it's cross compiled to Scala `2.11.12` and `2.12.4`:
