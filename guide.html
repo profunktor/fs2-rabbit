@@ -50,7 +50,7 @@
 
 <p><code class="highlighter-rouge">F</code> represents the effect type. In the examples both <code class="highlighter-rouge">cats.effect.IO</code> and <code class="highlighter-rouge">monix.eval.Task</code> are used but it’s possible to use any other effect with an implicit instance of <code class="highlighter-rouge">cats.effect.Effect[F]</code> available.</p>
 
-<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="k">import</span> <span class="nn">com.github.gvolpe.fs2rabbit.config.QueueConfig</span>
+<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="k">import</span> <span class="nn">com.github.gvolpe.fs2rabbit.config.declaration.DeclarationQueueConfig</span>
 
 <span class="k">class</span> <span class="nc">Demo</span><span class="o">[</span><span class="kt">F</span><span class="o">[</span><span class="k">_</span><span class="o">]](</span><span class="k">implicit</span> <span class="n">F</span><span class="k">:</span> <span class="kt">Effect</span><span class="o">[</span><span class="kt">F</span><span class="o">],</span> <span class="n">R</span><span class="k">:</span> <span class="kt">Fs2Rabbit</span><span class="o">[</span><span class="kt">F</span><span class="o">])</span> <span class="o">{</span>
 
@@ -63,14 +63,14 @@
                   <span class="n">publisher</span><span class="k">:</span> <span class="kt">StreamPublisher</span><span class="o">[</span><span class="kt">F</span><span class="o">])</span><span class="k">:</span> <span class="kt">Stream</span><span class="o">[</span><span class="kt">F</span>, <span class="kt">Unit</span><span class="o">]</span> <span class="k">=</span>
     <span class="nc">Stream</span><span class="o">.</span><span class="n">eval</span><span class="o">(</span><span class="n">F</span><span class="o">.</span><span class="n">unit</span><span class="o">)</span>
 
-  <span class="k">val</span> <span class="n">program</span> <span class="k">=</span> <span class="n">R</span><span class="o">.</span><span class="n">createConnectionChannel</span> <span class="n">flatMap</span> <span class="o">{</span> <span class="k">implicit</span> <span class="n">channel</span> <span class="k">=&gt;</span> 	    <span class="c1">// Stream[F, AMQPChannel]
+  <span class="k">val</span> <span class="n">program</span> <span class="k">=</span> <span class="n">R</span><span class="o">.</span><span class="n">createConnectionChannel</span> <span class="n">flatMap</span> <span class="o">{</span> <span class="k">implicit</span> <span class="n">channel</span> <span class="k">=&gt;</span> 	         <span class="c1">// Stream[F, AMQPChannel]
 </span>    <span class="k">for</span> <span class="o">{</span>
-      <span class="k">_</span>                 <span class="k">&lt;-</span> <span class="n">R</span><span class="o">.</span><span class="n">declareQueue</span><span class="o">(</span><span class="nc">QueueConfig</span><span class="o">.</span><span class="n">default</span><span class="o">(</span><span class="n">queueName</span><span class="o">))</span>       <span class="c1">// Stream[F, Unit]
-</span>      <span class="k">_</span>                 <span class="k">&lt;-</span> <span class="n">R</span><span class="o">.</span><span class="n">declareExchange</span><span class="o">(</span><span class="n">exchangeName</span><span class="o">,</span> <span class="nc">ExchangeType</span><span class="o">.</span><span class="nc">Topic</span><span class="o">)</span>  <span class="c1">// Stream[F, Unit]
-</span>      <span class="k">_</span>                 <span class="k">&lt;-</span> <span class="n">R</span><span class="o">.</span><span class="n">bindQueue</span><span class="o">(</span><span class="n">queueName</span><span class="o">,</span> <span class="n">exchangeName</span><span class="o">,</span> <span class="n">routingKey</span><span class="o">)</span>     <span class="c1">// Stream[F, Unit]
-</span>      <span class="n">ackerConsumer</span>     <span class="k">&lt;-</span> <span class="n">R</span><span class="o">.</span><span class="n">createAckerConsumer</span><span class="o">(</span><span class="n">queueName</span><span class="o">)</span>	                    <span class="c1">// (StreamAcker[F], StreamConsumer[F])
+      <span class="k">_</span>                 <span class="k">&lt;-</span> <span class="n">R</span><span class="o">.</span><span class="n">declareQueue</span><span class="o">(</span><span class="nc">DeclarationQueueConfig</span><span class="o">.</span><span class="n">default</span><span class="o">(</span><span class="n">queueName</span><span class="o">))</span> <span class="c1">// Stream[F, Unit]
+</span>      <span class="k">_</span>                 <span class="k">&lt;-</span> <span class="n">R</span><span class="o">.</span><span class="n">declareExchange</span><span class="o">(</span><span class="n">exchangeName</span><span class="o">,</span> <span class="nc">ExchangeType</span><span class="o">.</span><span class="nc">Topic</span><span class="o">)</span>       <span class="c1">// Stream[F, Unit]
+</span>      <span class="k">_</span>                 <span class="k">&lt;-</span> <span class="n">R</span><span class="o">.</span><span class="n">bindQueue</span><span class="o">(</span><span class="n">queueName</span><span class="o">,</span> <span class="n">exchangeName</span><span class="o">,</span> <span class="n">routingKey</span><span class="o">)</span>          <span class="c1">// Stream[F, Unit]
+</span>      <span class="n">ackerConsumer</span>     <span class="k">&lt;-</span> <span class="n">R</span><span class="o">.</span><span class="n">createAckerConsumer</span><span class="o">(</span><span class="n">queueName</span><span class="o">)</span>	                         <span class="c1">// (StreamAcker[F], StreamConsumer[F])
 </span>      <span class="o">(</span><span class="n">acker</span><span class="o">,</span> <span class="n">consumer</span><span class="o">)</span> <span class="k">=</span> <span class="n">ackerConsumer</span>
-      <span class="n">publisher</span>         <span class="k">&lt;-</span> <span class="n">R</span><span class="o">.</span><span class="n">createPublisher</span><span class="o">(</span><span class="n">exchangeName</span><span class="o">,</span> <span class="n">routingKey</span><span class="o">)</span>	        <span class="c1">// StreamPublisher[F]
+      <span class="n">publisher</span>         <span class="k">&lt;-</span> <span class="n">R</span><span class="o">.</span><span class="n">createPublisher</span><span class="o">(</span><span class="n">exchangeName</span><span class="o">,</span> <span class="n">routingKey</span><span class="o">)</span>	             <span class="c1">// StreamPublisher[F]
 </span>      <span class="k">_</span>                 <span class="k">&lt;-</span> <span class="n">doSomething</span><span class="o">(</span><span class="n">consumer</span><span class="o">,</span> <span class="n">acker</span><span class="o">,</span> <span class="n">publisher</span><span class="o">)</span>
     <span class="o">}</span> <span class="k">yield</span> <span class="o">()</span>
   <span class="o">}</span>
@@ -190,7 +190,7 @@
 <span class="c1">// program: fs2.Stream[cats.effect.IO,Unit] = Stream(..)
 </span>
 <span class="nc">StreamLoop</span><span class="o">.</span><span class="n">run</span><span class="o">(()</span> <span class="k">=&gt;</span> <span class="n">program</span><span class="o">,</span> <span class="mf">1.</span><span class="n">second</span><span class="o">)</span>
-<span class="c1">// res6: cats.effect.IO[Unit] = IO$1415046864
+<span class="c1">// res6: cats.effect.IO[Unit] = IO$512521623
 </span></code></pre>
 </div>
 
