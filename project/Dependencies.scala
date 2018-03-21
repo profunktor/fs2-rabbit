@@ -3,13 +3,12 @@ import sbt._
 object Dependencies {
 
   object Versions {
-    val catsEffect = "0.9"
-    val fs2        = "0.10.2"
-    val circe      = "0.9.1"
-    val qpidBroker = "6.1.2"
+    val catsEffect = "0.10"
+    val fs2        = "0.10.3"
+    val circe      = "0.9.2"
     val amqpClient = "4.1.0"
     val logback    = "1.1.3"
-    val monix      = "3.0.0-M3"
+    val monix      = "3.0.0-RC1"
 
     val scalaTest  = "3.0.1"
     val scalaCheck = "1.13.4"
