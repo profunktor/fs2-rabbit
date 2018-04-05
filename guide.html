@@ -115,7 +115,7 @@
 
 <h4 id="json-message-consuming">Json message Consuming</h4>
 
-<p>A stream-based Json Decoder that can be connected to a StreamConsumer is provided out of the box. Implicit decoders for your classes must be on scope (you can use Circe’s codec auto derivation):</p>
+<p>A stream-based Json Decoder that can be connected to a StreamConsumer is provided by the extra dependency <code class="highlighter-rouge">fs2-rabbit-circe</code>. Implicit decoders for your classes must be on scope (you can use Circe’s codec auto derivation):</p>
 
 <div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="k">import</span> <span class="nn">com.github.gvolpe.fs2rabbit.json.Fs2JsonDecoder</span>
 <span class="k">import</span> <span class="nn">io.circe._</span>
@@ -154,7 +154,7 @@
 
 <h4 id="publishing-json-messages">Publishing Json Messages</h4>
 
-<p>A stream-based Json Encoder that can be connected to a StreamPublisher is provided out of the box. Very similar to the Json Decoder shown above, but in this case, implicit encoders for your classes must be on scope (again you can use Circe’s codec auto derivation):</p>
+<p>A stream-based Json Encoder that can be connected to a StreamPublisher is also provided by the extra dependency <code class="highlighter-rouge">fs2-rabbit-circe</code>. Very similar to the Json Decoder shown above, but in this case, implicit encoders for your classes must be on scope (again you can use Circe’s codec auto derivation):</p>
 
 <div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="k">import</span> <span class="nn">com.github.gvolpe.fs2rabbit.json.Fs2JsonEncoder</span>
 
@@ -190,7 +190,7 @@
 <span class="c1">// program: fs2.Stream[cats.effect.IO,Unit] = Stream(..)
 </span>
 <span class="nc">StreamLoop</span><span class="o">.</span><span class="n">run</span><span class="o">(()</span> <span class="k">=&gt;</span> <span class="n">program</span><span class="o">,</span> <span class="mf">1.</span><span class="n">second</span><span class="o">)</span>
-<span class="c1">// res6: cats.effect.IO[Unit] = IO$512521623
+<span class="c1">// res6: cats.effect.IO[Unit] = IO$745488634
 </span></code></pre>
 </div>
 

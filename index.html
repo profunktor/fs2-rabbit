@@ -12,9 +12,15 @@
 
 <h2 id="dependencies">Dependencies</h2>
 
-<p>Add the only dependency to your build.sbt:</p>
+<p>Add this to your build.sbt:</p>
 
-<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="n">libraryDependencies</span> <span class="o">+=</span> <span class="s">"com.github.gvolpe"</span> <span class="o">%%</span> <span class="s">"fs2-rabbit"</span> <span class="o">%</span> <span class="s">"0.4"</span>
+<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="n">libraryDependencies</span> <span class="o">+=</span> <span class="s">"com.github.gvolpe"</span> <span class="o">%%</span> <span class="s">"fs2-rabbit"</span> <span class="o">%</span> <span class="nc">Version</span>
+</code></pre>
+</div>
+
+<p>And this one if you would like to have Json support:</p>
+
+<div class="language-scala highlighter-rouge"><pre class="highlight"><code><span class="n">libraryDependencies</span> <span class="o">+=</span> <span class="s">"com.github.gvolpe"</span> <span class="o">%%</span> <span class="s">"fs2-rabbit-circe"</span> <span class="o">%</span> <span class="nc">Version</span>
 </code></pre>
 </div>
 
@@ -30,19 +36,19 @@
   <tbody>
     <tr>
       <td>cats</td>
-      <td style="text-align: center">1.0.1</td>
+      <td style="text-align: center">1.1.0</td>
     </tr>
     <tr>
       <td>cats-effect</td>
-      <td style="text-align: center">0.9</td>
+      <td style="text-align: center">0.10</td>
     </tr>
     <tr>
       <td>fs2</td>
-      <td style="text-align: center">0.10.2</td>
+      <td style="text-align: center">0.10.3</td>
     </tr>
     <tr>
       <td>circe</td>
-      <td style="text-align: center">0.9.1</td>
+      <td style="text-align: center">0.9.2</td>
     </tr>
     <tr>
       <td>amqp-client</td>
