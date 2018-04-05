@@ -109,7 +109,7 @@ Both `createAckerConsumer` and `createAutoackConsumer` methods support two extra
 
 #### Json message Consuming
 
-A stream-based Json Decoder that can be connected to a StreamConsumer is provided out of the box. Implicit decoders for your classes must be on scope (you can use Circe's codec auto derivation):
+A stream-based Json Decoder that can be connected to a StreamConsumer is provided by the extra dependency `fs2-rabbit-circe`. Implicit decoders for your classes must be on scope (you can use Circe's codec auto derivation):
 
 ```tut:silent
 import com.github.gvolpe.fs2rabbit.json.Fs2JsonDecoder
@@ -148,7 +148,7 @@ class PublishingDemo[F[_]](publisher: StreamPublisher[F])(implicit F: Sync[F]) {
 
 #### Publishing Json Messages
 
-A stream-based Json Encoder that can be connected to a StreamPublisher is provided out of the box. Very similar to the Json Decoder shown above, but in this case, implicit encoders for your classes must be on scope (again you can use Circe's codec auto derivation):
+A stream-based Json Encoder that can be connected to a StreamPublisher is also provided by the extra dependency `fs2-rabbit-circe`. Very similar to the Json Decoder shown above, but in this case, implicit encoders for your classes must be on scope (again you can use Circe's codec auto derivation):
 
 ```tut:silent
 import com.github.gvolpe.fs2rabbit.json.Fs2JsonEncoder
