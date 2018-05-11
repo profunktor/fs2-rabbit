@@ -20,10 +20,13 @@ import java.util.concurrent.Executors
 
 import cats.effect.{Effect, IO}
 import com.github.gvolpe.fs2rabbit.algebra.AMQPClient
-import com.github.gvolpe.fs2rabbit.config.QueueConfig
 import com.github.gvolpe.fs2rabbit.model.ExchangeType.ExchangeType
 import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.typeclasses.StreamEval
+import com.github.gvolpe.fs2rabbit.config.declaration.DeclarationQueueConfig
+import com.github.gvolpe.fs2rabbit.config.deletion
+import com.github.gvolpe.fs2rabbit.config.deletion.DeletionQueueConfig
+import com.github.gvolpe.fs2rabbit.typeclasses.BoolValue.syntax._
 import com.rabbitmq.client._
 import fs2.async.mutable
 import fs2.Stream
@@ -32,12 +35,11 @@ import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext
 
 class AmqpClientStream[F[_]](internalQ: mutable.Queue[IO, Either[Throwable, AmqpEnvelope]])(implicit F: Effect[F],
-                                                                                            SE: StreamEval[F])
+                                                                                            SE: StreamEval[F],
+                                                                                            EC: ExecutionContext)
     extends AMQPClient[Stream[F, ?]] {
 
-  private def defaultConsumer(channel: Channel): Consumer = {
-    implicit val queueEC: ExecutionContext = ExecutionContext.fromExecutor(Executors.newCachedThreadPool())
-
+  private def defaultConsumer(channel: Channel): Consumer =
     new DefaultConsumer(channel) {
 
       override def handleCancel(consumerTag: String): Unit =
@@ -52,9 +54,7 @@ class AmqpClientStream[F[_]](internalQ: mutable.Queue[IO, Either[Throwable, Amqp
         val props = AmqpProperties.from(properties)
         internalQ.enqueue1(Right(AmqpEnvelope(DeliveryTag(tag), msg, props))).unsafeRunSync()
       }
-
     }
-  }
 
   override def basicAck(channel: Channel, tag: DeliveryTag, multiple: Boolean): Stream[F, Unit] = SE.evalF {
     channel.basicAck(tag.value, multiple)
@@ -134,24 +134,24 @@ class AmqpClientStream[F[_]](internalQ: mutable.Queue[IO, Either[Throwable, Amqp
     channel.exchangeDeclare(exchangeName.value, exchangeType.toString.toLowerCase)
   }
 
-  override def declareQueue(channel: Channel, queueConfig: QueueConfig): Stream[F, Unit] = SE.evalF {
+  override def declareQueue(channel: Channel, config: DeclarationQueueConfig): Stream[F, Unit] = SE.evalF {
     channel.queueDeclare(
-      queueConfig.queueName.value,
-      queueConfig.durable.asBoolean,
-      queueConfig.exclusive.asBoolean,
-      queueConfig.autoDelete.asBoolean,
-      queueConfig.arguments.asJava
+      config.queueName.value,
+      config.durable.isTrue,
+      config.exclusive.isTrue,
+      config.autoDelete.isTrue,
+      config.arguments.asJava
     )
   }
 
-  override def declareQueueNoWait(channel: Channel, queueConfig: QueueConfig): Stream[F, Unit] =
+  override def declareQueueNoWait(channel: Channel, config: DeclarationQueueConfig): Stream[F, Unit] =
     SE.evalF {
       channel.queueDeclareNoWait(
-        queueConfig.queueName.value,
-        queueConfig.durable.asBoolean,
-        queueConfig.exclusive.asBoolean,
-        queueConfig.autoDelete.asBoolean,
-        queueConfig.arguments.asJava
+        config.queueName.value,
+        config.durable.isTrue,
+        config.exclusive.isTrue,
+        config.autoDelete.isTrue,
+        config.arguments.asJava
       )
     }
 
@@ -159,18 +159,20 @@ class AmqpClientStream[F[_]](internalQ: mutable.Queue[IO, Either[Throwable, Amqp
     channel.queueDeclarePassive(queueName.value)
   }
 
-  override def deleteQueue(channel: Channel,
-                           queueName: QueueName,
-                           ifUnused: Boolean,
-                           ifEmpty: Boolean): Stream[F, Unit] = SE.evalF {
-    channel.queueDelete(queueName.value, ifUnused, ifEmpty)
+  override def deleteQueue(channel: Channel, config: DeletionQueueConfig): Stream[F, Unit] = SE.evalF {
+    channel.queueDelete(config.queueName.value, config.ifUnused.isTrue, config.ifEmpty.isTrue)
   }
 
-  override def deleteQueueNoWait(channel: Channel,
-                                 queueName: QueueName,
-                                 ifUnused: Boolean,
-                                 ifEmpty: Boolean): Stream[F, Unit] = SE.evalF {
-    channel.queueDeleteNoWait(queueName.value, ifUnused, ifEmpty)
+  override def deleteQueueNoWait(channel: Channel, config: DeletionQueueConfig): Stream[F, Unit] = SE.evalF {
+    channel.queueDeleteNoWait(config.queueName.value, config.ifUnused.isTrue, config.ifEmpty.isTrue)
   }
 
+  override def deleteExchange(channel: Channel, config: deletion.DeletionExchangeConfig): Stream[F, Unit] = SE.evalF {
+    channel.exchangeDelete(config.exchangeName.value, config.ifUnused.isTrue)
+  }
+
+  override def deleteExchangeNoWait(channel: Channel, config: deletion.DeletionExchangeConfig): Stream[F, Unit] =
+    SE.evalF {
+      channel.exchangeDeleteNoWait(config.exchangeName.value, config.ifUnused.isTrue)
+    }
 }

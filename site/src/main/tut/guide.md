@@ -7,27 +7,36 @@ position: 1
 
 # Guide
 
-#### Configuration
+#### Fs2 Rabbit Interpreter
 
-By default, fs2-rabbit will look into the **application.conf** file for the configuration of the library, here's an example:
+To get started, you need to create an `Fs2Rabbit[F[_]` interpreter by providing a `Fs2RabbitConfig` and an implicit `ExecutionContext`, the only one that will be used for all the internal operations. It's recommended to do it at the very beginning of your program where all the instances are created, commonly in a `for-comprehention` or just a `flatMap` if there's not too many things to create. For example:
 
-```
-fs2-rabbit {
-  connection {
-    virtual-host = "/"
-    host = "127.0.0.1"
-    username = "guest"
-    password = "guest"
-    port = 5672
-    ssl = false
-    connection-timeout = 3
-  }
+```tut:book
+import cats.effect._
+import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
+import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
+import com.github.gvolpe.fs2rabbit.model._
+import fs2._
 
-  requeue-on-nack = false
+import scala.concurrent.ExecutionContext.Implicits.global
+
+val config = Fs2RabbitConfig(
+  virtualHost = "/",
+  host = "127.0.0.1",
+  username = Some("guest"),
+  password = Some("guest"),
+  port = 5672,
+  ssl = false,
+  connectionTimeout = 3,
+  requeueOnNack = false
+)
+
+def yourProgram[F[_]](implicit R: Fs2Rabbit[F]): Stream[F, Unit] = ???
+
+Stream.eval(Fs2Rabbit[IO](config)).flatMap { implicit interpreter =>
+  yourProgram[IO]
 }
 ```
-
-See reference.conf for more.
 
 #### Creating connection, channel, "acker-consumer" and publisher + declare queue and exchange + binding queue
 
@@ -36,11 +45,7 @@ Connection and Channel will be acquired in a safe way, so in case of an error, t
 `F` represents the effect type. In the examples both `cats.effect.IO` and `monix.eval.Task` are used but it's possible to use any other effect with an implicit instance of `cats.effect.Effect[F]` available.
 
 ```tut:silent
-import cats.effect._
-import com.github.gvolpe.fs2rabbit.config.QueueConfig
-import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
-import com.github.gvolpe.fs2rabbit.model._
-import fs2._
+import com.github.gvolpe.fs2rabbit.config.declaration.DeclarationQueueConfig
 
 class Demo[F[_]](implicit F: Effect[F], R: Fs2Rabbit[F]) {
 
@@ -53,14 +58,14 @@ class Demo[F[_]](implicit F: Effect[F], R: Fs2Rabbit[F]) {
                   publisher: StreamPublisher[F]): Stream[F, Unit] =
     Stream.eval(F.unit)
 
-  val program = R.createConnectionChannel flatMap { implicit channel => 	    // Stream[F, AMQPChannel]
+  val program = R.createConnectionChannel flatMap { implicit channel => 	         // Stream[F, AMQPChannel]
     for {
-      _                 <- R.declareQueue(QueueConfig.default(queueName))       // Stream[F, Unit]
-      _                 <- R.declareExchange(exchangeName, ExchangeType.Topic)  // Stream[F, Unit]
-      _                 <- R.bindQueue(queueName, exchangeName, routingKey)     // Stream[F, Unit]
-      ackerConsumer     <- R.createAckerConsumer(queueName)	                    // (StreamAcker[F], StreamConsumer[F])
+      _                 <- R.declareQueue(DeclarationQueueConfig.default(queueName)) // Stream[F, Unit]
+      _                 <- R.declareExchange(exchangeName, ExchangeType.Topic)       // Stream[F, Unit]
+      _                 <- R.bindQueue(queueName, exchangeName, routingKey)          // Stream[F, Unit]
+      ackerConsumer     <- R.createAckerConsumer(queueName)	                         // (StreamAcker[F], StreamConsumer[F])
       (acker, consumer) = ackerConsumer
-      publisher         <- R.createPublisher(exchangeName, routingKey)	        // StreamPublisher[F]
+      publisher         <- R.createPublisher(exchangeName, routingKey)	             // StreamPublisher[F]
       _                 <- doSomething(consumer, acker, publisher)
     } yield ()
   }
@@ -74,16 +79,6 @@ class Demo[F[_]](implicit F: Effect[F], R: Fs2Rabbit[F]) {
   // StreamAcker is a type alias for Sink[F, AckResult]
   // StreamConsumer is a type alias for Stream[F, AmqpEnvelope]
   // StreamPublisher is a type alias for Sink[F, AmqpMessage[String]]
-}
-```
-
-You should create the `Fs2Rabbit[F[_]` interpreter at the very beginning of your program where all the instances are created, commonly in a `for-comprehention` or just a `flatMap` if there's not too many things to create. For example:
-
-```tut:silent
-import scala.concurrent.ExecutionContext.Implicits.global
-
-Stream.eval(Fs2Rabbit[IO]).flatMap { implicit interpreter =>
-  new Demo[IO].program
 }
 ```
 
@@ -114,7 +109,7 @@ Both `createAckerConsumer` and `createAutoackConsumer` methods support two extra
 
 #### Json message Consuming
 
-A stream-based Json Decoder that can be connected to a StreamConsumer is provided out of the box. Implicit decoders for your classes must be on scope (you can use Circe's codec auto derivation):
+A stream-based Json Decoder that can be connected to a StreamConsumer is provided by the extra dependency `fs2-rabbit-circe`. Implicit decoders for your classes must be on scope (you can use Circe's codec auto derivation):
 
 ```tut:silent
 import com.github.gvolpe.fs2rabbit.json.Fs2JsonDecoder
@@ -153,7 +148,7 @@ class PublishingDemo[F[_]](publisher: StreamPublisher[F])(implicit F: Sync[F]) {
 
 #### Publishing Json Messages
 
-A stream-based Json Encoder that can be connected to a StreamPublisher is provided out of the box. Very similar to the Json Decoder shown above, but in this case, implicit encoders for your classes must be on scope (again you can use Circe's codec auto derivation):
+A stream-based Json Encoder that can be connected to a StreamPublisher is also provided by the extra dependency `fs2-rabbit-circe`. Very similar to the Json Decoder shown above, but in this case, implicit encoders for your classes must be on scope (again you can use Circe's codec auto derivation):
 
 ```tut:silent
 import com.github.gvolpe.fs2rabbit.json.Fs2JsonEncoder
@@ -179,7 +174,7 @@ If you want your program to run forever with automatic error recovery you can ch
 
 So, for the program defined above, this would be an example of a resilient app that restarts after 1 second and then exponentially (1, 2, 4, 8, etc) in case of failure:
 
-```tut:silent
+```tut:book
 import com.github.gvolpe.fs2rabbit.StreamLoop
 
 import scala.concurrent.duration._

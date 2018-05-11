@@ -7,7 +7,7 @@ name := """fs2-rabbit-root"""
 
 organization in ThisBuild := "com.github.gvolpe"
 
-version in ThisBuild := "0.3"
+version in ThisBuild := "0.5"
 
 crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.4")
 
@@ -28,10 +28,6 @@ val commonSettings = Seq(
     Libraries.amqpClient,
     Libraries.catsEffect,
     Libraries.fs2Core,
-    Libraries.typesafeConfig,
-    Libraries.circeCore,
-    Libraries.circeGeneric,
-    Libraries.circeParser,
     Libraries.scalaTest,
     Libraries.scalaCheck
   ),
@@ -59,10 +55,6 @@ val commonSettings = Seq(
   publishArtifact in Test := false,
   pomIncludeRepository := { _ => false },
   pomExtra :=
-    <scm>
-      <url>git@github.com:gvolpe/fs2-rabbit.git</url>
-      <connection>scm:git:git@github.com:gvolpe/fs2-rabbit.git</connection>
-    </scm>
       <developers>
         <developer>
           <id>gvolpe</id>
@@ -74,6 +66,12 @@ val commonSettings = Seq(
 
 val CoreDependencies: Seq[ModuleID] = Seq(
   Libraries.logback % "test"
+)
+
+val JsonDependencies: Seq[ModuleID] = Seq(
+  Libraries.circeCore,
+  Libraries.circeGeneric,
+  Libraries.circeParser
 )
 
 val ExamplesDependencies: Seq[ModuleID] = Seq(
@@ -89,7 +87,7 @@ lazy val noPublish = Seq(
 )
 
 lazy val `fs2-rabbit-root` = project.in(file("."))
-  .aggregate(`fs2-rabbit`, `fs2-rabbit-examples`)
+  .aggregate(`fs2-rabbit`, `fs2-rabbit-circe`, examples, microsite)
   .settings(noPublish)
 
 lazy val `fs2-rabbit` = project.in(file("core"))
@@ -98,16 +96,24 @@ lazy val `fs2-rabbit` = project.in(file("core"))
   .settings(parallelExecution in Test := false)
   .enablePlugins(AutomateHeaderPlugin)
 
-lazy val `fs2-rabbit-examples` = project.in(file("examples"))
+lazy val `fs2-rabbit-circe` = project.in(file("json-circe"))
+  .settings(commonSettings: _*)
+  .settings(libraryDependencies ++= JsonDependencies)
+  .settings(parallelExecution in Test := false)
+  .enablePlugins(AutomateHeaderPlugin)
+  .dependsOn(`fs2-rabbit`)
+
+lazy val examples = project.in(file("examples"))
   .settings(commonSettings: _*)
   .settings(libraryDependencies ++= ExamplesDependencies)
   .settings(noPublish)
   .enablePlugins(AutomateHeaderPlugin)
-  .dependsOn(`fs2-rabbit`)
+  .dependsOn(`fs2-rabbit`, `fs2-rabbit-circe`)
 
 lazy val microsite = project.in(file("site"))
   .enablePlugins(MicrositesPlugin)
   .settings(commonSettings: _*)
+  .settings(noPublish)
   .settings(
     micrositeName := "Fs2 Rabbit",
     micrositeDescription := "Stream-based client for RabbitMQ built on top of Fs2",
@@ -126,4 +132,8 @@ lazy val microsite = project.in(file("site"))
     micrositePushSiteWith := GitHub4s,
     micrositeGithubToken := sys.env.get("GITHUB_TOKEN")
   )
-  .dependsOn(`fs2-rabbit`)
+  .dependsOn(`fs2-rabbit`, `fs2-rabbit-circe`)
+
+// CI build
+addCommandAlias("buildFs2Rabbit", ";clean;+coverage;+test;+coverageReport;+coverageAggregate;tut")
+

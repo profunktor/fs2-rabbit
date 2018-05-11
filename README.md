@@ -14,20 +14,26 @@ Stream-based library for [RabbitMQ](https://www.rabbitmq.com/) built-in on top o
 
 ## Dependencies
 
-Add the only dependency to your build.sbt:
+Add this to your build.sbt:
 
 ```scala
-libraryDependencies += "com.github.gvolpe" %% "fs2-rabbit" % "0.3"
+libraryDependencies += "com.github.gvolpe" %% "fs2-rabbit" % Version
+```
+
+And this one if you would like to have Json support:
+
+```scala
+libraryDependencies += "com.github.gvolpe" %% "fs2-rabbit-circe" % Version
 ```
 
 `fs2-rabbit` has the following dependencies and it's cross compiled to Scala `2.11.12` and `2.12.4`:
 
 | Dependency  | Version    |
 | ----------- |:----------:|
-| cats        | 1.0.1      |
-| cats-effect | 0.9        |
-| fs2         | 0.10.2     |
-| circe       | 0.9.1      |
+| cats        | 1.1.0      |
+| cats-effect | 0.10       |
+| fs2         | 0.10.3     |
+| circe       | 0.9.2      |
 | amqp-client | 4.1.0      |
 
 ## Usage Guide

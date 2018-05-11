@@ -36,17 +36,18 @@ object StreamLoop {
   def run[F[_]](program: () => Stream[F, Unit], retry: FiniteDuration = 5.seconds)(implicit F: Effect[F],
                                                                                    ec: ExecutionContext): F[Unit] =
     F.liftIO {
-      F.runAsync(loop(program(), retry).compile.drain) {
+      val main = Scheduler(2).flatMap(implicit s => loop(program(), retry))
+      F.runAsync(main.compile.drain) {
         case Right(_) => IO.unit
         case Left(e)  => IO.raiseError(e) // Should be unreachable
       }
     }
 
-  private def loop[F[_]: Effect](program: Stream[F, Unit], retry: FiniteDuration)(
-      implicit ec: ExecutionContext): Stream[F, Unit] = {
+  private def loop[F[_]: Effect](program: Stream[F, Unit], retry: FiniteDuration)(implicit ec: ExecutionContext,
+                                                                                  S: Scheduler): Stream[F, Unit] = {
     val log = implicitly[Log[F]]
     program.handleErrorWith { err =>
-      val scheduledProgram = Scheduler[F](2).flatMap(_.sleep[F](retry)).flatMap(_ => program)
+      val scheduledProgram = S.sleep[F](retry).flatMap(_ => program)
       for {
         _ <- Stream.eval(log.error(err))
         _ <- Stream.eval(log.info(s"Restarting in $retry..."))

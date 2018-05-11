@@ -17,7 +17,7 @@ before_cache:
   - find $HOME/.sbt -name "*.lock" -delete
 
 script:
-  - sbt clean +coverage +test +coverageReport +coverageAggregate
+  - sbt buildFs2Rabbit
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)

@@ -16,12 +16,12 @@
 
 package com.github.gvolpe.fs2rabbit.interpreter
 
-import java.util.concurrent.Executors
-
 import cats.effect.{Effect, IO}
 import cats.syntax.all._
 import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, Connection}
-import com.github.gvolpe.fs2rabbit.config.{Fs2RabbitConfig, Fs2RabbitConfigManager, QueueConfig}
+import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
+import com.github.gvolpe.fs2rabbit.config.declaration.DeclarationQueueConfig
+import com.github.gvolpe.fs2rabbit.config.deletion.{DeletionExchangeConfig, DeletionQueueConfig}
 import com.github.gvolpe.fs2rabbit.model.ExchangeType.ExchangeType
 import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.program._
@@ -32,21 +32,21 @@ import scala.concurrent.ExecutionContext
 
 // $COVERAGE-OFF$
 object Fs2Rabbit {
-  def apply[F[_]](implicit F: Effect[F], ec: ExecutionContext): F[Fs2Rabbit[F]] =
+  def apply[F[_]](config: Fs2RabbitConfig)(implicit F: Effect[F], ec: ExecutionContext): F[Fs2Rabbit[F]] =
     for {
       internalQ  <- F.liftIO(fs2.async.boundedQueue[IO, Either[Throwable, AmqpEnvelope]](500))
       amqpClient <- F.delay(new AmqpClientStream[F](internalQ))
-      config     <- F.delay(new Fs2RabbitConfigManager[F].config)
       connStream <- F.delay(new ConnectionStream[F](config))
-      fs2Rabbit  <- F.delay(new Fs2Rabbit[F](config, connStream, internalQ)(F, amqpClient))
+      fs2Rabbit  <- F.delay(new Fs2Rabbit[F](config, connStream, internalQ)(F, amqpClient, ec))
     } yield fs2Rabbit
 }
 // $COVERAGE-ON$
 
-class Fs2Rabbit[F[_]](config: F[Fs2RabbitConfig],
+class Fs2Rabbit[F[_]](config: Fs2RabbitConfig,
                       connectionStream: Connection[Stream[F, ?]],
                       internalQ: Queue[IO, Either[Throwable, AmqpEnvelope]])(implicit F: Effect[F],
-                                                                             amqpClient: AMQPClient[Stream[F, ?]]) {
+                                                                             amqpClient: AMQPClient[Stream[F, ?]],
+                                                                             EC: ExecutionContext) {
 
   private implicit val ackerConsumerProgram: AckerConsumerProgram[F] =
     new AckerConsumerProgram[F](internalQ, config)
@@ -99,21 +99,25 @@ class Fs2Rabbit[F[_]](config: F[Fs2RabbitConfig],
       implicit channel: AMQPChannel): Stream[F, Unit] =
     amqpClient.declareExchange(channel.value, exchangeName, exchangeType)
 
-  def declareQueue(queueConfig: QueueConfig)(implicit channel: AMQPChannel): Stream[F, Unit] =
+  def declareQueue(queueConfig: DeclarationQueueConfig)(implicit channel: AMQPChannel): Stream[F, Unit] =
     amqpClient.declareQueue(channel.value, queueConfig)
 
-  def declareQueueNoWait(queueConfig: QueueConfig)(implicit channel: AMQPChannel): Stream[F, Unit] =
+  def declareQueueNoWait(queueConfig: DeclarationQueueConfig)(implicit channel: AMQPChannel): Stream[F, Unit] =
     amqpClient.declareQueueNoWait(channel.value, queueConfig)
 
   def declareQueuePassive(queueName: QueueName)(implicit channel: AMQPChannel): Stream[F, Unit] =
     amqpClient.declareQueuePassive(channel.value, queueName)
 
-  def deleteQueue(queueName: QueueName, ifUnused: Boolean = true, ifEmpty: Boolean = true)(
-      implicit channel: AMQPChannel): Stream[F, Unit] =
-    amqpClient.deleteQueue(channel.value, queueName, ifUnused, ifEmpty)
+  def deleteQueue(config: DeletionQueueConfig)(implicit channel: AMQPChannel): Stream[F, Unit] =
+    amqpClient.deleteQueue(channel.value, config)
 
-  def deleteQueueNoWait(queueName: QueueName, ifUnused: Boolean = true, ifEmpty: Boolean = true)(
-      implicit channel: AMQPChannel): Stream[F, Unit] =
-    amqpClient.deleteQueueNoWait(channel.value, queueName, ifUnused, ifEmpty)
+  def deleteQueueNoWait(config: DeletionQueueConfig)(implicit channel: AMQPChannel): Stream[F, Unit] =
+    amqpClient.deleteQueueNoWait(channel.value, config)
+
+  def deleteExchange(config: DeletionExchangeConfig)(implicit channel: AMQPChannel): Stream[F, Unit] =
+    amqpClient.deleteExchange(channel.value, config)
+
+  def deleteExchangeNoWait(config: DeletionExchangeConfig)(implicit channel: AMQPChannel): Stream[F, Unit] =
+    amqpClient.deleteExchangeNoWait(channel.value, config)
 
 }
