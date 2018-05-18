@@ -29,7 +29,7 @@ import scala.concurrent.ExecutionContext
 class AckerConsumerProgram[F[_]](config: Fs2RabbitConfig, AMQP: AMQPClient[Stream[F, ?]])(implicit F: Async[F],
                                                                                           SE: StreamEval[F],
                                                                                           ec: ExecutionContext)
-    extends AckerConsumer[Stream[F, ?], Sink[F, ?]] {
+    extends AckerConsumer[Stream[F, ?]] {
 
   private[fs2rabbit] def resilientConsumer: Pipe[F, Either[Throwable, AmqpEnvelope], AmqpEnvelope] =
     _.flatMap {
