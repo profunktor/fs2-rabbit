@@ -16,12 +16,16 @@
 
 package com.github.gvolpe.fs2rabbit.interpreter
 
-import cats.effect.{Effect, IO}
+import cats.effect.IO
 import com.github.gvolpe.fs2rabbit.StreamAssertion
+import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, AMQPInternals}
+import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 import com.github.gvolpe.fs2rabbit.config.declaration.{AutoDelete, DeclarationQueueConfig, Durable, Exclusive}
 import com.github.gvolpe.fs2rabbit.config.deletion.{DeletionExchangeConfig, DeletionQueueConfig}
-import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 import com.github.gvolpe.fs2rabbit.model._
+import com.github.gvolpe.fs2rabbit.program.AckerConsumerProgram
+import com.github.gvolpe.fs2rabbit.typeclasses.StreamEval
+import com.rabbitmq.client.Channel
 import fs2.{Stream, async}
 import org.scalatest.{FlatSpecLike, Matchers}
 
@@ -52,14 +56,36 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
   object TestFs2Rabbit {
     def apply(config: Fs2RabbitConfig): Fs2Rabbit[IO] = {
       val interpreter = for {
-        internalQ  <- fs2.async.boundedQueue[IO, Either[Throwable, AmqpEnvelope]](500)
-        ackerQ     <- fs2.async.boundedQueue[IO, AckResult](500)
-        amqpClient <- IO(new AMQPClientInMemory(internalQ, ackerQ, config))
-        connStream <- IO(new ConnectionStub)
-        fs2Rabbit  <- IO(new Fs2Rabbit[IO](config, connStream, internalQ)(Effect[IO], amqpClient, global))
+        internalQ     <- fs2.async.boundedQueue[IO, Either[Throwable, AmqpEnvelope]](500)
+        ackerQ        <- fs2.async.boundedQueue[IO, AckResult](500)
+        internals     = AMQPInternals(internalQ)
+        amqpClient    <- IO(new AMQPClientInMemory(internals, ackerQ, config))
+        connStream    <- IO(new ConnectionStub)
+        ackerConsumer = new TestAckerConsumer(config, internals, amqpClient)
+        fs2Rabbit     <- IO(new Fs2Rabbit[IO](config, connStream, amqpClient, ackerConsumer))
       } yield fs2Rabbit
       interpreter.unsafeRunSync()
     }
+  }
+
+  class TestAckerConsumer(config: Fs2RabbitConfig, internals: AMQPInternals, AMQP: AMQPClient[Stream[IO, ?]])(
+      implicit SE: StreamEval[IO])
+      extends AckerConsumerProgram[IO](config, AMQP) {
+
+    override def createConsumer(queueName: QueueName,
+                                channel: Channel,
+                                basicQos: BasicQos,
+                                autoAck: Boolean = false,
+                                noLocal: Boolean = false,
+                                exclusive: Boolean = false,
+                                consumerTag: String = "",
+                                args: Map[String, AnyRef] = Map.empty[String, AnyRef]): StreamConsumer[IO] =
+      for {
+        _        <- AMQP.basicQos(channel, basicQos)
+        _        <- AMQP.basicConsume(channel, queueName, autoAck, consumerTag, noLocal, exclusive, args)(internals)
+        consumer <- Stream.repeatEval(internals.queue.dequeue1) through resilientConsumer
+      } yield consumer
+
   }
 
   private val fs2RabbitInterpreter     = TestFs2Rabbit(config)
