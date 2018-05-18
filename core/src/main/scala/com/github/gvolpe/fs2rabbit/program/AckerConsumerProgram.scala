@@ -17,24 +17,21 @@
 package com.github.gvolpe.fs2rabbit.program
 
 import cats.effect.{Async, IO}
-import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, AckerConsumer}
+import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, AMQPInternals, AckerConsumer}
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.typeclasses.StreamEval
 import com.rabbitmq.client.Channel
-import fs2.async.mutable
 import fs2.{Pipe, Sink, Stream}
 
 import scala.concurrent.ExecutionContext
 
-class AckerConsumerProgram[F[_]](internalQ: mutable.Queue[IO, Either[Throwable, AmqpEnvelope]], config: Fs2RabbitConfig)(
-    implicit F: Async[F],
-    SE: StreamEval[F],
-    AMQP: AMQPClient[Stream[F, ?]],
-    EC: ExecutionContext)
+class AckerConsumerProgram[F[_]](config: Fs2RabbitConfig, AMQP: AMQPClient[Stream[F, ?]])(implicit F: Async[F],
+                                                                                          SE: StreamEval[F],
+                                                                                          ec: ExecutionContext)
     extends AckerConsumer[Stream[F, ?], Sink[F, ?]] {
 
-  private def resilientConsumer: Pipe[F, Either[Throwable, AmqpEnvelope], AmqpEnvelope] =
+  private[fs2rabbit] def resilientConsumer: Pipe[F, Either[Throwable, AmqpEnvelope], AmqpEnvelope] =
     _.flatMap {
       case Left(err)  => Stream.raiseError(err)
       case Right(env) => SE.evalF[AmqpEnvelope](env)
@@ -55,9 +52,11 @@ class AckerConsumerProgram[F[_]](internalQ: mutable.Queue[IO, Either[Throwable, 
                               consumerTag: String = "",
                               args: Map[String, AnyRef] = Map.empty[String, AnyRef]): StreamConsumer[F] =
     for {
-      _        <- AMQP.basicQos(channel, basicQos)
-      _        <- AMQP.basicConsume(channel, queueName, autoAck, consumerTag, noLocal, exclusive, args)
-      consumer <- Stream.repeatEval(internalQ.dequeue1.to[F]) through resilientConsumer
+      internalQ <- Stream.eval(F.liftIO(fs2.async.boundedQueue[IO, Either[Throwable, AmqpEnvelope]](500)))
+      internals = AMQPInternals(internalQ)
+      _         <- AMQP.basicQos(channel, basicQos)
+      _         <- AMQP.basicConsume(channel, queueName, autoAck, consumerTag, noLocal, exclusive, args)(internals)
+      consumer  <- Stream.repeatEval(internalQ.dequeue1.to[F]) through resilientConsumer
     } yield consumer
 
 }

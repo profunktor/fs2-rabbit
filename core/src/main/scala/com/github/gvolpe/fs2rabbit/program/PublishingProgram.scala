@@ -23,7 +23,7 @@ import com.github.gvolpe.fs2rabbit.typeclasses.StreamEval
 import com.rabbitmq.client.Channel
 import fs2.{Sink, Stream}
 
-class PublishingProgram[F[_]: Sync](implicit SE: StreamEval[F], AMQP: AMQPClient[Stream[F, ?]])
+class PublishingProgram[F[_]: Sync](AMQP: AMQPClient[Stream[F, ?]])(implicit SE: StreamEval[F])
     extends Publishing[Stream[F, ?], Sink[F, ?]] {
 
   override def createPublisher(channel: Channel,

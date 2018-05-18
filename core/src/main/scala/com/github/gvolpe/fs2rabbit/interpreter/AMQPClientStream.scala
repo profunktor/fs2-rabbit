@@ -16,10 +16,8 @@
 
 package com.github.gvolpe.fs2rabbit.interpreter
 
-import java.util.concurrent.Executors
-
 import cats.effect.{Effect, IO}
-import com.github.gvolpe.fs2rabbit.algebra.AMQPClient
+import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, AMQPInternals}
 import com.github.gvolpe.fs2rabbit.model.ExchangeType.ExchangeType
 import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.typeclasses.StreamEval
@@ -34,12 +32,11 @@ import fs2.Stream
 import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext
 
-class AmqpClientStream[F[_]](internalQ: mutable.Queue[IO, Either[Throwable, AmqpEnvelope]])(implicit F: Effect[F],
-                                                                                            SE: StreamEval[F],
-                                                                                            EC: ExecutionContext)
+class AMQPClientStream[F[_]](implicit F: Effect[F], SE: StreamEval[F], EC: ExecutionContext)
     extends AMQPClient[Stream[F, ?]] {
 
-  private def defaultConsumer(channel: Channel): Consumer =
+  private[fs2rabbit] def defaultConsumer(channel: Channel,
+                                         internalQ: mutable.Queue[IO, Either[Throwable, AmqpEnvelope]]): Consumer =
     new DefaultConsumer(channel) {
 
       override def handleCancel(consumerTag: String): Unit =
@@ -75,8 +72,8 @@ class AmqpClientStream[F[_]](internalQ: mutable.Queue[IO, Either[Throwable, Amqp
                             consumerTag: String,
                             noLocal: Boolean,
                             exclusive: Boolean,
-                            args: Map[String, AnyRef]): Stream[F, String] = {
-    val dc = defaultConsumer(channel)
+                            args: Map[String, AnyRef])(internals: AMQPInternals): Stream[F, String] = {
+    val dc = defaultConsumer(channel, internals.queue)
     SE.evalF(channel.basicConsume(queueName.value, autoAck, consumerTag, noLocal, exclusive, args.asJava, dc))
   }
 

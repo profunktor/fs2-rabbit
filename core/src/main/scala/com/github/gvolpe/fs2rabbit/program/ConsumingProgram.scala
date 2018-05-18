@@ -23,7 +23,7 @@ import com.github.gvolpe.fs2rabbit.typeclasses.StreamEval
 import com.rabbitmq.client.Channel
 import fs2.{Sink, Stream}
 
-class ConsumingProgram[F[_]: Async](implicit C: AckerConsumer[Stream[F, ?], Sink[F, ?]], SE: StreamEval[F])
+class ConsumingProgram[F[_]: Async](C: AckerConsumer[Stream[F, ?], Sink[F, ?]])(implicit SE: StreamEval[F])
     extends Consuming[Stream[F, ?], Sink[F, ?]] {
 
   override def createAckerConsumer(

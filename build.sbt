@@ -9,7 +9,7 @@ organization in ThisBuild := "com.github.gvolpe"
 
 version in ThisBuild := "0.5"
 
-crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.4")
+crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.6")
 
 sonatypeProfileName := "com.github.gvolpe"
 
@@ -43,7 +43,7 @@ val commonSettings = Seq(
     "-language:higherKinds"
   ),
   scalafmtOnCompile := true,
-  coverageExcludedPackages := "com\\.github\\.gvolpe\\.fs2rabbit\\.examples.*;com\\.github\\.gvolpe\\.fs2rabbit\\.typeclasses.*;com\\.github\\.gvolpe\\.fs2rabbit\\.instances.*;.*QueueName*;.*RoutingKey*;.*ExchangeName*;.*DeliveryTag*;.*AmqpClientStream*;.*ConnectionStream*;",
+  coverageExcludedPackages := "com\\.github\\.gvolpe\\.fs2rabbit\\.examples.*;com\\.github\\.gvolpe\\.fs2rabbit\\.typeclasses.*;com\\.github\\.gvolpe\\.fs2rabbit\\.instances.*;.*QueueName*;.*RoutingKey*;.*ExchangeName*;.*DeliveryTag*;.*AMQPClientStream*;.*ConnectionStream*;",
   publishTo := {
     val sonatype = "https://oss.sonatype.org/"
     if (isSnapshot.value)

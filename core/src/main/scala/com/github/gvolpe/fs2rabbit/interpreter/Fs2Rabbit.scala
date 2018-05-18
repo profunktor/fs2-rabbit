@@ -16,8 +16,7 @@
 
 package com.github.gvolpe.fs2rabbit.interpreter
 
-import cats.effect.{Effect, IO}
-import cats.syntax.all._
+import cats.effect.Effect
 import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, Connection}
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 import com.github.gvolpe.fs2rabbit.config.declaration.DeclarationQueueConfig
@@ -26,36 +25,31 @@ import com.github.gvolpe.fs2rabbit.model.ExchangeType.ExchangeType
 import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.program._
 import fs2.Stream
-import fs2.async.mutable.Queue
 
 import scala.concurrent.ExecutionContext
 
 // $COVERAGE-OFF$
 object Fs2Rabbit {
   def apply[F[_]](config: Fs2RabbitConfig)(implicit F: Effect[F], ec: ExecutionContext): F[Fs2Rabbit[F]] =
-    for {
-      internalQ  <- F.liftIO(fs2.async.boundedQueue[IO, Either[Throwable, AmqpEnvelope]](500))
-      amqpClient <- F.delay(new AmqpClientStream[F](internalQ))
-      connStream <- F.delay(new ConnectionStream[F](config))
-      fs2Rabbit  <- F.delay(new Fs2Rabbit[F](config, connStream, internalQ)(F, amqpClient, ec))
-    } yield fs2Rabbit
+    F.pure {
+      val amqpClient    = new AMQPClientStream[F]
+      val connStream    = new ConnectionStream[F](config)
+      val ackerConsumer = new AckerConsumerProgram[F](config, amqpClient)
+      new Fs2Rabbit[F](config, connStream, amqpClient, ackerConsumer)
+    }
 }
 // $COVERAGE-ON$
 
 class Fs2Rabbit[F[_]](config: Fs2RabbitConfig,
                       connectionStream: Connection[Stream[F, ?]],
-                      internalQ: Queue[IO, Either[Throwable, AmqpEnvelope]])(implicit F: Effect[F],
-                                                                             amqpClient: AMQPClient[Stream[F, ?]],
-                                                                             EC: ExecutionContext) {
+                      amqpClient: AMQPClient[Stream[F, ?]],
+                      ackerConsumerProgram: AckerConsumerProgram[F])(implicit F: Effect[F], EC: ExecutionContext) {
 
-  private implicit val ackerConsumerProgram: AckerConsumerProgram[F] =
-    new AckerConsumerProgram[F](internalQ, config)
+  private[fs2rabbit] val consumingProgram: ConsumingProgram[F] =
+    new ConsumingProgram[F](ackerConsumerProgram)
 
-  private val consumingProgram: ConsumingProgram[F] =
-    new ConsumingProgram[F]
-
-  private val publishingProgram: PublishingProgram[F] =
-    new PublishingProgram[F]
+  private[fs2rabbit] val publishingProgram: PublishingProgram[F] =
+    new PublishingProgram[F](amqpClient)
 
   def createConnectionChannel: Stream[F, AMQPChannel] = connectionStream.createConnectionChannel
 

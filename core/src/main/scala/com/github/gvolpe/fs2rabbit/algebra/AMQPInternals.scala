@@ -14,22 +14,10 @@
  * limitations under the License.
  */
 
-package com.github.gvolpe.fs2rabbit.typeclasses
+package com.github.gvolpe.fs2rabbit.algebra
 
-import cats.effect.Sync
-import org.slf4j.LoggerFactory
+import cats.effect.IO
+import com.github.gvolpe.fs2rabbit.model.AmqpEnvelope
+import fs2.async.mutable
 
-trait Log[F[_]] {
-  def info(value: String): F[Unit]
-  def error(error: Throwable): F[Unit]
-}
-
-object Log {
-  private[fs2rabbit] val logger = LoggerFactory.getLogger(this.getClass)
-
-  implicit def syncLogInstance[F[_]](implicit F: Sync[F]): Log[F] =
-    new Log[F] {
-      override def error(error: Throwable): F[Unit] = F.delay(logger.error(error.getMessage, error))
-      override def info(value: String): F[Unit]     = F.delay(logger.info(value))
-    }
-}
+case class AMQPInternals(queue: mutable.Queue[IO, Either[Throwable, AmqpEnvelope]])
