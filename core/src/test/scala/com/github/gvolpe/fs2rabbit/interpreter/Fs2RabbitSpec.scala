@@ -59,10 +59,10 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
         internalQ     <- fs2.async.boundedQueue[IO, Either[Throwable, AmqpEnvelope]](500)
         ackerQ        <- fs2.async.boundedQueue[IO, AckResult](500)
         internals     = AMQPInternals(internalQ)
-        amqpClient    <- IO(new AMQPClientInMemory(internals, ackerQ, config))
-        connStream    <- IO(new ConnectionStub)
+        amqpClient    = new AMQPClientInMemory(internals, ackerQ, config)
+        connStream    = new ConnectionStub
         ackerConsumer = new TestAckerConsumer(config, internals, amqpClient)
-        fs2Rabbit     <- IO(new Fs2Rabbit[IO](config, connStream, amqpClient, ackerConsumer))
+        fs2Rabbit     = new Fs2Rabbit[IO](config, connStream, amqpClient, ackerConsumer)
       } yield fs2Rabbit
       interpreter.unsafeRunSync()
     }

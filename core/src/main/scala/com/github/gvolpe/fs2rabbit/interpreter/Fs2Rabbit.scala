@@ -16,8 +16,7 @@
 
 package com.github.gvolpe.fs2rabbit.interpreter
 
-import cats.effect.{Effect, IO}
-import cats.syntax.all._
+import cats.effect.Effect
 import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, Connection}
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 import com.github.gvolpe.fs2rabbit.config.declaration.DeclarationQueueConfig
@@ -32,12 +31,12 @@ import scala.concurrent.ExecutionContext
 // $COVERAGE-OFF$
 object Fs2Rabbit {
   def apply[F[_]](config: Fs2RabbitConfig)(implicit F: Effect[F], ec: ExecutionContext): F[Fs2Rabbit[F]] =
-    for {
-      amqpClient    <- F.delay(new AMQPClientStream[F])
-      connStream    <- F.delay(new ConnectionStream[F](config))
-      ackerConsumer = new AckerConsumerProgram[F](config, amqpClient)
-      fs2Rabbit     <- F.delay(new Fs2Rabbit[F](config, connStream, amqpClient, ackerConsumer)(F, ec))
-    } yield fs2Rabbit
+    F.pure {
+      val amqpClient    = new AMQPClientStream[F]
+      val connStream    = new ConnectionStream[F](config)
+      val ackerConsumer = new AckerConsumerProgram[F](config, amqpClient)
+      new Fs2Rabbit[F](config, connStream, amqpClient, ackerConsumer)
+    }
 }
 // $COVERAGE-ON$
 
