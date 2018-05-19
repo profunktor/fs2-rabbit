@@ -16,17 +16,16 @@
 
 package com.github.gvolpe.fs2rabbit.interpreter
 
-import cats.effect.{Effect, IO}
+import cats.effect.Effect
 import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, AMQPInternals}
-import com.github.gvolpe.fs2rabbit.model.ExchangeType.ExchangeType
-import com.github.gvolpe.fs2rabbit.model._
-import com.github.gvolpe.fs2rabbit.typeclasses.StreamEval
 import com.github.gvolpe.fs2rabbit.config.declaration.DeclarationQueueConfig
 import com.github.gvolpe.fs2rabbit.config.deletion
 import com.github.gvolpe.fs2rabbit.config.deletion.DeletionQueueConfig
+import com.github.gvolpe.fs2rabbit.model.ExchangeType.ExchangeType
+import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.typeclasses.BoolValue.syntax._
+import com.github.gvolpe.fs2rabbit.typeclasses.StreamEval
 import com.rabbitmq.client._
-import fs2.async.mutable
 import fs2.Stream
 
 import scala.collection.JavaConverters._
@@ -35,23 +34,25 @@ import scala.concurrent.ExecutionContext
 class AMQPClientStream[F[_]](implicit F: Effect[F], SE: StreamEval[F], EC: ExecutionContext)
     extends AMQPClient[Stream[F, ?]] {
 
-  private[fs2rabbit] def defaultConsumer(channel: Channel,
-                                         internalQ: mutable.Queue[IO, Either[Throwable, AmqpEnvelope]]): Consumer =
-    new DefaultConsumer(channel) {
+  private[fs2rabbit] def defaultConsumer(channel: Channel, internals: AMQPInternals): Stream[F, Consumer] = {
+    SE.pure(
+      new DefaultConsumer(channel) {
 
-      override def handleCancel(consumerTag: String): Unit =
-        internalQ.enqueue1(Left(new Exception(s"Queue might have been DELETED! $consumerTag"))).unsafeRunSync()
+        override def handleCancel(consumerTag: String): Unit =
+          internals.queue.enqueue1(Left(new Exception(s"Queue might have been DELETED! $consumerTag"))).unsafeRunSync()
 
-      override def handleDelivery(consumerTag: String,
-                                  envelope: Envelope,
-                                  properties: AMQP.BasicProperties,
-                                  body: Array[Byte]): Unit = {
-        val msg   = new String(body, "UTF-8")
-        val tag   = envelope.getDeliveryTag
-        val props = AmqpProperties.from(properties)
-        internalQ.enqueue1(Right(AmqpEnvelope(DeliveryTag(tag), msg, props))).unsafeRunSync()
+        override def handleDelivery(consumerTag: String,
+                                    envelope: Envelope,
+                                    properties: AMQP.BasicProperties,
+                                    body: Array[Byte]): Unit = {
+          val msg   = new String(body, "UTF-8")
+          val tag   = envelope.getDeliveryTag
+          val props = AmqpProperties.from(properties)
+          internals.queue.enqueue1(Right(AmqpEnvelope(DeliveryTag(tag), msg, props))).unsafeRunSync()
+        }
       }
-    }
+    )
+  }
 
   override def basicAck(channel: Channel, tag: DeliveryTag, multiple: Boolean): Stream[F, Unit] = SE.evalF {
     channel.basicAck(tag.value, multiple)
@@ -73,8 +74,10 @@ class AMQPClientStream[F[_]](implicit F: Effect[F], SE: StreamEval[F], EC: Execu
                             noLocal: Boolean,
                             exclusive: Boolean,
                             args: Map[String, AnyRef])(internals: AMQPInternals): Stream[F, String] = {
-    val dc = defaultConsumer(channel, internals.queue)
-    SE.evalF(channel.basicConsume(queueName.value, autoAck, consumerTag, noLocal, exclusive, args.asJava, dc))
+    for {
+      dc <- defaultConsumer(channel, internals)
+      rs <- SE.evalF(channel.basicConsume(queueName.value, autoAck, consumerTag, noLocal, exclusive, args.asJava, dc))
+    } yield rs
   }
 
   override def basicPublish(channel: Channel,
@@ -172,4 +175,5 @@ class AMQPClientStream[F[_]](implicit F: Effect[F], SE: StreamEval[F], EC: Execu
     SE.evalF {
       channel.exchangeDeleteNoWait(config.exchangeName.value, config.ifUnused.isTrue)
     }
+
 }

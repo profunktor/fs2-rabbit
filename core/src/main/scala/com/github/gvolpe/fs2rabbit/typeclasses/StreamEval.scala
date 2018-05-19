@@ -20,6 +20,7 @@ import cats.effect.Sync
 import fs2.{Pipe, Sink, Stream}
 
 trait StreamEval[F[_]] {
+  def pure[A](body: A): Stream[F, A]
   def evalF[A](body: => A): Stream[F, A]
   def liftSink[A](f: A => F[Unit]): Sink[F, A]
   def liftPipe[A, B](f: A => F[B]): Pipe[F, A, B]
@@ -29,6 +30,9 @@ object StreamEval {
 
   implicit def syncStreamEvalInstance[F[_]](implicit F: Sync[F]): StreamEval[F] =
     new StreamEval[F] {
+      override def pure[A](body: A): Stream[F, A] =
+        Stream(body).covary[F]
+
       override def evalF[A](body: => A): Stream[F, A] =
         Stream.eval[F, A](F.delay(body))
 

@@ -40,7 +40,7 @@ class ConsumingProgram[F[_]: Async](C: AckerConsumer[Stream[F, ?]])(implicit SE:
                        consumerTag = args.consumerTag,
                        args = args.args)
     }
-    SE.evalF((C.createAcker(channel), consumer))
+    SE.pure((C.createAcker(channel), consumer))
   }
 
   override def createAutoAckConsumer(channel: Channel,
@@ -59,7 +59,7 @@ class ConsumingProgram[F[_]: Async](C: AckerConsumer[Stream[F, ?]])(implicit SE:
         args = args.args
       )
     }
-    SE.evalF(consumer)
+    SE.pure(consumer)
   }
 
 }

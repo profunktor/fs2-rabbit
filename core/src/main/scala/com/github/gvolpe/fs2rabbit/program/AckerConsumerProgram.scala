@@ -34,7 +34,7 @@ class AckerConsumerProgram[F[_]](config: Fs2RabbitConfig, AMQP: AMQPClient[Strea
   private[fs2rabbit] def resilientConsumer: Pipe[F, Either[Throwable, AmqpEnvelope], AmqpEnvelope] =
     _.flatMap {
       case Left(err)  => Stream.raiseError(err)
-      case Right(env) => SE.evalF[AmqpEnvelope](env)
+      case Right(env) => SE.pure[AmqpEnvelope](env)
     }
 
   override def createAcker(channel: Channel): Sink[F, AckResult] =

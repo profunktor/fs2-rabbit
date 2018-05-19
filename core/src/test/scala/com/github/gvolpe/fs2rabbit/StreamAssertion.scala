@@ -17,8 +17,15 @@
 package com.github.gvolpe.fs2rabbit
 
 import cats.effect.IO
+import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
 import fs2.Stream
 
+import scala.concurrent.ExecutionContext
+
 object StreamAssertion {
-  def apply[A](stream: Stream[IO, A]): Unit = stream.compile.drain.unsafeRunSync()
+  def apply[A](tuple: (Fs2Rabbit[IO], Stream[IO, Unit]))(fa: Fs2Rabbit[IO] => Stream[IO, A])(implicit ec: ExecutionContext): Unit = {
+    val (rabbit, testSuiteRTS) = tuple
+    val result = testSuiteRTS.mergeHaltR(fa(rabbit))
+    result.compile.drain.unsafeRunSync()
+  }
 }

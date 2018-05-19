@@ -19,20 +19,22 @@ package com.github.gvolpe.fs2rabbit.interpreter
 import cats.effect.IO
 import cats.syntax.apply._
 import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, AMQPInternals}
-import com.github.gvolpe.fs2rabbit.config.{Fs2RabbitConfig, deletion}
 import com.github.gvolpe.fs2rabbit.config.declaration.DeclarationQueueConfig
 import com.github.gvolpe.fs2rabbit.config.deletion.DeletionQueueConfig
+import com.github.gvolpe.fs2rabbit.config.{Fs2RabbitConfig, deletion}
 import com.github.gvolpe.fs2rabbit.model
-import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.model.ExchangeType.ExchangeType
-import com.rabbitmq.client.Channel
+import com.github.gvolpe.fs2rabbit.model._
+import com.rabbitmq.client.{Channel, Consumer}
 import fs2.Stream
-import fs2.async.mutable
+import fs2.async.{Ref, mutable}
 
 import scala.collection.mutable.{Set => MutableSet}
 
-class AMQPClientInMemory(internals: AMQPInternals, ackerQ: mutable.Queue[IO, AckResult], config: Fs2RabbitConfig)
-    extends AMQPClient[Stream[IO, ?]] {
+class AMQPClientInMemory(ref: Ref[IO, AMQPInternals],
+                         publishingQ: mutable.Queue[IO, Either[Throwable, AmqpEnvelope]],
+                         ackerQ: mutable.Queue[IO, AckResult],
+                         config: Fs2RabbitConfig) extends AMQPClient[Stream[IO, ?]] {
 
   private val queues: MutableSet[QueueName]       = MutableSet.empty[QueueName]
   private val exchanges: MutableSet[ExchangeName] = MutableSet.empty[ExchangeName]
@@ -51,7 +53,7 @@ class AMQPClientInMemory(internals: AMQPInternals, ackerQ: mutable.Queue[IO, Ack
     val envelope = AmqpEnvelope(DeliveryTag(1), "requeued msg", AmqpProperties.empty)
     for {
       _ <- Stream.eval(ackerQ.enqueue1(NAck(tag)))
-      _ <- if (config.requeueOnNack) Stream.eval(internals.queue.enqueue1(Right(envelope)))
+      _ <- if (config.requeueOnNack) Stream.eval(publishingQ.enqueue1(Right(envelope)))
           else Stream.eval(IO.unit)
     } yield ()
   }
@@ -68,7 +70,7 @@ class AMQPClientInMemory(internals: AMQPInternals, ackerQ: mutable.Queue[IO, Ack
     val ifError =
       raiseError[String](s"Queue ${queueName.value} does not exist!")
     queues.find(_.value == queueName.value).fold(ifError) { _ =>
-      Stream.eval(IO("dequeue1 happens in AckerConsumerProgram.createConsumer"))
+      Stream.eval(ref.setSync(internals)).map(_ => "dequeue1 happens in AckerConsumerProgram.createConsumer")
     }
   }
 
@@ -77,7 +79,7 @@ class AMQPClientInMemory(internals: AMQPInternals, ackerQ: mutable.Queue[IO, Ack
                             routingKey: model.RoutingKey,
                             msg: model.AmqpMessage[String]): Stream[IO, Unit] = {
     val envelope = AmqpEnvelope(DeliveryTag(1), msg.payload, msg.properties)
-    Stream.eval(internals.queue.enqueue1(Right(envelope)))
+    Stream.eval(publishingQ.enqueue1(Right(envelope)))
   }
 
   override def deleteQueue(channel: Channel, config: DeletionQueueConfig): Stream[IO, Unit] =
