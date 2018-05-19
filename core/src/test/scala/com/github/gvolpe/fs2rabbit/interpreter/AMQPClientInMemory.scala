@@ -34,7 +34,8 @@ import scala.collection.mutable.{Set => MutableSet}
 class AMQPClientInMemory(ref: Ref[IO, AMQPInternals],
                          publishingQ: mutable.Queue[IO, Either[Throwable, AmqpEnvelope]],
                          ackerQ: mutable.Queue[IO, AckResult],
-                         config: Fs2RabbitConfig) extends AMQPClient[Stream[IO, ?]] {
+                         config: Fs2RabbitConfig)
+    extends AMQPClient[Stream[IO, ?]] {
 
   private val queues: MutableSet[QueueName]       = MutableSet.empty[QueueName]
   private val exchanges: MutableSet[ExchangeName] = MutableSet.empty[ExchangeName]

@@ -20,5 +20,7 @@ import com.github.gvolpe.fs2rabbit.model.{AmqpMessage, ExchangeName, RoutingKey}
 import com.rabbitmq.client.Channel
 
 trait Publishing[F[_]] {
-  def createPublisher(channel: Channel, exchangeName: ExchangeName, routingKey: RoutingKey): F[F[AmqpMessage[String]] => F[Unit]]
+  def createPublisher(channel: Channel,
+                      exchangeName: ExchangeName,
+                      routingKey: RoutingKey): F[F[AmqpMessage[String]] => F[Unit]]
 }

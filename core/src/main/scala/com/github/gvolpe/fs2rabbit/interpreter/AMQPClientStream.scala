@@ -34,7 +34,7 @@ import scala.concurrent.ExecutionContext
 class AMQPClientStream[F[_]](implicit F: Effect[F], SE: StreamEval[F], EC: ExecutionContext)
     extends AMQPClient[Stream[F, ?]] {
 
-  private[fs2rabbit] def defaultConsumer(channel: Channel, internals: AMQPInternals): Stream[F, Consumer] = {
+  private[fs2rabbit] def defaultConsumer(channel: Channel, internals: AMQPInternals): Stream[F, Consumer] =
     SE.pure(
       new DefaultConsumer(channel) {
 
@@ -52,7 +52,6 @@ class AMQPClientStream[F[_]](implicit F: Effect[F], SE: StreamEval[F], EC: Execu
         }
       }
     )
-  }
 
   override def basicAck(channel: Channel, tag: DeliveryTag, multiple: Boolean): Stream[F, Unit] = SE.evalF {
     channel.basicAck(tag.value, multiple)
@@ -73,12 +72,11 @@ class AMQPClientStream[F[_]](implicit F: Effect[F], SE: StreamEval[F], EC: Execu
                             consumerTag: String,
                             noLocal: Boolean,
                             exclusive: Boolean,
-                            args: Map[String, AnyRef])(internals: AMQPInternals): Stream[F, String] = {
+                            args: Map[String, AnyRef])(internals: AMQPInternals): Stream[F, String] =
     for {
       dc <- defaultConsumer(channel, internals)
       rs <- SE.evalF(channel.basicConsume(queueName.value, autoAck, consumerTag, noLocal, exclusive, args.asJava, dc))
     } yield rs
-  }
 
   override def basicPublish(channel: Channel,
                             exchangeName: ExchangeName,
