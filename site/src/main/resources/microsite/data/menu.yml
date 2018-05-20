@@ -1,0 +1,80 @@
+options:
+  - title: Guide
+    url: guide.html
+    menu_section: guide
+
+    nested_options:
+      - title: Configuration
+        url: config.html
+        menu_section: guide
+
+      - title: Fs2 Rabbit Interpreter
+        url: interpreter.html
+        menu_section: guide
+
+      - title: Connection and Channel
+        url: connection-channel.html
+        menu_section: guide
+
+      - title: Exchanges
+        url: exchanges.html
+        menu_section: guide
+
+      - title: Queues
+        url: queues.html
+        menu_section: guide
+
+  - title: Consumers
+    url: consumers/
+    menu_section: consumer
+
+    nested_options:
+      - title: AutoAckConsumer
+        url: consumers/autoackconsumer.html
+        menu_section: consumer
+
+      - title: AckerConsumer
+        url: consumers/ackerconsumer.html
+        menu_section: consumer
+
+      - title: Consuming Json
+        url: consumers/json.html
+        menu_section: consumer
+
+  - title: Publishers
+    url: publishers/
+    menu_section: publisher
+
+    nested_options:
+      - title: Publisher
+        url: publishers/publisher.html
+        menu_section: publisher
+
+      - title: Publishing Json
+        url: publishers/json.html
+        menu_section: publisher
+
+  - title: Resiliency
+    url: resiliency.html
+    menu_section: resiliency
+
+  - title: Examples
+    url: examples/
+    menu_section: examples
+
+    nested_options:
+      - title: Single AutoAckConsumer
+        url: examples/sample-autoack.html
+        menu_section: examples
+
+      - title: Single AckerConsumer
+        url: examples/sample-acker.html
+        menu_section: examples
+
+      - title: Multiple Consumers
+        url: examples/sample-mult-consumers.html
+        menu_section: examples
+
+      - title: Multiple Connections
+        url: examples/sample-mult-connections.html
+        menu_section: examples
