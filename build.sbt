@@ -125,14 +125,22 @@ lazy val microsite = project.in(file("site"))
       file("README.md") -> ExtraMdFileConfig(
         "index.md",
         "home",
-        Map("title" -> "Home", "section" -> "home", "position" -> "0")
+        Map("title" -> "Home", "position" -> "0")
       )
     ),
     micrositeGitterChannel := false,
     micrositePushSiteWith := GitHub4s,
-    micrositeGithubToken := sys.env.get("GITHUB_TOKEN")
+    micrositeGithubToken := sys.env.get("GITHUB_TOKEN"),
+    fork in tut := true,
+    scalacOptions in Tut --= Seq(
+      "-Xfatal-warnings",
+      "-Ywarn-unused-import",
+      "-Ywarn-numeric-widen",
+      "-Ywarn-dead-code",
+      "-Xlint:-missing-interpolator,_",
+    )
   )
-  .dependsOn(`fs2-rabbit`, `fs2-rabbit-circe`)
+  .dependsOn(`fs2-rabbit`, `fs2-rabbit-circe`, `examples`)
 
 // CI build
 addCommandAlias("buildFs2Rabbit", ";clean;+coverage;+test;+coverageReport;+coverageAggregate;tut")
