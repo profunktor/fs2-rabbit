@@ -57,14 +57,14 @@ class ConnectionStream[F[_]](config: Fs2RabbitConfig)(implicit F: Sync[F], L: Lo
     **/
   override def createConnectionChannel: Stream[F, AMQPChannel] =
     Stream.bracket(acquireConnection)(
-      { case (_, channel) => SE.evalF[AMQPChannel](channel) }, {
+      { case (_, channel) => SE.pure[AMQPChannel](channel) }, {
         case (conn, RabbitChannel(channel)) =>
           for {
             _ <- L.info(s"Releasing connection: $conn previously acquired.")
             _ <- F.delay { if (channel.isOpen) channel.close() }
             _ <- F.delay { if (conn.isOpen) conn.close() }
           } yield ()
-        case (_, _) => F.raiseError[Unit](new Exception("Unreacheable"))
+        case (_, _) => F.raiseError[Unit](new Exception("Unreachable"))
       }
     )
 

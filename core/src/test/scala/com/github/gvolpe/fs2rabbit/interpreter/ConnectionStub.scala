@@ -27,6 +27,6 @@ class ConnectionStub(implicit SE: StreamEval[IO]) extends Connection[Stream[IO, 
 
   case class ChannelStub(value: Channel = null) extends AMQPChannel
 
-  override def createConnectionChannel: Stream[IO, AMQPChannel] = SE.evalF(ChannelStub())
+  override def createConnectionChannel: Stream[IO, AMQPChannel] = SE.pure(ChannelStub())
 
 }

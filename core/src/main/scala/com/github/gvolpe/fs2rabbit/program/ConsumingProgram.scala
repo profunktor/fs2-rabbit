@@ -18,13 +18,13 @@ package com.github.gvolpe.fs2rabbit.program
 
 import cats.effect.Async
 import com.github.gvolpe.fs2rabbit.algebra.{AckerConsumer, Consuming}
-import com.github.gvolpe.fs2rabbit.model.{BasicQos, ConsumerArgs, QueueName, StreamAcker, StreamConsumer}
+import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.typeclasses.StreamEval
 import com.rabbitmq.client.Channel
-import fs2.{Sink, Stream}
+import fs2.Stream
 
-class ConsumingProgram[F[_]: Async](C: AckerConsumer[Stream[F, ?], Sink[F, ?]])(implicit SE: StreamEval[F])
-    extends Consuming[Stream[F, ?], Sink[F, ?]] {
+class ConsumingProgram[F[_]: Async](C: AckerConsumer[Stream[F, ?]])(implicit SE: StreamEval[F])
+    extends Consuming[Stream[F, ?]] {
 
   override def createAckerConsumer(
       channel: Channel,
@@ -40,7 +40,7 @@ class ConsumingProgram[F[_]: Async](C: AckerConsumer[Stream[F, ?], Sink[F, ?]])(
                        consumerTag = args.consumerTag,
                        args = args.args)
     }
-    SE.evalF((C.createAcker(channel), consumer))
+    SE.pure((C.createAcker(channel), consumer))
   }
 
   override def createAutoAckConsumer(channel: Channel,
@@ -59,7 +59,7 @@ class ConsumingProgram[F[_]: Async](C: AckerConsumer[Stream[F, ?], Sink[F, ?]])(
         args = args.args
       )
     }
-    SE.evalF(consumer)
+    SE.pure(consumer)
   }
 
 }

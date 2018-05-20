@@ -16,44 +16,43 @@
 
 package com.github.gvolpe.fs2rabbit
 
-import cats.effect.{Effect, IO}
+import cats.effect.{Effect, Timer}
 import com.github.gvolpe.fs2rabbit.typeclasses.Log
-import fs2.{Scheduler, Stream}
+import fs2.Stream
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
+import scala.util.control.NonFatal
 
 /**
   * It provides a resilient run method for an effectful [[fs2.Stream]] that will run forever with
   * automatic error recovery.
   *
-  * In case of failure, the entire stream will be restarted after the specified retry time.
+  * In case of failure, the entire stream will be restarted after the specified retry time with an
+  * exponential backoff.
+  *
+  * By default the program will be restarted in 5 seconds, then 10, then 15, etc.
   *
   * @see the StreamLoopSpec that demonstrates an use case.
   * */
 object StreamLoop {
 
-  def run[F[_]](program: () => Stream[F, Unit], retry: FiniteDuration = 5.seconds)(implicit F: Effect[F],
-                                                                                   ec: ExecutionContext): F[Unit] =
-    F.liftIO {
-      val main = Scheduler(2).flatMap(implicit s => loop(program(), retry))
-      F.runAsync(main.compile.drain) {
-        case Right(_) => IO.unit
-        case Left(e)  => IO.raiseError(e) // Should be unreachable
-      }
-    }
+  def run[F[_]](
+      program: () => Stream[F, Unit],
+      retry: FiniteDuration = 5.seconds)(implicit F: Effect[F], T: Timer[F], ec: ExecutionContext, L: Log[F]): F[Unit] =
+    loop(program(), retry, 1).compile.drain
 
-  private def loop[F[_]: Effect](program: Stream[F, Unit], retry: FiniteDuration)(implicit ec: ExecutionContext,
-                                                                                  S: Scheduler): Stream[F, Unit] = {
-    val log = implicitly[Log[F]]
-    program.handleErrorWith { err =>
-      val scheduledProgram = S.sleep[F](retry).flatMap(_ => program)
-      for {
-        _ <- Stream.eval(log.error(err))
-        _ <- Stream.eval(log.info(s"Restarting in $retry..."))
-        p <- loop[F](scheduledProgram, retry)
-      } yield p
+  private def loop[F[_]: Effect](program: Stream[F, Unit],
+                                 retry: FiniteDuration,
+                                 count: Int)(implicit ec: ExecutionContext, T: Timer[F], L: Log[F]): Stream[F, Unit] =
+    program.handleErrorWith {
+      case NonFatal(err) =>
+        val scheduledProgram = Stream.eval(T.sleep(retry)).flatMap(_ => program)
+        for {
+          _ <- Stream.eval(L.error(err))
+          _ <- Stream.eval(L.info(s"Restarting in ${retry * count}..."))
+          p <- loop[F](scheduledProgram, retry, count + 1)
+        } yield p
     }
-  }
 
 }

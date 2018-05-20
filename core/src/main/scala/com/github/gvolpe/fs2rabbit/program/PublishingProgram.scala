@@ -21,10 +21,10 @@ import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, Publishing}
 import com.github.gvolpe.fs2rabbit.model.{ExchangeName, RoutingKey, StreamPublisher}
 import com.github.gvolpe.fs2rabbit.typeclasses.StreamEval
 import com.rabbitmq.client.Channel
-import fs2.{Sink, Stream}
+import fs2.Stream
 
 class PublishingProgram[F[_]: Sync](AMQP: AMQPClient[Stream[F, ?]])(implicit SE: StreamEval[F])
-    extends Publishing[Stream[F, ?], Sink[F, ?]] {
+    extends Publishing[Stream[F, ?]] {
 
   override def createPublisher(channel: Channel,
                                exchangeName: ExchangeName,

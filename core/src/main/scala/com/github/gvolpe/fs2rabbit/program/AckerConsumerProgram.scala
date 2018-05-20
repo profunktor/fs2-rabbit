@@ -29,12 +29,12 @@ import scala.concurrent.ExecutionContext
 class AckerConsumerProgram[F[_]](config: Fs2RabbitConfig, AMQP: AMQPClient[Stream[F, ?]])(implicit F: Async[F],
                                                                                           SE: StreamEval[F],
                                                                                           ec: ExecutionContext)
-    extends AckerConsumer[Stream[F, ?], Sink[F, ?]] {
+    extends AckerConsumer[Stream[F, ?]] {
 
   private[fs2rabbit] def resilientConsumer: Pipe[F, Either[Throwable, AmqpEnvelope], AmqpEnvelope] =
     _.flatMap {
       case Left(err)  => Stream.raiseError(err)
-      case Right(env) => SE.evalF[AmqpEnvelope](env)
+      case Right(env) => SE.pure[AmqpEnvelope](env)
     }
 
   override def createAcker(channel: Channel): Sink[F, AckResult] =
@@ -53,7 +53,7 @@ class AckerConsumerProgram[F[_]](config: Fs2RabbitConfig, AMQP: AMQPClient[Strea
                               args: Map[String, AnyRef] = Map.empty[String, AnyRef]): StreamConsumer[F] =
     for {
       internalQ <- Stream.eval(F.liftIO(fs2.async.boundedQueue[IO, Either[Throwable, AmqpEnvelope]](500)))
-      internals = AMQPInternals(internalQ)
+      internals = AMQPInternals(Some(internalQ))
       _         <- AMQP.basicQos(channel, basicQos)
       _         <- AMQP.basicConsume(channel, queueName, autoAck, consumerTag, noLocal, exclusive, args)(internals)
       consumer  <- Stream.repeatEval(internalQ.dequeue1.to[F]) through resilientConsumer
