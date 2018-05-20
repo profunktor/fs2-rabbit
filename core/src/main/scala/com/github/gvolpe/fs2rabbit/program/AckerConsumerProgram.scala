@@ -53,7 +53,7 @@ class AckerConsumerProgram[F[_]](config: Fs2RabbitConfig, AMQP: AMQPClient[Strea
                               args: Map[String, AnyRef] = Map.empty[String, AnyRef]): StreamConsumer[F] =
     for {
       internalQ <- Stream.eval(F.liftIO(fs2.async.boundedQueue[IO, Either[Throwable, AmqpEnvelope]](500)))
-      internals = AMQPInternals(internalQ)
+      internals = AMQPInternals(Some(internalQ))
       _         <- AMQP.basicQos(channel, basicQos)
       _         <- AMQP.basicConsume(channel, queueName, autoAck, consumerTag, noLocal, exclusive, args)(internals)
       consumer  <- Stream.repeatEval(internalQ.dequeue1.to[F]) through resilientConsumer

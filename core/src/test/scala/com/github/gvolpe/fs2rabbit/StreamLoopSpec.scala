@@ -18,6 +18,7 @@ package com.github.gvolpe.fs2rabbit
 
 import cats.effect.IO
 import cats.syntax.apply._
+import com.github.gvolpe.fs2rabbit.typeclasses.Log
 import fs2._
 import fs2.async.Ref
 import org.scalatest.{FlatSpecLike, Matchers}
@@ -33,6 +34,11 @@ class StreamLoopSpec extends FlatSpecLike with Matchers {
 
   object IOAssertion {
     def apply[A](ioa: IO[A]): A = ioa.unsafeRunSync()
+  }
+
+  implicit val logger: Log[IO] = new Log[IO] {
+    override def info(value: String): IO[Unit]     = IO(println(value))
+    override def error(error: Throwable): IO[Unit] = IO(println(error.getMessage))
   }
 
   it should "run a stream until it's finished" in IOAssertion {

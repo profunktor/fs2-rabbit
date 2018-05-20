@@ -39,7 +39,11 @@ class AMQPClientStream[F[_]](implicit F: Effect[F], SE: StreamEval[F], EC: Execu
       new DefaultConsumer(channel) {
 
         override def handleCancel(consumerTag: String): Unit =
-          internals.queue.enqueue1(Left(new Exception(s"Queue might have been DELETED! $consumerTag"))).unsafeRunSync()
+          internals.queue.fold(()) { internalQ =>
+            internalQ
+              .enqueue1(Left(new Exception(s"Queue might have been DELETED! $consumerTag")))
+              .unsafeRunAsync(_ => ())
+          }
 
         override def handleDelivery(consumerTag: String,
                                     envelope: Envelope,
@@ -48,7 +52,9 @@ class AMQPClientStream[F[_]](implicit F: Effect[F], SE: StreamEval[F], EC: Execu
           val msg   = new String(body, "UTF-8")
           val tag   = envelope.getDeliveryTag
           val props = AmqpProperties.from(properties)
-          internals.queue.enqueue1(Right(AmqpEnvelope(DeliveryTag(tag), msg, props))).unsafeRunSync()
+          internals.queue.fold(()) { internalQ =>
+            internalQ.enqueue1(Right(AmqpEnvelope(DeliveryTag(tag), msg, props))).unsafeRunAsync(_ => ())
+          }
         }
       }
     )

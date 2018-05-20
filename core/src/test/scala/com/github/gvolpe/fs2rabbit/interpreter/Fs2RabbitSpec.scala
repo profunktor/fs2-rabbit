@@ -60,14 +60,12 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
   def rabbitRTS(ref: Ref[IO, AMQPInternals],
                 publishingQ: mutable.Queue[IO, Either[Throwable, AmqpEnvelope]]): Stream[IO, Unit] =
     Stream.eval(ref.get).flatMap { internals =>
-      if (internals.queue != null) {
+      internals.queue.fold(rabbitRTS(ref, publishingQ)) { internalQ =>
         for {
-          _ <- (Stream.eval(publishingQ.dequeue1) to (_.evalMap(internals.queue.enqueue1))).take(1)
-          _ <- Stream.eval(ref.setSync(AMQPInternals(null)))
+          _ <- (Stream.eval(publishingQ.dequeue1) to (_.evalMap(internalQ.enqueue1))).take(1)
+          _ <- Stream.eval(ref.setSync(AMQPInternals(None)))
           _ <- rabbitRTS(ref, publishingQ)
         } yield ()
-      } else {
-        rabbitRTS(ref, publishingQ)
       }
     }
 
@@ -76,7 +74,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
       val interpreter = for {
         publishingQ   <- fs2.async.boundedQueue[IO, Either[Throwable, AmqpEnvelope]](500)
         ackerQ        <- fs2.async.boundedQueue[IO, AckResult](500)
-        queueRef      <- fs2.async.refOf[IO, AMQPInternals](AMQPInternals(null))
+        queueRef      <- fs2.async.refOf[IO, AMQPInternals](AMQPInternals(None))
         amqpClient    = new AMQPClientInMemory(queueRef, publishingQ, ackerQ, config)
         connStream    = new ConnectionStub
         ackerConsumer = new AckerConsumerProgram[IO](config, amqpClient)
