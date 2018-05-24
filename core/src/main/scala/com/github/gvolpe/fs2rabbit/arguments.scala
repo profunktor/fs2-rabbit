@@ -16,17 +16,22 @@
 
 package com.github.gvolpe.fs2rabbit
 
+import scala.annotation.implicitNotFound
 import scala.language.implicitConversions
-
 import scala.collection.JavaConverters._
 
 object arguments {
 
+  /**
+    * [[SafeArg]] makes sure the arguments passed to any of the functions are compliant with the AMQP Protocol.
+    *
+    * This library only supports String, Boolean, Int, Long, Float, Short, BigDecimal, Date, Byte, List and Map.
+    * */
   type SafeArg   = Evidence[SafeArgument]
   type Arguments = Map[String, SafeArg]
 
   implicit def argumentConversion(arguments: Arguments): java.util.Map[String, Object] =
-    arguments.mapValues(x => x.ev.toObject(x.value)).asJava
+    arguments.map { case (k, v) => k -> v.ev.toObject(v.value) }.asJava
 
   sealed trait Evidence[F[_]] {
     type A
@@ -38,15 +43,16 @@ object arguments {
 
   implicit def anySafeArg[F[_], A: F](a: A): Evidence[F] = MkEvidence(a)
 
-  trait SafeArgument[A] {
+  @implicitNotFound("Only types supported by the AMQP protocol are allowed. Custom classes are not supported.")
+  sealed trait SafeArgument[A] {
     type JavaType >: Null <: AnyRef
     private[fs2rabbit] def toJavaType(a: A): JavaType
     private[fs2rabbit] def toObject(a: A): Object = toJavaType(a)
   }
 
   object SafeArgument {
-    def apply[A](implicit ev: SafeArgument[A]): SafeArgument[A] = ev
-    def instance[A, J >: Null <: AnyRef](f: A => J): SafeArgument[A] =
+    private[fs2rabbit] def apply[A](implicit ev: SafeArgument[A]): SafeArgument[A] = ev
+    private[fs2rabbit] def instance[A, J >: Null <: AnyRef](f: A => J): SafeArgument[A] =
       new SafeArgument[A] {
         type JavaType = J
         def toJavaType(a: A) = f(a)
