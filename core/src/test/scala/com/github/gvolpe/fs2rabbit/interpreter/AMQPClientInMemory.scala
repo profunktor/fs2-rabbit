@@ -19,6 +19,7 @@ package com.github.gvolpe.fs2rabbit.interpreter
 import cats.effect.IO
 import cats.syntax.apply._
 import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, AMQPInternals}
+import com.github.gvolpe.fs2rabbit.arguments.Arguments
 import com.github.gvolpe.fs2rabbit.config.declaration.DeclarationQueueConfig
 import com.github.gvolpe.fs2rabbit.config.deletion.DeletionQueueConfig
 import com.github.gvolpe.fs2rabbit.config.{Fs2RabbitConfig, deletion}
@@ -67,7 +68,7 @@ class AMQPClientInMemory(ref: Ref[IO, AMQPInternals],
                             consumerTag: String,
                             noLocal: Boolean,
                             exclusive: Boolean,
-                            args: Map[String, AnyRef])(internals: AMQPInternals): Stream[IO, String] = {
+                            args: Arguments)(internals: AMQPInternals): Stream[IO, String] = {
     val ifError =
       raiseError[String](s"Queue ${queueName.value} does not exist!")
     queues.find(_.value == queueName.value).fold(ifError) { _ =>

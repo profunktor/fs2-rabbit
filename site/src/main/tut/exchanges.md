@@ -35,7 +35,7 @@ Two exchanges can be bound together by providing a `RoutingKey` and some extra a
 
 ```tut:book
 def binding(F: Fs2Rabbit[IO])(implicit channel: AMQPChannel) =
-  F.bindExchange(x1, x2, RoutingKey("rk"), ExchangeBindingArgs(Map.empty[String, AnyRef]))
+  F.bindExchange(x1, x2, RoutingKey("rk"), ExchangeBindingArgs(Map.empty))
 ```
 
 Read more about `Exchanges` and `ExchangeType` [here](https://www.rabbitmq.com/tutorials/amqp-concepts.html#exchanges).

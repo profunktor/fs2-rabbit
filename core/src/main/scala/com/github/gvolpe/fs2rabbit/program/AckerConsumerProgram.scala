@@ -18,6 +18,7 @@ package com.github.gvolpe.fs2rabbit.program
 
 import cats.effect.{Async, IO}
 import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, AMQPInternals, AckerConsumer}
+import com.github.gvolpe.fs2rabbit.arguments.Arguments
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.typeclasses.StreamEval
@@ -50,7 +51,7 @@ class AckerConsumerProgram[F[_]](config: Fs2RabbitConfig, AMQP: AMQPClient[Strea
                               noLocal: Boolean = false,
                               exclusive: Boolean = false,
                               consumerTag: String = "",
-                              args: Map[String, AnyRef] = Map.empty[String, AnyRef]): StreamConsumer[F] =
+                              args: Arguments = Map.empty): StreamConsumer[F] =
     for {
       internalQ <- Stream.eval(F.liftIO(fs2.async.boundedQueue[IO, Either[Throwable, AmqpEnvelope]](500)))
       internals = AMQPInternals(Some(internalQ))

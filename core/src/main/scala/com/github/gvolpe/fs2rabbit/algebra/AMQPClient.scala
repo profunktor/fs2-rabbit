@@ -16,6 +16,7 @@
 
 package com.github.gvolpe.fs2rabbit.algebra
 
+import com.github.gvolpe.fs2rabbit.arguments.Arguments
 import com.github.gvolpe.fs2rabbit.config.declaration.DeclarationQueueConfig
 import com.github.gvolpe.fs2rabbit.config.deletion.{DeletionExchangeConfig, DeletionQueueConfig}
 import com.github.gvolpe.fs2rabbit.model.ExchangeType.ExchangeType
@@ -27,7 +28,7 @@ trait AMQPClient[F[_]] extends Binding[F] with Declaration[F] with Deletion[F] {
   def basicAck(channel: Channel, tag: DeliveryTag, multiple: Boolean): F[Unit]
   def basicNack(channel: Channel, tag: DeliveryTag, multiple: Boolean, requeue: Boolean): F[Unit]
   def basicQos(channel: Channel, basicQos: BasicQos): F[Unit]
-  def basicConsume(channel: Channel, queueName: QueueName, autoAck: Boolean, consumerTag: String, noLocal: Boolean, exclusive: Boolean, args: Map[String, AnyRef])(internals: AMQPInternals): F[String]
+  def basicConsume(channel: Channel, queueName: QueueName, autoAck: Boolean, consumerTag: String, noLocal: Boolean, exclusive: Boolean, args: Arguments)(internals: AMQPInternals): F[String]
   def basicPublish(channel: Channel, exchangeName: ExchangeName, routingKey: RoutingKey, msg: AmqpMessage[String]): F[Unit]
 }
 
