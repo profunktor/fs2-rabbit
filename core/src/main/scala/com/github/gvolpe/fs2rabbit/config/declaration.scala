@@ -16,6 +16,7 @@
 
 package com.github.gvolpe.fs2rabbit.config
 
+import com.github.gvolpe.fs2rabbit.arguments.Arguments
 import com.github.gvolpe.fs2rabbit.model.QueueName
 
 object declaration {
@@ -24,7 +25,7 @@ object declaration {
                                           durable: DurableCfg,
                                           exclusive: ExclusiveCfg,
                                           autoDelete: AutoDeleteCfg,
-                                          arguments: Map[String, AnyRef])
+                                          arguments: Arguments)
   object DeclarationQueueConfig {
 
     def default(queueName: QueueName): DeclarationQueueConfig =

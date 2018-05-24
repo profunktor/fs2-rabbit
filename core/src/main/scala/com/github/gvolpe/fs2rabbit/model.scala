@@ -16,6 +16,7 @@
 
 package com.github.gvolpe.fs2rabbit
 
+import com.github.gvolpe.fs2rabbit.arguments.Arguments
 import com.rabbitmq.client.impl.LongStringHelper
 import com.rabbitmq.client.{AMQP, Channel, LongString, Connection => RabbitMQConnection}
 import fs2.{Sink, Stream}
@@ -35,7 +36,7 @@ object model {
   case class RoutingKey(value: String)   extends AnyVal
   case class DeliveryTag(value: Long)    extends AnyVal
 
-  case class ConsumerArgs(consumerTag: String, noLocal: Boolean, exclusive: Boolean, args: Map[String, AnyRef])
+  case class ConsumerArgs(consumerTag: String, noLocal: Boolean, exclusive: Boolean, args: Arguments)
   case class BasicQos(prefetchSize: Int, prefetchCount: Int, global: Boolean = false)
 
   object ExchangeType extends Enumeration {
@@ -59,9 +60,9 @@ object model {
       case LongVal(v)   => Long.box(v)
     }
   }
-  final case class IntVal(v: Int)       extends AmqpHeaderVal
-  final case class LongVal(v: Long)     extends AmqpHeaderVal
-  final case class StringVal(v: String) extends AmqpHeaderVal
+  final case class IntVal(value: Int)       extends AmqpHeaderVal
+  final case class LongVal(value: Long)     extends AmqpHeaderVal
+  final case class StringVal(value: String) extends AmqpHeaderVal
 
   object AmqpHeaderVal {
     def from(value: AnyRef): AmqpHeaderVal = value match {
@@ -107,11 +108,11 @@ object model {
   case class AmqpMessage[A](payload: A, properties: AmqpProperties)
 
   // Binding
-  case class QueueBindingArgs(value: Map[String, AnyRef])    extends AnyVal
-  case class ExchangeBindingArgs(value: Map[String, AnyRef]) extends AnyVal
+  case class QueueBindingArgs(value: Arguments)    extends AnyVal
+  case class ExchangeBindingArgs(value: Arguments) extends AnyVal
 
   // Declaration
-  case class QueueDeclarationArgs(value: Map[String, AnyRef])    extends AnyVal
-  case class ExchangeDeclarationArgs(value: Map[String, AnyRef]) extends AnyVal
+  case class QueueDeclarationArgs(value: Arguments)    extends AnyVal
+  case class ExchangeDeclarationArgs(value: Arguments) extends AnyVal
 
 }

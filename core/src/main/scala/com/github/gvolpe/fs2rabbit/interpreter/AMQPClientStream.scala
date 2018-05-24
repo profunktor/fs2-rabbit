@@ -18,6 +18,7 @@ package com.github.gvolpe.fs2rabbit.interpreter
 
 import cats.effect.Effect
 import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, AMQPInternals}
+import com.github.gvolpe.fs2rabbit.arguments._
 import com.github.gvolpe.fs2rabbit.config.declaration.DeclarationQueueConfig
 import com.github.gvolpe.fs2rabbit.config.deletion
 import com.github.gvolpe.fs2rabbit.config.deletion.DeletionQueueConfig
@@ -28,7 +29,6 @@ import com.github.gvolpe.fs2rabbit.typeclasses.StreamEval
 import com.rabbitmq.client._
 import fs2.Stream
 
-import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext
 
 class AMQPClientStream[F[_]](implicit F: Effect[F], SE: StreamEval[F], EC: ExecutionContext)
@@ -78,10 +78,10 @@ class AMQPClientStream[F[_]](implicit F: Effect[F], SE: StreamEval[F], EC: Execu
                             consumerTag: String,
                             noLocal: Boolean,
                             exclusive: Boolean,
-                            args: Map[String, AnyRef])(internals: AMQPInternals): Stream[F, String] =
+                            args: Arguments)(internals: AMQPInternals): Stream[F, String] =
     for {
       dc <- defaultConsumer(channel, internals)
-      rs <- SE.evalF(channel.basicConsume(queueName.value, autoAck, consumerTag, noLocal, exclusive, args.asJava, dc))
+      rs <- SE.evalF(channel.basicConsume(queueName.value, autoAck, consumerTag, noLocal, exclusive, args, dc))
     } yield rs
 
   override def basicPublish(channel: Channel,
@@ -106,7 +106,7 @@ class AMQPClientStream[F[_]](implicit F: Effect[F], SE: StreamEval[F], EC: Execu
                          exchangeName: ExchangeName,
                          routingKey: RoutingKey,
                          args: QueueBindingArgs): Stream[F, Unit] = SE.evalF {
-    channel.queueBind(queueName.value, exchangeName.value, routingKey.value, args.value.asJava)
+    channel.queueBind(queueName.value, exchangeName.value, routingKey.value, args.value)
   }
 
   override def bindQueueNoWait(channel: Channel,
@@ -114,7 +114,7 @@ class AMQPClientStream[F[_]](implicit F: Effect[F], SE: StreamEval[F], EC: Execu
                                exchangeName: ExchangeName,
                                routingKey: RoutingKey,
                                args: QueueBindingArgs): Stream[F, Unit] = SE.evalF {
-    channel.queueBindNoWait(queueName.value, exchangeName.value, routingKey.value, args.value.asJava)
+    channel.queueBindNoWait(queueName.value, exchangeName.value, routingKey.value, args.value)
   }
 
   override def unbindQueue(channel: Channel,
@@ -129,7 +129,7 @@ class AMQPClientStream[F[_]](implicit F: Effect[F], SE: StreamEval[F], EC: Execu
                             source: ExchangeName,
                             routingKey: RoutingKey,
                             args: ExchangeBindingArgs): Stream[F, Unit] = SE.evalF {
-    channel.exchangeBind(destination.value, source.value, routingKey.value, args.value.asJava)
+    channel.exchangeBind(destination.value, source.value, routingKey.value, args.value)
   }
 
   override def declareExchange(channel: Channel,
@@ -144,7 +144,7 @@ class AMQPClientStream[F[_]](implicit F: Effect[F], SE: StreamEval[F], EC: Execu
       config.durable.isTrue,
       config.exclusive.isTrue,
       config.autoDelete.isTrue,
-      config.arguments.asJava
+      config.arguments
     )
   }
 
@@ -155,7 +155,7 @@ class AMQPClientStream[F[_]](implicit F: Effect[F], SE: StreamEval[F], EC: Execu
         config.durable.isTrue,
         config.exclusive.isTrue,
         config.autoDelete.isTrue,
-        config.arguments.asJava
+        config.arguments
       )
     }
 

@@ -16,6 +16,7 @@
 
 package com.github.gvolpe.fs2rabbit.algebra
 
+import com.github.gvolpe.fs2rabbit.arguments.Arguments
 import com.github.gvolpe.fs2rabbit.model.{AckResult, AmqpEnvelope, BasicQos, QueueName}
 import com.rabbitmq.client.Channel
 
@@ -30,6 +31,6 @@ trait AckerConsumer[F[_]] {
                      noLocal: Boolean = false,
                      exclusive: Boolean = false,
                      consumerTag: String = "",
-                     args: Map[String, AnyRef] = Map.empty[String, AnyRef]): F[AmqpEnvelope]
+                     args: Arguments = Map.empty): F[AmqpEnvelope]
 
 }
