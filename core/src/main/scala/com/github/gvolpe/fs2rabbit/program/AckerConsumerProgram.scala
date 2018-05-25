@@ -20,6 +20,7 @@ import cats.effect.{Async, IO}
 import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, AMQPInternals, AckerConsumer}
 import com.github.gvolpe.fs2rabbit.arguments.Arguments
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
+import com.github.gvolpe.fs2rabbit.model.AckResult.{Ack, NAck}
 import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.typeclasses.StreamEval
 import com.rabbitmq.client.Channel

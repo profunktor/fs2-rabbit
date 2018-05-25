@@ -16,7 +16,8 @@
 
 package com.github.gvolpe.fs2rabbit
 
-import com.github.gvolpe.fs2rabbit.model.{AmqpHeaderVal, IntVal, LongVal, StringVal}
+import com.github.gvolpe.fs2rabbit.model.AmqpHeaderVal
+import com.github.gvolpe.fs2rabbit.model.AmqpHeaderVal._
 import org.scalatest.{FlatSpecLike, Matchers}
 
 class AmqpHeaderValSpec extends FlatSpecLike with Matchers {

@@ -24,9 +24,9 @@ import com.github.gvolpe.fs2rabbit.config.declaration.DeclarationQueueConfig
 import com.github.gvolpe.fs2rabbit.config.deletion.DeletionQueueConfig
 import com.github.gvolpe.fs2rabbit.config.{Fs2RabbitConfig, deletion}
 import com.github.gvolpe.fs2rabbit.model
-import com.github.gvolpe.fs2rabbit.model.ExchangeType.ExchangeType
+import com.github.gvolpe.fs2rabbit.model.AckResult.{Ack, NAck}
 import com.github.gvolpe.fs2rabbit.model._
-import com.rabbitmq.client.{Channel, Consumer}
+import com.rabbitmq.client.Channel
 import fs2.Stream
 import fs2.async.{Ref, mutable}
 

@@ -17,14 +17,17 @@
 package com.github.gvolpe.fs2rabbit
 
 import com.github.gvolpe.fs2rabbit.arguments.Arguments
+import com.github.gvolpe.fs2rabbit.model.AmqpHeaderVal.{IntVal, LongVal, StringVal}
 import com.rabbitmq.client.impl.LongStringHelper
-import com.rabbitmq.client.{AMQP, Channel, LongString, Connection => RabbitMQConnection}
+import com.rabbitmq.client.{AMQP, Channel, LongString}
 import fs2.{Sink, Stream}
 
 object model {
 
-  trait AMQPConnection
-  case class RabbitConnection(connection: RabbitMQConnection) extends AMQPConnection
+  type StreamAcker[F[_]]         = Sink[F, AckResult]
+  type StreamConsumer[F[_]]      = Stream[F, AmqpEnvelope]
+  type StreamAckerConsumer[F[_]] = (StreamAcker[F], StreamConsumer[F])
+  type StreamPublisher[F[_]]     = Sink[F, AmqpMessage[String]]
 
   trait AMQPChannel {
     def value: Channel
@@ -39,19 +42,21 @@ object model {
   case class ConsumerArgs(consumerTag: String, noLocal: Boolean, exclusive: Boolean, args: Arguments)
   case class BasicQos(prefetchSize: Int, prefetchCount: Int, global: Boolean = false)
 
-  object ExchangeType extends Enumeration {
-    type ExchangeType = Value
-    val Direct, FanOut, Headers, Topic = Value
+  sealed trait ExchangeType extends Product with Serializable
+
+  object ExchangeType {
+    case object Direct  extends ExchangeType
+    case object FanOut  extends ExchangeType
+    case object Headers extends ExchangeType
+    case object Topic   extends ExchangeType
   }
 
-  sealed trait AckResult                          extends Product with Serializable
-  final case class Ack(deliveryTag: DeliveryTag)  extends AckResult
-  final case class NAck(deliveryTag: DeliveryTag) extends AckResult
+  sealed trait AckResult extends Product with Serializable
 
-  type StreamAcker[F[_]]         = Sink[F, AckResult]
-  type StreamConsumer[F[_]]      = Stream[F, AmqpEnvelope]
-  type StreamAckerConsumer[F[_]] = (StreamAcker[F], StreamConsumer[F])
-  type StreamPublisher[F[_]]     = Sink[F, AmqpMessage[String]]
+  object AckResult {
+    final case class Ack(deliveryTag: DeliveryTag)  extends AckResult
+    final case class NAck(deliveryTag: DeliveryTag) extends AckResult
+  }
 
   sealed trait AmqpHeaderVal extends Product with Serializable {
     def impure: AnyRef = this match {
@@ -60,11 +65,12 @@ object model {
       case LongVal(v)   => Long.box(v)
     }
   }
-  final case class IntVal(value: Int)       extends AmqpHeaderVal
-  final case class LongVal(value: Long)     extends AmqpHeaderVal
-  final case class StringVal(value: String) extends AmqpHeaderVal
 
   object AmqpHeaderVal {
+    final case class IntVal(value: Int)       extends AmqpHeaderVal
+    final case class LongVal(value: Long)     extends AmqpHeaderVal
+    final case class StringVal(value: String) extends AmqpHeaderVal
+
     def from(value: AnyRef): AmqpHeaderVal = value match {
       case ls: LongString       => StringVal(new String(ls.getBytes, "UTF-8"))
       case s: String            => StringVal(s)
@@ -104,7 +110,6 @@ object model {
   }
 
   case class AmqpEnvelope(deliveryTag: DeliveryTag, payload: String, properties: AmqpProperties)
-
   case class AmqpMessage[A](payload: A, properties: AmqpProperties)
 
   // Binding
