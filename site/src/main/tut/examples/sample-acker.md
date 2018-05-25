@@ -13,6 +13,8 @@ import cats.effect.{Effect, IO}
 import com.github.gvolpe.fs2rabbit.config.declaration.DeclarationQueueConfig
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
 import com.github.gvolpe.fs2rabbit.json.Fs2JsonEncoder
+import com.github.gvolpe.fs2rabbit.model.AckResult._
+import com.github.gvolpe.fs2rabbit.model.AmqpHeaderVal._
 import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.typeclasses.StreamEval
 import fs2.{Pipe, Stream}

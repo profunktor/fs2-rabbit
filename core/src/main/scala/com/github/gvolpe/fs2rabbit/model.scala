@@ -29,7 +29,7 @@ object model {
   type StreamAckerConsumer[F[_]] = (StreamAcker[F], StreamConsumer[F])
   type StreamPublisher[F[_]]     = Sink[F, AmqpMessage[String]]
 
-  private[fs2rabbit] trait AMQPChannel {
+  trait AMQPChannel {
     def value: Channel
   }
   case class RabbitChannel(value: Channel) extends AMQPChannel
