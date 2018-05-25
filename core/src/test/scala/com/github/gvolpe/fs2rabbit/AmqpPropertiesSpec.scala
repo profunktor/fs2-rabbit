@@ -16,7 +16,8 @@
 
 package com.github.gvolpe.fs2rabbit
 
-import com.github.gvolpe.fs2rabbit.model.{AmqpHeaderVal, AmqpProperties, IntVal, LongVal, StringVal}
+import com.github.gvolpe.fs2rabbit.model.AmqpHeaderVal._
+import com.github.gvolpe.fs2rabbit.model.{AmqpHeaderVal, AmqpProperties}
 import org.scalacheck._
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalatest.{FlatSpecLike, Matchers}

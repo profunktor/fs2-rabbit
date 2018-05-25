@@ -22,6 +22,7 @@ import com.github.gvolpe.fs2rabbit.algebra.AMQPInternals
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 import com.github.gvolpe.fs2rabbit.config.declaration.{AutoDelete, DeclarationQueueConfig, Durable, Exclusive}
 import com.github.gvolpe.fs2rabbit.config.deletion.{DeletionExchangeConfig, DeletionQueueConfig}
+import com.github.gvolpe.fs2rabbit.model.AckResult.{Ack, NAck}
 import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.program.AckerConsumerProgram
 import fs2.async.{Ref, mutable}

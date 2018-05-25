@@ -22,7 +22,6 @@ import com.github.gvolpe.fs2rabbit.arguments._
 import com.github.gvolpe.fs2rabbit.config.declaration.DeclarationQueueConfig
 import com.github.gvolpe.fs2rabbit.config.deletion
 import com.github.gvolpe.fs2rabbit.config.deletion.DeletionQueueConfig
-import com.github.gvolpe.fs2rabbit.model.ExchangeType.ExchangeType
 import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.typeclasses.BoolValue.syntax._
 import com.github.gvolpe.fs2rabbit.typeclasses.StreamEval
