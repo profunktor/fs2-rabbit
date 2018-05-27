@@ -16,7 +16,7 @@
 
 package com.github.gvolpe.fs2rabbit.interpreter
 
-import cats.effect.{IO, Timer}
+import cats.effect.IO
 import com.github.gvolpe.fs2rabbit.StreamAssertion
 import com.github.gvolpe.fs2rabbit.algebra.AMQPInternals
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
@@ -423,7 +423,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
   }
 
   def takeWithTimeOut[A](stream: Stream[IO, A], timeout: FiniteDuration): Stream[IO, Option[A]] =
-    stream.last.mergeHaltR(Stream.eval(Timer[IO].sleep(timeout)).map(_ => None: Option[A]))
+    stream.last.mergeHaltR(Stream.eval(IO.sleep(timeout)).map(_ => None: Option[A]))
 
   it should "create a publisher, two auto-ack consumers with different routing keys and assert the routing is correct" in StreamAssertion(
     TestFs2Rabbit(config)) { interpreter =>
