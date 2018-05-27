@@ -40,6 +40,6 @@ object MonixAutoAckConsumer extends IOApp {
 
   override def start(args: List[String]): IO[Unit] =
     Fs2Rabbit[Task](config).flatMap { implicit interpreter =>
-      StreamLoop.run(() => new AutoAckConsumerDemo[Task].program)
+      StreamLoop.run(new AutoAckConsumerDemo[Task].program)
     }.toIO
 }
