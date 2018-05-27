@@ -33,14 +33,14 @@ import scala.util.control.NonFatal
   *
   * By default the program will be restarted in 5 seconds, then 10, then 15, etc.
   *
-  * @see the StreamLoopSpec that demonstrates an use case.
+  * @see the StreamLoopSpec that demonstrates a use case.
   * */
 object StreamLoop {
 
   def run[F[_]](
-      program: () => Stream[F, Unit],
+      program: Stream[F, Unit],
       retry: FiniteDuration = 5.seconds)(implicit F: Effect[F], T: Timer[F], ec: ExecutionContext, L: Log[F]): F[Unit] =
-    loop(program(), retry, 1).compile.drain
+    loop(program, retry, 1).compile.drain
 
   private def loop[F[_]: Effect](program: Stream[F, Unit],
                                  retry: FiniteDuration,

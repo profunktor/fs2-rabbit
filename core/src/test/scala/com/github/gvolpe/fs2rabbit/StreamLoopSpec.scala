@@ -43,7 +43,7 @@ class StreamLoopSpec extends FlatSpecLike with Matchers {
 
   it should "run a stream until it's finished" in IOAssertion {
     val program = Stream(1, 2, 3).covary[IO] to sink
-    StreamLoop.run(() => program)
+    StreamLoop.run(program)
   }
 
   it should "run a stream and recover in case of failure" in IOAssertion {
@@ -57,7 +57,7 @@ class StreamLoopSpec extends FlatSpecLike with Matchers {
         }
       }
 
-    async.refOf[IO, Int](2).flatMap(ref => StreamLoop.run(() => p(ref), 1.second))
+    async.refOf[IO, Int](2).flatMap(ref => StreamLoop.run(p(ref), 1.second))
   }
 
 }

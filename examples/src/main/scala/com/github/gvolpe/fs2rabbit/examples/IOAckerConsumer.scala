@@ -38,6 +38,6 @@ object IOAckerConsumer extends IOApp {
 
   override def start(args: List[String]): IO[Unit] =
     Fs2Rabbit[IO](config).flatMap { implicit interpreter =>
-      StreamLoop.run(() => new AckerConsumerDemo[IO]().program)
+      StreamLoop.run(new AckerConsumerDemo[IO]().program)
     }
 }
