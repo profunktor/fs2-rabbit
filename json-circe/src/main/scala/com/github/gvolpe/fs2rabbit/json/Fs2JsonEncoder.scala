@@ -18,7 +18,7 @@ package com.github.gvolpe.fs2rabbit.json
 
 import cats.effect.Sync
 import com.github.gvolpe.fs2rabbit.model.AmqpMessage
-import com.github.gvolpe.fs2rabbit.typeclasses.StreamEval
+import com.github.gvolpe.fs2rabbit.util.StreamEval
 import fs2.Pipe
 import io.circe.Encoder
 import io.circe.syntax._

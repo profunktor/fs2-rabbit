@@ -17,9 +17,9 @@
 package com.github.gvolpe.fs2rabbit.examples
 
 import cats.effect.IO
-import com.github.gvolpe.fs2rabbit.StreamLoop
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
+import com.github.gvolpe.fs2rabbit.resiliency.ResilientStream
 
 import scala.concurrent.ExecutionContext
 
@@ -38,6 +38,6 @@ object IOAckerConsumer extends IOApp {
 
   override def start(args: List[String]): IO[Unit] =
     Fs2Rabbit[IO](config).flatMap { implicit interpreter =>
-      StreamLoop.run(new AckerConsumerDemo[IO]().program)
+      ResilientStream.run(new AckerConsumerDemo[IO]().program)
     }
 }

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.github.gvolpe.fs2rabbit.typeclasses
+package com.github.gvolpe.fs2rabbit.util
 
 import cats.effect.Sync
 import fs2.{Pipe, Sink, Stream}

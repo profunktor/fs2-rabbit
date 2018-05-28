@@ -19,7 +19,7 @@ package com.github.gvolpe.fs2rabbit.program
 import cats.effect.Sync
 import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, Publishing}
 import com.github.gvolpe.fs2rabbit.model.{ExchangeName, RoutingKey, StreamPublisher}
-import com.github.gvolpe.fs2rabbit.typeclasses.StreamEval
+import com.github.gvolpe.fs2rabbit.util.StreamEval
 import com.rabbitmq.client.Channel
 import fs2.Stream
 

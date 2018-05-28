@@ -23,7 +23,7 @@ import com.github.gvolpe.fs2rabbit.json.Fs2JsonEncoder
 import com.github.gvolpe.fs2rabbit.model.AckResult.Ack
 import com.github.gvolpe.fs2rabbit.model.AmqpHeaderVal.{LongVal, StringVal}
 import com.github.gvolpe.fs2rabbit.model._
-import com.github.gvolpe.fs2rabbit.typeclasses.StreamEval
+import com.github.gvolpe.fs2rabbit.util.StreamEval
 import fs2.{Pipe, Stream}
 
 import scala.concurrent.ExecutionContext

@@ -14,15 +14,14 @@
  * limitations under the License.
  */
 
-package com.github.gvolpe.fs2rabbit.typeclasses
+package com.github.gvolpe.fs2rabbit.util
 
 import com.github.gvolpe.fs2rabbit.config.declaration._
 import com.github.gvolpe.fs2rabbit.config.deletion.{Empty, IfEmptyCfg, IfUnusedCfg, Unused}
 
 trait BoolValue[A] {
   def isTrue(a: A): Boolean
-  def isFalse(a: A): Boolean =
-    !isTrue(a)
+  def isFalse(a: A): Boolean = !isTrue(a)
 }
 
 object BoolValue {

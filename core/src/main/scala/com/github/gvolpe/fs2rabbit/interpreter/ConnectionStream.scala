@@ -21,8 +21,8 @@ import cats.syntax.flatMap._
 import cats.syntax.functor._
 import com.github.gvolpe.fs2rabbit.algebra.Connection
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
+import com.github.gvolpe.fs2rabbit.util.{Log, StreamEval}
 import com.github.gvolpe.fs2rabbit.model.{AMQPChannel, RabbitChannel}
-import com.github.gvolpe.fs2rabbit.typeclasses.{Log, StreamEval}
 import com.rabbitmq.client.{ConnectionFactory, Connection => RabbitMQConnection}
 import fs2.Stream
 

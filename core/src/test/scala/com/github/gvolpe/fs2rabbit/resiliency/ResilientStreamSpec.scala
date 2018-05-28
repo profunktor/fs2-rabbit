@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package com.github.gvolpe.fs2rabbit
+package com.github.gvolpe.fs2rabbit.resiliency
 
 import cats.effect.IO
 import cats.syntax.apply._
-import com.github.gvolpe.fs2rabbit.typeclasses.Log
+import com.github.gvolpe.fs2rabbit.util.Log
 import fs2._
 import fs2.async.Ref
 import org.scalatest.{FlatSpecLike, Matchers}
@@ -26,7 +26,7 @@ import org.scalatest.{FlatSpecLike, Matchers}
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
-class StreamLoopSpec extends FlatSpecLike with Matchers {
+class ResilientStreamSpec extends FlatSpecLike with Matchers {
 
   implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
 
@@ -43,7 +43,7 @@ class StreamLoopSpec extends FlatSpecLike with Matchers {
 
   it should "run a stream until it's finished" in IOAssertion {
     val program = Stream(1, 2, 3).covary[IO] to sink
-    StreamLoop.run(program)
+    ResilientStream.run(program)
   }
 
   it should "run a stream and recover in case of failure" in IOAssertion {
@@ -57,7 +57,7 @@ class StreamLoopSpec extends FlatSpecLike with Matchers {
         }
       }
 
-    async.refOf[IO, Int](2).flatMap(ref => StreamLoop.run(p(ref), 1.second))
+    async.refOf[IO, Int](2).flatMap(ref => ResilientStream.run(p(ref), 1.second))
   }
 
 }
