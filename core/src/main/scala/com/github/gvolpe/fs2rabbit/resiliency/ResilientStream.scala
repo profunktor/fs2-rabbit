@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package com.github.gvolpe.fs2rabbit
+package com.github.gvolpe.fs2rabbit.resiliency
 
 import cats.effect.{Effect, Timer}
-import com.github.gvolpe.fs2rabbit.typeclasses.Log
+import com.github.gvolpe.fs2rabbit.util.Log
 import fs2.Stream
 
 import scala.concurrent.ExecutionContext
@@ -33,9 +33,9 @@ import scala.util.control.NonFatal
   *
   * By default the program will be restarted in 5 seconds, then 10, then 15, etc.
   *
-  * @see the StreamLoopSpec that demonstrates a use case.
+  * @see ResilientStreamSpec for more.
   * */
-object StreamLoop {
+object ResilientStream {
 
   def run[F[_]](
       program: Stream[F, Unit],

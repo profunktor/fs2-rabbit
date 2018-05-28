@@ -16,7 +16,7 @@ import com.github.gvolpe.fs2rabbit.json.Fs2JsonEncoder
 import com.github.gvolpe.fs2rabbit.model.AckResult._
 import com.github.gvolpe.fs2rabbit.model.AmqpHeaderVal._
 import com.github.gvolpe.fs2rabbit.model._
-import com.github.gvolpe.fs2rabbit.typeclasses.StreamEval
+import com.github.gvolpe.fs2rabbit.util.StreamEval
 import fs2.{Pipe, Stream}
 
 import scala.concurrent.ExecutionContext
@@ -82,9 +82,9 @@ At the edge of out program we define our effect, `monix.eval.Task` in this case,
 
 ```tut:book:silent
 import cats.effect.IO
-import com.github.gvolpe.fs2rabbit.StreamLoop
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
+import com.github.gvolpe.fs2rabbit.resiliency.ResilientStream
 import monix.eval.Task
 import monix.execution.Scheduler.Implicits.global
 
@@ -105,7 +105,7 @@ object MonixAutoAckConsumer extends IOApp {
 
   override def start(args: List[String]): IO[Unit] =
     Fs2Rabbit[Task](config).flatMap { implicit interpreter =>
-      StreamLoop.run(new AutoAckConsumerDemo[Task].program)
+      ResilientStream.run(new AutoAckConsumerDemo[Task].program)
     }.toIO
 }
 ```

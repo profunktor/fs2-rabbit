@@ -17,9 +17,9 @@
 package com.github.gvolpe.fs2rabbit.examples
 
 import cats.effect.IO
-import com.github.gvolpe.fs2rabbit.StreamLoop
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
+import com.github.gvolpe.fs2rabbit.resiliency.ResilientStream
 import monix.eval.Task
 import monix.execution.Scheduler.Implicits.global
 
@@ -40,6 +40,6 @@ object MonixAutoAckConsumer extends IOApp {
 
   override def start(args: List[String]): IO[Unit] =
     Fs2Rabbit[Task](config).flatMap { implicit interpreter =>
-      StreamLoop.run(new AutoAckConsumerDemo[Task].program)
+      ResilientStream.run(new AutoAckConsumerDemo[Task].program)
     }.toIO
 }

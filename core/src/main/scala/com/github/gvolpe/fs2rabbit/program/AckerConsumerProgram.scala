@@ -22,7 +22,7 @@ import com.github.gvolpe.fs2rabbit.arguments.Arguments
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 import com.github.gvolpe.fs2rabbit.model.AckResult.{Ack, NAck}
 import com.github.gvolpe.fs2rabbit.model._
-import com.github.gvolpe.fs2rabbit.typeclasses.StreamEval
+import com.github.gvolpe.fs2rabbit.util.StreamEval
 import com.rabbitmq.client.Channel
 import fs2.{Pipe, Sink, Stream}
 
