@@ -34,7 +34,7 @@ libraryDependencies += "com.github.gvolpe" %% "fs2-rabbit-circe" % Version
 | cats-effect | 1.0.0-RC   |
 | fs2         | 0.10.4     |
 | circe       | 0.9.2      |
-| amqp-client | 4.1.0      |
+| amqp-client | 4.6.0      |
 
 ## Usage Guide
 
