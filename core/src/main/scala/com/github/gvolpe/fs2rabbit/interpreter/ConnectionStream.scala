@@ -37,7 +37,7 @@ class ConnectionStream[F[_]](config: Fs2RabbitConfig)(implicit F: Sync[F], L: Lo
       factory.setVirtualHost(config.virtualHost)
       factory.setConnectionTimeout(config.connectionTimeout)
       if (config.ssl) {
-        factory.useSslProtocol()
+        config.sslContext.fold(factory.useSslProtocol())(factory.useSslProtocol)
       }
       config.username.foreach(factory.setUsername)
       config.password.foreach(factory.setPassword)
