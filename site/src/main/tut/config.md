@@ -18,6 +18,7 @@ val config = Fs2RabbitConfig(
   password = Some("guest"),
   port = 5672,
   ssl = false,
+  sslContext = None,
   connectionTimeout = 3,
   requeueOnNack = false
 )
