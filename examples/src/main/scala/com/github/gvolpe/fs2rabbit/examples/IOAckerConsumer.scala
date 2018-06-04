@@ -27,15 +27,17 @@ object IOAckerConsumer extends IOApp {
 
   implicit val appS: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
 
-  private val config: Fs2RabbitConfig = Fs2RabbitConfig(virtualHost = "/",
-                                                        host = "127.0.0.1",
-                                                        username = Some("guest"),
-                                                        password = Some("guest"),
-                                                        port = 5672,
-                                                        ssl = false,
-                                                        sslContext = None,
-                                                        connectionTimeout = 3,
-                                                        requeueOnNack = false)
+  private val config: Fs2RabbitConfig = Fs2RabbitConfig(
+    virtualHost = "/",
+    host = "127.0.0.1",
+    username = Some("guest"),
+    password = Some("guest"),
+    port = 5672,
+    ssl = false,
+    sslContext = None,
+    connectionTimeout = 3,
+    requeueOnNack = false
+  )
 
   override def start(args: List[String]): IO[Unit] =
     Fs2Rabbit[IO](config).flatMap { implicit interpreter =>

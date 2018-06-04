@@ -16,7 +16,7 @@
 
 package com.github.gvolpe.fs2rabbit.interpreter
 
-import cats.effect.Effect
+import cats.effect.Sync
 import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, AMQPInternals}
 import com.github.gvolpe.fs2rabbit.arguments._
 import com.github.gvolpe.fs2rabbit.config.declaration.DeclarationQueueConfig
@@ -28,10 +28,7 @@ import com.github.gvolpe.fs2rabbit.util.StreamEval
 import com.rabbitmq.client._
 import fs2.Stream
 
-import scala.concurrent.ExecutionContext
-
-class AMQPClientStream[F[_]](implicit F: Effect[F], SE: StreamEval[F], EC: ExecutionContext)
-    extends AMQPClient[Stream[F, ?]] {
+class AMQPClientStream[F[_]: Sync](implicit SE: StreamEval[F]) extends AMQPClient[Stream[F, ?]] {
 
   private[fs2rabbit] def defaultConsumer(channel: Channel, internals: AMQPInternals): Stream[F, Consumer] =
     SE.pure(

@@ -16,7 +16,7 @@
 
 package com.github.gvolpe.fs2rabbit.examples
 
-import cats.effect.Effect
+import cats.effect.Concurrent
 import com.github.gvolpe.fs2rabbit.config.declaration.DeclarationQueueConfig
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
 import com.github.gvolpe.fs2rabbit.json.Fs2JsonEncoder
@@ -28,7 +28,7 @@ import fs2.{Pipe, Stream}
 
 import scala.concurrent.ExecutionContext
 
-class AutoAckConsumerDemo[F[_]: Effect](implicit F: Fs2Rabbit[F], EC: ExecutionContext, SE: StreamEval[F]) {
+class AutoAckConsumerDemo[F[_]: Concurrent](implicit F: Fs2Rabbit[F], EC: ExecutionContext, SE: StreamEval[F]) {
 
   private val queueName    = QueueName("testQ")
   private val exchangeName = ExchangeName("testEX")
@@ -54,9 +54,10 @@ class AutoAckConsumerDemo[F[_]: Effect](implicit F: Fs2Rabbit[F], EC: ExecutionC
 
 }
 
-class AutoAckFlow[F[_]](consumer: StreamConsumer[F],
-                        logger: Pipe[F, AmqpEnvelope, AckResult],
-                        publisher: StreamPublisher[F])(implicit ec: ExecutionContext, SE: StreamEval[F], F: Effect[F]) {
+class AutoAckFlow[F[_]](
+    consumer: StreamConsumer[F],
+    logger: Pipe[F, AmqpEnvelope, AckResult],
+    publisher: StreamPublisher[F])(implicit ec: ExecutionContext, SE: StreamEval[F], F: Concurrent[F]) {
 
   import io.circe.generic.auto._
 

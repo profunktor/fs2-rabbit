@@ -17,6 +17,7 @@
 package com.github.gvolpe.fs2rabbit.interpreter
 
 import cats.effect.IO
+import cats.effect.concurrent.Ref
 import cats.syntax.apply._
 import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, AMQPInternals}
 import com.github.gvolpe.fs2rabbit.arguments.Arguments
@@ -28,7 +29,7 @@ import com.github.gvolpe.fs2rabbit.model.AckResult.{Ack, NAck}
 import com.github.gvolpe.fs2rabbit.model._
 import com.rabbitmq.client.Channel
 import fs2.Stream
-import fs2.async.{Ref, mutable}
+import fs2.async.mutable
 
 import scala.collection.mutable.{Set => MutableSet}
 
@@ -72,7 +73,7 @@ class AMQPClientInMemory(ref: Ref[IO, AMQPInternals],
     val ifError =
       raiseError[String](s"Queue ${queueName.value} does not exist!")
     queues.find(_.value == queueName.value).fold(ifError) { _ =>
-      Stream.eval(ref.setSync(internals)).map(_ => "dequeue1 happens in AckerConsumerProgram.createConsumer")
+      Stream.eval(ref.set(internals)).map(_ => "dequeue1 happens in AckerConsumerProgram.createConsumer")
     }
   }
 

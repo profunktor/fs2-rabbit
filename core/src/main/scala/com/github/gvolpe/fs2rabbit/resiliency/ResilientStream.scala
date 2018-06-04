@@ -16,11 +16,10 @@
 
 package com.github.gvolpe.fs2rabbit.resiliency
 
-import cats.effect.{Effect, Timer}
+import cats.effect.{Sync, Timer}
 import com.github.gvolpe.fs2rabbit.util.Log
 import fs2.Stream
 
-import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.util.control.NonFatal
 
@@ -37,14 +36,12 @@ import scala.util.control.NonFatal
   * */
 object ResilientStream {
 
-  def run[F[_]](
-      program: Stream[F, Unit],
-      retry: FiniteDuration = 5.seconds)(implicit F: Effect[F], T: Timer[F], ec: ExecutionContext, L: Log[F]): F[Unit] =
+  def run[F[_]: Sync: Timer: Log](program: Stream[F, Unit], retry: FiniteDuration = 5.seconds): F[Unit] =
     loop(program, retry, 1).compile.drain
 
-  private def loop[F[_]: Effect](program: Stream[F, Unit],
-                                 retry: FiniteDuration,
-                                 count: Int)(implicit ec: ExecutionContext, T: Timer[F], L: Log[F]): Stream[F, Unit] =
+  private def loop[F[_]: Sync](program: Stream[F, Unit], retry: FiniteDuration, count: Int)(
+      implicit T: Timer[F],
+      L: Log[F]): Stream[F, Unit] =
     program.handleErrorWith {
       case NonFatal(err) =>
         val scheduledProgram = Stream.eval(T.sleep(retry)).flatMap(_ => program)
