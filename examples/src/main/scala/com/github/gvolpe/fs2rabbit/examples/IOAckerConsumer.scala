@@ -16,7 +16,8 @@
 
 package com.github.gvolpe.fs2rabbit.examples
 
-import cats.effect.IO
+import cats.effect.{ExitCode, IO, IOApp}
+import cats.syntax.functor._
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
 import com.github.gvolpe.fs2rabbit.resiliency.ResilientStream
@@ -39,8 +40,10 @@ object IOAckerConsumer extends IOApp {
     requeueOnNack = false
   )
 
-  override def start(args: List[String]): IO[Unit] =
-    Fs2Rabbit[IO](config).flatMap { implicit interpreter =>
-      ResilientStream.run(new AckerConsumerDemo[IO]().program)
-    }
+  override def run(args: List[String]): IO[ExitCode] =
+    Fs2Rabbit[IO](config)
+      .flatMap { implicit interpreter =>
+        ResilientStream.run(new AckerConsumerDemo[IO]().program)
+      }
+      .as(ExitCode.Success)
 }

@@ -61,7 +61,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
     * Runtime Test Suite that makes sure the internal queues are connected when publishing and consuming in order to
     * simulate a running RabbitMQ server. It should run concurrently with every single test.
     * */
-  def rabbitRTS(ref: Ref[IO, AMQPInternals],
+  def rabbitRTS(ref: Ref[IO, AMQPInternals[IO]],
                 publishingQ: mutable.Queue[IO, Either[Throwable, AmqpEnvelope]]): Stream[IO, Unit] =
     Stream.eval(ref.get).flatMap { internals =>
       internals.queue.fold(rabbitRTS(ref, publishingQ)) { internalQ =>
@@ -78,7 +78,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
       val interpreter = for {
         publishingQ   <- fs2.async.boundedQueue[IO, Either[Throwable, AmqpEnvelope]](500)
         ackerQ        <- fs2.async.boundedQueue[IO, AckResult](500)
-        queueRef      <- Ref.of[IO, AMQPInternals](AMQPInternals(None))
+        queueRef      <- Ref.of[IO, AMQPInternals[IO]](AMQPInternals(None))
         amqpClient    = new AMQPClientInMemory(queueRef, publishingQ, ackerQ, config)
         connStream    = new ConnectionStub
         ackerConsumer = new AckerConsumerProgram[IO](config, amqpClient)

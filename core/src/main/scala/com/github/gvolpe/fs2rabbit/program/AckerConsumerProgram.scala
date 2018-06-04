@@ -16,7 +16,7 @@
 
 package com.github.gvolpe.fs2rabbit.program
 
-import cats.effect.{Concurrent, IO, Timer}
+import cats.effect.{Concurrent, Timer}
 import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, AMQPInternals, AckerConsumer}
 import com.github.gvolpe.fs2rabbit.arguments.Arguments
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
@@ -26,7 +26,7 @@ import com.github.gvolpe.fs2rabbit.util.StreamEval
 import com.rabbitmq.client.Channel
 import fs2.{Pipe, Sink, Stream}
 
-class AckerConsumerProgram[F[_]: Timer](config: Fs2RabbitConfig, AMQP: AMQPClient[Stream[F, ?]])(
+class AckerConsumerProgram[F[_]: Timer](config: Fs2RabbitConfig, AMQP: AMQPClient[Stream[F, ?], F])(
     implicit F: Concurrent[F],
     SE: StreamEval[F])
     extends AckerConsumer[Stream[F, ?]] {
@@ -53,7 +53,7 @@ class AckerConsumerProgram[F[_]: Timer](config: Fs2RabbitConfig, AMQP: AMQPClien
                               args: Arguments = Map.empty): StreamConsumer[F] =
     for {
       internalQ <- Stream.eval(fs2.async.boundedQueue[F, Either[Throwable, AmqpEnvelope]](500))
-      internals = AMQPInternals(Some(internalQ))
+      internals = AMQPInternals[F](Some(internalQ))
       _         <- AMQP.basicQos(channel, basicQos)
       _         <- AMQP.basicConsume(channel, queueName, autoAck, consumerTag, noLocal, exclusive, args)(internals)
       consumer  <- Stream.repeatEval(internalQ.dequeue1) through resilientConsumer

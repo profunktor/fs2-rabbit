@@ -33,11 +33,11 @@ import fs2.async.mutable
 
 import scala.collection.mutable.{Set => MutableSet}
 
-class AMQPClientInMemory(ref: Ref[IO, AMQPInternals],
+class AMQPClientInMemory(ref: Ref[IO, AMQPInternals[IO]],
                          publishingQ: mutable.Queue[IO, Either[Throwable, AmqpEnvelope]],
                          ackerQ: mutable.Queue[IO, AckResult],
                          config: Fs2RabbitConfig)
-    extends AMQPClient[Stream[IO, ?]] {
+    extends AMQPClient[Stream[IO, ?], IO] {
 
   private val queues: MutableSet[QueueName]       = MutableSet.empty[QueueName]
   private val exchanges: MutableSet[ExchangeName] = MutableSet.empty[ExchangeName]
@@ -69,7 +69,7 @@ class AMQPClientInMemory(ref: Ref[IO, AMQPInternals],
                             consumerTag: String,
                             noLocal: Boolean,
                             exclusive: Boolean,
-                            args: Arguments)(internals: AMQPInternals): Stream[IO, String] = {
+                            args: Arguments)(internals: AMQPInternals[IO]): Stream[IO, String] = {
     val ifError =
       raiseError[String](s"Queue ${queueName.value} does not exist!")
     queues.find(_.value == queueName.value).fold(ifError) { _ =>

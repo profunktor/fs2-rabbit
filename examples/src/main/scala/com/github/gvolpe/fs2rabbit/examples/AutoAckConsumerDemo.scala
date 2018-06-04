@@ -16,7 +16,7 @@
 
 package com.github.gvolpe.fs2rabbit.examples
 
-import cats.effect.Concurrent
+import cats.effect.{Concurrent, Sync, Timer}
 import com.github.gvolpe.fs2rabbit.config.declaration.DeclarationQueueConfig
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
 import com.github.gvolpe.fs2rabbit.json.Fs2JsonEncoder
@@ -26,9 +26,7 @@ import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.util.StreamEval
 import fs2.{Pipe, Stream}
 
-import scala.concurrent.ExecutionContext
-
-class AutoAckConsumerDemo[F[_]: Concurrent](implicit F: Fs2Rabbit[F], EC: ExecutionContext, SE: StreamEval[F]) {
+class AutoAckConsumerDemo[F[_]: Concurrent: Timer](implicit F: Fs2Rabbit[F], SE: StreamEval[F]) {
 
   private val queueName    = QueueName("testQ")
   private val exchangeName = ExchangeName("testEX")
@@ -54,10 +52,9 @@ class AutoAckConsumerDemo[F[_]: Concurrent](implicit F: Fs2Rabbit[F], EC: Execut
 
 }
 
-class AutoAckFlow[F[_]](
-    consumer: StreamConsumer[F],
-    logger: Pipe[F, AmqpEnvelope, AckResult],
-    publisher: StreamPublisher[F])(implicit ec: ExecutionContext, SE: StreamEval[F], F: Concurrent[F]) {
+class AutoAckFlow[F[_]: Concurrent](consumer: StreamConsumer[F],
+                                    logger: Pipe[F, AmqpEnvelope, AckResult],
+                                    publisher: StreamPublisher[F])(implicit SE: StreamEval[F]) {
 
   import io.circe.generic.auto._
 
@@ -75,7 +72,7 @@ class AutoAckFlow[F[_]](
     Stream(
       Stream(simpleMessage).covary[F] to publisher,
       Stream(classMessage).covary[F] through jsonEncode[Person] to publisher,
-      consumer through logger to SE.liftSink(ack => F.delay(println(ack)))
+      consumer through logger to SE.liftSink(ack => Sync[F].delay(println(ack)))
     ).join(3)
 
 }
