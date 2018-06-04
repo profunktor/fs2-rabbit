@@ -39,12 +39,11 @@ object ResilientStream {
   def run[F[_]: Sync: Timer: Log](program: Stream[F, Unit], retry: FiniteDuration = 5.seconds): F[Unit] =
     loop(program, retry, 1).compile.drain
 
-  private def loop[F[_]: Sync](program: Stream[F, Unit], retry: FiniteDuration, count: Int)(
-      implicit T: Timer[F],
-      L: Log[F]): Stream[F, Unit] =
+  private def loop[F[_]: Sync: Timer](program: Stream[F, Unit], retry: FiniteDuration, count: Int)(
+      implicit L: Log[F]): Stream[F, Unit] =
     program.handleErrorWith {
       case NonFatal(err) =>
-        val scheduledProgram = Stream.eval(T.sleep(retry)).flatMap(_ => program)
+        val scheduledProgram = Stream.eval(Timer[F].sleep(retry)).flatMap(_ => program)
         for {
           _ <- Stream.eval(L.error(err))
           _ <- Stream.eval(L.info(s"Restarting in ${retry * count}..."))
