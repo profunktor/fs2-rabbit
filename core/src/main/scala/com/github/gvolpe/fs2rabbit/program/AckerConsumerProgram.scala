@@ -16,7 +16,7 @@
 
 package com.github.gvolpe.fs2rabbit.program
 
-import cats.effect.{Concurrent, Timer}
+import cats.effect.Concurrent
 import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, AMQPInternals, AckerConsumer}
 import com.github.gvolpe.fs2rabbit.arguments.Arguments
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
@@ -26,9 +26,8 @@ import com.github.gvolpe.fs2rabbit.util.StreamEval
 import com.rabbitmq.client.Channel
 import fs2.{Pipe, Sink, Stream}
 
-class AckerConsumerProgram[F[_]: Timer](config: Fs2RabbitConfig, AMQP: AMQPClient[Stream[F, ?], F])(
-    implicit F: Concurrent[F],
-    SE: StreamEval[F])
+class AckerConsumerProgram[F[_]: Concurrent](config: Fs2RabbitConfig, AMQP: AMQPClient[Stream[F, ?], F])(
+    implicit SE: StreamEval[F])
     extends AckerConsumer[Stream[F, ?]] {
 
   private[fs2rabbit] def resilientConsumer: Pipe[F, Either[Throwable, AmqpEnvelope], AmqpEnvelope] =
