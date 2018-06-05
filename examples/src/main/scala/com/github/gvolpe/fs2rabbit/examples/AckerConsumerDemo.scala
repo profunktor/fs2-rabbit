@@ -67,7 +67,9 @@ class Flow[F[_]: Concurrent](consumer: StreamConsumer[F],
   import jsonEncoder.jsonEncode
 
   val simpleMessage =
-    AmqpMessage("Hey!", AmqpProperties(None, None, Map("demoId" -> LongVal(123), "app" -> StringVal("fs2RabbitDemo"))))
+    AmqpMessage(
+      "Hey!",
+      AmqpProperties(None, None, None, None, Map("demoId" -> LongVal(123), "app" -> StringVal("fs2RabbitDemo"))))
   val classMessage = AmqpMessage(Person(1L, "Sherlock", Address(212, "Baker St")), AmqpProperties.empty)
 
   val flow: Stream[F, Unit] =
