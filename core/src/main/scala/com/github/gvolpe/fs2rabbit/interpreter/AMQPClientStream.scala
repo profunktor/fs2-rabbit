@@ -17,6 +17,7 @@
 package com.github.gvolpe.fs2rabbit.interpreter
 
 import cats.effect.Effect
+import cats.effect.syntax.effect._
 import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, AMQPInternals}
 import com.github.gvolpe.fs2rabbit.arguments._
 import com.github.gvolpe.fs2rabbit.config.declaration.DeclarationQueueConfig
@@ -28,12 +29,9 @@ import com.github.gvolpe.fs2rabbit.util.StreamEval
 import com.rabbitmq.client._
 import fs2.Stream
 
-import scala.concurrent.ExecutionContext
+class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPClient[Stream[F, ?], F] {
 
-class AMQPClientStream[F[_]](implicit F: Effect[F], SE: StreamEval[F], EC: ExecutionContext)
-    extends AMQPClient[Stream[F, ?]] {
-
-  private[fs2rabbit] def defaultConsumer(channel: Channel, internals: AMQPInternals): Stream[F, Consumer] =
+  private[fs2rabbit] def defaultConsumer(channel: Channel, internals: AMQPInternals[F]): Stream[F, Consumer] =
     SE.pure(
       new DefaultConsumer(channel) {
 
@@ -41,6 +39,7 @@ class AMQPClientStream[F[_]](implicit F: Effect[F], SE: StreamEval[F], EC: Execu
           internals.queue.fold(()) { internalQ =>
             internalQ
               .enqueue1(Left(new Exception(s"Queue might have been DELETED! $consumerTag")))
+              .toIO
               .unsafeRunAsync(_ => ())
           }
 
@@ -52,7 +51,10 @@ class AMQPClientStream[F[_]](implicit F: Effect[F], SE: StreamEval[F], EC: Execu
           val tag   = envelope.getDeliveryTag
           val props = AmqpProperties.from(properties)
           internals.queue.fold(()) { internalQ =>
-            internalQ.enqueue1(Right(AmqpEnvelope(DeliveryTag(tag), msg, props))).unsafeRunAsync(_ => ())
+            internalQ
+              .enqueue1(Right(AmqpEnvelope(DeliveryTag(tag), msg, props)))
+              .toIO
+              .unsafeRunAsync(_ => ())
           }
         }
       }
@@ -77,7 +79,7 @@ class AMQPClientStream[F[_]](implicit F: Effect[F], SE: StreamEval[F], EC: Execu
                             consumerTag: String,
                             noLocal: Boolean,
                             exclusive: Boolean,
-                            args: Arguments)(internals: AMQPInternals): Stream[F, String] =
+                            args: Arguments)(internals: AMQPInternals[F]): Stream[F, String] =
     for {
       dc <- defaultConsumer(channel, internals)
       rs <- SE.evalF(channel.basicConsume(queueName.value, autoAck, consumerTag, noLocal, exclusive, args, dc))

@@ -17,6 +17,7 @@
 package com.github.gvolpe.fs2rabbit.interpreter
 
 import cats.effect.IO
+import cats.effect.concurrent.Ref
 import com.github.gvolpe.fs2rabbit.StreamAssertion
 import com.github.gvolpe.fs2rabbit.algebra.AMQPInternals
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
@@ -25,7 +26,7 @@ import com.github.gvolpe.fs2rabbit.config.deletion.{DeletionExchangeConfig, Dele
 import com.github.gvolpe.fs2rabbit.model.AckResult.{Ack, NAck}
 import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.program.AckerConsumerProgram
-import fs2.async.{Ref, mutable}
+import fs2.async.mutable
 import fs2.{Stream, async}
 import org.scalatest.{FlatSpecLike, Matchers}
 
@@ -60,13 +61,13 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
     * Runtime Test Suite that makes sure the internal queues are connected when publishing and consuming in order to
     * simulate a running RabbitMQ server. It should run concurrently with every single test.
     * */
-  def rabbitRTS(ref: Ref[IO, AMQPInternals],
+  def rabbitRTS(ref: Ref[IO, AMQPInternals[IO]],
                 publishingQ: mutable.Queue[IO, Either[Throwable, AmqpEnvelope]]): Stream[IO, Unit] =
     Stream.eval(ref.get).flatMap { internals =>
       internals.queue.fold(rabbitRTS(ref, publishingQ)) { internalQ =>
         for {
           _ <- (Stream.eval(publishingQ.dequeue1) to (_.evalMap(internalQ.enqueue1))).take(1)
-          _ <- Stream.eval(ref.setSync(AMQPInternals(None)))
+          _ <- Stream.eval(ref.set(AMQPInternals(None)))
           _ <- rabbitRTS(ref, publishingQ)
         } yield ()
       }
@@ -77,7 +78,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
       val interpreter = for {
         publishingQ   <- fs2.async.boundedQueue[IO, Either[Throwable, AmqpEnvelope]](500)
         ackerQ        <- fs2.async.boundedQueue[IO, AckResult](500)
-        queueRef      <- fs2.async.refOf[IO, AMQPInternals](AMQPInternals(None))
+        queueRef      <- Ref.of[IO, AMQPInternals[IO]](AMQPInternals(None))
         amqpClient    = new AMQPClientInMemory(queueRef, publishingQ, ackerQ, config)
         connStream    = new ConnectionStub
         ackerConsumer = new AckerConsumerProgram[IO](config, amqpClient)

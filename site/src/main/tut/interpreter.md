@@ -6,17 +6,15 @@ number: 2
 
 # Fs2 Rabbit Interpreter
 
-It is the main interpreter that will be interacting with `RabbitMQ`, a.k.a. the client. All it needs are a `Fs2RabbitConfig` and an `ExecutionContext` that could be passed in implicitly and the only one that will be used for all the internal operations.
+It is the main interpreter that will be interacting with `RabbitMQ`, a.k.a. the client. All it needs are a `Fs2RabbitConfig` and an implicit instance of `ConcurrentEffect[F]`.
 
 ```tut:book:silent
 import cats.effect._
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
 
-import scala.concurrent.ExecutionContext
-
 object Fs2Rabbit {
-  def apply[F[_]](config: Fs2RabbitConfig)(implicit F: Effect[F], ec: ExecutionContext): F[Fs2Rabbit[F]] = ???
+  def apply[F[_]: ConcurrentEffect](config: Fs2RabbitConfig): F[Fs2Rabbit[F]] = ???
 }
 ```
 

@@ -9,26 +9,20 @@ number: 15
 Here we create a single `AutoAckConsumer`, a single `Publisher` and finally we publish two messages: a simple `String` message and a `Json` message by using the `fs2-rabbit-circe` extension.
 
 ```tut:book:silent
-import cats.effect.{Effect, IO}
+import cats.effect.{Concurrent, Sync, Timer}
 import com.github.gvolpe.fs2rabbit.config.declaration.DeclarationQueueConfig
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
 import com.github.gvolpe.fs2rabbit.json.Fs2JsonEncoder
-import com.github.gvolpe.fs2rabbit.model.AckResult._
-import com.github.gvolpe.fs2rabbit.model.AmqpHeaderVal._
+import com.github.gvolpe.fs2rabbit.model.AckResult.Ack
+import com.github.gvolpe.fs2rabbit.model.AmqpHeaderVal.{LongVal, StringVal}
 import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.util.StreamEval
 import fs2.{Pipe, Stream}
 
-import scala.concurrent.ExecutionContext
-
-trait IOApp {
-  def start(args: List[String]): IO[Unit]
-  def main(args: Array[String]): Unit = start(args.toList).unsafeRunSync()
-}
-
-class AutoAckFlow[F[_]](consumer: StreamConsumer[F],
-                        logger: Pipe[F, AmqpEnvelope, AckResult],
-                        publisher: StreamPublisher[F])(implicit ec: ExecutionContext, SE: StreamEval[F], F: Effect[F]) {
+class AutoAckFlow[F[_]: Concurrent](
+    consumer: StreamConsumer[F],
+    logger: Pipe[F, AmqpEnvelope, AckResult],
+    publisher: StreamPublisher[F])(implicit SE: StreamEval[F]) {
 
   import io.circe.generic.auto._
 
@@ -46,12 +40,12 @@ class AutoAckFlow[F[_]](consumer: StreamConsumer[F],
     Stream(
       Stream(simpleMessage).covary[F] to publisher,
       Stream(classMessage).covary[F] through jsonEncode[Person] to publisher,
-      consumer through logger to SE.liftSink(ack => F.delay(println(ack)))
+      consumer through logger to SE.liftSink(ack => Sync[F].delay(println(ack)))
     ).join(3)
 
 }
 
-class AutoAckConsumerDemo[F[_]: Effect](implicit F: Fs2Rabbit[F], EC: ExecutionContext, SE: StreamEval[F]) {
+class AutoAckConsumerDemo[F[_]: Concurrent: Timer](implicit F: Fs2Rabbit[F], SE: StreamEval[F]) {
 
   private val queueName    = QueueName("testQ")
   private val exchangeName = ExchangeName("testEX")
@@ -81,7 +75,8 @@ class AutoAckConsumerDemo[F[_]: Effect](implicit F: Fs2Rabbit[F], EC: ExecutionC
 At the edge of out program we define our effect, `monix.eval.Task` in this case, and ask to evaluate the effects:
 
 ```tut:book:silent
-import cats.effect.IO
+import cats.effect.{ExitCode, IO, IOApp}
+import cats.syntax.functor._
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
 import com.github.gvolpe.fs2rabbit.resiliency.ResilientStream
@@ -104,9 +99,9 @@ object MonixAutoAckConsumer extends IOApp {
                                                         connectionTimeout = 3,
                                                         requeueOnNack = false)
 
-  override def start(args: List[String]): IO[Unit] =
+  override def run(args: List[String]): IO[ExitCode] =
     Fs2Rabbit[Task](config).flatMap { implicit interpreter =>
       ResilientStream.run(new AutoAckConsumerDemo[Task].program)
-    }.toIO
+    }.toIO.as(ExitCode.Success)
 }
 ```

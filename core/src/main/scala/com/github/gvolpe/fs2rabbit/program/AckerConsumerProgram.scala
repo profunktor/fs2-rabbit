@@ -16,7 +16,7 @@
 
 package com.github.gvolpe.fs2rabbit.program
 
-import cats.effect.{Async, IO}
+import cats.effect.Concurrent
 import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, AMQPInternals, AckerConsumer}
 import com.github.gvolpe.fs2rabbit.arguments.Arguments
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
@@ -26,11 +26,8 @@ import com.github.gvolpe.fs2rabbit.util.StreamEval
 import com.rabbitmq.client.Channel
 import fs2.{Pipe, Sink, Stream}
 
-import scala.concurrent.ExecutionContext
-
-class AckerConsumerProgram[F[_]](config: Fs2RabbitConfig, AMQP: AMQPClient[Stream[F, ?]])(implicit F: Async[F],
-                                                                                          SE: StreamEval[F],
-                                                                                          ec: ExecutionContext)
+class AckerConsumerProgram[F[_]: Concurrent](config: Fs2RabbitConfig, AMQP: AMQPClient[Stream[F, ?], F])(
+    implicit SE: StreamEval[F])
     extends AckerConsumer[Stream[F, ?]] {
 
   private[fs2rabbit] def resilientConsumer: Pipe[F, Either[Throwable, AmqpEnvelope], AmqpEnvelope] =
@@ -54,11 +51,11 @@ class AckerConsumerProgram[F[_]](config: Fs2RabbitConfig, AMQP: AMQPClient[Strea
                               consumerTag: String = "",
                               args: Arguments = Map.empty): StreamConsumer[F] =
     for {
-      internalQ <- Stream.eval(F.liftIO(fs2.async.boundedQueue[IO, Either[Throwable, AmqpEnvelope]](500)))
-      internals = AMQPInternals(Some(internalQ))
+      internalQ <- Stream.eval(fs2.async.boundedQueue[F, Either[Throwable, AmqpEnvelope]](500))
+      internals = AMQPInternals[F](Some(internalQ))
       _         <- AMQP.basicQos(channel, basicQos)
       _         <- AMQP.basicConsume(channel, queueName, autoAck, consumerTag, noLocal, exclusive, args)(internals)
-      consumer  <- Stream.repeatEval(internalQ.dequeue1.to[F]) through resilientConsumer
+      consumer  <- Stream.repeatEval(internalQ.dequeue1) through resilientConsumer
     } yield consumer
 
 }

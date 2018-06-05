@@ -17,10 +17,10 @@
 package com.github.gvolpe.fs2rabbit.resiliency
 
 import cats.effect.IO
+import cats.effect.concurrent.Ref
 import cats.syntax.apply._
 import com.github.gvolpe.fs2rabbit.util.Log
 import fs2._
-import fs2.async.Ref
 import org.scalatest.{FlatSpecLike, Matchers}
 
 import scala.concurrent.ExecutionContext
@@ -53,11 +53,11 @@ class ResilientStreamSpec extends FlatSpecLike with Matchers {
       errorProgram.handleErrorWith { t =>
         Stream.eval(ref.get) flatMap { n =>
           if (n == 0) Stream.eval(IO.unit)
-          else Stream.eval(ref.modify(_ - 1) *> IO.raiseError(t))
+          else Stream.eval(ref.update(_ - 1) *> IO.raiseError(t))
         }
       }
 
-    async.refOf[IO, Int](2).flatMap(ref => ResilientStream.run(p(ref), 1.second))
+    Ref.of[IO, Int](2).flatMap(ref => ResilientStream.run(p(ref), 1.second))
   }
 
 }
