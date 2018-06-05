@@ -10,8 +10,6 @@ fs2-rabbit
 
 Stream-based library for [RabbitMQ](https://www.rabbitmq.com/) built-in on top of [Fs2](https://github.com/functional-streams-for-scala/fs2) and the [RabbitMq Java Client](https://github.com/rabbitmq/rabbitmq-java-client).
 
-***Disclaimer:** It was created just to solve my specific cases, but more features will be added as needed. Contributors are welcome :)*
-
 ## Dependencies
 
 Add this to your build.sbt:
