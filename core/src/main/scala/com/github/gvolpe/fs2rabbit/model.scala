@@ -51,6 +51,18 @@ object model {
     case object Topic   extends ExchangeType
   }
 
+  sealed abstract class DeliveryMode(val value: Int) extends Product with Serializable
+
+  object DeliveryMode {
+    case object NonPersistent extends DeliveryMode(1)
+    case object Persistent    extends DeliveryMode(2)
+
+    def from(value: Int): DeliveryMode = value match {
+      case 1 => NonPersistent
+      case 2 => Persistent
+    }
+  }
+
   sealed trait AckResult extends Product with Serializable
 
   object AckResult {
@@ -81,17 +93,21 @@ object model {
 
   case class AmqpProperties(contentType: Option[String],
                             contentEncoding: Option[String],
+                            priority: Option[Int],
+                            deliveryMode: Option[DeliveryMode],
                             headers: Map[String, AmqpHeaderVal])
 
   object AmqpProperties {
     import scala.collection.JavaConverters._
 
-    def empty = AmqpProperties(None, None, Map.empty[String, AmqpHeaderVal])
+    def empty = AmqpProperties(None, None, None, None, Map.empty[String, AmqpHeaderVal])
 
     def from(basicProps: AMQP.BasicProperties): AmqpProperties =
       AmqpProperties(
         Option(basicProps.getContentType),
         Option(basicProps.getContentEncoding),
+        Option[Integer](basicProps.getPriority).map(Int.unbox),
+        Option(basicProps.getDeliveryMode).map(DeliveryMode.from(_)),
         Option(basicProps.getHeaders)
           .fold(Map.empty[String, Object])(_.asScala.toMap)
           .map {
@@ -104,6 +120,8 @@ object model {
         new AMQP.BasicProperties.Builder()
           .contentType(props.contentType.orNull)
           .contentEncoding(props.contentEncoding.orNull)
+          .priority(props.priority.map(Int.box).orNull)
+          .deliveryMode(props.deliveryMode.map(i => Int.box(i.value)).orNull)
           .headers(props.headers.mapValues[AnyRef](_.impure).asJava)
           .build()
     }

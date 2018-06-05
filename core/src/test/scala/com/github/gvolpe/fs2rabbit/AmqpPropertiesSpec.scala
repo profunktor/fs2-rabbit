@@ -17,7 +17,7 @@
 package com.github.gvolpe.fs2rabbit
 
 import com.github.gvolpe.fs2rabbit.model.AmqpHeaderVal._
-import com.github.gvolpe.fs2rabbit.model.{AmqpHeaderVal, AmqpProperties}
+import com.github.gvolpe.fs2rabbit.model.{AmqpHeaderVal, AmqpProperties, DeliveryMode}
 import org.scalacheck._
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalatest.{FlatSpecLike, Matchers}
@@ -34,7 +34,7 @@ class AmqpPropertiesSpec extends FlatSpecLike with Matchers with AmqpPropertiesA
   }
 
   it should "create an empty amqp properties" in {
-    AmqpProperties.empty should be(AmqpProperties(None, None, Map.empty[String, AmqpHeaderVal]))
+    AmqpProperties.empty should be(AmqpProperties(None, None, None, None, Map.empty[String, AmqpHeaderVal]))
   }
 
   it should "handle null values in Java AMQP.BasicProperties" in {
@@ -71,8 +71,10 @@ trait AmqpPropertiesArbitraries extends PropertyChecks {
     for {
       contentType     <- Gen.option(Gen.alphaStr)
       contentEncoding <- Gen.option(Gen.alphaStr)
+      priority        <- Gen.option(Gen.posNum[Int])
+      deliveryMode    <- Gen.option(Gen.oneOf(1, 2))
       headers         <- Gen.mapOf[String, AmqpHeaderVal](headersGen)
-    } yield AmqpProperties(contentType, contentEncoding, headers)
+    } yield AmqpProperties(contentType, contentEncoding, priority, deliveryMode.map(DeliveryMode.from), headers)
   }
 
 }
