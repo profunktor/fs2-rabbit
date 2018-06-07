@@ -19,12 +19,10 @@ import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.util.StreamEval
 import fs2.{Pipe, Stream}
 
-import scala.concurrent.ExecutionContext
-
 class Flow[F[_]: Concurrent](consumer: StreamConsumer[F],
                              acker: StreamAcker[F],
                              logger: Pipe[F, AmqpEnvelope, AckResult],
-                             publisher: StreamPublisher[F])(implicit ec: ExecutionContext, SE: StreamEval[F]) {
+                             publisher: StreamPublisher[F]) {
 
   import io.circe.generic.auto._
 
@@ -36,8 +34,8 @@ class Flow[F[_]: Concurrent](consumer: StreamConsumer[F],
 
   val simpleMessage =
     AmqpMessage(
-        "Hey!",
-        AmqpProperties(None, None, None, None, Map("demoId" -> LongVal(123), "app" -> StringVal("fs2RabbitDemo"))))
+      "Hey!",
+      AmqpProperties(None, None, None, None, Map("demoId" -> LongVal(123), "app" -> StringVal("fs2RabbitDemo"))))
   val classMessage = AmqpMessage(Person(1L, "Sherlock", Address(212, "Baker St")), AmqpProperties.empty)
 
   val flow: Stream[F, Unit] =
@@ -49,7 +47,7 @@ class Flow[F[_]: Concurrent](consumer: StreamConsumer[F],
 
 }
 
-class AckerConsumerDemo[F[_]: Concurrent](implicit F: Fs2Rabbit[F], EC: ExecutionContext, SE: StreamEval[F]) {
+class AckerConsumerDemo[F[_]: Concurrent](implicit F: Fs2Rabbit[F], SE: StreamEval[F]) {
 
   private val queueName    = QueueName("testQ")
   private val exchangeName = ExchangeName("testEX")
@@ -87,8 +85,6 @@ import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
 import com.github.gvolpe.fs2rabbit.resiliency.ResilientStream
 
 object IOAckerConsumer extends IOApp {
-
-  implicit val appS: ExecutionContext = scala.concurrent.ExecutionContext.global
 
   private val config: Fs2RabbitConfig = Fs2RabbitConfig(virtualHost = "/",
                                                         host = "127.0.0.1",

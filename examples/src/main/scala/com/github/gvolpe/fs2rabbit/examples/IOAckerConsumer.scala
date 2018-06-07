@@ -22,11 +22,7 @@ import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
 import com.github.gvolpe.fs2rabbit.resiliency.ResilientStream
 
-import scala.concurrent.ExecutionContext
-
 object IOAckerConsumer extends IOApp {
-
-  implicit val appS: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
 
   private val config: Fs2RabbitConfig = Fs2RabbitConfig(
     virtualHost = "/",

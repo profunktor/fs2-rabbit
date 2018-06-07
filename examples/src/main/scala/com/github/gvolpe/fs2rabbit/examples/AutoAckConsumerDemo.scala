@@ -16,7 +16,7 @@
 
 package com.github.gvolpe.fs2rabbit.examples
 
-import cats.effect.{Concurrent, Sync, Timer}
+import cats.effect.{Concurrent, Sync}
 import com.github.gvolpe.fs2rabbit.config.declaration.DeclarationQueueConfig
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
 import com.github.gvolpe.fs2rabbit.json.Fs2JsonEncoder
@@ -26,7 +26,7 @@ import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.util.StreamEval
 import fs2.{Pipe, Stream}
 
-class AutoAckConsumerDemo[F[_]: Concurrent: Timer](implicit F: Fs2Rabbit[F], SE: StreamEval[F]) {
+class AutoAckConsumerDemo[F[_]: Concurrent](implicit F: Fs2Rabbit[F], SE: StreamEval[F]) {
 
   private val queueName    = QueueName("testQ")
   private val exchangeName = ExchangeName("testEX")

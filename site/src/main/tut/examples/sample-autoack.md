@@ -9,7 +9,7 @@ number: 15
 Here we create a single `AutoAckConsumer`, a single `Publisher` and finally we publish two messages: a simple `String` message and a `Json` message by using the `fs2-rabbit-circe` extension.
 
 ```tut:book:silent
-import cats.effect.{Concurrent, Sync, Timer}
+import cats.effect.{Concurrent, Sync}
 import com.github.gvolpe.fs2rabbit.config.declaration.DeclarationQueueConfig
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
 import com.github.gvolpe.fs2rabbit.json.Fs2JsonEncoder
@@ -47,7 +47,7 @@ class AutoAckFlow[F[_]: Concurrent](
 
 }
 
-class AutoAckConsumerDemo[F[_]: Concurrent: Timer](implicit F: Fs2Rabbit[F], SE: StreamEval[F]) {
+class AutoAckConsumerDemo[F[_]: Concurrent](implicit F: Fs2Rabbit[F], SE: StreamEval[F]) {
 
   private val queueName    = QueueName("testQ")
   private val exchangeName = ExchangeName("testEX")
@@ -77,19 +77,13 @@ class AutoAckConsumerDemo[F[_]: Concurrent: Timer](implicit F: Fs2Rabbit[F], SE:
 At the edge of out program we define our effect, `monix.eval.Task` in this case, and ask to evaluate the effects:
 
 ```tut:book:silent
-import cats.effect.{ExitCode, IO, IOApp}
-import cats.syntax.functor._
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
 import com.github.gvolpe.fs2rabbit.resiliency.ResilientStream
-import monix.eval.Task
+import monix.eval.{Task, TaskApp}
 import monix.execution.Scheduler.Implicits.global
 
-import scala.concurrent.ExecutionContext
-
-object MonixAutoAckConsumer extends IOApp {
-
-  implicit val appS: ExecutionContext = scala.concurrent.ExecutionContext.global
+object MonixAutoAckConsumer extends TaskApp {
 
   private val config: Fs2RabbitConfig = Fs2RabbitConfig(virtualHost = "/",
                                                         host = "127.0.0.1",
@@ -101,9 +95,9 @@ object MonixAutoAckConsumer extends IOApp {
                                                         connectionTimeout = 3,
                                                         requeueOnNack = false)
 
-  override def run(args: List[String]): IO[ExitCode] =
+  override def runl(args: List[String]): Task[Unit] =
     Fs2Rabbit[Task](config).flatMap { implicit interpreter =>
       ResilientStream.run(new AutoAckConsumerDemo[Task].program)
-    }.toIO.as(ExitCode.Success)
+    }
 }
 ```
