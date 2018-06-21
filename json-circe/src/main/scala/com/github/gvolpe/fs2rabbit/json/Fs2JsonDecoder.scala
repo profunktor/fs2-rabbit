@@ -27,7 +27,7 @@ import io.circe.{Decoder, Error}
   * Stream-based Json Decoder that exposes only one method as a streaming transformation
   * using [[fs2.Pipe]] and depends on the Circe library.
   * */
-class Fs2JsonDecoder[F[_]: Sync](implicit L: Log[F], SE: StreamEval[F]) {
+class Fs2JsonDecoder[F[_]](implicit L: Log[F], SE: StreamEval[F]) {
 
   /**
     * It tries to decode an [[AmqpEnvelope.payload]] into a case class determined by the parameter [A].
