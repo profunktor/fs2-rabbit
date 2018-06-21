@@ -27,7 +27,7 @@ import io.circe.syntax._
   * Stream-based Json Encoder that exposes only one method as a streaming transformation
   * using [[fs2.Pipe]] and depends on the Circe library.
   * */
-class Fs2JsonEncoder[F[_]: Sync](implicit SE: StreamEval[F]) {
+class Fs2JsonEncoder[F[_]](implicit SE: StreamEval[F]) {
 
   /**
     * It tries to encode a given case class encapsulated in an  [[AmqpMessage]] into a
