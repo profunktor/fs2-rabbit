@@ -1,6 +1,6 @@
 name: Fs2 Rabbit
 baseurl: /fs2-rabbit
-description: Stream-based client for RabbitMQ built on top of Fs2
+description: RabbitMQ stream-based client
 highlighter: rouge
 docs: true
 collections:
