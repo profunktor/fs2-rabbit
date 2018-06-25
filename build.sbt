@@ -116,7 +116,7 @@ lazy val microsite = project.in(file("site"))
   .settings(noPublish)
   .settings(
     micrositeName := "Fs2 Rabbit",
-    micrositeDescription := "Stream-based client for RabbitMQ built on top of Fs2",
+    micrositeDescription := "RabbitMQ stream-based client",
     micrositeAuthor := "Gabriel Volpe",
     micrositeGithubOwner := "gvolpe",
     micrositeGithubRepo := "fs2-rabbit",
@@ -128,7 +128,18 @@ lazy val microsite = project.in(file("site"))
         Map("title" -> "Home", "position" -> "0")
       )
     ),
-    micrositeGitterChannel := false,
+    micrositePalette := Map(
+      "brand-primary"     -> "#E05236",
+      "brand-secondary"   -> "#774615",
+      "brand-tertiary"    -> "#2f2623",
+      "gray-dark"         -> "#453E46",
+      "gray"              -> "#837F84",
+      "gray-light"        -> "#E3E2E3",
+      "gray-lighter"      -> "#F4F3F4",
+      "white-color"       -> "#FFFFFF"
+    ),
+    micrositeGitterChannel := true,
+    micrositeGitterChannelUrl := "fs2-rabbit/fs2-rabbit",
     micrositePushSiteWith := GitHub4s,
     micrositeGithubToken := sys.env.get("GITHUB_TOKEN"),
     fork in tut := true,
