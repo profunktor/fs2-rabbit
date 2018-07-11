@@ -19,6 +19,7 @@ package com.github.gvolpe.fs2rabbit.json
 import cats.effect.IO
 import com.github.gvolpe.fs2rabbit.model.{AmqpMessage, AmqpProperties}
 import fs2._
+import io.circe.Printer
 import io.circe.generic.auto._
 import io.circe.syntax._
 import org.scalatest.{FlatSpecLike, Matchers}
@@ -49,6 +50,23 @@ class Fs2JsonEncoderSpec extends FlatSpecLike with Matchers {
       json <- Stream(AmqpMessage(payload, AmqpProperties.empty)).covary[IO] through jsonEncode[Person]
     } yield {
       json should be(AmqpMessage(payload.asJson.noSpaces, AmqpProperties.empty))
+    }
+
+    test.compile.drain.unsafeRunTimed(2.seconds)
+  }
+
+  it should "encode a simple case class according to a custom printer" in {
+    val payload = Address(212, "Baker St")
+
+    val customFs2JsonEncoder = new Fs2JsonEncoder[IO] {
+      override val printer: Printer = Printer.spaces4
+    }
+
+    val test = for {
+      json <- Stream(AmqpMessage(payload, AmqpProperties.empty)).covary[IO] through customFs2JsonEncoder
+               .jsonEncode[Address]
+    } yield {
+      json should be(AmqpMessage(payload.asJson.pretty(Printer.spaces4), AmqpProperties.empty))
     }
 
     test.compile.drain.unsafeRunTimed(2.seconds)

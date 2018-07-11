@@ -25,3 +25,5 @@ def program(publisher: StreamPublisher[IO]) = {
   Stream(message).covary[IO] through jsonEncode[Person] to publisher
 }
 ```
+
+If you need to modify the output format, you can overwrite `printer` to plug in your own `io.circe.Printer`.

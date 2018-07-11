@@ -16,11 +16,11 @@
 
 package com.github.gvolpe.fs2rabbit.json
 
-import cats.effect.Sync
 import com.github.gvolpe.fs2rabbit.model.AmqpMessage
 import com.github.gvolpe.fs2rabbit.util.StreamEval
 import fs2.Pipe
 import io.circe.Encoder
+import io.circe.Printer
 import io.circe.syntax._
 
 /**
@@ -28,6 +28,12 @@ import io.circe.syntax._
   * using [[fs2.Pipe]] and depends on the Circe library.
   * */
 class Fs2JsonEncoder[F[_]](implicit SE: StreamEval[F]) {
+
+  /**
+    * The [[io.circe.Printer]] to be used to convert to JSON - overwrite if you need different output formatting,
+    * for example, to omit null values.
+    */
+  val printer: Printer = Printer.noSpaces
 
   /**
     * It tries to encode a given case class encapsulated in an  [[AmqpMessage]] into a
@@ -50,7 +56,7 @@ class Fs2JsonEncoder[F[_]](implicit SE: StreamEval[F]) {
     streamMsg =>
       for {
         amqpMsg <- streamMsg
-        json    <- SE.evalF[String](amqpMsg.payload.asJson.noSpaces)
+        json    <- SE.evalF[String](amqpMsg.payload.asJson.pretty(printer))
       } yield AmqpMessage(json, amqpMsg.properties)
 
 }
