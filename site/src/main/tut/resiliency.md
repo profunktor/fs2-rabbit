@@ -25,4 +25,4 @@ ResilientStream.run(program, 1.second)
 
 This program will run forever and in the case of failure it will be restarted after 1 second and then exponentially after 2 seconds, 4 seconds, 8 seconds, etc.
 
-See the [examples](https://github.com/gvolpe/fs2-rabbit/tree/master/examples/src/main/scala/com.itv.fs2rabbit/examples) to learn more!
+See the [examples](https://github.com/ITV/fs2-rabbit/tree/master/examples/src/main/scala/com.itv.fs2rabbit/examples) to learn more!

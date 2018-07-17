@@ -1,12 +1,13 @@
-fs2-rabbit
+**This is a fork**
 ==========
 
-[![Build Status](https://travis-ci.org/gvolpe/fs2-rabbit.svg?branch=master)](https://travis-ci.org/gvolpe/fs2-rabbit)
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/011c5931cd3945b3a88eb725f18bbf88)](https://www.codacy.com/app/volpegabriel/fs2-rabbit?utm_source=github.com&utm_medium=referral&utm_content=gvolpe/fs2-rabbit&utm_campaign=badger)
-[![Gitter Chat](https://badges.gitter.im/fs2-rabbit/fs2-rabbit.svg)](https://gitter.im/fs2-rabbit/fs2-rabbit)
-[![codecov](https://codecov.io/gh/gvolpe/fs2-rabbit/branch/master/graph/badge.svg)](https://codecov.io/gh/gvolpe/fs2-rabbit)
-[![Maven Central](https://img.shields.io/maven-central/v/com.github.gvolpe/fs2-rabbit_2.12.svg)](http://search.maven.org/#search%7Cga%7C1%7Cfs2-rabbit)
+This is a temporary fork of [fs2-rabbit](https://github.com/gvolpe/fs2-rabbit).  This fork was created because,
+currently, the upstream project depends on unstable libraries (cats-effect, fs2, and circe), which is undesirable
+in production application.  This fork is essentially the same thing as the upstream project, but using stable
+dependencies.
 
+fs2-rabbit
+==========
 
 Stream-based library for [RabbitMQ](https://www.rabbitmq.com/) built-in on top of [Fs2](https://github.com/functional-streams-for-scala/fs2) and the [RabbitMq Java Client](https://github.com/rabbitmq/rabbitmq-java-client).
 
@@ -15,13 +16,13 @@ Stream-based library for [RabbitMQ](https://www.rabbitmq.com/) built-in on top o
 Add this to your build.sbt:
 
 ```scala
-libraryDependencies += "com.github.gvolpe" %% "fs2-rabbit" % Version
+libraryDependencies += "com.itv" %% "fs2-rabbit" % Version
 ```
 
 And this one if you would like to have Json support:
 
 ```scala
-libraryDependencies += "com.github.gvolpe" %% "fs2-rabbit-circe" % Version
+libraryDependencies += "com.itv" %% "fs2-rabbit-circe" % Version
 ```
 
 `fs2-rabbit` has the following dependencies and it's cross compiled to Scala `2.11.12` and `2.12.6`:

@@ -5,13 +5,11 @@ import microsites.ExtraMdFileConfig
 
 name := """fs2-rabbit-root"""
 
-organization in ThisBuild := "com.github.gvolpe"
+organization in ThisBuild := "com.itv"
 
-version in ThisBuild := "0.8"
+version in ThisBuild := "0.8.0-SNAPSHOT"
 
 crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.6")
-
-sonatypeProfileName := "com.github.gvolpe"
 
 promptTheme := PromptTheme(List(
   text("[SBT] ", fg(136)),
@@ -22,7 +20,7 @@ val commonSettings = Seq(
   organizationName := "Fs2 Rabbit",
   startYear := Some(2017),
   licenses += ("Apache-2.0", new URL("https://www.apache.org/licenses/LICENSE-2.0.txt")),
-  homepage := Some(url("https://github.com/gvolpe/fs2-rabbit")),
+  homepage := Some(url("https://github.com/ITV/fs2-rabbit")),
   addCompilerPlugin("org.spire-math" % "kind-projector" % "0.9.5" cross CrossVersion.binary),
   libraryDependencies ++= Seq(
     Libraries.amqpClient,
@@ -43,13 +41,13 @@ val commonSettings = Seq(
     "-language:higherKinds"
   ),
   scalafmtOnCompile := true,
-  coverageExcludedPackages := "com\\.github\\.gvolpe\\.fs2rabbit\\.examples.*;com\\.github\\.gvolpe\\.fs2rabbit\\.util.*;.*QueueName*;.*RoutingKey*;.*ExchangeName*;.*DeliveryTag*;.*AMQPClientStream*;.*ConnectionStream*;",
+  coverageExcludedPackages := "com\\.itv\\.fs2rabbit\\.examples.*;com\\.itv\\.fs2rabbit\\.util.*;.*QueueName*;.*RoutingKey*;.*ExchangeName*;.*DeliveryTag*;.*AMQPClientStream*;.*ConnectionStream*;",
   publishTo := {
-    val sonatype = "https://oss.sonatype.org/"
+    val artifactory = "https://itvrepos.jfrog.io/itvrepos/oasvc-ivy"
     if (isSnapshot.value)
-      Some("snapshots" at sonatype + "content/repositories/snapshots")
+      Some("Artifactory Realm" at artifactory)
     else
-      Some("releases" at sonatype + "service/local/staging/deploy/maven2")
+      Some("Artifactory Realm" at artifactory + ";build.timestamp=" + new java.util.Date().getTime)
   },
   publishMavenStyle := true,
   publishArtifact in Test := false,
@@ -118,7 +116,7 @@ lazy val microsite = project.in(file("site"))
     micrositeName := "Fs2 Rabbit",
     micrositeDescription := "RabbitMQ stream-based client",
     micrositeAuthor := "Gabriel Volpe",
-    micrositeGithubOwner := "gvolpe",
+    micrositeGithubOwner := "ITV",
     micrositeGithubRepo := "fs2-rabbit",
     micrositeBaseUrl := "/fs2-rabbit",
     micrositeExtraMdFiles := Map(
