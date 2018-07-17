@@ -10,8 +10,8 @@ It delegates the responsibility to acknowledge message consumption to the user. 
 
 ```tut:book
 import cats.effect.IO
-import com.github.gvolpe.fs2rabbit.model._
-import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
+import com.itv.fs2rabbit.model._
+import com.itv.fs2rabbit.interpreter.Fs2Rabbit
 import fs2._
 
 val queueName = QueueName("daQ")

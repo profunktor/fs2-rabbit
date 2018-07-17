@@ -3,9 +3,9 @@ import sbt._
 object Dependencies {
 
   object Versions {
-    val catsEffect = "1.0.0-RC2"
-    val fs2        = "1.0.0-M1"
-    val circe      = "0.10.0-M1"
+    val catsEffect = "0.10"
+    val fs2        = "0.10.5"
+    val circe      = "0.9.3"
     val amqpClient = "4.6.0"
     val logback    = "1.1.3"
     val monix      = "3.0.0-RC1"

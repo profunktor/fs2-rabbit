@@ -10,13 +10,13 @@ Here we create a single `AutoAckConsumer`, a single `Publisher` and finally we p
 
 ```tut:book:silent
 import cats.effect.{Concurrent, Sync, Timer}
-import com.github.gvolpe.fs2rabbit.config.declaration.DeclarationQueueConfig
-import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
-import com.github.gvolpe.fs2rabbit.json.Fs2JsonEncoder
-import com.github.gvolpe.fs2rabbit.model.AckResult.Ack
-import com.github.gvolpe.fs2rabbit.model.AmqpHeaderVal.{LongVal, StringVal}
-import com.github.gvolpe.fs2rabbit.model._
-import com.github.gvolpe.fs2rabbit.util.StreamEval
+import com.itv.fs2rabbit.config.declaration.DeclarationQueueConfig
+import com.itv.fs2rabbit.interpreter.Fs2Rabbit
+import com.itv.fs2rabbit.json.Fs2JsonEncoder
+import com.itv.fs2rabbit.model.AckResult.Ack
+import com.itv.fs2rabbit.model.AmqpHeaderVal.{LongVal, StringVal}
+import com.itv.fs2rabbit.model._
+import com.itv.fs2rabbit.util.StreamEval
 import fs2.{Pipe, Stream}
 
 class AutoAckFlow[F[_]: Concurrent](
@@ -79,9 +79,9 @@ At the edge of out program we define our effect, `monix.eval.Task` in this case,
 ```tut:book:silent
 import cats.effect.{ExitCode, IO, IOApp}
 import cats.syntax.functor._
-import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
-import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
-import com.github.gvolpe.fs2rabbit.resiliency.ResilientStream
+import com.itv.fs2rabbit.config.Fs2RabbitConfig
+import com.itv.fs2rabbit.interpreter.Fs2Rabbit
+import com.itv.fs2rabbit.resiliency.ResilientStream
 import monix.eval.Task
 import monix.execution.Scheduler.Implicits.global
 

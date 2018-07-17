@@ -14,8 +14,8 @@ Declaring a `Exchange` means that if already exists it's going to get a referenc
 
 ```tut:book
 import cats.effect.IO
-import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
-import com.github.gvolpe.fs2rabbit.model._
+import com.itv.fs2rabbit.interpreter.Fs2Rabbit
+import com.itv.fs2rabbit.model._
 import fs2._
 
 val x1 = ExchangeName("x1")

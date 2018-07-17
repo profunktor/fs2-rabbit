@@ -10,13 +10,13 @@ Here we create a single `AckerConsumer`, a single `Publisher` and finally we pub
 
 ```tut:book:silent
 import cats.effect.Concurrent
-import com.github.gvolpe.fs2rabbit.config.declaration.DeclarationQueueConfig
-import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
-import com.github.gvolpe.fs2rabbit.json.Fs2JsonEncoder
-import com.github.gvolpe.fs2rabbit.model.AckResult.Ack
-import com.github.gvolpe.fs2rabbit.model.AmqpHeaderVal.{LongVal, StringVal}
-import com.github.gvolpe.fs2rabbit.model._
-import com.github.gvolpe.fs2rabbit.util.StreamEval
+import com.itv.fs2rabbit.config.declaration.DeclarationQueueConfig
+import com.itv.fs2rabbit.interpreter.Fs2Rabbit
+import com.itv.fs2rabbit.json.Fs2JsonEncoder
+import com.itv.fs2rabbit.model.AckResult.Ack
+import com.itv.fs2rabbit.model.AmqpHeaderVal.{LongVal, StringVal}
+import com.itv.fs2rabbit.model._
+import com.itv.fs2rabbit.util.StreamEval
 import fs2.{Pipe, Stream}
 
 import scala.concurrent.ExecutionContext
@@ -82,9 +82,9 @@ At the edge of out program we define our effect, `cats.effect.IO` in this case, 
 ```tut:book:silent
 import cats.effect.{ExitCode, IO, IOApp}
 import cats.syntax.functor._
-import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
-import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
-import com.github.gvolpe.fs2rabbit.resiliency.ResilientStream
+import com.itv.fs2rabbit.config.Fs2RabbitConfig
+import com.itv.fs2rabbit.interpreter.Fs2Rabbit
+import com.itv.fs2rabbit.resiliency.ResilientStream
 
 object IOAckerConsumer extends IOApp {
 

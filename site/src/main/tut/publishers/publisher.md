@@ -10,8 +10,8 @@ A `Publisher` is simply created by specifying a `ExchangeName` and a `RoutingKey
 
 ```tut:book
 import cats.effect.IO
-import com.github.gvolpe.fs2rabbit.model._
-import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
+import com.itv.fs2rabbit.model._
+import com.itv.fs2rabbit.interpreter.Fs2Rabbit
 import fs2._
 
 val exchangeName = ExchangeName("testEX")
@@ -34,7 +34,7 @@ Once you have a `Publisher` you can start publishing messages by connecting a so
 
 ```tut:book
 import cats.effect.Sync
-import com.github.gvolpe.fs2rabbit.model._
+import com.itv.fs2rabbit.model._
 import fs2._
 
 def publishSimpleMessage[F[_]: Sync](publisher: StreamPublisher[F]): Stream[F, Unit] = {

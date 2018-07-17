@@ -7,7 +7,7 @@ position: 2
 
 # Examples
 
-The source code for some of the examples can be found [here](https://github.com/gvolpe/fs2-rabbit/tree/master/examples/src/main/scala/com/github/gvolpe/fs2rabbit/examples).
+The source code for some of the examples can be found [here](https://github.com/ITV/fs2-rabbit/tree/master/examples/src/main/scala/com.itv.fs2rabbit/examples).
 
 ### Simple
 - **[Single AutoAckConsumer](./sample-autoack.html)**: Example of a single `AutoAckConsumer`, a `Publisher` and `Json` data manipulation.

@@ -14,9 +14,9 @@ Declaring a `Queue` means that if already exists it's going to get a reference t
 
 ```tut:book
 import cats.effect.IO
-import com.github.gvolpe.fs2rabbit.config.declaration._
-import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
-import com.github.gvolpe.fs2rabbit.model._
+import com.itv.fs2rabbit.config.declaration._
+import com.itv.fs2rabbit.interpreter.Fs2Rabbit
+import com.itv.fs2rabbit.model._
 import fs2._
 
 val q1 = QueueName("q1")
