@@ -16,18 +16,19 @@
 
 package com.itv.fs2rabbit.examples
 
-import cats.effect.{Concurrent, Timer}
+import cats.effect.{Concurrent, Effect, Timer}
 import com.itv.fs2rabbit.config.declaration.DeclarationQueueConfig
+import com.itv.fs2rabbit.interpreter.Fs2Rabbit
+import com.itv.fs2rabbit.json.Fs2JsonEncoder
 import com.itv.fs2rabbit.model.AckResult.Ack
 import com.itv.fs2rabbit.model.AmqpHeaderVal.{LongVal, StringVal}
 import com.itv.fs2rabbit.model._
 import com.itv.fs2rabbit.util.StreamEval
-import com.itv.fs2rabbit.interpreter.Fs2Rabbit
-import com.itv.fs2rabbit.json.Fs2JsonEncoder
-import com.itv.fs2rabbit.util.StreamEval
 import fs2.{Pipe, Stream}
 
-class AckerConsumerDemo[F[_]: Concurrent: Timer](implicit F: Fs2Rabbit[F], SE: StreamEval[F]) {
+import scala.concurrent.ExecutionContext
+
+class AckerConsumerDemo[F[_]: Effect: Timer](implicit F: Fs2Rabbit[F], SE: StreamEval[F], ec: ExecutionContext) {
 
   private val queueName    = QueueName("testQ")
   private val exchangeName = ExchangeName("testEX")
@@ -54,10 +55,10 @@ class AckerConsumerDemo[F[_]: Concurrent: Timer](implicit F: Fs2Rabbit[F], SE: S
 
 }
 
-class Flow[F[_]: Concurrent](consumer: StreamConsumer[F],
-                             acker: StreamAcker[F],
-                             logger: Pipe[F, AmqpEnvelope, AckResult],
-                             publisher: StreamPublisher[F]) {
+class Flow[F[_]: Effect](consumer: StreamConsumer[F],
+                         acker: StreamAcker[F],
+                         logger: Pipe[F, AmqpEnvelope, AckResult],
+                         publisher: StreamPublisher[F])(implicit ec: ExecutionContext) {
 
   import io.circe.generic.auto._
 

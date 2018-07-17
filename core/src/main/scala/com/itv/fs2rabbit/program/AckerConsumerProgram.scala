@@ -16,7 +16,7 @@
 
 package com.itv.fs2rabbit.program
 
-import cats.effect.Concurrent
+import cats.effect.Effect
 import com.itv.fs2rabbit.algebra.{AMQPClient, AMQPInternals, AckerConsumer}
 import com.itv.fs2rabbit.arguments.Arguments
 import com.itv.fs2rabbit.config.Fs2RabbitConfig
@@ -26,8 +26,11 @@ import com.itv.fs2rabbit.util.StreamEval
 import com.rabbitmq.client.Channel
 import fs2.{Pipe, Sink, Stream}
 
-class AckerConsumerProgram[F[_]: Concurrent](config: Fs2RabbitConfig, AMQP: AMQPClient[Stream[F, ?], F])(
-    implicit SE: StreamEval[F])
+import scala.concurrent.ExecutionContext
+
+class AckerConsumerProgram[F[_]: Effect](config: Fs2RabbitConfig, AMQP: AMQPClient[Stream[F, ?], F])(
+    implicit SE: StreamEval[F],
+    ec: ExecutionContext)
     extends AckerConsumer[Stream[F, ?]] {
 
   private[fs2rabbit] def resilientConsumer: Pipe[F, Either[Throwable, AmqpEnvelope], AmqpEnvelope] =

@@ -29,9 +29,11 @@ import com.itv.fs2rabbit.model._
 import com.itv.fs2rabbit.program.{AckerConsumerProgram, PublishingProgram}
 import fs2.Stream
 
+import scala.concurrent.ExecutionContext
+
 // $COVERAGE-OFF$
 object Fs2Rabbit {
-  def apply[F[_]: ConcurrentEffect](config: Fs2RabbitConfig): F[Fs2Rabbit[F]] = {
+  def apply[F[_]: ConcurrentEffect](config: Fs2RabbitConfig)(implicit ec: ExecutionContext): F[Fs2Rabbit[F]] = {
     val amqpClient    = new AMQPClientStream[F]
     val connStream    = new ConnectionStream[F](config)
     val ackerConsumer = new AckerConsumerProgram[F](config, amqpClient)

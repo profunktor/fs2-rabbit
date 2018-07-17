@@ -16,8 +16,7 @@
 
 package com.itv.fs2rabbit.interpreter
 
-import cats.effect.Effect
-import cats.effect.syntax.effect._
+import cats.effect.{Effect, IO}
 import com.itv.fs2rabbit.algebra.{AMQPClient, AMQPInternals}
 import com.itv.fs2rabbit.arguments._
 import com.itv.fs2rabbit.config.declaration.DeclarationQueueConfig
@@ -37,10 +36,13 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
 
         override def handleCancel(consumerTag: String): Unit =
           internals.queue.fold(()) { internalQ =>
-            internalQ
-              .enqueue1(Left(new Exception(s"Queue might have been DELETED! $consumerTag")))
-              .toIO
-              .unsafeRunAsync(_ => ())
+            Effect[F]
+              .runAsync {
+                internalQ
+                  .enqueue1(Left(new Exception(s"Queue might have been DELETED! $consumerTag")))
+              }(_ => IO.unit)
+              .unsafeRunSync()
+
           }
 
         override def handleDelivery(consumerTag: String,
@@ -51,10 +53,12 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
           val tag   = envelope.getDeliveryTag
           val props = AmqpProperties.from(properties)
           internals.queue.fold(()) { internalQ =>
-            internalQ
-              .enqueue1(Right(AmqpEnvelope(DeliveryTag(tag), msg, props)))
-              .toIO
-              .unsafeRunAsync(_ => ())
+            Effect[F]
+              .runAsync {
+                internalQ
+                  .enqueue1(Right(AmqpEnvelope(DeliveryTag(tag), msg, props)))
+              }(_ => IO.unit)
+              .unsafeRunSync()
           }
         }
       }

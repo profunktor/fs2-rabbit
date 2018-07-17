@@ -26,7 +26,7 @@ class AmqpHeaderValSpec extends FlatSpecLike with Matchers {
     val intVal    = IntVal(1)
     val longVal   = LongVal(2L)
     val stringVal = StringVal("hey")
-    val arrayVal = ArrayVal(Seq(3, 2, 1))
+    val arrayVal  = ArrayVal(Seq(3, 2, 1))
 
     AmqpHeaderVal.from(intVal.impure) should be(intVal)
     AmqpHeaderVal.from(longVal.impure) should be(longVal)

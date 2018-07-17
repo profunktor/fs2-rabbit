@@ -16,16 +16,17 @@
 
 package com.itv.fs2rabbit.examples
 
-import cats.effect.{ExitCode, IO, IOApp}
+import cats.effect.IO
 import cats.syntax.functor._
 import com.itv.fs2rabbit.config.Fs2RabbitConfig
-import com.itv.fs2rabbit.resiliency.ResilientStream
 import com.itv.fs2rabbit.interpreter.Fs2Rabbit
 import com.itv.fs2rabbit.resiliency.ResilientStream
+import fs2.StreamApp
+import fs2.StreamApp.ExitCode
 
 import scala.concurrent.ExecutionContext
 
-object IOAckerConsumer extends IOApp {
+object IOAckerConsumer extends StreamApp[IO] {
 
   implicit val appS: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
 
@@ -41,10 +42,12 @@ object IOAckerConsumer extends IOApp {
     requeueOnNack = false
   )
 
-  override def run(args: List[String]): IO[ExitCode] =
-    Fs2Rabbit[IO](config)
-      .flatMap { implicit interpreter =>
-        ResilientStream.run(new AckerConsumerDemo[IO]().program)
-      }
-      .as(ExitCode.Success)
+  override def stream(args: List[String], requestShutdown: IO[Unit]): fs2.Stream[IO, ExitCode] =
+    fs2.Stream.eval {
+      Fs2Rabbit[IO](config)
+        .flatMap { implicit interpreter =>
+          ResilientStream.run(new AckerConsumerDemo[IO]().program)
+        }
+        .as(ExitCode.Success)
+    }
 }

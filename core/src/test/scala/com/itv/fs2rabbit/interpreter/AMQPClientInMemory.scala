@@ -17,7 +17,6 @@
 package com.itv.fs2rabbit.interpreter
 
 import cats.effect.IO
-import cats.effect.concurrent.Ref
 import cats.syntax.apply._
 import com.itv.fs2rabbit.algebra.{AMQPClient, AMQPInternals}
 import com.itv.fs2rabbit.arguments.Arguments
@@ -29,7 +28,7 @@ import com.itv.fs2rabbit.model._
 import com.itv.fs2rabbit.model
 import com.rabbitmq.client.Channel
 import fs2.Stream
-import fs2.async.mutable
+import fs2.async.{Ref, mutable}
 
 import scala.collection.mutable.{Set => MutableSet}
 
@@ -73,7 +72,7 @@ class AMQPClientInMemory(ref: Ref[IO, AMQPInternals[IO]],
     val ifError =
       raiseError[String](s"Queue ${queueName.value} does not exist!")
     queues.find(_.value == queueName.value).fold(ifError) { _ =>
-      Stream.eval(ref.set(internals)).map(_ => "dequeue1 happens in AckerConsumerProgram.createConsumer")
+      Stream.eval(ref.setAsync(internals)).map(_ => "dequeue1 happens in AckerConsumerProgram.createConsumer")
     }
   }
 
