@@ -10,7 +10,7 @@ These two are the primitive datatypes of the underlying `Java AMQP client`. What
 
 ```tut:book
 import cats.effect.IO
-import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
+import com.itv.fs2rabbit.interpreter.Fs2Rabbit
 import fs2._
 
 def program(implicit R: Fs2Rabbit[IO]): Stream[IO, Unit] = {

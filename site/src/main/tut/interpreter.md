@@ -10,8 +10,8 @@ It is the main interpreter that will be interacting with `RabbitMQ`, a.k.a. the 
 
 ```tut:book:silent
 import cats.effect._
-import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
-import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
+import com.itv.fs2rabbit.config.Fs2RabbitConfig
+import com.itv.fs2rabbit.interpreter.Fs2Rabbit
 
 object Fs2Rabbit {
   def apply[F[_]: ConcurrentEffect](config: Fs2RabbitConfig): F[Fs2Rabbit[F]] = ???
@@ -21,12 +21,12 @@ object Fs2Rabbit {
 The recommended way to create the interpreter is to call `apply` and then `flatMap` to access the inner instance and make it available as an implicit. For example:
 
 ```tut:book:invisible
-import com.github.gvolpe.fs2rabbit.model._
+import com.itv.fs2rabbit.model._
 val config: Fs2RabbitConfig = null
 ```
 
 ```tut:book
-import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
+import com.itv.fs2rabbit.interpreter.Fs2Rabbit
 import fs2._
 
 import scala.concurrent.ExecutionContext.Implicits.global

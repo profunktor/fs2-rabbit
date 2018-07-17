@@ -10,9 +10,9 @@ Given two `Consumers` bound to queues with different `RoutingKey`s `RKA` and `RK
 
 ```tut:book:silent
 import cats.effect.IO
-import com.github.gvolpe.fs2rabbit.config.declaration.DeclarationQueueConfig
-import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
-import com.github.gvolpe.fs2rabbit.model._
+import com.itv.fs2rabbit.config.declaration.DeclarationQueueConfig
+import com.itv.fs2rabbit.interpreter.Fs2Rabbit
+import com.itv.fs2rabbit.model._
 import fs2._
 
 import scala.concurrent.ExecutionContext.Implicits.global

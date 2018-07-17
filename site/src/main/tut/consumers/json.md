@@ -10,9 +10,9 @@ A stream-based `Json Decoder` that can be connected to a `StreamConsumer` is pro
 
 ```tut:book
 import cats.effect.IO
-import com.github.gvolpe.fs2rabbit.json.Fs2JsonDecoder
-import com.github.gvolpe.fs2rabbit.model.AckResult._
-import com.github.gvolpe.fs2rabbit.model._
+import com.itv.fs2rabbit.json.Fs2JsonDecoder
+import com.itv.fs2rabbit.model.AckResult._
+import com.itv.fs2rabbit.model._
 import io.circe._
 import io.circe.generic.auto._
 import fs2._
