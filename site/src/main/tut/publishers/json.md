@@ -25,3 +25,5 @@ def program(publisher: StreamPublisher[IO]) = {
   Stream(message).covary[IO] through jsonEncode[Person] to publisher
 }
 ```
+
+If you need to modify the output format, you can pass your own `io.circe.Printer` to the constructor of `Fs2JsonEncoder` (defaults to `Printer.noSpaces`).
