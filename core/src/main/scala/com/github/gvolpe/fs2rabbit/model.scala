@@ -17,10 +17,12 @@
 package com.github.gvolpe.fs2rabbit
 
 import com.github.gvolpe.fs2rabbit.arguments.Arguments
-import com.github.gvolpe.fs2rabbit.model.AmqpHeaderVal.{IntVal, LongVal, StringVal}
+import com.github.gvolpe.fs2rabbit.model.AmqpHeaderVal._
 import com.rabbitmq.client.impl.LongStringHelper
 import com.rabbitmq.client.{AMQP, Channel, LongString}
 import fs2.{Sink, Stream}
+
+import scala.collection.JavaConverters._
 
 object model {
 
@@ -75,6 +77,7 @@ object model {
       case StringVal(v) => LongStringHelper.asLongString(v)
       case IntVal(v)    => Int.box(v)
       case LongVal(v)   => Long.box(v)
+      case ArrayVal(v)  => v.asJava
     }
   }
 
@@ -82,12 +85,14 @@ object model {
     final case class IntVal(value: Int)       extends AmqpHeaderVal
     final case class LongVal(value: Long)     extends AmqpHeaderVal
     final case class StringVal(value: String) extends AmqpHeaderVal
+    final case class ArrayVal(v: Seq[Any])    extends AmqpHeaderVal
 
     def from(value: AnyRef): AmqpHeaderVal = value match {
       case ls: LongString       => StringVal(new String(ls.getBytes, "UTF-8"))
       case s: String            => StringVal(s)
       case l: java.lang.Long    => LongVal(l)
       case i: java.lang.Integer => IntVal(i)
+      case a: java.util.List[_] => ArrayVal(a.asScala)
     }
   }
 
@@ -98,8 +103,6 @@ object model {
                             headers: Map[String, AmqpHeaderVal])
 
   object AmqpProperties {
-    import scala.collection.JavaConverters._
-
     def empty = AmqpProperties(None, None, None, None, Map.empty[String, AmqpHeaderVal])
 
     def from(basicProps: AMQP.BasicProperties): AmqpProperties =
