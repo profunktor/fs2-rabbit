@@ -26,4 +26,4 @@ def program(publisher: StreamPublisher[IO]) = {
 }
 ```
 
-If you need to modify the output format, you can overwrite `printer` to plug in your own `io.circe.Printer`.
+If you need to modify the output format, you can pass your own `io.circe.Printer` to the constructor of `Fs2JsonEncoder` (defaults to `Printer.noSpaces`).

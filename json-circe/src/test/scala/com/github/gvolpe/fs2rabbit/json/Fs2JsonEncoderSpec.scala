@@ -58,9 +58,7 @@ class Fs2JsonEncoderSpec extends FlatSpecLike with Matchers {
   it should "encode a simple case class according to a custom printer" in {
     val payload = Address(212, "Baker St")
 
-    val customFs2JsonEncoder = new Fs2JsonEncoder[IO] {
-      override val printer: Printer = Printer.spaces4
-    }
+    val customFs2JsonEncoder = new Fs2JsonEncoder[IO](Printer.spaces4)
 
     val test = for {
       json <- Stream(AmqpMessage(payload, AmqpProperties.empty)).covary[IO] through customFs2JsonEncoder

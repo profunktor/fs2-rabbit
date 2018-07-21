@@ -26,14 +26,11 @@ import io.circe.syntax._
 /**
   * Stream-based Json Encoder that exposes only one method as a streaming transformation
   * using [[fs2.Pipe]] and depends on the Circe library.
+  *
+  * @param printer The [[io.circe.Printer]] to be used to convert to JSON - overwrite if you need different
+  *                output formatting, for example, to omit null values.
   * */
-class Fs2JsonEncoder[F[_]](implicit SE: StreamEval[F]) {
-
-  /**
-    * The [[io.circe.Printer]] to be used to convert to JSON - overwrite if you need different output formatting,
-    * for example, to omit null values.
-    */
-  val printer: Printer = Printer.noSpaces
+class Fs2JsonEncoder[F[_]](printer: Printer = Printer.noSpaces)(implicit SE: StreamEval[F]) {
 
   /**
     * It tries to encode a given case class encapsulated in an  [[AmqpMessage]] into a
