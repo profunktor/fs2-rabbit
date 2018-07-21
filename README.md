@@ -43,6 +43,7 @@ Check the [official guide](https://gvolpe.github.io/fs2-rabbit/guide.html) for u
 | Company | Description |
 | ------- | ----------- |
 | [Cognotekt](http://www.cognotekt.com/en) | Microservice workflow management in Insuretech AI applications. |
+| [ITV](https://www.itv.com/) | Internal microservices interaction. |
 | [Klarna](https://www.klarna.com/us/) | Microservice for Fintech services. |
 | [Philips Lighting](http://www.lighting.philips.com/main/home) | Internal microservices interaction. |
 | [Free2Move](https://free2move.com) | Microservice communication. |
