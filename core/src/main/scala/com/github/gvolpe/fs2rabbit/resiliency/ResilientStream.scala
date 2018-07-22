@@ -43,7 +43,7 @@ object ResilientStream {
       implicit L: Log[F]): Stream[F, Unit] =
     program.handleErrorWith {
       case NonFatal(err) =>
-        val scheduledProgram = Stream.eval(Timer[F].sleep(retry)).flatMap(_ => program)
+        val scheduledProgram = Stream.sleep(retry).flatMap(_ => program)
         for {
           _ <- Stream.eval(L.error(err))
           _ <- Stream.eval(L.info(s"Restarting in ${retry * count}..."))
