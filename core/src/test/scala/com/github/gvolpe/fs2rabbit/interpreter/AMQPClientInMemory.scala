@@ -43,7 +43,7 @@ class AMQPClientInMemory(ref: Ref[IO, AMQPInternals[IO]],
   private val exchanges: MutableSet[ExchangeName] = MutableSet.empty[ExchangeName]
 
   private def raiseError[A](message: String): Stream[IO, A] =
-    Stream.raiseError[A](new java.io.IOException(message)).covary[IO]
+    Stream.raiseError[IO](new java.io.IOException(message))
 
   override def basicAck(channel: Channel, tag: model.DeliveryTag, multiple: Boolean): Stream[IO, Unit] =
     Stream.eval(ackerQ.enqueue1(Ack(tag)))

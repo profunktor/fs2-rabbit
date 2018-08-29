@@ -18,7 +18,7 @@ package com.github.gvolpe.fs2rabbit.interpreter
 
 import cats.effect.{Concurrent, ConcurrentEffect}
 import cats.syntax.applicative._
-import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, Connection}
+import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, Acker, Connection, Consumer}
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 import com.github.gvolpe.fs2rabbit.config.declaration.DeclarationQueueConfig
 import com.github.gvolpe.fs2rabbit.config.deletion.{DeletionExchangeConfig, DeletionQueueConfig}
@@ -29,10 +29,11 @@ import fs2.Stream
 // $COVERAGE-OFF$
 object Fs2Rabbit {
   def apply[F[_]: ConcurrentEffect](config: Fs2RabbitConfig): F[Fs2Rabbit[F]] = {
-    val amqpClient    = new AMQPClientStream[F]
-    val connStream    = new ConnectionStream[F](config)
-    val ackerConsumer = new AckerConsumerProgram[F](config, amqpClient)
-    new Fs2Rabbit[F](config, connStream, amqpClient, ackerConsumer).pure[F]
+    val amqpClient = new AMQPClientStream[F]
+    val connStream = new ConnectionStream[F](config)
+    val acker      = new AckerProgram[F](config, amqpClient)
+    val consumer   = new ConsumerProgram[F](amqpClient)
+    new Fs2Rabbit[F](config, connStream, amqpClient, acker, consumer).pure[F]
   }
 }
 // $COVERAGE-ON$
@@ -40,10 +41,11 @@ object Fs2Rabbit {
 class Fs2Rabbit[F[_]: Concurrent](config: Fs2RabbitConfig,
                                   connectionStream: Connection[Stream[F, ?]],
                                   amqpClient: AMQPClient[Stream[F, ?], F],
-                                  ackerConsumerProgram: AckerConsumerProgram[F]) {
+                                  acker: Acker[Stream[F, ?]],
+                                  consumer: Consumer[Stream[F, ?]]) {
 
   private[fs2rabbit] val consumingProgram: ConsumingProgram[F] =
-    new ConsumingProgram[F](ackerConsumerProgram)
+    new ConsumingProgram[F](acker, consumer)
 
   private[fs2rabbit] val publishingProgram: PublishingProgram[F] =
     new PublishingProgram[F](amqpClient)

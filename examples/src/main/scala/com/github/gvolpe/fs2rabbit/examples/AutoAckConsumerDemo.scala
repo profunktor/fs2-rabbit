@@ -75,6 +75,6 @@ class AutoAckFlow[F[_]: Concurrent](consumer: StreamConsumer[F],
       Stream(simpleMessage).covary[F] to publisher,
       Stream(classMessage).covary[F] through jsonEncode[Person] to publisher,
       consumer through logger to SE.liftSink(ack => Sync[F].delay(println(ack)))
-    ).join(3)
+    ).parJoin(3)
 
 }

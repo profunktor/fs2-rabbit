@@ -17,22 +17,21 @@
 package com.github.gvolpe.fs2rabbit.program
 
 import cats.Monad
-import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, Publishing}
-import com.github.gvolpe.fs2rabbit.model.{ExchangeName, RoutingKey, StreamPublisher}
+import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, Acker}
+import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
+import com.github.gvolpe.fs2rabbit.model.AckResult.{Ack, NAck}
+import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.util.StreamEval
 import com.rabbitmq.client.Channel
-import fs2.Stream
+import fs2.{Sink, Stream}
 
-class PublishingProgram[F[_]: Monad](AMQP: AMQPClient[Stream[F, ?], F])(implicit SE: StreamEval[F])
-    extends Publishing[Stream[F, ?]] {
+class AckerProgram[F[_]: Monad](config: Fs2RabbitConfig, AMQP: AMQPClient[Stream[F, ?], F])(implicit SE: StreamEval[F])
+    extends Acker[Stream[F, ?]] {
 
-  override def createPublisher(channel: Channel,
-                               exchangeName: ExchangeName,
-                               routingKey: RoutingKey): Stream[F, StreamPublisher[F]] =
-    SE.evalF {
-      _.flatMap { msg =>
-        AMQP.basicPublish(channel, exchangeName, routingKey, msg)
-      }
+  def createAcker(channel: Channel): Sink[F, AckResult] =
+    _.flatMap {
+      case Ack(tag)  => AMQP.basicAck(channel, tag, multiple = false)
+      case NAck(tag) => AMQP.basicNack(channel, tag, multiple = false, config.requeueOnNack)
     }
 
 }

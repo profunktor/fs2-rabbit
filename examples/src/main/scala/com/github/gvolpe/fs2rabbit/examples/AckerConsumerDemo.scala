@@ -77,6 +77,6 @@ class Flow[F[_]: Concurrent](consumer: StreamConsumer[F],
       Stream(simpleMessage).covary[F] to publisher,
       Stream(classMessage).covary[F] through jsonEncode[Person] to publisher,
       consumer through logger to acker
-    ).join(3)
+    ).parJoin(3)
 
 }

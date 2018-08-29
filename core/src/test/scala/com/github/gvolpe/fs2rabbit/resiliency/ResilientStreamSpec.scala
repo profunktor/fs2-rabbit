@@ -28,7 +28,7 @@ import scala.concurrent.duration._
 
 class ResilientStreamSpec extends FlatSpecLike with Matchers {
 
-  implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
+  implicit val timer = IO.timer(ExecutionContext.Implicits.global)
 
   private val sink: Sink[IO, Int] = _.evalMap(n => IO(println(n)))
 
@@ -47,7 +47,7 @@ class ResilientStreamSpec extends FlatSpecLike with Matchers {
   }
 
   it should "run a stream and recover in case of failure" in IOAssertion {
-    val errorProgram = Stream.raiseError(new Exception("on purpose")).covary[IO] to sink
+    val errorProgram = Stream.raiseError[IO](new Exception("on purpose")) to sink
 
     def p(ref: Ref[IO, Int]): Stream[IO, Unit] =
       errorProgram.handleErrorWith { t =>

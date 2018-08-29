@@ -16,14 +16,13 @@
 
 package com.github.gvolpe.fs2rabbit.program
 
-import cats.effect.Async
-import com.github.gvolpe.fs2rabbit.algebra.{AckerConsumer, Consuming}
+import com.github.gvolpe.fs2rabbit.algebra.{Acker, Consumer, Consuming}
 import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.util.StreamEval
 import com.rabbitmq.client.Channel
 import fs2.Stream
 
-class ConsumingProgram[F[_]: Async](C: AckerConsumer[Stream[F, ?]])(implicit SE: StreamEval[F])
+class ConsumingProgram[F[_]](A: Acker[Stream[F, ?]], C: Consumer[Stream[F, ?]])(implicit SE: StreamEval[F])
     extends Consuming[Stream[F, ?]] {
 
   override def createAckerConsumer(
@@ -40,7 +39,7 @@ class ConsumingProgram[F[_]: Async](C: AckerConsumer[Stream[F, ?]])(implicit SE:
                        consumerTag = args.consumerTag,
                        args = args.args)
     }
-    SE.pure((C.createAcker(channel), consumer))
+    SE.pure((A.createAcker(channel), consumer))
   }
 
   override def createAutoAckConsumer(channel: Channel,
