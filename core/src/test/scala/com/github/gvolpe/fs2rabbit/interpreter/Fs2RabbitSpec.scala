@@ -35,8 +35,8 @@ import scala.concurrent.duration._
 
 class Fs2RabbitSpec extends FlatSpecLike with Matchers {
 
-  implicit val timer = IO.timer(ExecutionContext.Implicits.global)
-  implicit val cs    = IO.contextShift(ExecutionContext.Implicits.global)
+  implicit val timer = IO.timer(ExecutionContext.global)
+  implicit val cs    = IO.contextShift(ExecutionContext.global)
 
   private val config =
     Fs2RabbitConfig("localhost",

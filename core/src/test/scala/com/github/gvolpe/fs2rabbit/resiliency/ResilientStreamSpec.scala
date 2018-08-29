@@ -28,7 +28,7 @@ import scala.concurrent.duration._
 
 class ResilientStreamSpec extends FlatSpecLike with Matchers {
 
-  implicit val timer = IO.timer(ExecutionContext.Implicits.global)
+  implicit val timer = IO.timer(ExecutionContext.global)
 
   private val sink: Sink[IO, Int] = _.evalMap(n => IO(println(n)))
 

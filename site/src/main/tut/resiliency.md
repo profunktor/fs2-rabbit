@@ -15,8 +15,10 @@ import cats.effect.IO
 import com.github.gvolpe.fs2rabbit.resiliency.ResilientStream
 import fs2._
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
+
+implicit val timer = IO.timer(ExecutionContext.global)
 
 val program: Stream[IO, Unit] = Stream.eval(IO.unit)
 

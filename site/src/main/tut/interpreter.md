@@ -29,7 +29,9 @@ val config: Fs2RabbitConfig = null
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
 import fs2._
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.ExecutionContext
+
+implicit val cs = IO.contextShift(ExecutionContext.global)
 
 def yourProgram[F[_]](implicit R: Fs2Rabbit[F]): Stream[F, Unit] = ???
 
