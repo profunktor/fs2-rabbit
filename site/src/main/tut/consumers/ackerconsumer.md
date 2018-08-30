@@ -8,7 +8,7 @@ number: 8
 
 It delegates the responsibility to acknowledge message consumption to the user. You are in total control of telling `RabbitMQ` when a message should be marked as consumed. It is the best option whenever you don't want to lose any messages.
 
-```tut:book
+```tut:book:silent
 import cats.effect.IO
 import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit

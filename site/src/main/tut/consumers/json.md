@@ -8,7 +8,7 @@ number: 9
 
 A stream-based `Json Decoder` that can be connected to a `StreamConsumer` is provided by the extra dependency `fs2-rabbit-circe`. Implicit decoders for your classes must be on scope. You can use `Circe`'s codec auto derivation for example:
 
-```tut:book
+```tut:book:silent
 import cats.effect.IO
 import com.github.gvolpe.fs2rabbit.json.Fs2JsonDecoder
 import com.github.gvolpe.fs2rabbit.model.AckResult._

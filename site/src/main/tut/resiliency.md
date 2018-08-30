@@ -10,7 +10,7 @@ If you want your program to run forever with automatic error recovery you can ch
 
 For a given `Fs2 Rabbit` program defined as `Stream[F, Unit]`, a resilient app will look as follow:
 
-```tut:book
+```tut:book:silent
 import cats.effect.IO
 import com.github.gvolpe.fs2rabbit.resiliency.ResilientStream
 import fs2._

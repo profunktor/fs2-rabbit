@@ -25,7 +25,7 @@ import com.github.gvolpe.fs2rabbit.model._
 val config: Fs2RabbitConfig = null
 ```
 
-```tut:book
+```tut:book:silent
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
 import fs2._
 

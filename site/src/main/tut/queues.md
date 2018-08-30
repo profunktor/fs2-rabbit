@@ -12,7 +12,7 @@ Before getting into the `Consumers` section there are two things you need to kno
 
 Declaring a `Queue` means that if already exists it's going to get a reference to it or otherwise it will create it.
 
-```tut:book
+```tut:book:silent
 import cats.effect.IO
 import com.github.gvolpe.fs2rabbit.config.declaration._
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
@@ -32,7 +32,7 @@ def exchanges(implicit F: Fs2Rabbit[IO]) = F.createConnectionChannel flatMap { i
 
 ### Binding a Queue to an Exchange
 
-```tut:book
+```tut:book:silent
 val x1  = ExchangeName("x1")
 val rk1 = RoutingKey("rk1")
 val rk2 = RoutingKey("rk2")
