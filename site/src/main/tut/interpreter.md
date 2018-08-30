@@ -25,11 +25,13 @@ import com.github.gvolpe.fs2rabbit.model._
 val config: Fs2RabbitConfig = null
 ```
 
-```tut:book
+```tut:book:silent
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
 import fs2._
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.ExecutionContext
+
+implicit val cs = IO.contextShift(ExecutionContext.global)
 
 def yourProgram[F[_]](implicit R: Fs2Rabbit[F]): Stream[F, Unit] = ???
 

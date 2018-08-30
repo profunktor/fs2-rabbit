@@ -15,7 +15,9 @@ import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
 import com.github.gvolpe.fs2rabbit.model._
 import fs2._
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.ExecutionContext
+
+implicit val cs = IO.contextShift(ExecutionContext.global)
 
 val q1  = QueueName("q1")
 val q2  = QueueName("q2")
@@ -30,7 +32,7 @@ def multipleConsumers(c1: StreamConsumer[IO], c2: StreamConsumer[IO], p: StreamP
     msg to p,
     c1 to (_.evalMap(m => IO(println(s"Consumer #1 >> $m")))),
     c2 to (_.evalMap(m => IO(println(s"Consumer #2 >> $m"))))
-  ).join(3)
+  ).parJoin(3)
 }
 
 def program(F: Fs2Rabbit[IO]) = F.createConnectionChannel.flatMap { implicit channel =>

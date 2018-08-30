@@ -43,7 +43,7 @@ class AutoAckFlow[F[_]: Concurrent](
       Stream(simpleMessage).covary[F] to publisher,
       Stream(classMessage).covary[F] through jsonEncode[Person] to publisher,
       consumer through logger to SE.liftSink(ack => Sync[F].delay(println(ack)))
-    ).join(3)
+    ).parJoin(3)
 
 }
 
@@ -85,11 +85,9 @@ import com.github.gvolpe.fs2rabbit.resiliency.ResilientStream
 import monix.eval.Task
 import monix.execution.Scheduler.Implicits.global
 
-import scala.concurrent.ExecutionContext
-
 object MonixAutoAckConsumer extends IOApp {
 
-  implicit val appS: ExecutionContext = scala.concurrent.ExecutionContext.global
+  implicit val ec = scala.concurrent.ExecutionContext.global
 
   private val config: Fs2RabbitConfig = Fs2RabbitConfig(virtualHost = "/",
                                                         host = "127.0.0.1",

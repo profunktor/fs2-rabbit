@@ -25,15 +25,18 @@ import com.github.gvolpe.fs2rabbit.config.declaration.{AutoDelete, DeclarationQu
 import com.github.gvolpe.fs2rabbit.config.deletion.{DeletionExchangeConfig, DeletionQueueConfig}
 import com.github.gvolpe.fs2rabbit.model.AckResult.{Ack, NAck}
 import com.github.gvolpe.fs2rabbit.model._
-import com.github.gvolpe.fs2rabbit.program.AckerConsumerProgram
+import com.github.gvolpe.fs2rabbit.program.{AckerProgram, ConsumerProgram}
 import fs2.async.mutable
 import fs2.{Stream, async}
 import org.scalatest.{FlatSpecLike, Matchers}
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
 class Fs2RabbitSpec extends FlatSpecLike with Matchers {
+
+  implicit val timer = IO.timer(ExecutionContext.global)
+  implicit val cs    = IO.contextShift(ExecutionContext.global)
 
   private val config =
     Fs2RabbitConfig("localhost",
@@ -76,14 +79,15 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
   object TestFs2Rabbit {
     def apply(config: Fs2RabbitConfig): (Fs2Rabbit[IO], Stream[IO, Unit]) = {
       val interpreter = for {
-        publishingQ   <- fs2.async.boundedQueue[IO, Either[Throwable, AmqpEnvelope]](500)
-        ackerQ        <- fs2.async.boundedQueue[IO, AckResult](500)
-        queueRef      <- Ref.of[IO, AMQPInternals[IO]](AMQPInternals(None))
-        amqpClient    = new AMQPClientInMemory(queueRef, publishingQ, ackerQ, config)
-        connStream    = new ConnectionStub
-        ackerConsumer = new AckerConsumerProgram[IO](config, amqpClient)
-        fs2Rabbit     = new Fs2Rabbit[IO](config, connStream, amqpClient, ackerConsumer)
-        testSuiteRTS  = rabbitRTS(queueRef, publishingQ)
+        publishingQ  <- fs2.async.boundedQueue[IO, Either[Throwable, AmqpEnvelope]](500)
+        ackerQ       <- fs2.async.boundedQueue[IO, AckResult](500)
+        queueRef     <- Ref.of[IO, AMQPInternals[IO]](AMQPInternals(None))
+        amqpClient   = new AMQPClientInMemory(queueRef, publishingQ, ackerQ, config)
+        connStream   = new ConnectionStub
+        acker        = new AckerProgram[IO](config, amqpClient)
+        consumer     = new ConsumerProgram[IO](amqpClient)
+        fs2Rabbit    = new Fs2Rabbit[IO](config, connStream, amqpClient, acker, consumer)
+        testSuiteRTS = rabbitRTS(queueRef, publishingQ)
       } yield (fs2Rabbit, testSuiteRTS)
       interpreter.unsafeRunSync()
     }
@@ -163,7 +167,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
           _ <- Stream(
                 consumer.take(1) to testQ.enqueue,
                 Stream(Ack(DeliveryTag(1))).covary[IO].observe(ackerQ.enqueue) to acker
-              ).join(2).take(1)
+              ).parJoin(2).take(1)
           result    <- Stream.eval(testQ.dequeue1)
           ackResult <- Stream.eval(ackerQ.dequeue1)
         } yield {
@@ -277,7 +281,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
           _ <- Stream(
                 consumer.take(1) to testQ.enqueue,
                 Stream(Ack(DeliveryTag(1))).covary[IO] observe ackerQ.enqueue to acker
-              ).join(2).take(1)
+              ).parJoin(2).take(1)
           result    <- Stream.eval(testQ.dequeue1)
           ackResult <- Stream.eval(ackerQ.dequeue1)
         } yield {
@@ -399,7 +403,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
         _ <- Stream(
               consumer.take(1) to testQ.enqueue,
               Stream(Ack(DeliveryTag(1))).covary[IO] observe ackerQ.enqueue to acker
-            ).join(2).take(1)
+            ).parJoin(2).take(1)
         result    <- Stream.eval(testQ.dequeue1)
         ackResult <- Stream.eval(ackerQ.dequeue1)
       } yield {

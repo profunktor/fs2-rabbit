@@ -23,7 +23,9 @@ import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
 import com.github.gvolpe.fs2rabbit.model._
 import fs2._
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.ExecutionContext
+
+implicit val cs = IO.contextShift(ExecutionContext.global)
 
 val q1 = QueueName("q1")
 val ex = ExchangeName("testEX")
