@@ -14,22 +14,18 @@
 <p>The recommended way to create the interpreter is to call <code class="highlighter-rouge">apply</code> and then <code class="highlighter-rouge">flatMap</code> to access the inner instance and make it available as an implicit. For example:</p>
 
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="nn">com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit</span>
-<span class="c1">// import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
-</span>
 <span class="k">import</span> <span class="nn">fs2._</span>
-<span class="c1">// import fs2._
-</span>
-<span class="k">import</span> <span class="nn">scala.concurrent.ExecutionContext.Implicits.global</span>
-<span class="c1">// import scala.concurrent.ExecutionContext.Implicits.global
-</span>
+
+<span class="k">import</span> <span class="nn">scala.concurrent.ExecutionContext</span>
+
+<span class="k">implicit</span> <span class="k">val</span> <span class="n">cs</span> <span class="k">=</span> <span class="nc">IO</span><span class="o">.</span><span class="n">contextShift</span><span class="o">(</span><span class="nc">ExecutionContext</span><span class="o">.</span><span class="n">global</span><span class="o">)</span>
+
 <span class="k">def</span> <span class="n">yourProgram</span><span class="o">[</span><span class="kt">F</span><span class="o">[</span><span class="k">_</span><span class="o">]](</span><span class="k">implicit</span> <span class="n">R</span><span class="k">:</span> <span class="kt">Fs2Rabbit</span><span class="o">[</span><span class="kt">F</span><span class="o">])</span><span class="k">:</span> <span class="kt">Stream</span><span class="o">[</span><span class="kt">F</span>, <span class="kt">Unit</span><span class="o">]</span> <span class="k">=</span> <span class="o">???</span>
-<span class="c1">// yourProgram: [F[_]](implicit R: com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit[F])fs2.Stream[F,Unit]
-</span>
+
 <span class="nc">Stream</span><span class="o">.</span><span class="n">eval</span><span class="o">(</span><span class="nc">Fs2Rabbit</span><span class="o">[</span><span class="kt">IO</span><span class="o">](</span><span class="n">config</span><span class="o">)).</span><span class="n">flatMap</span> <span class="o">{</span> <span class="k">implicit</span> <span class="n">interpreter</span> <span class="k">=&gt;</span>
   <span class="n">yourProgram</span><span class="o">[</span><span class="kt">IO</span><span class="o">]</span>
 <span class="o">}</span>
-<span class="c1">// res1: fs2.Stream[cats.effect.IO,Unit] = Stream(..)
-</span></code></pre></div></div>
+</code></pre></div></div>
 
 <p>Note that since the <code class="highlighter-rouge">apply</code> method returns <code class="highlighter-rouge">F[Fs2Rabbit[F]]</code> you need to evaluate it within a streaming context using <code class="highlighter-rouge">Stream.eval</code> to integrate it with <code class="highlighter-rouge">yourProgram</code> that has the type <code class="highlighter-rouge">Stream[F, Unit]</code>.</p>
 </section></div></div></div></div><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script><script src="/fs2-rabbit/highlight/highlight.pack.js"></script><script>hljs.configure({

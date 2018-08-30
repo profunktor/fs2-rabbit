@@ -7,53 +7,34 @@
 <p>Declaring a <code class="highlighter-rouge">Queue</code> means that if already exists it’s going to get a reference to it or otherwise it will create it.</p>
 
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="nn">cats.effect.IO</span>
-<span class="c1">// import cats.effect.IO
-</span>
 <span class="k">import</span> <span class="nn">com.github.gvolpe.fs2rabbit.config.declaration._</span>
-<span class="c1">// import com.github.gvolpe.fs2rabbit.config.declaration._
-</span>
 <span class="k">import</span> <span class="nn">com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit</span>
-<span class="c1">// import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
-</span>
 <span class="k">import</span> <span class="nn">com.github.gvolpe.fs2rabbit.model._</span>
-<span class="c1">// import com.github.gvolpe.fs2rabbit.model._
-</span>
 <span class="k">import</span> <span class="nn">fs2._</span>
-<span class="c1">// import fs2._
-</span>
+
 <span class="k">val</span> <span class="n">q1</span> <span class="k">=</span> <span class="nc">QueueName</span><span class="o">(</span><span class="s">"q1"</span><span class="o">)</span>
-<span class="c1">// q1: com.github.gvolpe.fs2rabbit.model.QueueName = QueueName(q1)
-</span>
 <span class="k">val</span> <span class="n">q2</span> <span class="k">=</span> <span class="nc">QueueName</span><span class="o">(</span><span class="s">"q2"</span><span class="o">)</span>
-<span class="c1">// q2: com.github.gvolpe.fs2rabbit.model.QueueName = QueueName(q2)
-</span>
+
 <span class="k">def</span> <span class="n">exchanges</span><span class="o">(</span><span class="k">implicit</span> <span class="n">F</span><span class="k">:</span> <span class="kt">Fs2Rabbit</span><span class="o">[</span><span class="kt">IO</span><span class="o">])</span> <span class="k">=</span> <span class="n">F</span><span class="o">.</span><span class="n">createConnectionChannel</span> <span class="n">flatMap</span> <span class="o">{</span> <span class="k">implicit</span> <span class="n">channel</span> <span class="k">=&gt;</span>
   <span class="k">for</span> <span class="o">{</span>
     <span class="k">_</span> <span class="k">&lt;-</span> <span class="n">F</span><span class="o">.</span><span class="n">declareQueue</span><span class="o">(</span><span class="nc">DeclarationQueueConfig</span><span class="o">.</span><span class="n">default</span><span class="o">(</span><span class="n">q1</span><span class="o">))</span>
     <span class="k">_</span> <span class="k">&lt;-</span> <span class="n">F</span><span class="o">.</span><span class="n">declareQueue</span><span class="o">(</span><span class="nc">DeclarationQueueConfig</span><span class="o">.</span><span class="n">default</span><span class="o">(</span><span class="n">q2</span><span class="o">))</span>
   <span class="o">}</span> <span class="k">yield</span> <span class="o">()</span>
 <span class="o">}</span>
-<span class="c1">// exchanges: (implicit F: com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit[cats.effect.IO])fs2.Stream[cats.effect.IO,Unit]
-</span></code></pre></div></div>
+</code></pre></div></div>
 
 <h3 id="binding-a-queue-to-an-exchange">Binding a Queue to an Exchange</h3>
 
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">val</span> <span class="n">x1</span>  <span class="k">=</span> <span class="nc">ExchangeName</span><span class="o">(</span><span class="s">"x1"</span><span class="o">)</span>
-<span class="c1">// x1: com.github.gvolpe.fs2rabbit.model.ExchangeName = ExchangeName(x1)
-</span>
 <span class="k">val</span> <span class="n">rk1</span> <span class="k">=</span> <span class="nc">RoutingKey</span><span class="o">(</span><span class="s">"rk1"</span><span class="o">)</span>
-<span class="c1">// rk1: com.github.gvolpe.fs2rabbit.model.RoutingKey = RoutingKey(rk1)
-</span>
 <span class="k">val</span> <span class="n">rk2</span> <span class="k">=</span> <span class="nc">RoutingKey</span><span class="o">(</span><span class="s">"rk2"</span><span class="o">)</span>
-<span class="c1">// rk2: com.github.gvolpe.fs2rabbit.model.RoutingKey = RoutingKey(rk2)
-</span>
+
 <span class="k">def</span> <span class="n">binding</span><span class="o">(</span><span class="n">F</span><span class="k">:</span> <span class="kt">Fs2Rabbit</span><span class="o">[</span><span class="kt">IO</span><span class="o">])(</span><span class="k">implicit</span> <span class="n">channel</span><span class="k">:</span> <span class="kt">AMQPChannel</span><span class="o">)</span> <span class="k">=</span>
   <span class="k">for</span> <span class="o">{</span>
     <span class="k">_</span> <span class="k">&lt;-</span> <span class="n">F</span><span class="o">.</span><span class="n">bindQueue</span><span class="o">(</span><span class="n">q1</span><span class="o">,</span> <span class="n">x1</span><span class="o">,</span> <span class="n">rk1</span><span class="o">)</span>
     <span class="k">_</span> <span class="k">&lt;-</span> <span class="n">F</span><span class="o">.</span><span class="n">bindQueue</span><span class="o">(</span><span class="n">q2</span><span class="o">,</span> <span class="n">x1</span><span class="o">,</span> <span class="n">rk2</span><span class="o">)</span>
   <span class="o">}</span> <span class="k">yield</span> <span class="o">()</span>
-<span class="c1">// binding: (F: com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit[cats.effect.IO])(implicit channel: com.github.gvolpe.fs2rabbit.model.AMQPChannel)fs2.Stream[cats.effect.IO,Unit]
-</span></code></pre></div></div>
+</code></pre></div></div>
 </section></div></div></div></div><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script><script src="/fs2-rabbit/highlight/highlight.pack.js"></script><script>hljs.configure({
 languages:['scala','java','bash']
 });

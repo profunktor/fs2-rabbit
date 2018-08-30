@@ -5,26 +5,18 @@
 <p>For a given <code class="highlighter-rouge">Fs2 Rabbit</code> program defined as <code class="highlighter-rouge">Stream[F, Unit]</code>, a resilient app will look as follow:</p>
 
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="nn">cats.effect.IO</span>
-<span class="c1">// import cats.effect.IO
-</span>
 <span class="k">import</span> <span class="nn">com.github.gvolpe.fs2rabbit.resiliency.ResilientStream</span>
-<span class="c1">// import com.github.gvolpe.fs2rabbit.resiliency.ResilientStream
-</span>
 <span class="k">import</span> <span class="nn">fs2._</span>
-<span class="c1">// import fs2._
-</span>
-<span class="k">import</span> <span class="nn">scala.concurrent.ExecutionContext.Implicits.global</span>
-<span class="c1">// import scala.concurrent.ExecutionContext.Implicits.global
-</span>
+
+<span class="k">import</span> <span class="nn">scala.concurrent.ExecutionContext</span>
 <span class="k">import</span> <span class="nn">scala.concurrent.duration._</span>
-<span class="c1">// import scala.concurrent.duration._
-</span>
+
+<span class="k">implicit</span> <span class="k">val</span> <span class="n">timer</span> <span class="k">=</span> <span class="nc">IO</span><span class="o">.</span><span class="n">timer</span><span class="o">(</span><span class="nc">ExecutionContext</span><span class="o">.</span><span class="n">global</span><span class="o">)</span>
+
 <span class="k">val</span> <span class="n">program</span><span class="k">:</span> <span class="kt">Stream</span><span class="o">[</span><span class="kt">IO</span>, <span class="kt">Unit</span><span class="o">]</span> <span class="k">=</span> <span class="nc">Stream</span><span class="o">.</span><span class="n">eval</span><span class="o">(</span><span class="nc">IO</span><span class="o">.</span><span class="n">unit</span><span class="o">)</span>
-<span class="c1">// program: fs2.Stream[cats.effect.IO,Unit] = Stream(..)
-</span>
+
 <span class="nc">ResilientStream</span><span class="o">.</span><span class="n">run</span><span class="o">(</span><span class="n">program</span><span class="o">,</span> <span class="mf">1.</span><span class="n">second</span><span class="o">)</span>
-<span class="c1">// res0: cats.effect.IO[Unit] = IO$987233912
-</span></code></pre></div></div>
+</code></pre></div></div>
 
 <p>This program will run forever and in the case of failure it will be restarted after 1 second and then exponentially after 2 seconds, 4 seconds, 8 seconds, etc.</p>
 

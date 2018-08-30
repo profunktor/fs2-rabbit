@@ -7,31 +7,20 @@
 <p>Declaring a <code class="highlighter-rouge">Exchange</code> means that if already exists it’s going to get a reference to it or otherwise it will create it.</p>
 
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="nn">cats.effect.IO</span>
-<span class="c1">// import cats.effect.IO
-</span>
 <span class="k">import</span> <span class="nn">com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit</span>
-<span class="c1">// import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
-</span>
 <span class="k">import</span> <span class="nn">com.github.gvolpe.fs2rabbit.model._</span>
-<span class="c1">// import com.github.gvolpe.fs2rabbit.model._
-</span>
 <span class="k">import</span> <span class="nn">fs2._</span>
-<span class="c1">// import fs2._
-</span>
+
 <span class="k">val</span> <span class="n">x1</span> <span class="k">=</span> <span class="nc">ExchangeName</span><span class="o">(</span><span class="s">"x1"</span><span class="o">)</span>
-<span class="c1">// x1: com.github.gvolpe.fs2rabbit.model.ExchangeName = ExchangeName(x1)
-</span>
 <span class="k">val</span> <span class="n">x2</span> <span class="k">=</span> <span class="nc">ExchangeName</span><span class="o">(</span><span class="s">"x2"</span><span class="o">)</span>
-<span class="c1">// x2: com.github.gvolpe.fs2rabbit.model.ExchangeName = ExchangeName(x2)
-</span>
+
 <span class="k">def</span> <span class="n">exchanges</span><span class="o">(</span><span class="k">implicit</span> <span class="n">F</span><span class="k">:</span> <span class="kt">Fs2Rabbit</span><span class="o">[</span><span class="kt">IO</span><span class="o">])</span> <span class="k">=</span> <span class="n">F</span><span class="o">.</span><span class="n">createConnectionChannel</span> <span class="n">flatMap</span> <span class="o">{</span> <span class="k">implicit</span> <span class="n">channel</span> <span class="k">=&gt;</span>
   <span class="k">for</span> <span class="o">{</span>
     <span class="k">_</span> <span class="k">&lt;-</span> <span class="n">F</span><span class="o">.</span><span class="n">declareExchange</span><span class="o">(</span><span class="n">x1</span><span class="o">,</span> <span class="nc">ExchangeType</span><span class="o">.</span><span class="nc">Topic</span><span class="o">)</span>
     <span class="k">_</span> <span class="k">&lt;-</span> <span class="n">F</span><span class="o">.</span><span class="n">declareExchange</span><span class="o">(</span><span class="n">x2</span><span class="o">,</span> <span class="nc">ExchangeType</span><span class="o">.</span><span class="nc">FanOut</span><span class="o">)</span>
   <span class="o">}</span> <span class="k">yield</span> <span class="o">()</span>
 <span class="o">}</span>
-<span class="c1">// exchanges: (implicit F: com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit[cats.effect.IO])fs2.Stream[cats.effect.IO,Unit]
-</span></code></pre></div></div>
+</code></pre></div></div>
 
 <h3 id="binding-exchanges">Binding Exchanges</h3>
 
@@ -39,8 +28,7 @@
 
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="n">binding</span><span class="o">(</span><span class="n">F</span><span class="k">:</span> <span class="kt">Fs2Rabbit</span><span class="o">[</span><span class="kt">IO</span><span class="o">])(</span><span class="k">implicit</span> <span class="n">channel</span><span class="k">:</span> <span class="kt">AMQPChannel</span><span class="o">)</span> <span class="k">=</span>
   <span class="n">F</span><span class="o">.</span><span class="n">bindExchange</span><span class="o">(</span><span class="n">x1</span><span class="o">,</span> <span class="n">x2</span><span class="o">,</span> <span class="nc">RoutingKey</span><span class="o">(</span><span class="s">"rk"</span><span class="o">),</span> <span class="nc">ExchangeBindingArgs</span><span class="o">(</span><span class="nc">Map</span><span class="o">.</span><span class="n">empty</span><span class="o">))</span>
-<span class="c1">// binding: (F: com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit[cats.effect.IO])(implicit channel: com.github.gvolpe.fs2rabbit.model.AMQPChannel)fs2.Stream[cats.effect.IO,Unit]
-</span></code></pre></div></div>
+</code></pre></div></div>
 
 <p>Read more about <code class="highlighter-rouge">Exchanges</code> and <code class="highlighter-rouge">ExchangeType</code> <a href="https://www.rabbitmq.com/tutorials/amqp-concepts.html#exchanges">here</a>.</p>
 </section></div></div></div></div><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script><script src="/fs2-rabbit/highlight/highlight.pack.js"></script><script>hljs.configure({
