@@ -9,6 +9,7 @@ object Dependencies {
     val amqpClient = "4.6.0"
     val logback    = "1.1.3"
     val monix      = "3.0.0-RC1"
+    val kindProjector = "0.9.7"
 
     val scalaTest  = "3.0.1"
     val scalaCheck = "1.13.4"
@@ -18,6 +19,9 @@ object Dependencies {
     lazy val amqpClient = "com.rabbitmq"  % "amqp-client"  % Versions.amqpClient
     lazy val catsEffect = "org.typelevel" %% "cats-effect" % Versions.catsEffect
     lazy val fs2Core    = "co.fs2"        %% "fs2-core"    % Versions.fs2
+
+    // Compiler
+    lazy val kindProjector = "org.spire-math" % "kind-projector" % Versions.kindProjector cross CrossVersion.binary
 
     // Examples
     lazy val monix   = "io.monix"       %% "monix"          % Versions.monix
