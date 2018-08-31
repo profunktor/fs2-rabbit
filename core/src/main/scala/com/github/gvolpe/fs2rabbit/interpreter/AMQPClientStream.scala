@@ -20,7 +20,7 @@ import cats.effect.Effect
 import cats.effect.syntax.effect._
 import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, AMQPInternals}
 import com.github.gvolpe.fs2rabbit.arguments._
-import com.github.gvolpe.fs2rabbit.config.declaration.DeclarationQueueConfig
+import com.github.gvolpe.fs2rabbit.config.declaration.{DeclarationExchangeConfig, DeclarationQueueConfig}
 import com.github.gvolpe.fs2rabbit.config.deletion
 import com.github.gvolpe.fs2rabbit.config.deletion.DeletionQueueConfig
 import com.github.gvolpe.fs2rabbit.model._
@@ -133,10 +133,15 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
     channel.exchangeBind(destination.value, source.value, routingKey.value, args.value)
   }
 
-  override def declareExchange(channel: Channel,
-                               exchangeName: ExchangeName,
-                               exchangeType: ExchangeType): Stream[F, Unit] = SE.evalF {
-    channel.exchangeDeclare(exchangeName.value, exchangeType.toString.toLowerCase)
+  override def declareExchange(channel: Channel, config: DeclarationExchangeConfig): Stream[F, Unit] = SE.evalF {
+    channel.exchangeDeclare(
+      config.exchangeName.value,
+      config.exchangeType.toString.toLowerCase,
+      config.durable.isTrue,
+      config.autoDelete.isTrue,
+      config.internal.isTrue,
+      config.arguments
+    )
   }
 
   override def declareQueue(channel: Channel, config: DeclarationQueueConfig): Stream[F, Unit] = SE.evalF {

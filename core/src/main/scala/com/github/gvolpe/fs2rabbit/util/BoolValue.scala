@@ -39,6 +39,9 @@ object BoolValue {
   implicit def autoDeleteCfg: BoolValue[AutoDeleteCfg] =
     BoolValue[AutoDeleteCfg](cfg => cfg == AutoDelete)
 
+  implicit def internalCfg: BoolValue[InternalCfg] =
+    BoolValue[InternalCfg](cfg => cfg == Internal)
+
   implicit def ifUnusedCfg: BoolValue[IfUnusedCfg] =
     BoolValue[IfUnusedCfg](cfg => cfg == Unused)
 

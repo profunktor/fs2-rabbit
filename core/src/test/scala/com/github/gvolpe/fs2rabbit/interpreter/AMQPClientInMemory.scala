@@ -21,7 +21,7 @@ import cats.effect.concurrent.Ref
 import cats.syntax.apply._
 import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, AMQPInternals}
 import com.github.gvolpe.fs2rabbit.arguments.Arguments
-import com.github.gvolpe.fs2rabbit.config.declaration.DeclarationQueueConfig
+import com.github.gvolpe.fs2rabbit.config.declaration.{DeclarationExchangeConfig, DeclarationQueueConfig}
 import com.github.gvolpe.fs2rabbit.config.deletion.DeletionQueueConfig
 import com.github.gvolpe.fs2rabbit.config.{Fs2RabbitConfig, deletion}
 import com.github.gvolpe.fs2rabbit.model
@@ -128,10 +128,8 @@ class AMQPClientInMemory(ref: Ref[IO, AMQPInternals[IO]],
                             routingKey: model.RoutingKey,
                             args: model.ExchangeBindingArgs): Stream[IO, Unit] = Stream.eval(IO.unit)
 
-  override def declareExchange(channel: Channel,
-                               exchangeName: model.ExchangeName,
-                               exchangeType: ExchangeType): Stream[IO, Unit] =
-    Stream.eval(IO(exchanges += exchangeName) *> IO.unit)
+  override def declareExchange(channel: Channel, exchangeConfig: DeclarationExchangeConfig): Stream[IO, Unit] =
+    Stream.eval(IO(exchanges += exchangeConfig.exchangeName) *> IO.unit)
 
   override def declareQueue(channel: Channel, queueConfig: DeclarationQueueConfig): Stream[IO, Unit] =
     Stream.eval(IO(queues += queueConfig.queueName) *> IO.unit)
