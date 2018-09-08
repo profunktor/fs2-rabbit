@@ -23,6 +23,7 @@ import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.util.StreamEval
 import com.rabbitmq.client.Channel
 import fs2.{Pipe, Stream}
+import fs2.concurrent.Queue
 
 class ConsumerProgram[F[_]: Concurrent](AMQP: AMQPClient[Stream[F, ?], F])(implicit SE: StreamEval[F])
     extends Consumer[Stream[F, ?]] {
@@ -42,7 +43,7 @@ class ConsumerProgram[F[_]: Concurrent](AMQP: AMQPClient[Stream[F, ?], F])(impli
                               consumerTag: String = "",
                               args: Arguments = Map.empty): StreamConsumer[F] =
     for {
-      internalQ <- Stream.eval(fs2.async.boundedQueue[F, Either[Throwable, AmqpEnvelope]](500))
+      internalQ <- Stream.eval(Queue.bounded[F, Either[Throwable, AmqpEnvelope]](500))
       internals = AMQPInternals[F](Some(internalQ))
       _         <- AMQP.basicQos(channel, basicQos)
       _         <- AMQP.basicConsume(channel, queueName, autoAck, consumerTag, noLocal, exclusive, args)(internals)

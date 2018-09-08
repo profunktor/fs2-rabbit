@@ -7,7 +7,7 @@ name := """fs2-rabbit-root"""
 
 organization in ThisBuild := "com.github.gvolpe"
 
-version in ThisBuild := "0.10"
+version in ThisBuild := "0.11"
 
 crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.6")
 
