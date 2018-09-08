@@ -26,8 +26,8 @@ import com.github.gvolpe.fs2rabbit.config.deletion.{DeletionExchangeConfig, Dele
 import com.github.gvolpe.fs2rabbit.model.AckResult.{Ack, NAck}
 import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.program.{AckerProgram, ConsumerProgram}
-import fs2.async.mutable
-import fs2.{Stream, async}
+import fs2.Stream
+import fs2.concurrent.Queue
 import org.scalatest.{FlatSpecLike, Matchers}
 
 import scala.concurrent.ExecutionContext
@@ -65,7 +65,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
     * simulate a running RabbitMQ server. It should run concurrently with every single test.
     * */
   def rabbitRTS(ref: Ref[IO, AMQPInternals[IO]],
-                publishingQ: mutable.Queue[IO, Either[Throwable, AmqpEnvelope]]): Stream[IO, Unit] =
+                publishingQ: Queue[IO, Either[Throwable, AmqpEnvelope]]): Stream[IO, Unit] =
     Stream.eval(ref.get).flatMap { internals =>
       internals.queue.fold(rabbitRTS(ref, publishingQ)) { internalQ =>
         for {
@@ -79,8 +79,8 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
   object TestFs2Rabbit {
     def apply(config: Fs2RabbitConfig): (Fs2Rabbit[IO], Stream[IO, Unit]) = {
       val interpreter = for {
-        publishingQ  <- fs2.async.boundedQueue[IO, Either[Throwable, AmqpEnvelope]](500)
-        ackerQ       <- fs2.async.boundedQueue[IO, AckResult](500)
+        publishingQ  <- Queue.bounded[IO, Either[Throwable, AmqpEnvelope]](500)
+        ackerQ       <- Queue.bounded[IO, AckResult](500)
         queueRef     <- Ref.of[IO, AMQPInternals[IO]](AMQPInternals(None))
         amqpClient   = new AMQPClientInMemory(queueRef, publishingQ, ackerQ, config)
         connStream   = new ConnectionStub
@@ -154,8 +154,8 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
       import interpreter._
       createConnectionChannel flatMap { implicit channel =>
         for {
-          testQ             <- Stream.eval(async.boundedQueue[IO, AmqpEnvelope](100))
-          ackerQ            <- Stream.eval(async.boundedQueue[IO, AckResult](100))
+          testQ             <- Stream.eval(Queue.bounded[IO, AmqpEnvelope](100))
+          ackerQ            <- Stream.eval(Queue.bounded[IO, AckResult](100))
           _                 <- declareExchange(exchangeName, ExchangeType.Topic)
           _                 <- declareQueue(DeclarationQueueConfig.default(queueName))
           _                 <- bindQueue(queueName, exchangeName, routingKey, QueueBindingArgs(Map.empty))
@@ -185,7 +185,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
     import interpreter._
     createConnectionChannel flatMap { implicit channel =>
       for {
-        ackerQ            <- Stream.eval(async.boundedQueue[IO, AckResult](100))
+        ackerQ            <- Stream.eval(Queue.bounded[IO, AckResult](100))
         _                 <- declareExchange(exchangeName, ExchangeType.Topic)
         _                 <- declareQueue(DeclarationQueueConfig.default(queueName))
         _                 <- bindQueue(queueName, exchangeName, routingKey, QueueBindingArgs(Map.empty))
@@ -262,8 +262,8 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
       import interpreter._
       createConnectionChannel flatMap { implicit channel =>
         for {
-          testQ     <- Stream.eval(async.boundedQueue[IO, AmqpEnvelope](100))
-          ackerQ    <- Stream.eval(async.boundedQueue[IO, AckResult](100))
+          testQ     <- Stream.eval(Queue.bounded[IO, AmqpEnvelope](100))
+          ackerQ    <- Stream.eval(Queue.bounded[IO, AckResult](100))
           _         <- declareExchange(exchangeName, ExchangeType.Topic)
           _         <- declareQueue(DeclarationQueueConfig.default(queueName))
           _         <- bindQueue(queueName, exchangeName, routingKey)
@@ -382,8 +382,8 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
     import interpreter._
     createConnectionChannel flatMap { implicit channel =>
       for {
-        testQ     <- Stream.eval(async.boundedQueue[IO, AmqpEnvelope](100))
-        ackerQ    <- Stream.eval(async.boundedQueue[IO, AckResult](100))
+        testQ     <- Stream.eval(Queue.bounded[IO, AmqpEnvelope](100))
+        ackerQ    <- Stream.eval(Queue.bounded[IO, AckResult](100))
         _         <- declareExchange(sourceExchangeName, ExchangeType.Direct)
         _         <- declareExchange(destinationExchangeName, ExchangeType.Direct)
         _         <- declareQueue(DeclarationQueueConfig.default(queueName))
@@ -421,7 +421,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
     import interpreter._
     createConnectionChannel flatMap { implicit channel =>
       for {
-        ackerQ            <- Stream.eval(async.boundedQueue[IO, AckResult](100))
+        ackerQ            <- Stream.eval(Queue.bounded[IO, AckResult](100))
         _                 <- declareExchange(exchangeName, ExchangeType.Topic)
         _                 <- declareQueue(DeclarationQueueConfig.default(queueName))
         _                 <- bindQueue(queueName, exchangeName, routingKey, QueueBindingArgs(Map.empty))

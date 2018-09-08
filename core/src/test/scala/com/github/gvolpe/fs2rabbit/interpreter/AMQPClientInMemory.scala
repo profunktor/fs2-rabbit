@@ -29,13 +29,13 @@ import com.github.gvolpe.fs2rabbit.model.AckResult.{Ack, NAck}
 import com.github.gvolpe.fs2rabbit.model._
 import com.rabbitmq.client.Channel
 import fs2.Stream
-import fs2.async.mutable
+import fs2.concurrent.Queue
 
 import scala.collection.mutable.{Set => MutableSet}
 
 class AMQPClientInMemory(ref: Ref[IO, AMQPInternals[IO]],
-                         publishingQ: mutable.Queue[IO, Either[Throwable, AmqpEnvelope]],
-                         ackerQ: mutable.Queue[IO, AckResult],
+                         publishingQ: Queue[IO, Either[Throwable, AmqpEnvelope]],
+                         ackerQ: Queue[IO, AckResult],
                          config: Fs2RabbitConfig)
     extends AMQPClient[Stream[IO, ?], IO] {
 
