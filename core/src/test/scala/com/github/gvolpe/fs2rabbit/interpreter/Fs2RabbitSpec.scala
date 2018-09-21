@@ -21,7 +21,7 @@ import cats.effect.concurrent.Ref
 import com.github.gvolpe.fs2rabbit.StreamAssertion
 import com.github.gvolpe.fs2rabbit.algebra.AMQPInternals
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
-import com.github.gvolpe.fs2rabbit.config.declaration.{AutoDelete, DeclarationQueueConfig, Durable, Exclusive}
+import com.github.gvolpe.fs2rabbit.config.declaration._
 import com.github.gvolpe.fs2rabbit.config.deletion.{DeletionExchangeConfig, DeletionQueueConfig}
 import com.github.gvolpe.fs2rabbit.model.AckResult.{Ack, NAck}
 import com.github.gvolpe.fs2rabbit.model._
@@ -149,15 +149,26 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
     }
   }
 
-  it should "create a connection and declare an exchange" in StreamAssertion(TestFs2Rabbit(config)) { interpreter =>
+  it should "create a connection and an exchange (no wait)" in StreamAssertion(TestFs2Rabbit(config)) { interpreter =>
     import interpreter._
     createConnectionChannel flatMap { implicit channel =>
       for {
         _ <- declareQueue(DeclarationQueueConfig.default(queueName))
-        _ <- declareExchangePassive(exchangeName)
-        _ <- bindQueue(queueName, exchangeName, RoutingKey("some.routing.key"))
+        _ <- declareExchangeNoWait(DeclarationExchangeConfig.default(exchangeName, ExchangeType.Topic))
       } yield ()
     }
+  }
+
+  it should "create a connection and declare an exchange passively" in StreamAssertion(TestFs2Rabbit(config)) {
+    interpreter =>
+      import interpreter._
+      createConnectionChannel flatMap { implicit channel =>
+        for {
+          _ <- declareQueue(DeclarationQueueConfig.default(queueName))
+          _ <- declareExchangePassive(exchangeName)
+          _ <- bindQueue(queueName, exchangeName, RoutingKey("some.routing.key"))
+        } yield ()
+      }
   }
 
   it should "create an acker consumer and verify both envelope and ack result" in StreamAssertion(TestFs2Rabbit(config)) {

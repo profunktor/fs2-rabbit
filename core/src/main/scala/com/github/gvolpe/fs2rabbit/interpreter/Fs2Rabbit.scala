@@ -95,6 +95,9 @@ class Fs2Rabbit[F[_]: Concurrent](config: Fs2RabbitConfig,
   def declareExchange(exchangeConfig: DeclarationExchangeConfig)(implicit channel: AMQPChannel): Stream[F, Unit] =
     amqpClient.declareExchange(channel.value, exchangeConfig)
 
+  def declareExchangeNoWait(exchangeConfig: DeclarationExchangeConfig)(implicit channel: AMQPChannel): Stream[F, Unit] =
+    amqpClient.declareExchangeNoWait(channel.value, exchangeConfig)
+
   def declareExchangePassive(exchangeName: ExchangeName)(implicit channel: AMQPChannel): Stream[F, Unit] =
     amqpClient.declareExchangePassive(channel.value, exchangeName)
 
