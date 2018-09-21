@@ -129,7 +129,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
     }
   }
 
-  it should "create a connection and a passive" in StreamAssertion(TestFs2Rabbit(config)) { interpreter =>
+  it should "create a connection and a passive queue" in StreamAssertion(TestFs2Rabbit(config)) { interpreter =>
     import interpreter._
     createConnectionChannel flatMap { implicit channel =>
       for {
@@ -145,6 +145,17 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
       for {
         _ <- declareQueue(DeclarationQueueConfig.default(queueName))
         _ <- declareExchange(exchangeName, ExchangeType.Topic)
+      } yield ()
+    }
+  }
+
+  it should "create a connection and declare an exchange" in StreamAssertion(TestFs2Rabbit(config)) { interpreter =>
+    import interpreter._
+    createConnectionChannel flatMap { implicit channel =>
+      for {
+        _ <- declareQueue(DeclarationQueueConfig.default(queueName))
+        _ <- declareExchangePassive(exchangeName)
+        _ <- bindQueue(queueName, exchangeName, RoutingKey("some.routing.key"))
       } yield ()
     }
   }
