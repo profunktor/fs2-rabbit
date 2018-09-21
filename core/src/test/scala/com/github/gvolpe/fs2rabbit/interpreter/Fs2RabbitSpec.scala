@@ -171,10 +171,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
           result    <- Stream.eval(testQ.dequeue1)
           ackResult <- Stream.eval(ackerQ.dequeue1)
         } yield {
-          result should be(
-            AmqpEnvelope(DeliveryTag(1),
-                         "acker-test",
-                         AmqpProperties(None, None, None, None, Map.empty[String, AmqpHeaderVal])))
+          result should be(AmqpEnvelope(DeliveryTag(1), "acker-test", AmqpProperties()))
           ackResult should be(Ack(DeliveryTag(1)))
         }
       }
@@ -198,10 +195,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
         _                 <- (Stream(NAck(DeliveryTag(1))).covary[IO].observe(ackerQ.enqueue) to acker).take(1)
         ackResult         <- Stream.eval(ackerQ.dequeue1)
       } yield {
-        result should be(
-          AmqpEnvelope(DeliveryTag(1),
-                       "NAck-test",
-                       AmqpProperties(None, None, None, None, Map.empty[String, AmqpHeaderVal])))
+        result should be(AmqpEnvelope(DeliveryTag(1), "NAck-test", AmqpProperties()))
         ackResult should be(NAck(DeliveryTag(1)))
       }
     }
@@ -221,10 +215,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
         _         <- msg.covary[IO] to publisher
         result    <- consumer.take(1)
       } yield {
-        result should be(
-          AmqpEnvelope(DeliveryTag(1),
-                       "test",
-                       AmqpProperties(None, None, None, None, Map.empty[String, AmqpHeaderVal])))
+        result should be(AmqpEnvelope(DeliveryTag(1), "test", AmqpProperties()))
       }
     }
   }
@@ -249,10 +240,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
           _      <- msg.covary[IO] to publisher
           result <- consumer.take(1)
         } yield {
-          result should be(
-            AmqpEnvelope(DeliveryTag(1),
-                         "test",
-                         AmqpProperties(None, None, None, None, Map.empty[String, AmqpHeaderVal])))
+          result should be(AmqpEnvelope(DeliveryTag(1), "test", AmqpProperties()))
         }
       }
   }
@@ -285,10 +273,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
           result    <- Stream.eval(testQ.dequeue1)
           ackResult <- Stream.eval(ackerQ.dequeue1)
         } yield {
-          result should be(
-            AmqpEnvelope(DeliveryTag(1),
-                         "test",
-                         AmqpProperties(None, None, None, None, Map.empty[String, AmqpHeaderVal])))
+          result should be(AmqpEnvelope(DeliveryTag(1), "test", AmqpProperties()))
           ackResult should be(Ack(DeliveryTag(1)))
         }
       }
@@ -407,10 +392,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
         result    <- Stream.eval(testQ.dequeue1)
         ackResult <- Stream.eval(ackerQ.dequeue1)
       } yield {
-        result should be(
-          AmqpEnvelope(DeliveryTag(1),
-                       "test",
-                       AmqpProperties(None, None, None, None, Map.empty[String, AmqpHeaderVal])))
+        result should be(AmqpEnvelope(DeliveryTag(1), "test", AmqpProperties()))
         ackResult should be(Ack(DeliveryTag(1)))
       }
     }
@@ -463,10 +445,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
         result    <- c1.take(1)
         rs2       <- takeWithTimeOut(c2, 1.second)
       } yield {
-        result should be(
-          AmqpEnvelope(DeliveryTag(1),
-                       "test",
-                       AmqpProperties(None, None, None, None, Map.empty[String, AmqpHeaderVal])))
+        result should be(AmqpEnvelope(DeliveryTag(1), "test", AmqpProperties()))
         rs2 should be(None)
       }
     }
