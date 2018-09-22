@@ -24,6 +24,7 @@ import com.rabbitmq.client.Channel
 
 // format: off
 trait AMQPClient[F[_], G[_]] extends Binding[F] with Declaration[F] with Deletion[F] {
+
   def basicAck(channel: Channel, tag: DeliveryTag, multiple: Boolean): F[Unit]
   def basicNack(channel: Channel, tag: DeliveryTag, multiple: Boolean, requeue: Boolean): F[Unit]
   def basicQos(channel: Channel, basicQos: BasicQos): F[Unit]
@@ -41,6 +42,8 @@ trait Binding[F[_]] {
 
 trait Declaration[F[_]] {
   def declareExchange(channel: Channel, exchangeConfig: DeclarationExchangeConfig): F[Unit]
+  def declareExchangeNoWait(value: Channel, exchangeConfig: DeclarationExchangeConfig): F[Unit]
+  def declareExchangePassive(channel: Channel, exchangeName: ExchangeName): F[Unit]
   def declareQueue(channel: Channel, queueConfig: DeclarationQueueConfig): F[Unit]
   def declareQueueNoWait(channel: Channel, queueConfig: DeclarationQueueConfig): F[Unit]
   def declareQueuePassive(channel: Channel, queueName: QueueName): F[Unit]

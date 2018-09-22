@@ -144,6 +144,22 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
     )
   }
 
+  override def declareExchangeNoWait(channel: Channel, config: DeclarationExchangeConfig): Stream[F, Unit] =
+    SE.evalF {
+      channel.exchangeDeclareNoWait(
+        config.exchangeName.value,
+        config.exchangeType.toString.toLowerCase,
+        config.durable.isTrue,
+        config.autoDelete.isTrue,
+        config.internal.isTrue,
+        config.arguments
+      )
+    }
+
+  override def declareExchangePassive(channel: Channel, exchangeName: ExchangeName): Stream[F, Unit] = SE.evalF {
+    channel.exchangeDeclarePassive(exchangeName.value)
+  }
+
   override def declareQueue(channel: Channel, config: DeclarationQueueConfig): Stream[F, Unit] = SE.evalF {
     channel.queueDeclare(
       config.queueName.value,

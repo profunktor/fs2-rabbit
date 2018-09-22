@@ -131,6 +131,12 @@ class AMQPClientInMemory(ref: Ref[IO, AMQPInternals[IO]],
   override def declareExchange(channel: Channel, exchangeConfig: DeclarationExchangeConfig): Stream[IO, Unit] =
     Stream.eval(IO(exchanges += exchangeConfig.exchangeName) *> IO.unit)
 
+  override def declareExchangeNoWait(channel: Channel, exchangeConfig: DeclarationExchangeConfig): Stream[IO, Unit] =
+    Stream.eval(IO(exchanges += exchangeConfig.exchangeName) *> IO.unit)
+
+  override def declareExchangePassive(channel: Channel, exchangeName: ExchangeName): Stream[IO, Unit] =
+    Stream.eval(IO(exchanges += exchangeName) *> IO.unit)
+
   override def declareQueue(channel: Channel, queueConfig: DeclarationQueueConfig): Stream[IO, Unit] =
     Stream.eval(IO(queues += queueConfig.queueName) *> IO.unit)
 
