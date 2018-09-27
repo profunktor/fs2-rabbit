@@ -37,6 +37,7 @@ trait Binding[F[_]] {
   def bindQueue(channel: Channel, queueName: QueueName, exchangeName: ExchangeName, routingKey: RoutingKey, args: QueueBindingArgs): F[Unit]
   def bindQueueNoWait(channel: Channel, queueName: QueueName, exchangeName: ExchangeName, routingKey: RoutingKey, args: QueueBindingArgs): F[Unit]
   def unbindQueue(channel: Channel, queueName: QueueName, exchangeName: ExchangeName, routingKey: RoutingKey): F[Unit]
+  def unbindQueue(channel: Channel, queueName: QueueName, exchangeName: ExchangeName, routingKey: RoutingKey, args: QueueUnbindArgs): F[Unit]
   def bindExchange(channel: Channel, destination: ExchangeName, source: ExchangeName, routingKey: RoutingKey, args: ExchangeBindingArgs): F[Unit]
 }
 
