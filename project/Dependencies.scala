@@ -8,7 +8,7 @@ object Dependencies {
     val circe      = "0.10.0"
     val amqpClient = "4.6.0"
     val logback    = "1.1.3"
-    val monix      = "3.0.0-RC1"
+    val monix      = "3.0.0-fbcb270"
     val kindProjector = "0.9.7"
 
     val scalaTest  = "3.0.4"
