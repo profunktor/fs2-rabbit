@@ -96,6 +96,14 @@ class Fs2Rabbit[F[_]: Concurrent](config: Fs2RabbitConfig,
       implicit channel: AMQPChannel): Stream[F, Unit] =
     bindExchange(destination, source, routingKey, ExchangeBindingArgs(Map.empty))
 
+  def unbindExchange(destination: ExchangeName, source: ExchangeName, routingKey: RoutingKey, args: ExchangeUnbindArgs)(
+      implicit channel: AMQPChannel): Stream[F, Unit] =
+    amqpClient.unbindExchange(channel.value, destination, source, routingKey, args)
+
+  def unbindExchange(destination: ExchangeName, source: ExchangeName, routingKey: RoutingKey)(
+      implicit channel: AMQPChannel): Stream[F, Unit] =
+    unbindExchange(destination, source, routingKey, ExchangeUnbindArgs(Map.empty))
+
   def declareExchange(exchangeName: ExchangeName, exchangeType: ExchangeType)(
       implicit channel: AMQPChannel): Stream[F, Unit] =
     declareExchange(DeclarationExchangeConfig.default(exchangeName, exchangeType))

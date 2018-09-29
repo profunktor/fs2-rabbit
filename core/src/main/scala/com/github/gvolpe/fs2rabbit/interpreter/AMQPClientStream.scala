@@ -141,6 +141,20 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
     channel.exchangeBind(destination.value, source.value, routingKey.value, args.value)
   }
 
+  override def unbindExchange(channel: Channel,
+                              destination: ExchangeName,
+                              source: ExchangeName,
+                              routingKey: RoutingKey,
+                              args: ExchangeUnbindArgs): Stream[F, Unit] =
+    SE.evalF {
+      channel.exchangeUnbind(
+        destination.value,
+        source.value,
+        routingKey.value,
+        args.value
+      )
+    }
+
   override def declareExchange(channel: Channel, config: DeclarationExchangeConfig): Stream[F, Unit] = SE.evalF {
     channel.exchangeDeclare(
       config.exchangeName.value,

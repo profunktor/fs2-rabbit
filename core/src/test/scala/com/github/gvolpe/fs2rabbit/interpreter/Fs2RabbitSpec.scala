@@ -420,6 +420,20 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
     }
   }
 
+  it should "unbind an exchange" in StreamAssertion(TestFs2Rabbit(config)) { interpreter =>
+    import interpreter._
+    val sourceExchangeName      = ExchangeName("sourceExchange")
+    val destinationExchangeName = ExchangeName("destinationExchange")
+    createConnectionChannel flatMap { implicit channel =>
+      for {
+        _ <- declareExchange(sourceExchangeName, ExchangeType.Direct)
+        _ <- declareExchange(destinationExchangeName, ExchangeType.Direct)
+        _ <- bindExchange(destinationExchangeName, sourceExchangeName, routingKey)
+        _ <- unbindExchange(destinationExchangeName, sourceExchangeName, routingKey)
+      } yield ()
+    }
+  }
+
   it should "requeue a message in case of NAck when option 'requeueOnNack = true'" in StreamAssertion(
     TestFs2Rabbit(nackConfig)) { interpreter =>
     import interpreter._

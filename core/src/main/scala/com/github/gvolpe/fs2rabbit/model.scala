@@ -156,7 +156,8 @@ object model {
   case class ExchangeBindingArgs(value: Arguments) extends AnyVal
 
   // Unbind
-  case class QueueUnbindArgs(value: Arguments) extends AnyVal
+  case class QueueUnbindArgs(value: Arguments)    extends AnyVal
+  case class ExchangeUnbindArgs(value: Arguments) extends AnyVal
 
   // Declaration
   case class QueueDeclarationArgs(value: Arguments)    extends AnyVal
