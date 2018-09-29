@@ -134,12 +134,18 @@ class AMQPClientInMemory(ref: Ref[IO, AMQPInternals[IO]],
                             routingKey: model.RoutingKey,
                             args: model.ExchangeBindingArgs): Stream[IO, Unit] = Stream.eval(IO.unit)
 
+
+  override def bindExchangeNoWait(channel: Channel,
+                                  destination: ExchangeName,
+                                  source: ExchangeName,
+                                  routingKey: RoutingKey,
+                                  args: ExchangeBindingArgs): Stream[IO, Unit] = Stream.eval(IO.unit)
+      
   override def unbindExchange(channel: Channel,
                               destination: ExchangeName,
                               source: ExchangeName,
                               routingKey: RoutingKey,
-                              args: ExchangeUnbindArgs): Stream[IO, Unit] =
-    Stream.eval(IO.unit)
+                              args: ExchangeUnbindArgs): Stream[IO, Unit] = Stream.eval(IO.unit)
 
   override def declareExchange(channel: Channel, exchangeConfig: DeclarationExchangeConfig): Stream[IO, Unit] =
     Stream.eval(IO(exchanges += exchangeConfig.exchangeName) *> IO.unit)
