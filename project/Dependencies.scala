@@ -11,7 +11,7 @@ object Dependencies {
     val monix      = "3.0.0-RC1"
     val kindProjector = "0.9.8"
 
-    val scalaTest  = "3.0.4"
+    val scalaTest  = "3.0.5"
     val scalaCheck = "1.13.4"
   }
 
