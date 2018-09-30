@@ -25,15 +25,15 @@ import io.circe.syntax._
 
 /**
   * Stream-based Json Encoder that exposes only one method as a streaming transformation
-  * using [[fs2.Pipe]] and depends on the Circe library.
+  * using `fs2.Pipe` and depends on the Circe library.
   *
-  * @param printer The [[io.circe.Printer]] to be used to convert to JSON - overwrite if you need different
+  * @param printer The `io.circe.Printer` to be used to convert to JSON - overwrite if you need different
   *                output formatting, for example, to omit null values.
   * */
 class Fs2JsonEncoder[F[_]](printer: Printer = Printer.noSpaces)(implicit SE: StreamEval[F]) {
 
   /**
-    * It tries to encode a given case class encapsulated in an  [[AmqpMessage]] into a
+    * It tries to encode a given case class encapsulated in an `AmqpMessage` into a
     * json string.
     *
     * For example:
@@ -47,7 +47,7 @@ class Fs2JsonEncoder[F[_]](printer: Printer = Printer.noSpaces)(implicit SE: Str
     * p.run.unsafeRunSync
     * }}}
     *
-    * The result will be an [[AmqpMessage]] of type [[String]]
+    * The result will be an `AmqpMessage` of type `String`
     * */
   def jsonEncode[A: Encoder]: Pipe[F, AmqpMessage[A], AmqpMessage[String]] = _.flatMap { amqpMsg =>
     SE.evalF[String](amqpMsg.payload.asJson.pretty(printer)).map(AmqpMessage(_, amqpMsg.properties))

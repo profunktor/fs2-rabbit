@@ -25,7 +25,7 @@ import scala.concurrent.duration._
 import scala.util.control.NonFatal
 
 /**
-  * It provides a resilient run method for an effectful [[fs2.Stream]] that will run forever with
+  * It provides a resilient run method for an effectful `fs2.Stream` that will run forever with
   * automatic error recovery.
   *
   * In case of failure, the entire stream will be restarted after the specified retry time with an
