@@ -17,11 +17,13 @@
 package com.github.gvolpe.fs2rabbit.util
 
 import cats.effect.Sync
+import cats.syntax.functor._
 import fs2.{Pipe, Sink, Stream}
 
 trait StreamEval[F[_]] {
   def pure[A](body: A): Stream[F, A]
   def evalF[A](body: => A): Stream[F, A]
+  def evalDiscard[A](body: => A): Stream[F, Unit]
   def liftSink[A](f: A => F[Unit]): Sink[F, A]
   def liftPipe[A, B](f: A => F[B]): Pipe[F, A, B]
 }
@@ -34,7 +36,10 @@ object StreamEval {
         Stream(body).covary[F]
 
       override def evalF[A](body: => A): Stream[F, A] =
-        Stream.eval[F, A](Sync[F].delay(body))
+        Stream.eval(Sync[F].delay(body))
+
+      override def evalDiscard[A](body: => A): Stream[F, Unit] =
+        Stream.eval(Sync[F].delay(body).void)
 
       override def liftSink[A](f: A => F[Unit]): Sink[F, A] =
         liftPipe[A, Unit](f)

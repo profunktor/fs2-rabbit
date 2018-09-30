@@ -60,16 +60,16 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
       }
     )
 
-  override def basicAck(channel: Channel, tag: DeliveryTag, multiple: Boolean): Stream[F, Unit] = SE.evalF {
+  override def basicAck(channel: Channel, tag: DeliveryTag, multiple: Boolean): Stream[F, Unit] = SE.evalDiscard {
     channel.basicAck(tag.value, multiple)
   }
 
   override def basicNack(channel: Channel, tag: DeliveryTag, multiple: Boolean, requeue: Boolean): Stream[F, Unit] =
-    SE.evalF {
+    SE.evalDiscard {
       channel.basicNack(tag.value, multiple, requeue)
     }
 
-  override def basicQos(channel: Channel, basicQos: BasicQos): Stream[F, Unit] = SE.evalF {
+  override def basicQos(channel: Channel, basicQos: BasicQos): Stream[F, Unit] = SE.evalDiscard {
     channel.basicQos(basicQos.prefetchSize, basicQos.prefetchCount, basicQos.global)
   }
 
@@ -88,7 +88,7 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
   override def basicPublish(channel: Channel,
                             exchangeName: ExchangeName,
                             routingKey: RoutingKey,
-                            msg: AmqpMessage[String]): Stream[F, Unit] = SE.evalF {
+                            msg: AmqpMessage[String]): Stream[F, Unit] = SE.evalDiscard {
     channel.basicPublish(exchangeName.value,
                          routingKey.value,
                          msg.properties.asBasicProps,
@@ -99,24 +99,24 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
                          queueName: QueueName,
                          exchangeName: ExchangeName,
                          routingKey: RoutingKey): Stream[F, Unit] =
-    SE.evalF {
+    SE.evalDiscard {
       channel.queueBind(queueName.value, exchangeName.value, routingKey.value)
-    }.drain
+    }
 
   override def bindQueue(channel: Channel,
                          queueName: QueueName,
                          exchangeName: ExchangeName,
                          routingKey: RoutingKey,
                          args: QueueBindingArgs): Stream[F, Unit] =
-    SE.evalF {
+    SE.evalDiscard {
       channel.queueBind(queueName.value, exchangeName.value, routingKey.value, args.value)
-    }.drain
+    }
 
   override def bindQueueNoWait(channel: Channel,
                                queueName: QueueName,
                                exchangeName: ExchangeName,
                                routingKey: RoutingKey,
-                               args: QueueBindingArgs): Stream[F, Unit] = SE.evalF {
+                               args: QueueBindingArgs): Stream[F, Unit] = SE.evalDiscard {
     channel.queueBindNoWait(queueName.value, exchangeName.value, routingKey.value, args.value)
   }
 
@@ -124,33 +124,33 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
                            queueName: QueueName,
                            exchangeName: ExchangeName,
                            routingKey: RoutingKey): Stream[F, Unit] =
-    SE.evalF {
+    SE.evalDiscard {
       unbindQueue(channel, queueName, exchangeName, routingKey, QueueUnbindArgs(Map.empty))
-    }.drain
+    }
 
   override def unbindQueue(channel: Channel,
                            queueName: QueueName,
                            exchangeName: ExchangeName,
                            routingKey: RoutingKey,
                            args: QueueUnbindArgs): Stream[F, Unit] =
-    SE.evalF {
+    SE.evalDiscard {
       channel.queueUnbind(queueName.value, exchangeName.value, routingKey.value, args.value)
-    }.drain
+    }
 
   override def bindExchange(channel: Channel,
                             destination: ExchangeName,
                             source: ExchangeName,
                             routingKey: RoutingKey,
                             args: ExchangeBindingArgs): Stream[F, Unit] =
-    SE.evalF {
+    SE.evalDiscard {
       channel.exchangeBind(destination.value, source.value, routingKey.value, args.value)
-    }.drain
+    }
 
   override def bindExchangeNoWait(channel: Channel,
                                   destination: ExchangeName,
                                   source: ExchangeName,
                                   routingKey: RoutingKey,
-                                  args: ExchangeBindingArgs): Stream[F, Unit] = SE.evalF {
+                                  args: ExchangeBindingArgs): Stream[F, Unit] = SE.evalDiscard {
     channel.exchangeBindNoWait(destination.value, source.value, routingKey.value, args.value)
   }
 
@@ -159,12 +159,12 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
                               source: ExchangeName,
                               routingKey: RoutingKey,
                               args: ExchangeUnbindArgs): Stream[F, Unit] =
-    SE.evalF {
+    SE.evalDiscard {
       channel.exchangeUnbind(destination.value, source.value, routingKey.value, args.value)
-    }.drain
+    }
 
   override def declareExchange(channel: Channel, config: DeclarationExchangeConfig): Stream[F, Unit] =
-    SE.evalF {
+    SE.evalDiscard {
       channel.exchangeDeclare(
         config.exchangeName.value,
         config.exchangeType.toString.toLowerCase,
@@ -173,10 +173,10 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
         config.internal.isTrue,
         config.arguments
       )
-    }.drain
+    }
 
   override def declareExchangeNoWait(channel: Channel, config: DeclarationExchangeConfig): Stream[F, Unit] =
-    SE.evalF {
+    SE.evalDiscard {
       channel.exchangeDeclareNoWait(
         config.exchangeName.value,
         config.exchangeType.toString.toLowerCase,
@@ -188,12 +188,12 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
     }
 
   override def declareExchangePassive(channel: Channel, exchangeName: ExchangeName): Stream[F, Unit] =
-    SE.evalF {
+    SE.evalDiscard {
       channel.exchangeDeclarePassive(exchangeName.value)
-    }.drain
+    }
 
   override def declareQueue(channel: Channel, config: DeclarationQueueConfig): Stream[F, Unit] =
-    SE.evalF {
+    SE.evalDiscard {
       channel.queueDeclare(
         config.queueName.value,
         config.durable.isTrue,
@@ -201,10 +201,10 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
         config.autoDelete.isTrue,
         config.arguments
       )
-    }.drain
+    }
 
   override def declareQueueNoWait(channel: Channel, config: DeclarationQueueConfig): Stream[F, Unit] =
-    SE.evalF {
+    SE.evalDiscard {
       channel.queueDeclareNoWait(
         config.queueName.value,
         config.durable.isTrue,
@@ -215,27 +215,27 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
     }
 
   override def declareQueuePassive(channel: Channel, queueName: QueueName): Stream[F, Unit] =
-    SE.evalF {
+    SE.evalDiscard {
       channel.queueDeclarePassive(queueName.value)
-    }.drain
+    }
 
   override def deleteQueue(channel: Channel, config: DeletionQueueConfig): Stream[F, Unit] =
-    SE.evalF {
+    SE.evalDiscard {
       channel.queueDelete(config.queueName.value, config.ifUnused.isTrue, config.ifEmpty.isTrue)
-    }.drain
+    }
 
   override def deleteQueueNoWait(channel: Channel, config: DeletionQueueConfig): Stream[F, Unit] =
-    SE.evalF {
+    SE.evalDiscard {
       channel.queueDeleteNoWait(config.queueName.value, config.ifUnused.isTrue, config.ifEmpty.isTrue)
-    }.drain
+    }
 
   override def deleteExchange(channel: Channel, config: deletion.DeletionExchangeConfig): Stream[F, Unit] =
-    SE.evalF {
+    SE.evalDiscard {
       channel.exchangeDelete(config.exchangeName.value, config.ifUnused.isTrue)
-    }.drain
+    }
 
   override def deleteExchangeNoWait(channel: Channel, config: deletion.DeletionExchangeConfig): Stream[F, Unit] =
-    SE.evalF {
+    SE.evalDiscard {
       channel.exchangeDeleteNoWait(config.exchangeName.value, config.ifUnused.isTrue)
     }
 
