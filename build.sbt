@@ -75,6 +75,7 @@ val commonSettings = Seq(
   homepage := Some(url("https://github.com/gvolpe/fs2-rabbit")),
   libraryDependencies ++= Seq(
     compilerPlugin(Libraries.kindProjector),
+    compilerPlugin(Libraries.betterMonadicFor),
     Libraries.amqpClient,
     Libraries.catsEffect,
     Libraries.fs2Core,

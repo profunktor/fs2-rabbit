@@ -9,7 +9,9 @@ object Dependencies {
     val amqpClient = "5.4.2"
     val logback    = "1.1.3"
     val monix      = "3.0.0-RC1"
-    val kindProjector = "0.9.8"
+
+    val kindProjector    = "0.9.8"
+    val betterMonadicFor = "0.3.0-M2"
 
     val scalaTest  = "3.0.5"
     val scalaCheck = "1.13.5"
@@ -21,7 +23,8 @@ object Dependencies {
     lazy val fs2Core    = "co.fs2"        %% "fs2-core"    % Versions.fs2
 
     // Compiler
-    lazy val kindProjector = "org.spire-math" % "kind-projector" % Versions.kindProjector cross CrossVersion.binary
+    lazy val kindProjector    = "org.spire-math" % "kind-projector" % Versions.kindProjector cross CrossVersion.binary
+    lazy val betterMonadicFor = "com.olegpy" %% "better-monadic-for" % Versions.betterMonadicFor
 
     // Examples
     lazy val monix   = "io.monix"       %% "monix"          % Versions.monix

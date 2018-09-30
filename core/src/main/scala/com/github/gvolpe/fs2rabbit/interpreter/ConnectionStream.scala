@@ -22,13 +22,12 @@ import cats.syntax.flatMap._
 import cats.syntax.functor._
 import com.github.gvolpe.fs2rabbit.algebra.Connection
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
-import com.github.gvolpe.fs2rabbit.util.{Log, StreamEval}
 import com.github.gvolpe.fs2rabbit.model.{AMQPChannel, RabbitChannel}
+import com.github.gvolpe.fs2rabbit.util.Log
 import com.rabbitmq.client.{ConnectionFactory, Connection => RabbitMQConnection}
 import fs2.Stream
 
-class ConnectionStream[F[_]](config: Fs2RabbitConfig)(implicit F: Sync[F], L: Log[F], SE: StreamEval[F])
-    extends Connection[Stream[F, ?]] {
+class ConnectionStream[F[_]](config: Fs2RabbitConfig)(implicit F: Sync[F], L: Log[F]) extends Connection[Stream[F, ?]] {
 
   private[fs2rabbit] lazy val connFactory: F[ConnectionFactory] =
     F.delay {
@@ -64,6 +63,6 @@ class ConnectionStream[F[_]](config: Fs2RabbitConfig)(implicit F: Sync[F], L: Lo
             F.delay { if (channel.isOpen) channel.close() } *> F.delay { if (conn.isOpen) conn.close() }
         case (_, _) => F.raiseError[Unit](new Exception("Unreachable"))
       }
-      .flatMap { case (_, channel) => SE.pure[AMQPChannel](channel) }
+      .map { case (_, channel) => channel }
 
 }
