@@ -17,6 +17,7 @@
 package com.github.gvolpe.fs2rabbit.interpreter
 
 import cats.effect.Sync
+import cats.syntax.apply._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import com.github.gvolpe.fs2rabbit.algebra.Connection
@@ -59,11 +60,8 @@ class ConnectionStream[F[_]](config: Fs2RabbitConfig)(implicit F: Sync[F], L: Lo
     Stream
       .bracket(acquireConnection) {
         case (conn, RabbitChannel(channel)) =>
-          for {
-            _ <- L.info(s"Releasing connection: $conn previously acquired.")
-            _ <- F.delay { if (channel.isOpen) channel.close() }
-            _ <- F.delay { if (conn.isOpen) conn.close() }
-          } yield ()
+          L.info(s"Releasing connection: $conn previously acquired.") *>
+            F.delay { if (channel.isOpen) channel.close() } *> F.delay { if (conn.isOpen) conn.close() }
         case (_, _) => F.raiseError[Unit](new Exception("Unreachable"))
       }
       .flatMap { case (_, channel) => SE.pure[AMQPChannel](channel) }

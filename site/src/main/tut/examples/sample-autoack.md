@@ -87,8 +87,6 @@ import monix.execution.Scheduler.Implicits.global
 
 object MonixAutoAckConsumer extends IOApp {
 
-  implicit val ec = scala.concurrent.ExecutionContext.global
-
   private val config: Fs2RabbitConfig = Fs2RabbitConfig(virtualHost = "/",
                                                         host = "127.0.0.1",
                                                         username = Some("guest"),
@@ -99,9 +97,10 @@ object MonixAutoAckConsumer extends IOApp {
                                                         connectionTimeout = 3,
                                                         requeueOnNack = false)
 
+  implicit val fs2rabbit: Fs2Rabbit[Task] = Fs2Rabbit[Task](config)
+
   override def run(args: List[String]): IO[ExitCode] =
-    Fs2Rabbit[Task](config).flatMap { implicit interpreter =>
-      ResilientStream.run(new AutoAckConsumerDemo[Task].program)
-    }.toIO.as(ExitCode.Success)
+    ResilientStream.run(new AutoAckConsumerDemo[Task].program)
+     .toIO.as(ExitCode.Success)
 }
 ```

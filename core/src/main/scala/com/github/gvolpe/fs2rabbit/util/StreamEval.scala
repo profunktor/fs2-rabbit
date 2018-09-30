@@ -28,13 +28,13 @@ trait StreamEval[F[_]] {
 
 object StreamEval {
 
-  implicit def syncStreamEvalInstance[F[_]](implicit F: Sync[F]): StreamEval[F] =
+  implicit def syncStreamEvalInstance[F[_]: Sync]: StreamEval[F] =
     new StreamEval[F] {
       override def pure[A](body: A): Stream[F, A] =
         Stream(body).covary[F]
 
       override def evalF[A](body: => A): Stream[F, A] =
-        Stream.eval[F, A](F.delay(body))
+        Stream.eval[F, A](Sync[F].delay(body))
 
       override def liftSink[A](f: A => F[Unit]): Sink[F, A] =
         liftPipe[A, Unit](f)

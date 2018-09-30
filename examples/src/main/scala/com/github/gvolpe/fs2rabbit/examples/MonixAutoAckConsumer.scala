@@ -42,11 +42,11 @@ object MonixAutoAckConsumer extends IOApp {
     requeueOnNack = false
   )
 
+  implicit val fs2Rabbit: Fs2Rabbit[Task] = Fs2Rabbit[Task](config)
+
   override def run(args: List[String]): IO[ExitCode] =
-    Fs2Rabbit[Task](config)
-      .flatMap { implicit interpreter =>
-        ResilientStream.run(new AutoAckConsumerDemo[Task].program)
-      }
+    ResilientStream
+      .run(new AutoAckConsumerDemo[Task].program)
       .toIO
       .as(ExitCode.Success)
 }
