@@ -14,7 +14,7 @@ object Dependencies {
     val betterMonadicFor = "0.3.0-M2"
 
     val scalaTest  = "3.0.5"
-    val scalaCheck = "1.13.5"
+    val scalaCheck = "1.14.0"
   }
 
   object Libraries {
