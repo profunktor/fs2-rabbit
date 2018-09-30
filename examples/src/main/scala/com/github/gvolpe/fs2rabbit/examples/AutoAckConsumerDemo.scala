@@ -17,6 +17,7 @@
 package com.github.gvolpe.fs2rabbit.examples
 
 import cats.effect.{Concurrent, Sync, Timer}
+import cats.syntax.functor._
 import com.github.gvolpe.fs2rabbit.config.declaration.DeclarationQueueConfig
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
 import com.github.gvolpe.fs2rabbit.json.Fs2JsonEncoder
@@ -26,26 +27,23 @@ import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.util.StreamEval
 import fs2.{Pipe, Stream}
 
-class AutoAckConsumerDemo[F[_]: Concurrent: Timer](implicit F: Fs2Rabbit[F], SE: StreamEval[F]) {
+class AutoAckConsumerDemo[F[_]: Timer](implicit F: Concurrent[F], R: Fs2Rabbit[F]) {
 
   private val queueName    = QueueName("testQ")
   private val exchangeName = ExchangeName("testEX")
   private val routingKey   = RoutingKey("testRK")
 
-  def logPipe: Pipe[F, AmqpEnvelope, AckResult] = { streamMsg =>
-    for {
-      amqpMsg <- streamMsg
-      _       <- SE.evalF[Unit](println(s"Consumed: $amqpMsg"))
-    } yield Ack(amqpMsg.deliveryTag)
+  def logPipe: Pipe[F, AmqpEnvelope, AckResult] = _.evalMap { amqpMsg =>
+    F.delay(println(s"Consumed: $amqpMsg")).as(Ack(amqpMsg.deliveryTag))
   }
 
-  val program: Stream[F, Unit] = F.createConnectionChannel flatMap { implicit channel =>
+  val program: Stream[F, Unit] = R.createConnectionChannel.flatMap { implicit channel =>
     for {
-      _         <- F.declareQueue(DeclarationQueueConfig.default(queueName))
-      _         <- F.declareExchange(exchangeName, ExchangeType.Topic)
-      _         <- F.bindQueue(queueName, exchangeName, routingKey)
-      consumer  <- F.createAutoAckConsumer(queueName)
-      publisher <- F.createPublisher(exchangeName, routingKey)
+      _         <- R.declareQueue(DeclarationQueueConfig.default(queueName))
+      _         <- R.declareExchange(exchangeName, ExchangeType.Topic)
+      _         <- R.bindQueue(queueName, exchangeName, routingKey)
+      consumer  <- R.createAutoAckConsumer(queueName)
+      publisher <- R.createPublisher(exchangeName, routingKey)
       result    <- new AutoAckFlow(consumer, logPipe, publisher).flow
     } yield result
   }

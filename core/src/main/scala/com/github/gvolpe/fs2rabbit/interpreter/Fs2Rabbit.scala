@@ -17,7 +17,6 @@
 package com.github.gvolpe.fs2rabbit.interpreter
 
 import cats.effect.{Concurrent, ConcurrentEffect}
-import cats.syntax.applicative._
 import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, Acker, Connection, Consumer}
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 import com.github.gvolpe.fs2rabbit.config.declaration.{DeclarationExchangeConfig, DeclarationQueueConfig}
@@ -28,12 +27,12 @@ import fs2.Stream
 
 // $COVERAGE-OFF$
 object Fs2Rabbit {
-  def apply[F[_]: ConcurrentEffect](config: Fs2RabbitConfig): F[Fs2Rabbit[F]] = {
+  def apply[F[_]: ConcurrentEffect](config: Fs2RabbitConfig): Fs2Rabbit[F] = {
     val amqpClient = new AMQPClientStream[F]
     val connStream = new ConnectionStream[F](config)
     val acker      = new AckerProgram[F](config, amqpClient)
     val consumer   = new ConsumerProgram[F](amqpClient)
-    new Fs2Rabbit[F](config, connStream, amqpClient, acker, consumer).pure[F]
+    new Fs2Rabbit[F](config, connStream, amqpClient, acker, consumer)
   }
 }
 // $COVERAGE-ON$
@@ -101,7 +100,7 @@ class Fs2Rabbit[F[_]: Concurrent](config: Fs2RabbitConfig,
                          routingKey: RoutingKey,
                          args: ExchangeBindingArgs)(implicit channel: AMQPChannel): Stream[F, Unit] =
     amqpClient.bindExchangeNoWait(channel.value, destination, source, routingKey, args)
-  
+
   def unbindExchange(destination: ExchangeName, source: ExchangeName, routingKey: RoutingKey, args: ExchangeUnbindArgs)(
       implicit channel: AMQPChannel): Stream[F, Unit] =
     amqpClient.unbindExchange(channel.value, destination, source, routingKey, args)

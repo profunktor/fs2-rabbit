@@ -16,14 +16,13 @@
 
 package com.github.gvolpe.fs2rabbit.program
 
-import cats.Monad
 import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, Publishing}
 import com.github.gvolpe.fs2rabbit.model.{ExchangeName, RoutingKey, StreamPublisher}
 import com.github.gvolpe.fs2rabbit.util.StreamEval
 import com.rabbitmq.client.Channel
 import fs2.Stream
 
-class PublishingProgram[F[_]: Monad](AMQP: AMQPClient[Stream[F, ?], F])(implicit SE: StreamEval[F])
+class PublishingProgram[F[_]](AMQP: AMQPClient[Stream[F, ?], F])(implicit SE: StreamEval[F])
     extends Publishing[Stream[F, ?]] {
 
   override def createPublisher(channel: Channel,

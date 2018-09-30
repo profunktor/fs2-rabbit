@@ -17,8 +17,8 @@
 package com.github.gvolpe.fs2rabbit.json
 
 import cats.effect.Sync
-import com.github.gvolpe.fs2rabbit.util.{Log, StreamEval}
 import com.github.gvolpe.fs2rabbit.model.{AmqpEnvelope, DeliveryTag}
+import com.github.gvolpe.fs2rabbit.util.Log
 import fs2.{Pipe, Stream}
 import io.circe.parser.decode
 import io.circe.{Decoder, Error}
@@ -27,7 +27,7 @@ import io.circe.{Decoder, Error}
   * Stream-based Json Decoder that exposes only one method as a streaming transformation
   * using [[fs2.Pipe]] and depends on the Circe library.
   * */
-class Fs2JsonDecoder[F[_]](implicit L: Log[F], SE: StreamEval[F]) {
+class Fs2JsonDecoder[F[_]: Log: Sync] {
 
   /**
     * It tries to decode an [[AmqpEnvelope.payload]] into a case class determined by the parameter [A].
@@ -47,12 +47,11 @@ class Fs2JsonDecoder[F[_]](implicit L: Log[F], SE: StreamEval[F]) {
     *
     * The result will be a tuple ([[Either]] of [[Error]] and [[A]], [[DeliveryTag]])
     * */
-  def jsonDecode[A: Decoder]: Pipe[F, AmqpEnvelope, (Either[Error, A], DeliveryTag)] =
-    streamMsg =>
-      for {
-        amqpMsg <- streamMsg
-        parsed  <- SE.evalF[Either[Error, A]](decode[A](amqpMsg.payload))
-        _       <- Stream.eval(L.info(s"Parsed: $parsed"))
-      } yield (parsed, amqpMsg.deliveryTag)
+  def jsonDecode[A: Decoder]: Pipe[F, AmqpEnvelope, (Either[Error, A], DeliveryTag)] = _.flatMap { amqpMsg =>
+    Stream
+      .eval(Sync[F].delay(decode[A](amqpMsg.payload)))
+      .evalTap(p => Log[F].info(s"Parsed: $p"))
+      .map(p => (p, amqpMsg.deliveryTag))
+  }
 
 }

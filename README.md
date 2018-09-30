@@ -24,16 +24,6 @@ And this one if you would like to have Json support:
 libraryDependencies += "com.github.gvolpe" %% "fs2-rabbit-circe" % Version
 ```
 
-`fs2-rabbit` has the following dependencies and it's cross compiled to Scala `2.11.12` and `2.12.6`:
-
-| Dependency  | Version    |
-| ----------- |:----------:|
-| cats        | 1.3.1      |
-| cats-effect | 1.0.0      |
-| fs2         | 1.0.0-RC1  |
-| circe       | 0.10.0     |
-| amqp-client | 4.6.0      |
-
 ## Usage Guide
 
 Check the [official guide](https://gvolpe.github.io/fs2-rabbit/guide.html) for updated compiling examples.

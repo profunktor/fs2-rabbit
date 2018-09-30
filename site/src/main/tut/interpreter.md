@@ -6,7 +6,7 @@ number: 2
 
 # Fs2 Rabbit Interpreter
 
-It is the main interpreter that will be interacting with `RabbitMQ`, a.k.a. the client. All it needs are a `Fs2RabbitConfig` and an implicit instance of `ConcurrentEffect[F]`.
+It is the main interpreter that will be interacting with `RabbitMQ`, a.k.a. the client. All it needs are a `Fs2RabbitConfig` and an implicit instance of `ConcurrentEffect[F]`. Its creation is side-effects free in latest versions (+1.0-RC2).
 
 ```tut:book:silent
 import cats.effect._
@@ -14,30 +14,42 @@ import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
 
 object Fs2Rabbit {
-  def apply[F[_]: ConcurrentEffect](config: Fs2RabbitConfig): F[Fs2Rabbit[F]] = ???
+  def apply[F[_]: ConcurrentEffect](config: Fs2RabbitConfig): Fs2Rabbit[F] = ???
 }
 ```
 
-The recommended way to create the interpreter is to call `apply` and then `flatMap` to access the inner instance and make it available as an implicit. For example:
-
-```tut:book:invisible
-import com.github.gvolpe.fs2rabbit.model._
-val config: Fs2RabbitConfig = null
-```
+The recommended way to create the interpreter is to call `apply` and make it available as an implicit. For example:
 
 ```tut:book:silent
+import cats.effect.{ExitCode, IOApp}
+import cats.syntax.functor._
+import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
 import fs2._
 
-import scala.concurrent.ExecutionContext
+object Program {
+  def foo[F[_]](implicit R: Fs2Rabbit[F]): Stream[F, Unit] = ???
+}
 
-implicit val cs = IO.contextShift(ExecutionContext.global)
+class Demo extends IOApp {
 
-def yourProgram[F[_]](implicit R: Fs2Rabbit[F]): Stream[F, Unit] = ???
+  val config: Fs2RabbitConfig = Fs2RabbitConfig(
+    virtualHost = "/",
+    host = "127.0.0.1",
+    username = Some("guest"),
+    password = Some("guest"),
+    port = 5672,
+    ssl = false,
+    sslContext = None,
+    connectionTimeout = 3,
+    requeueOnNack = false
+  )
 
-Stream.eval(Fs2Rabbit[IO](config)).flatMap { implicit interpreter =>
-  yourProgram[IO]
+  implicit val fs2Rabbit: Fs2Rabbit[IO] = Fs2Rabbit[IO](config)
+
+  override def run(args: List[String]): IO[ExitCode] =
+    Program.foo[IO].compile.drain.as(ExitCode.Success)
+
 }
 ```
 
-Note that since the `apply` method returns `F[Fs2Rabbit[F]]` you need to evaluate it within a streaming context using `Stream.eval` to integrate it with `yourProgram` that has the type `Stream[F, Unit]`.
