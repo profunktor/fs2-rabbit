@@ -24,11 +24,7 @@ import com.github.gvolpe.fs2rabbit.resiliency.ResilientStream
 import monix.eval.Task
 import monix.execution.Scheduler.Implicits.global
 
-import scala.concurrent.ExecutionContext
-
 object MonixAutoAckConsumer extends IOApp {
-
-  implicit val appS: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
 
   private val config: Fs2RabbitConfig = Fs2RabbitConfig(
     virtualHost = "/",

@@ -37,7 +37,7 @@ import scala.util.control.NonFatal
   * */
 object ResilientStream {
 
-  def run[F[_]: Sync: Timer: Log](program: Stream[F, Unit], retry: FiniteDuration = 5.seconds): F[Unit] =
+  def run[F[_]: Log: Sync: Timer](program: Stream[F, Unit], retry: FiniteDuration = 5.seconds): F[Unit] =
     loop(program, retry, 1).compile.drain
 
   private def loop[F[_]: Log: Sync: Timer](program: Stream[F, Unit],

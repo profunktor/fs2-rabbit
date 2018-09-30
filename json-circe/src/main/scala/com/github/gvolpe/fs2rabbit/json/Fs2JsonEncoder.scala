@@ -49,11 +49,8 @@ class Fs2JsonEncoder[F[_]](printer: Printer = Printer.noSpaces)(implicit SE: Str
     *
     * The result will be an [[AmqpMessage]] of type [[String]]
     * */
-  def jsonEncode[A: Encoder]: Pipe[F, AmqpMessage[A], AmqpMessage[String]] =
-    streamMsg =>
-      for {
-        amqpMsg <- streamMsg
-        json    <- SE.evalF[String](amqpMsg.payload.asJson.pretty(printer))
-      } yield AmqpMessage(json, amqpMsg.properties)
+  def jsonEncode[A: Encoder]: Pipe[F, AmqpMessage[A], AmqpMessage[String]] = _.flatMap { amqpMsg =>
+    SE.evalF[String](amqpMsg.payload.asJson.pretty(printer)).map(AmqpMessage(_, amqpMsg.properties))
+  }
 
 }
