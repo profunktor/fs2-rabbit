@@ -122,7 +122,15 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
                            queueName: QueueName,
                            exchangeName: ExchangeName,
                            routingKey: RoutingKey): Stream[F, Unit] = SE.evalF {
-    channel.queueUnbind(queueName.value, exchangeName.value, routingKey.value)
+    unbindQueue(channel, queueName, exchangeName, routingKey, QueueUnbindArgs(Map.empty))
+  }
+
+  override def unbindQueue(channel: Channel,
+                           queueName: QueueName,
+                           exchangeName: ExchangeName,
+                           routingKey: RoutingKey,
+                           args: QueueUnbindArgs): Stream[F, Unit] = SE.evalF {
+    channel.queueUnbind(queueName.value, exchangeName.value, routingKey.value, args.value)
   }
 
   override def bindExchange(channel: Channel,
@@ -139,6 +147,14 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
                                   routingKey: RoutingKey,
                                   args: ExchangeBindingArgs): Stream[F, Unit] = SE.evalF {
     channel.exchangeBindNoWait(destination.value, source.value, routingKey.value, args.value)
+  }
+
+  override def unbindExchange(channel: Channel,
+                              destination: ExchangeName,
+                              source: ExchangeName,
+                              routingKey: RoutingKey,
+                              args: ExchangeUnbindArgs): Stream[F, Unit] = SE.evalF {
+    channel.exchangeUnbind(destination.value, source.value, routingKey.value, args.value)
   }
 
   override def declareExchange(channel: Channel, config: DeclarationExchangeConfig): Stream[F, Unit] = SE.evalF {

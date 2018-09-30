@@ -82,7 +82,11 @@ class Fs2Rabbit[F[_]: Concurrent](config: Fs2RabbitConfig,
 
   def unbindQueue(queueName: QueueName, exchangeName: ExchangeName, routingKey: RoutingKey)(
       implicit channel: AMQPChannel): Stream[F, Unit] =
-    amqpClient.unbindQueue(channel.value, queueName, exchangeName, routingKey)
+    unbindQueue(queueName, exchangeName, routingKey, QueueUnbindArgs(Map.empty))
+
+  def unbindQueue(queueName: QueueName, exchangeName: ExchangeName, routingKey: RoutingKey, args: QueueUnbindArgs)(
+      implicit channel: AMQPChannel): Stream[F, Unit] =
+    amqpClient.unbindQueue(channel.value, queueName, exchangeName, routingKey, args)
 
   def bindExchange(destination: ExchangeName, source: ExchangeName, routingKey: RoutingKey, args: ExchangeBindingArgs)(
       implicit channel: AMQPChannel): Stream[F, Unit] =
@@ -97,6 +101,14 @@ class Fs2Rabbit[F[_]: Concurrent](config: Fs2RabbitConfig,
                          routingKey: RoutingKey,
                          args: ExchangeBindingArgs)(implicit channel: AMQPChannel): Stream[F, Unit] =
     amqpClient.bindExchangeNoWait(channel.value, destination, source, routingKey, args)
+  
+  def unbindExchange(destination: ExchangeName, source: ExchangeName, routingKey: RoutingKey, args: ExchangeUnbindArgs)(
+      implicit channel: AMQPChannel): Stream[F, Unit] =
+    amqpClient.unbindExchange(channel.value, destination, source, routingKey, args)
+
+  def unbindExchange(destination: ExchangeName, source: ExchangeName, routingKey: RoutingKey)(
+      implicit channel: AMQPChannel): Stream[F, Unit] =
+    unbindExchange(destination, source, routingKey, ExchangeUnbindArgs(Map.empty))
 
   def declareExchange(exchangeName: ExchangeName, exchangeType: ExchangeType)(
       implicit channel: AMQPChannel): Stream[F, Unit] =
