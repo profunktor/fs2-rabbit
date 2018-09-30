@@ -6,12 +6,12 @@ object Dependencies {
     val catsEffect = "1.0.0"
     val fs2        = "1.0.0-RC2"
     val circe      = "0.10.0"
-    val amqpClient = "4.6.0"
+    val amqpClient = "4.8.2"
     val logback    = "1.1.3"
     val monix      = "3.0.0-RC1"
-    val kindProjector = "0.9.7"
+    val kindProjector = "0.9.8"
 
-    val scalaTest  = "3.0.4"
+    val scalaTest  = "3.0.5"
     val scalaCheck = "1.13.4"
   }
 
