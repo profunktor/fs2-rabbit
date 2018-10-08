@@ -30,6 +30,7 @@ object model {
   type StreamConsumer[F[_]]      = Stream[F, AmqpEnvelope]
   type StreamAckerConsumer[F[_]] = (StreamAcker[F], StreamConsumer[F])
   type StreamPublisher[F[_]]     = Sink[F, AmqpMessage[String]]
+  type PublishingListener[F[_]]  = PublishReturn => F[Unit]
 
   trait AMQPChannel {
     def value: Channel
@@ -96,17 +97,19 @@ object model {
     }
   }
 
-  case class AmqpProperties(contentType: Option[String] = None,
-                            contentEncoding: Option[String] = None,
-                            priority: Option[Int] = None,
-                            deliveryMode: Option[DeliveryMode] = None,
-                            correlationId: Option[String] = None,
-                            messageId: Option[String] = None,
-                            `type`: Option[String] = None,
-                            userId: Option[String] = None,
-                            appId: Option[String] = None,
-                            expiration: Option[String] = None,
-                            headers: Map[String, AmqpHeaderVal] = Map.empty)
+  case class AmqpProperties(
+      contentType: Option[String] = None,
+      contentEncoding: Option[String] = None,
+      priority: Option[Int] = None,
+      deliveryMode: Option[DeliveryMode] = None,
+      correlationId: Option[String] = None,
+      messageId: Option[String] = None,
+      `type`: Option[String] = None,
+      userId: Option[String] = None,
+      appId: Option[String] = None,
+      expiration: Option[String] = None,
+      headers: Map[String, AmqpHeaderVal] = Map.empty
+  )
 
   object AmqpProperties {
     def empty = AmqpProperties()
@@ -162,5 +165,21 @@ object model {
   // Declaration
   case class QueueDeclarationArgs(value: Arguments)    extends AnyVal
   case class ExchangeDeclarationArgs(value: Arguments) extends AnyVal
+
+  // Publishing
+  case class ReplyCode(value: Int)    extends AnyVal
+  case class ReplyText(value: String) extends AnyVal
+  case class AmqpBody(value: String)  extends AnyVal
+
+  case class PublishReturn(
+      replyCode: ReplyCode,
+      replyText: ReplyText,
+      exchange: ExchangeName,
+      routingKey: RoutingKey,
+      properties: AmqpProperties,
+      body: AmqpBody
+  )
+
+  case class PublishingFlag(mandatory: Boolean) extends AnyVal
 
 }

@@ -95,6 +95,48 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
                          msg.payload.getBytes("UTF-8"))
   }
 
+  def basicPublishWithFlag(channel: Channel,
+                           exchangeName: ExchangeName,
+                           routingKey: RoutingKey,
+                           flag: PublishingFlag,
+                           msg: AmqpMessage[String]): Stream[F, Unit] = SE.evalDiscard {
+    channel.basicPublish(exchangeName.value,
+                         routingKey.value,
+                         flag.mandatory,
+                         msg.properties.asBasicProps,
+                         msg.payload.getBytes("UTF-8"))
+  }
+
+  override def addPublishingListener(channel: Channel, listener: PublishingListener[F]): Stream[F, Unit] =
+    SE.evalDiscard {
+      val returnListener = new ReturnListener {
+        override def handleReturn(replyCode: Int,
+                                  replyText: String,
+                                  exchange: String,
+                                  routingKey: String,
+                                  properties: AMQP.BasicProperties,
+                                  body: Array[Byte]): Unit = {
+          val publishReturn =
+            PublishReturn(
+              ReplyCode(replyCode),
+              ReplyText(replyText),
+              ExchangeName(exchange),
+              RoutingKey(routingKey),
+              AmqpProperties.from(properties),
+              AmqpBody(new String(body, "UTF-8"))
+            )
+
+          listener(publishReturn).toIO.unsafeRunAsync(_ => ())
+        }
+      }
+
+      channel.addReturnListener(returnListener)
+    }
+
+  override def clearPublishingListeners(channel: Channel): Stream[F, Unit] = SE.evalDiscard {
+    channel.clearReturnListeners()
+  }
+
   override def bindQueue(channel: Channel,
                          queueName: QueueName,
                          exchangeName: ExchangeName,
