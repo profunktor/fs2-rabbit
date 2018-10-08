@@ -48,10 +48,12 @@ class AMQPClientInMemory(ref: Ref[IO, AMQPInternals[IO]],
   override def basicAck(channel: Channel, tag: model.DeliveryTag, multiple: Boolean): Stream[IO, Unit] =
     Stream.eval(ackerQ.enqueue1(Ack(tag)))
 
-  override def basicNack(channel: Channel,
-                         tag: model.DeliveryTag,
-                         multiple: Boolean,
-                         requeue: Boolean): Stream[IO, Unit] = {
+  override def basicNack(
+      channel: Channel,
+      tag: model.DeliveryTag,
+      multiple: Boolean,
+      requeue: Boolean
+  ): Stream[IO, Unit] = {
     // Imitating the RabbitMQ behavior
     val envelope = AmqpEnvelope(DeliveryTag(1), "requeued msg", AmqpProperties.empty)
     for {
@@ -61,7 +63,10 @@ class AMQPClientInMemory(ref: Ref[IO, AMQPInternals[IO]],
     } yield ()
   }
 
-  override def basicQos(channel: Channel, basicQos: model.BasicQos): Stream[IO, Unit] = Stream.eval(IO.unit)
+  override def basicQos(
+      channel: Channel,
+      basicQos: model.BasicQos
+  ): Stream[IO, Unit] = Stream.eval(IO.unit)
 
   override def basicConsume(channel: Channel,
                             queueName: model.QueueName,
@@ -77,91 +82,158 @@ class AMQPClientInMemory(ref: Ref[IO, AMQPInternals[IO]],
     }
   }
 
-  override def basicPublish(channel: Channel,
-                            exchangeName: model.ExchangeName,
-                            routingKey: model.RoutingKey,
-                            msg: model.AmqpMessage[String]): Stream[IO, Unit] = {
+  override def basicPublish(
+      channel: Channel,
+      exchangeName: model.ExchangeName,
+      routingKey: model.RoutingKey,
+      msg: model.AmqpMessage[String]
+  ): Stream[IO, Unit] = {
     val envelope = AmqpEnvelope(DeliveryTag(1), msg.payload, msg.properties)
     Stream.eval(publishingQ.enqueue1(Right(envelope)))
   }
 
-  override def deleteQueue(channel: Channel, config: DeletionQueueConfig): Stream[IO, Unit] =
+  override def basicPublishWithFlag(
+      channel: Channel,
+      exchangeName: ExchangeName,
+      routingKey: RoutingKey,
+      flag: PublishingFlag,
+      msg: AmqpMessage[String]
+  ): Stream[IO, Unit] =
+    basicPublish(channel, exchangeName, routingKey, msg)
+
+  override def addPublishingListener(
+      channel: Channel,
+      listener: PublishingListener[IO]
+  ): Stream[IO, Unit] =
+    Stream.eval(IO.unit)
+
+  override def clearPublishingListeners(
+      channel: Channel
+  ): Stream[IO, Unit] = Stream.eval(IO.unit)
+
+  override def deleteQueue(
+      channel: Channel,
+      config: DeletionQueueConfig
+  ): Stream[IO, Unit] =
     Stream.eval(IO(queues -= config.queueName) *> IO.unit)
 
-  override def deleteQueueNoWait(channel: Channel, config: DeletionQueueConfig): Stream[IO, Unit] =
+  override def deleteQueueNoWait(
+      channel: Channel,
+      config: DeletionQueueConfig
+  ): Stream[IO, Unit] =
     Stream.eval(IO(queues -= config.queueName) *> IO.unit)
 
-  override def deleteExchange(channel: Channel, config: deletion.DeletionExchangeConfig): Stream[IO, Unit] =
+  override def deleteExchange(
+      channel: Channel,
+      config: deletion.DeletionExchangeConfig
+  ): Stream[IO, Unit] =
     exchanges
       .find(_ == config.exchangeName)
       .fold(raiseError[Unit](s"Exchange ${config.exchangeName} does not exist"))(exchange =>
         Stream.eval(IO(exchanges -= exchange) *> IO.unit))
 
-  override def deleteExchangeNoWait(channel: Channel, config: deletion.DeletionExchangeConfig): Stream[IO, Unit] =
+  override def deleteExchangeNoWait(
+      channel: Channel,
+      config: deletion.DeletionExchangeConfig
+  ): Stream[IO, Unit] =
     deleteExchange(channel, config)
 
-  override def bindQueue(channel: Channel,
-                         queueName: model.QueueName,
-                         exchangeName: model.ExchangeName,
-                         routingKey: model.RoutingKey): Stream[IO, Unit] = Stream.eval(IO.unit)
+  override def bindQueue(
+      channel: Channel,
+      queueName: model.QueueName,
+      exchangeName: model.ExchangeName,
+      routingKey: model.RoutingKey
+  ): Stream[IO, Unit] = Stream.eval(IO.unit)
 
-  override def bindQueue(channel: Channel,
-                         queueName: model.QueueName,
-                         exchangeName: model.ExchangeName,
-                         routingKey: model.RoutingKey,
-                         args: model.QueueBindingArgs): Stream[IO, Unit] = Stream.eval(IO.unit)
+  override def bindQueue(
+      channel: Channel,
+      queueName: model.QueueName,
+      exchangeName: model.ExchangeName,
+      routingKey: model.RoutingKey,
+      args: model.QueueBindingArgs
+  ): Stream[IO, Unit] = Stream.eval(IO.unit)
 
-  override def bindQueueNoWait(channel: Channel,
-                               queueName: model.QueueName,
-                               exchangeName: model.ExchangeName,
-                               routingKey: model.RoutingKey,
-                               args: model.QueueBindingArgs): Stream[IO, Unit] = Stream.eval(IO.unit)
+  override def bindQueueNoWait(
+      channel: Channel,
+      queueName: model.QueueName,
+      exchangeName: model.ExchangeName,
+      routingKey: model.RoutingKey,
+      args: model.QueueBindingArgs
+  ): Stream[IO, Unit] = Stream.eval(IO.unit)
 
-  override def unbindQueue(channel: Channel,
-                           queueName: model.QueueName,
-                           exchangeName: model.ExchangeName,
-                           routingKey: model.RoutingKey): Stream[IO, Unit] = Stream.eval(IO.unit)
+  override def unbindQueue(
+      channel: Channel,
+      queueName: model.QueueName,
+      exchangeName: model.ExchangeName,
+      routingKey: model.RoutingKey
+  ): Stream[IO, Unit] = Stream.eval(IO.unit)
 
-  override def unbindQueue(channel: Channel,
-                           queueName: model.QueueName,
-                           exchangeName: model.ExchangeName,
-                           routingKey: model.RoutingKey,
-                           args: QueueUnbindArgs): Stream[IO, Unit] = Stream.eval(IO.unit)
+  override def unbindQueue(
+      channel: Channel,
+      queueName: model.QueueName,
+      exchangeName: model.ExchangeName,
+      routingKey: model.RoutingKey,
+      args: QueueUnbindArgs
+  ): Stream[IO, Unit] = Stream.eval(IO.unit)
 
-  override def bindExchange(channel: Channel,
-                            destination: model.ExchangeName,
-                            source: model.ExchangeName,
-                            routingKey: model.RoutingKey,
-                            args: model.ExchangeBindingArgs): Stream[IO, Unit] = Stream.eval(IO.unit)
+  override def bindExchange(
+      channel: Channel,
+      destination: model.ExchangeName,
+      source: model.ExchangeName,
+      routingKey: model.RoutingKey,
+      args: model.ExchangeBindingArgs
+  ): Stream[IO, Unit] = Stream.eval(IO.unit)
 
-  override def bindExchangeNoWait(channel: Channel,
-                                  destination: ExchangeName,
-                                  source: ExchangeName,
-                                  routingKey: RoutingKey,
-                                  args: ExchangeBindingArgs): Stream[IO, Unit] = Stream.eval(IO.unit)
+  override def bindExchangeNoWait(
+      channel: Channel,
+      destination: ExchangeName,
+      source: ExchangeName,
+      routingKey: RoutingKey,
+      args: ExchangeBindingArgs
+  ): Stream[IO, Unit] = Stream.eval(IO.unit)
 
-  override def unbindExchange(channel: Channel,
-                              destination: ExchangeName,
-                              source: ExchangeName,
-                              routingKey: RoutingKey,
-                              args: ExchangeUnbindArgs): Stream[IO, Unit] = Stream.eval(IO.unit)
+  override def unbindExchange(
+      channel: Channel,
+      destination: ExchangeName,
+      source: ExchangeName,
+      routingKey: RoutingKey,
+      args: ExchangeUnbindArgs
+  ): Stream[IO, Unit] = Stream.eval(IO.unit)
 
-  override def declareExchange(channel: Channel, exchangeConfig: DeclarationExchangeConfig): Stream[IO, Unit] =
+  override def declareExchange(
+      channel: Channel,
+      exchangeConfig: DeclarationExchangeConfig
+  ): Stream[IO, Unit] =
     Stream.eval(IO(exchanges += exchangeConfig.exchangeName) *> IO.unit)
 
-  override def declareExchangeNoWait(channel: Channel, exchangeConfig: DeclarationExchangeConfig): Stream[IO, Unit] =
+  override def declareExchangeNoWait(
+      channel: Channel,
+      exchangeConfig: DeclarationExchangeConfig
+  ): Stream[IO, Unit] =
     Stream.eval(IO(exchanges += exchangeConfig.exchangeName) *> IO.unit)
 
-  override def declareExchangePassive(channel: Channel, exchangeName: ExchangeName): Stream[IO, Unit] =
+  override def declareExchangePassive(
+      channel: Channel,
+      exchangeName: ExchangeName
+  ): Stream[IO, Unit] =
     Stream.eval(IO(exchanges += exchangeName) *> IO.unit)
 
-  override def declareQueue(channel: Channel, queueConfig: DeclarationQueueConfig): Stream[IO, Unit] =
+  override def declareQueue(
+      channel: Channel,
+      queueConfig: DeclarationQueueConfig
+  ): Stream[IO, Unit] =
     Stream.eval(IO(queues += queueConfig.queueName) *> IO.unit)
 
-  override def declareQueueNoWait(channel: Channel, queueConfig: DeclarationQueueConfig): Stream[IO, Unit] =
+  override def declareQueueNoWait(
+      channel: Channel,
+      queueConfig: DeclarationQueueConfig
+  ): Stream[IO, Unit] =
     Stream.eval(IO(queues += queueConfig.queueName) *> IO.unit)
 
-  override def declareQueuePassive(channel: Channel, queueName: QueueName): Stream[IO, Unit] =
+  override def declareQueuePassive(
+      channel: Channel,
+      queueName: QueueName
+  ): Stream[IO, Unit] =
     Stream.eval(IO(queues += queueName) *> IO.unit)
 
 }
