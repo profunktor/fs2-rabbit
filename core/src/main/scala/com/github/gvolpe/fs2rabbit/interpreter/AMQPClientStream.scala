@@ -105,10 +105,12 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
       routingKey: RoutingKey,
       msg: AmqpMessage[String]
   ): Stream[F, Unit] = SE.evalDiscard {
-    channel.basicPublish(exchangeName.value,
-                         routingKey.value,
-                         msg.properties.asBasicProps,
-                         msg.payload.getBytes("UTF-8"))
+    channel.basicPublish(
+      exchangeName.value,
+      routingKey.value,
+      msg.properties.asBasicProps,
+      msg.payload.getBytes("UTF-8")
+    )
   }
 
   def basicPublishWithFlag(
@@ -118,11 +120,13 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
       flag: PublishingFlag,
       msg: AmqpMessage[String]
   ): Stream[F, Unit] = SE.evalDiscard {
-    channel.basicPublish(exchangeName.value,
-                         routingKey.value,
-                         flag.mandatory,
-                         msg.properties.asBasicProps,
-                         msg.payload.getBytes("UTF-8"))
+    channel.basicPublish(
+      exchangeName.value,
+      routingKey.value,
+      flag.mandatory,
+      msg.properties.asBasicProps,
+      msg.payload.getBytes("UTF-8")
+    )
   }
 
   override def addPublishingListener(
