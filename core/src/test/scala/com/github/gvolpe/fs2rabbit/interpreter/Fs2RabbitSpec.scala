@@ -17,7 +17,8 @@
 package com.github.gvolpe.fs2rabbit.interpreter
 
 import cats.effect.IO
-import cats.effect.concurrent.Ref
+import cats.effect.concurrent.{Deferred, Ref}
+import cats.syntax.option._
 import com.github.gvolpe.fs2rabbit.StreamAssertion
 import com.github.gvolpe.fs2rabbit.algebra.AMQPInternals
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
@@ -69,7 +70,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
     Stream.eval(ref.get).flatMap { internals =>
       internals.queue.fold(rabbitRTS(ref, publishingQ)) { internalQ =>
         for {
-          _ <- (Stream.eval(publishingQ.dequeue1) to (_.evalMap(internalQ.enqueue1))).take(1)
+          _ <- Stream.eval(publishingQ.dequeue1).to(_.evalMap(internalQ.enqueue1)).take(1)
           _ <- Stream.eval(ref.set(AMQPInternals(None)))
           _ <- rabbitRTS(ref, publishingQ)
         } yield ()
@@ -80,9 +81,13 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
     def apply(config: Fs2RabbitConfig): (Fs2Rabbit[IO], Stream[IO, Unit]) = {
       val interpreter = for {
         publishingQ  <- Queue.bounded[IO, Either[Throwable, AmqpEnvelope]](500)
+        listenerQ    <- Queue.bounded[IO, PublishReturn](500)
         ackerQ       <- Queue.bounded[IO, AckResult](500)
         queueRef     <- Ref.of[IO, AMQPInternals[IO]](AMQPInternals(None))
-        amqpClient   = new AMQPClientInMemory(queueRef, publishingQ, ackerQ, config)
+        queues       <- Ref.of[IO, Set[QueueName]](Set.empty)
+        exchanges    <- Ref.of[IO, Set[ExchangeName]](Set.empty)
+        binds        <- Ref.of[IO, Map[String, ExchangeName]](Map.empty)
+        amqpClient   = new AMQPClientInMemory(queues, exchanges, binds, queueRef, publishingQ, listenerQ, ackerQ, config)
         connStream   = new ConnectionStub
         acker        = new AckerProgram[IO](config, amqpClient)
         consumer     = new ConsumerProgram[IO](amqpClient)
@@ -460,7 +465,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
   }
 
   def takeWithTimeOut[A](stream: Stream[IO, A], timeout: FiniteDuration): Stream[IO, Option[A]] =
-    stream.last.mergeHaltR(Stream.eval(IO.sleep(timeout)).map(_ => None: Option[A]))
+    stream.last.mergeHaltR(Stream.sleep(timeout).map(_ => none[A]))
 
   it should "create a publisher, two auto-ack consumers with different routing keys and assert the routing is correct" in StreamAssertion(
     TestFs2Rabbit(config)) { interpreter =>
@@ -483,6 +488,34 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
       } yield {
         result should be(AmqpEnvelope(DeliveryTag(1), "test", AmqpProperties()))
         rs2 should be(None)
+      }
+    }
+  }
+
+  def listener(promise: Deferred[IO, PublishReturn]): PublishingListener[IO] = promise.complete
+
+  it should "create a publisher with listener and flag 'mandatory=true', an auto-ack consumer, publish a message and return to the listener" in StreamAssertion(
+    TestFs2Rabbit(config)) { interpreter =>
+    import interpreter._
+    val flag = PublishingFlag(mandatory = true)
+
+    createConnectionChannel.flatMap { implicit channel =>
+      for {
+        _         <- declareExchange(exchangeName, ExchangeType.Topic)
+        _         <- declareQueue(DeclarationQueueConfig.default(queueName))
+        _         <- bindQueue(queueName, exchangeName, routingKey)
+        promise   <- Stream.eval(Deferred[IO, PublishReturn])
+        publisher <- createPublisherWithListener(exchangeName, RoutingKey("diff-rk"), flag, listener(promise))
+        consumer  <- createAutoAckConsumer(queueName)
+        msg       = Stream(AmqpMessage("test", AmqpProperties.empty))
+        _         <- msg.covary[IO] to publisher
+        callback  <- Stream.eval(promise.get.map(_.some).timeoutTo(500.millis, IO.pure(none[PublishReturn]))).unNone
+        result    <- takeWithTimeOut(consumer, 500.millis)
+      } yield {
+        result should be(None)
+        callback.body should be(AmqpBody("test"))
+        callback.routingKey should be(RoutingKey("diff-rk"))
+        callback.replyText should be(ReplyText("test"))
       }
     }
   }

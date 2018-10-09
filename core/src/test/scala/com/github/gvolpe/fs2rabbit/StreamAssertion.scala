@@ -24,7 +24,6 @@ object StreamAssertion {
   def apply[A](tuple: (Fs2Rabbit[IO], Stream[IO, Unit]))(fa: Fs2Rabbit[IO] => Stream[IO, A])(
       implicit cs: ContextShift[IO]): Unit = {
     val (rabbit, testSuiteRTS) = tuple
-    val result                 = testSuiteRTS.mergeHaltR(fa(rabbit))
-    result.compile.drain.unsafeRunSync()
+    testSuiteRTS.mergeHaltR(fa(rabbit)).compile.drain.unsafeRunSync()
   }
 }
