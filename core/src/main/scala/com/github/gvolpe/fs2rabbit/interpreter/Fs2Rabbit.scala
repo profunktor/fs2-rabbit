@@ -17,7 +17,7 @@
 package com.github.gvolpe.fs2rabbit.interpreter
 
 import cats.effect.{Concurrent, ConcurrentEffect}
-import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, Acker, Connection, Consumer}
+import com.github.gvolpe.fs2rabbit.algebra._
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 import com.github.gvolpe.fs2rabbit.config.declaration.{DeclarationExchangeConfig, DeclarationQueueConfig}
 import com.github.gvolpe.fs2rabbit.config.deletion.{DeletionExchangeConfig, DeletionQueueConfig}
@@ -43,10 +43,10 @@ class Fs2Rabbit[F[_]: Concurrent](config: Fs2RabbitConfig,
                                   acker: Acker[Stream[F, ?]],
                                   consumer: Consumer[Stream[F, ?]]) {
 
-  private[fs2rabbit] val consumingProgram: ConsumingProgram[F] =
+  private[fs2rabbit] val consumingProgram: Consuming[Stream[F, ?]] =
     new ConsumingProgram[F](acker, consumer)
 
-  private[fs2rabbit] val publishingProgram: PublishingProgram[F] =
+  private[fs2rabbit] val publishingProgram: Publishing[Stream[F, ?], F] =
     new PublishingProgram[F](amqpClient)
 
   def createConnectionChannel: Stream[F, AMQPChannel] = connectionStream.createConnectionChannel
@@ -66,6 +66,19 @@ class Fs2Rabbit[F[_]: Concurrent](config: Fs2RabbitConfig,
   def createPublisher(exchangeName: ExchangeName, routingKey: RoutingKey)(
       implicit channel: AMQPChannel): Stream[F, StreamPublisher[F]] =
     publishingProgram.createPublisher(channel.value, exchangeName, routingKey)
+
+  def createPublisherWithListener(
+      exchangeName: ExchangeName,
+      routingKey: RoutingKey,
+      flags: PublishingFlag,
+      listener: PublishingListener[F])(implicit channel: AMQPChannel): Stream[F, StreamPublisher[F]] =
+    publishingProgram.createPublisherWithListener(channel.value, exchangeName, routingKey, flags, listener)
+
+  def addPublishingListener(listener: PublishingListener[F])(implicit channel: AMQPChannel): Stream[F, Unit] =
+    amqpClient.addPublishingListener(channel.value, listener)
+
+  def clearPublishingListeners(implicit channel: AMQPChannel): Stream[F, Unit] =
+    amqpClient.clearPublishingListeners(channel.value)
 
   def bindQueue(queueName: QueueName, exchangeName: ExchangeName, routingKey: RoutingKey)(
       implicit channel: AMQPChannel): Stream[F, Unit] =

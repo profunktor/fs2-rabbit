@@ -18,12 +18,14 @@ package com.github.gvolpe.fs2rabbit.config
 
 import javax.net.ssl.SSLContext
 
-case class Fs2RabbitConfig(host: String,
-                           port: Int,
-                           virtualHost: String,
-                           connectionTimeout: Int,
-                           ssl: Boolean,
-                           sslContext: Option[SSLContext],
-                           username: Option[String],
-                           password: Option[String],
-                           requeueOnNack: Boolean)
+case class Fs2RabbitConfig(
+    host: String,
+    port: Int,
+    virtualHost: String,
+    connectionTimeout: Int,
+    ssl: Boolean,
+    sslContext: Option[SSLContext],
+    username: Option[String],
+    password: Option[String],
+    requeueOnNack: Boolean
+)

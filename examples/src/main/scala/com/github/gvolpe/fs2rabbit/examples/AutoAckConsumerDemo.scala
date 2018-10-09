@@ -27,14 +27,16 @@ import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.util.StreamEval
 import fs2.{Pipe, Stream}
 
-class AutoAckConsumerDemo[F[_]: Timer](implicit F: Concurrent[F], R: Fs2Rabbit[F]) {
+class AutoAckConsumerDemo[F[_]: Concurrent: Timer](implicit R: Fs2Rabbit[F]) {
 
   private val queueName    = QueueName("testQ")
   private val exchangeName = ExchangeName("testEX")
   private val routingKey   = RoutingKey("testRK")
 
+  def putStrLn(str: String): F[Unit] = Sync[F].delay(println(str))
+
   def logPipe: Pipe[F, AmqpEnvelope, AckResult] = _.evalMap { amqpMsg =>
-    F.delay(println(s"Consumed: $amqpMsg")).as(Ack(amqpMsg.deliveryTag))
+    putStrLn(s"Consumed: $amqpMsg").as(Ack(amqpMsg.deliveryTag))
   }
 
   val program: Stream[F, Unit] = R.createConnectionChannel.flatMap { implicit channel =>
