@@ -21,11 +21,13 @@ import com.github.gvolpe.fs2rabbit.model.{ExchangeName, ExchangeType, QueueName}
 
 object declaration {
 
-  final case class DeclarationQueueConfig(queueName: QueueName,
-                                          durable: DurableCfg,
-                                          exclusive: ExclusiveCfg,
-                                          autoDelete: AutoDeleteCfg,
-                                          arguments: Arguments)
+  final case class DeclarationQueueConfig(
+      queueName: QueueName,
+      durable: DurableCfg,
+      exclusive: ExclusiveCfg,
+      autoDelete: AutoDeleteCfg,
+      arguments: Arguments
+  )
   object DeclarationQueueConfig {
 
     def default(queueName: QueueName): DeclarationQueueConfig =

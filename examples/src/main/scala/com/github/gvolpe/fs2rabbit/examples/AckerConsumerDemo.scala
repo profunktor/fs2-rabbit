@@ -16,7 +16,7 @@
 
 package com.github.gvolpe.fs2rabbit.examples
 
-import cats.effect.{Concurrent, Timer}
+import cats.effect.{Concurrent, Sync, Timer}
 import cats.syntax.functor._
 import com.github.gvolpe.fs2rabbit.config.declaration.DeclarationQueueConfig
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
@@ -26,15 +26,22 @@ import com.github.gvolpe.fs2rabbit.model.AmqpHeaderVal.{LongVal, StringVal}
 import com.github.gvolpe.fs2rabbit.model._
 import fs2.{Pipe, Stream}
 
-class AckerConsumerDemo[F[_]: Timer](implicit F: Concurrent[F], R: Fs2Rabbit[F]) {
+class AckerConsumerDemo[F[_]: Concurrent: Timer](implicit R: Fs2Rabbit[F]) {
 
   private val queueName    = QueueName("testQ")
   private val exchangeName = ExchangeName("testEX")
   private val routingKey   = RoutingKey("testRK")
 
+  def putStrLn(str: String): F[Unit] = Sync[F].delay(println(str))
+
   def logPipe: Pipe[F, AmqpEnvelope, AckResult] = _.evalMap { amqpMsg =>
-    F.delay(println(s"Consumed: $amqpMsg")).as(Ack(amqpMsg.deliveryTag))
+    putStrLn(s"Consumed: $amqpMsg").as(Ack(amqpMsg.deliveryTag))
   }
+
+  val publishingFlag: PublishingFlag = PublishingFlag(mandatory = true)
+
+  // Run when there's no consumer for the routing key specified by the publisher and the flag mandatory is true
+  val publishingListener: PublishReturn => F[Unit] = pr => putStrLn(s"Publish listener: $pr")
 
   val program: Stream[F, Unit] = R.createConnectionChannel.flatMap { implicit channel =>
     for {
@@ -42,7 +49,7 @@ class AckerConsumerDemo[F[_]: Timer](implicit F: Concurrent[F], R: Fs2Rabbit[F])
       _                 <- R.declareExchange(exchangeName, ExchangeType.Topic)
       _                 <- R.bindQueue(queueName, exchangeName, routingKey)
       (acker, consumer) <- R.createAckerConsumer(queueName)
-      publisher         <- R.createPublisher(exchangeName, routingKey)
+      publisher         <- R.createPublisherWithListener(exchangeName, routingKey, publishingFlag, publishingListener)
       result            <- new Flow(consumer, acker, logPipe, publisher).flow
     } yield result
   }

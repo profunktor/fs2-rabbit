@@ -17,13 +17,13 @@
 package com.github.gvolpe.fs2rabbit.program
 
 import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, Publishing}
-import com.github.gvolpe.fs2rabbit.model.{ExchangeName, RoutingKey, StreamPublisher}
+import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.util.StreamEval
 import com.rabbitmq.client.Channel
 import fs2.Stream
 
 class PublishingProgram[F[_]](AMQP: AMQPClient[Stream[F, ?], F])(implicit SE: StreamEval[F])
-    extends Publishing[Stream[F, ?]] {
+    extends Publishing[Stream[F, ?], F] {
 
   override def createPublisher(channel: Channel,
                                exchangeName: ExchangeName,
@@ -31,6 +31,17 @@ class PublishingProgram[F[_]](AMQP: AMQPClient[Stream[F, ?], F])(implicit SE: St
     SE.evalF {
       _.flatMap { msg =>
         AMQP.basicPublish(channel, exchangeName, routingKey, msg)
+      }
+    }
+
+  override def createPublisherWithListener(channel: Channel,
+                                           exchangeName: ExchangeName,
+                                           routingKey: RoutingKey,
+                                           flag: PublishingFlag,
+                                           listener: PublishingListener[F]): Stream[F, StreamPublisher[F]] =
+    SE.evalF { publisher =>
+      AMQP.addPublishingListener(channel, listener) ++ publisher.flatMap { msg =>
+        AMQP.basicPublishWithFlag(channel, exchangeName, routingKey, flag, msg)
       }
     }
 

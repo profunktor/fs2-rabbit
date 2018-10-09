@@ -20,7 +20,11 @@ import com.github.gvolpe.fs2rabbit.model.{ExchangeName, QueueName}
 
 object deletion {
 
-  final case class DeletionQueueConfig(queueName: QueueName, ifUnused: IfUnusedCfg, ifEmpty: IfEmptyCfg)
+  final case class DeletionQueueConfig(
+      queueName: QueueName,
+      ifUnused: IfUnusedCfg,
+      ifEmpty: IfEmptyCfg
+  )
 
   object DeletionQueueConfig {
     def default(queueName: QueueName): DeletionQueueConfig =
