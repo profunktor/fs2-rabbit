@@ -65,8 +65,7 @@ class AckerConsumerDemo[F[_]: Concurrent](implicit F: Fs2Rabbit[F], SE: StreamEv
       _                 <- F.declareQueue(DeclarationQueueConfig.default(queueName))
       _                 <- F.declareExchange(exchangeName, ExchangeType.Topic)
       _                 <- F.bindQueue(queueName, exchangeName, routingKey)
-      ackerConsumer     <- F.createAckerConsumer(queueName)
-      (acker, consumer) = ackerConsumer
+      (acker, consumer) <- F.createAckerConsumer(queueName)
       publisher         <- F.createPublisher(exchangeName, routingKey)
       result            <- new Flow(consumer, acker, logPipe, publisher).flow
     } yield result
