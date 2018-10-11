@@ -21,8 +21,7 @@ def doSomething(consumer: StreamConsumer[IO], acker: StreamAcker[IO]): Stream[IO
 def program(implicit R: Fs2Rabbit[IO]) =
   R.createConnectionChannel.flatMap { implicit channel =>       // Stream[IO, AMQPChannel]
     for {
-      ackerConsumer     <- R.createAckerConsumer(queueName)	    // (StreamAcker[IO], StreamConsumer[IO])
-      (acker, consumer) = ackerConsumer
+      (acker, consumer) <- R.createAckerConsumer(queueName)	    // (StreamAcker[IO], StreamConsumer[IO])
       _                 <- doSomething(consumer, acker)
     } yield ()
   }
