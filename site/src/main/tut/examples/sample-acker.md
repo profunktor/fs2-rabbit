@@ -34,7 +34,7 @@ class Flow[F[_]: Concurrent](consumer: StreamConsumer[F],
 
   val simpleMessage =
     AmqpMessage(
-        "Hey!",
+      "Hey!",
         AmqpProperties(headers = Map("demoId" -> LongVal(123), "app" -> StringVal("fs2RabbitDemo"))))
   val classMessage = AmqpMessage(Person(1L, "Sherlock", Address(212, "Baker St")), AmqpProperties.empty)
 
