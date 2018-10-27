@@ -17,15 +17,17 @@
 package com.github.gvolpe.fs2rabbit.config
 
 import com.github.gvolpe.fs2rabbit.arguments.Arguments
-import com.github.gvolpe.fs2rabbit.model.QueueName
+import com.github.gvolpe.fs2rabbit.model.{ExchangeName, ExchangeType, QueueName}
 
 object declaration {
 
-  final case class DeclarationQueueConfig(queueName: QueueName,
-                                          durable: DurableCfg,
-                                          exclusive: ExclusiveCfg,
-                                          autoDelete: AutoDeleteCfg,
-                                          arguments: Arguments)
+  final case class DeclarationQueueConfig(
+      queueName: QueueName,
+      durable: DurableCfg,
+      exclusive: ExclusiveCfg,
+      autoDelete: AutoDeleteCfg,
+      arguments: Arguments
+  )
   object DeclarationQueueConfig {
 
     def default(queueName: QueueName): DeclarationQueueConfig =
@@ -43,5 +45,22 @@ object declaration {
   sealed trait AutoDeleteCfg extends Product with Serializable
   case object AutoDelete     extends AutoDeleteCfg
   case object NonAutoDelete  extends AutoDeleteCfg
+
+  final case class DeclarationExchangeConfig(exchangeName: ExchangeName,
+                                             exchangeType: ExchangeType,
+                                             durable: DurableCfg,
+                                             autoDelete: AutoDeleteCfg,
+                                             internal: InternalCfg,
+                                             arguments: Arguments)
+
+  object DeclarationExchangeConfig {
+
+    def default(exchangeName: ExchangeName, exchangeType: ExchangeType): DeclarationExchangeConfig =
+      DeclarationExchangeConfig(exchangeName, exchangeType, NonDurable, NonAutoDelete, NonInternal, Map.empty)
+  }
+
+  sealed trait InternalCfg extends Product with Serializable
+  case object Internal     extends InternalCfg
+  case object NonInternal  extends InternalCfg
 
 }

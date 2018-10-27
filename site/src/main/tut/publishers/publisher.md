@@ -8,7 +8,7 @@ number: 11
 
 A `Publisher` is simply created by specifying a `ExchangeName` and a `RoutingKey`:
 
-```tut:book
+```tut:book:silent
 import cats.effect.IO
 import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
@@ -32,7 +32,7 @@ def program(implicit R: Fs2Rabbit[IO]) =
 
 Once you have a `Publisher` you can start publishing messages by connecting a source `Stream[F, AmqpMessage]`:
 
-```tut:book
+```tut:book:silent
 import cats.effect.Sync
 import com.github.gvolpe.fs2rabbit.model._
 import fs2._

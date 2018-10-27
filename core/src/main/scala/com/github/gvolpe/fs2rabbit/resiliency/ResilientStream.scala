@@ -17,6 +17,7 @@
 package com.github.gvolpe.fs2rabbit.resiliency
 
 import cats.effect.{Sync, Timer}
+import cats.syntax.apply._
 import com.github.gvolpe.fs2rabbit.util.Log
 import fs2.Stream
 
@@ -24,7 +25,7 @@ import scala.concurrent.duration._
 import scala.util.control.NonFatal
 
 /**
-  * It provides a resilient run method for an effectful [[fs2.Stream]] that will run forever with
+  * It provides a resilient run method for an effectful `fs2.Stream` that will run forever with
   * automatic error recovery.
   *
   * In case of failure, the entire stream will be restarted after the specified retry time with an
@@ -36,19 +37,16 @@ import scala.util.control.NonFatal
   * */
 object ResilientStream {
 
-  def run[F[_]: Sync: Timer: Log](program: Stream[F, Unit], retry: FiniteDuration = 5.seconds): F[Unit] =
+  def run[F[_]: Log: Sync: Timer](program: Stream[F, Unit], retry: FiniteDuration = 5.seconds): F[Unit] =
     loop(program, retry, 1).compile.drain
 
-  private def loop[F[_]: Sync: Timer](program: Stream[F, Unit], retry: FiniteDuration, count: Int)(
-      implicit L: Log[F]): Stream[F, Unit] =
+  private def loop[F[_]: Log: Sync: Timer](program: Stream[F, Unit],
+                                           retry: FiniteDuration,
+                                           count: Int): Stream[F, Unit] =
     program.handleErrorWith {
       case NonFatal(err) =>
-        val scheduledProgram = Stream.sleep(retry).flatMap(_ => program)
-        for {
-          _ <- Stream.eval(L.error(err))
-          _ <- Stream.eval(L.info(s"Restarting in ${retry * count}..."))
-          p <- loop[F](scheduledProgram, retry, count + 1)
-        } yield p
+        Stream.eval(Log[F].error(err) *> Log[F].info(s"Restarting in ${retry * count}...")) >>
+          loop[F](Stream.sleep(retry) >> program, retry, count + 1)
     }
 
 }

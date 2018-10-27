@@ -7,8 +7,6 @@ name := """fs2-rabbit-root"""
 
 organization in ThisBuild := "com.github.gvolpe"
 
-version in ThisBuild := "0.8"
-
 crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.6")
 
 sonatypeProfileName := "com.github.gvolpe"
@@ -18,13 +16,64 @@ promptTheme := PromptTheme(List(
   text(_ => "fs2-rabbit", fg(64)).padRight(" λ ")
  ))
 
+lazy val commonScalacOptions = Seq(
+  "-deprecation",
+  "-encoding",
+  "UTF-8",
+  "-feature",
+  "-language:existentials",
+  "-language:higherKinds",
+  "-language:implicitConversions",
+  "-language:experimental.macros",
+  "-unchecked",
+  "-Xfatal-warnings",
+  "-Xlint",
+  "-Yno-adapted-args",
+  "-Ywarn-dead-code",
+  "-Ywarn-value-discard",
+  "-Xfuture",
+  "-Xlog-reflective-calls",
+  "-Ywarn-inaccessible",
+  "-Ypatmat-exhaust-depth",
+  "20",
+  "-Ydelambdafy:method",
+  "-Xmax-classfile-name",
+  "100"
+)
+
+
+lazy val warnUnusedImport = Seq(
+  scalacOptions ++= {
+    CrossVersion.partialVersion(scalaVersion.value) match {
+      case Some((2, 10)) =>
+        Seq()
+      case Some((2, n)) if n >= 11 =>
+        Seq("-Ywarn-unused-import")
+    }
+  },
+  scalacOptions in (Compile, console) ~= { _.filterNot(Seq("-Xlint", "-Ywarn-unused-import").contains) },
+  scalacOptions in (Test, console) := (scalacOptions in (Compile, console)).value
+)
+
+lazy val partialUnification = Seq(
+  scalacOptions ++= {
+    CrossVersion.partialVersion(scalaVersion.value) match {
+      case Some((2, n)) if n >= 12 =>
+        Seq("-Ypartial-unification")
+      case _ =>
+        Seq()
+    }
+  }
+)
+
 val commonSettings = Seq(
   organizationName := "Fs2 Rabbit",
   startYear := Some(2017),
   licenses += ("Apache-2.0", new URL("https://www.apache.org/licenses/LICENSE-2.0.txt")),
   homepage := Some(url("https://github.com/gvolpe/fs2-rabbit")),
-  addCompilerPlugin("org.spire-math" % "kind-projector" % "0.9.5" cross CrossVersion.binary),
   libraryDependencies ++= Seq(
+    compilerPlugin(Libraries.kindProjector),
+    compilerPlugin(Libraries.betterMonadicFor),
     Libraries.amqpClient,
     Libraries.catsEffect,
     Libraries.fs2Core,
@@ -32,16 +81,7 @@ val commonSettings = Seq(
     Libraries.scalaCheck
   ),
   resolvers += "Apache public" at "https://repository.apache.org/content/groups/public/",
-  scalacOptions ++= Seq(
-    "-Xmax-classfile-name", "80",
-    "-deprecation",
-    "-encoding",
-    "UTF-8",
-    "-feature",
-    "-Ypartial-unification",
-    "-language:existentials",
-    "-language:higherKinds"
-  ),
+  scalacOptions ++= commonScalacOptions,
   scalafmtOnCompile := true,
   coverageExcludedPackages := "com\\.github\\.gvolpe\\.fs2rabbit\\.examples.*;com\\.github\\.gvolpe\\.fs2rabbit\\.util.*;.*QueueName*;.*RoutingKey*;.*ExchangeName*;.*DeliveryTag*;.*AMQPClientStream*;.*ConnectionStream*;",
   publishTo := {
@@ -62,7 +102,7 @@ val commonSettings = Seq(
           <url>http://github.com/gvolpe</url>
         </developer>
       </developers>
-)
+) ++ warnUnusedImport ++ partialUnification
 
 val CoreDependencies: Seq[ModuleID] = Seq(
   Libraries.logback % "test"

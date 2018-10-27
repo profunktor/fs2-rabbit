@@ -8,7 +8,7 @@ number: 7
 
 It acknowledges message consumption automatically so all you need to worry about is to process the message. Every message consumed will be marked as consumed in `RabbitMQ` meaning that in case of error messages could be lost.
 
-```tut:book
+```tut:book:silent
 import cats.effect.IO
 import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit

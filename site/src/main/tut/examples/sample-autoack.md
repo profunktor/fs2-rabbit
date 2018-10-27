@@ -35,7 +35,7 @@ class AutoAckFlow[F[_]: Concurrent](
   val simpleMessage =
     AmqpMessage(
         "Hey!",
-        AmqpProperties(None, None, None, None, Map("demoId" -> LongVal(123), "app" -> StringVal("fs2RabbitDemo"))))
+        AmqpProperties(headers = Map("demoId" -> LongVal(123), "app" -> StringVal("fs2RabbitDemo"))))
   val classMessage = AmqpMessage(Person(1L, "Sherlock", Address(212, "Baker St")), AmqpProperties.empty)
 
   val flow: Stream[F, Unit] =
@@ -43,7 +43,7 @@ class AutoAckFlow[F[_]: Concurrent](
       Stream(simpleMessage).covary[F] to publisher,
       Stream(classMessage).covary[F] through jsonEncode[Person] to publisher,
       consumer through logger to SE.liftSink(ack => Sync[F].delay(println(ack)))
-    ).join(3)
+    ).parJoin(3)
 
 }
 
@@ -83,8 +83,6 @@ import com.github.gvolpe.fs2rabbit.resiliency.ResilientStream
 import monix.eval.{Task, TaskApp}
 import monix.execution.Scheduler.Implicits.global
 
-object MonixAutoAckConsumer extends TaskApp {
-
   private val config: Fs2RabbitConfig = Fs2RabbitConfig(virtualHost = "/",
                                                         host = "127.0.0.1",
                                                         username = Some("guest"),
@@ -95,9 +93,9 @@ object MonixAutoAckConsumer extends TaskApp {
                                                         connectionTimeout = 3,
                                                         requeueOnNack = false)
 
-  override def runl(args: List[String]): Task[Unit] =
-    Fs2Rabbit[Task](config).flatMap { implicit interpreter =>
-      ResilientStream.run(new AutoAckConsumerDemo[Task].program)
-    }
+  implicit val fs2rabbit: Fs2Rabbit[Task] = Fs2Rabbit[Task](config)
+
+    ResilientStream.run(new AutoAckConsumerDemo[Task].program)
+     .toIO.as(ExitCode.Success)
 }
 ```

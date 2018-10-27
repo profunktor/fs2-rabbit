@@ -16,37 +16,40 @@
 
 package com.github.gvolpe.fs2rabbit.examples
 
-import cats.effect.Concurrent
+import cats.effect.{Concurrent, Sync, Timer}
+import cats.syntax.functor._
 import com.github.gvolpe.fs2rabbit.config.declaration.DeclarationQueueConfig
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
 import com.github.gvolpe.fs2rabbit.json.Fs2JsonEncoder
 import com.github.gvolpe.fs2rabbit.model.AckResult.Ack
 import com.github.gvolpe.fs2rabbit.model.AmqpHeaderVal.{LongVal, StringVal}
 import com.github.gvolpe.fs2rabbit.model._
-import com.github.gvolpe.fs2rabbit.util.StreamEval
 import fs2.{Pipe, Stream}
 
-class AckerConsumerDemo[F[_]: Concurrent](implicit F: Fs2Rabbit[F], SE: StreamEval[F]) {
+class AckerConsumerDemo[F[_]: Concurrent: Timer](implicit R: Fs2Rabbit[F]) {
 
   private val queueName    = QueueName("testQ")
   private val exchangeName = ExchangeName("testEX")
   private val routingKey   = RoutingKey("testRK")
 
-  def logPipe: Pipe[F, AmqpEnvelope, AckResult] = { streamMsg =>
-    for {
-      amqpMsg <- streamMsg
-      _       <- SE.evalF[Unit](println(s"Consumed: $amqpMsg"))
-    } yield Ack(amqpMsg.deliveryTag)
+  def putStrLn(str: String): F[Unit] = Sync[F].delay(println(str))
+
+  def logPipe: Pipe[F, AmqpEnvelope, AckResult] = _.evalMap { amqpMsg =>
+    putStrLn(s"Consumed: $amqpMsg").as(Ack(amqpMsg.deliveryTag))
   }
 
-  val program: Stream[F, Unit] = F.createConnectionChannel flatMap { implicit channel =>
+  val publishingFlag: PublishingFlag = PublishingFlag(mandatory = true)
+
+  // Run when there's no consumer for the routing key specified by the publisher and the flag mandatory is true
+  val publishingListener: PublishReturn => F[Unit] = pr => putStrLn(s"Publish listener: $pr")
+
+  val program: Stream[F, Unit] = R.createConnectionChannel.flatMap { implicit channel =>
     for {
-      _                 <- F.declareQueue(DeclarationQueueConfig.default(queueName))
-      _                 <- F.declareExchange(exchangeName, ExchangeType.Topic)
-      _                 <- F.bindQueue(queueName, exchangeName, routingKey)
-      ackerConsumer     <- F.createAckerConsumer(queueName)
-      (acker, consumer) = ackerConsumer
-      publisher         <- F.createPublisher(exchangeName, routingKey)
+      _                 <- R.declareQueue(DeclarationQueueConfig.default(queueName))
+      _                 <- R.declareExchange(exchangeName, ExchangeType.Topic)
+      _                 <- R.bindQueue(queueName, exchangeName, routingKey)
+      (acker, consumer) <- R.createAckerConsumer(queueName)
+      publisher         <- R.createPublisherWithListener(exchangeName, routingKey, publishingFlag, publishingListener)
       result            <- new Flow(consumer, acker, logPipe, publisher).flow
     } yield result
   }
@@ -67,16 +70,14 @@ class Flow[F[_]: Concurrent](consumer: StreamConsumer[F],
   import jsonEncoder.jsonEncode
 
   val simpleMessage =
-    AmqpMessage(
-      "Hey!",
-      AmqpProperties(None, None, None, None, Map("demoId" -> LongVal(123), "app" -> StringVal("fs2RabbitDemo"))))
+    AmqpMessage("Hey!", AmqpProperties(headers = Map("demoId" -> LongVal(123), "app" -> StringVal("fs2RabbitDemo"))))
   val classMessage = AmqpMessage(Person(1L, "Sherlock", Address(212, "Baker St")), AmqpProperties.empty)
 
   val flow: Stream[F, Unit] =
     Stream(
-      Stream(simpleMessage).covary[F] to publisher,
-      Stream(classMessage).covary[F] through jsonEncode[Person] to publisher,
-      consumer through logger to acker
-    ).join(3)
+      Stream(simpleMessage).covary[F].to(publisher),
+      Stream(classMessage).covary[F].through(jsonEncode[Person]).to(publisher),
+      consumer.through(logger).to(acker)
+    ).parJoin(3)
 
 }

@@ -61,20 +61,23 @@ class Fs2JsonDecoderSpec extends Fs2JsonDecoderFixture with FlatSpecLike with Ma
 
 }
 
+object Message {
+  sealed trait Message               extends Product with Serializable
+  final case class One(one: String)  extends Message
+  final case class Two(two: String)  extends Message
+  final case class Three(three: Int) extends Message
+}
+
 trait Fs2JsonDecoderFixture extends PropertyChecks {
 
   import io.circe.generic.auto._
+  import Message._
 
   val fs2JsonDecoder = new Fs2JsonDecoder[IO]
   import fs2JsonDecoder.jsonDecode
 
   case class Address(number: Int, streetName: String)
   case class Person(name: String, address: Address)
-
-  sealed trait Message               extends Product with Serializable
-  final case class One(one: String)  extends Message
-  final case class Two(two: String)  extends Message
-  final case class Three(three: Int) extends Message
 
   implicit def msgDecoder[A >: Message]: Decoder[A] =
     List[Decoder[A]](

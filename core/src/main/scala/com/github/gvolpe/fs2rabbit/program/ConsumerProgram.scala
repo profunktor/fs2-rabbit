@@ -17,29 +17,21 @@
 package com.github.gvolpe.fs2rabbit.program
 
 import cats.effect.Concurrent
-import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, AMQPInternals, AckerConsumer}
+import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, AMQPInternals, Consumer}
 import com.github.gvolpe.fs2rabbit.arguments.Arguments
-import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
-import com.github.gvolpe.fs2rabbit.model.AckResult.{Ack, NAck}
 import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.util.StreamEval
 import com.rabbitmq.client.Channel
-import fs2.{Pipe, Sink, Stream}
+import fs2.{Pipe, Stream}
+import fs2.concurrent.Queue
 
-class AckerConsumerProgram[F[_]: Concurrent](config: Fs2RabbitConfig, AMQP: AMQPClient[Stream[F, ?], F])(
-    implicit SE: StreamEval[F])
-    extends AckerConsumer[Stream[F, ?]] {
+class ConsumerProgram[F[_]: Concurrent](AMQP: AMQPClient[Stream[F, ?], F])(implicit SE: StreamEval[F])
+    extends Consumer[Stream[F, ?]] {
 
   private[fs2rabbit] def resilientConsumer: Pipe[F, Either[Throwable, AmqpEnvelope], AmqpEnvelope] =
     _.flatMap {
-      case Left(err)  => Stream.raiseError(err)
+      case Left(err)  => Stream.raiseError[F](err)
       case Right(env) => SE.pure[AmqpEnvelope](env)
-    }
-
-  override def createAcker(channel: Channel): Sink[F, AckResult] =
-    _.flatMap {
-      case Ack(tag)  => AMQP.basicAck(channel, tag, multiple = false)
-      case NAck(tag) => AMQP.basicNack(channel, tag, multiple = false, config.requeueOnNack)
     }
 
   override def createConsumer(queueName: QueueName,
@@ -51,7 +43,7 @@ class AckerConsumerProgram[F[_]: Concurrent](config: Fs2RabbitConfig, AMQP: AMQP
                               consumerTag: String = "",
                               args: Arguments = Map.empty): StreamConsumer[F] =
     for {
-      internalQ <- Stream.eval(fs2.async.boundedQueue[F, Either[Throwable, AmqpEnvelope]](500))
+      internalQ <- Stream.eval(Queue.bounded[F, Either[Throwable, AmqpEnvelope]](500))
       internals = AMQPInternals[F](Some(internalQ))
       _         <- AMQP.basicQos(channel, basicQos)
       _         <- AMQP.basicConsume(channel, queueName, autoAck, consumerTag, noLocal, exclusive, args)(internals)

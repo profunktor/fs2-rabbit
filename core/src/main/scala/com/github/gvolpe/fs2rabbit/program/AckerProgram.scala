@@ -14,25 +14,21 @@
  * limitations under the License.
  */
 
-package com.github.gvolpe.fs2rabbit.algebra
+package com.github.gvolpe.fs2rabbit.program
 
+import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, Acker}
+import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
+import com.github.gvolpe.fs2rabbit.model.AckResult.{Ack, NAck}
 import com.github.gvolpe.fs2rabbit.model._
 import com.rabbitmq.client.Channel
+import fs2.{Sink, Stream}
 
-trait Publishing[F[_], G[_]] {
+class AckerProgram[F[_]](config: Fs2RabbitConfig, AMQP: AMQPClient[Stream[F, ?], F]) extends Acker[Stream[F, ?]] {
 
-  def createPublisher(
-      channel: Channel,
-      exchangeName: ExchangeName,
-      routingKey: RoutingKey
-  ): F[F[AmqpMessage[String]] => F[Unit]]
-
-  def createPublisherWithListener(
-      channel: Channel,
-      exchangeName: ExchangeName,
-      routingKey: RoutingKey,
-      flags: PublishingFlag,
-      listener: PublishingListener[G]
-  ): F[F[AmqpMessage[String]] => F[Unit]]
+  def createAcker(channel: Channel): Sink[F, AckResult] =
+    _.flatMap {
+      case Ack(tag)  => AMQP.basicAck(channel, tag, multiple = false)
+      case NAck(tag) => AMQP.basicNack(channel, tag, multiple = false, config.requeueOnNack)
+    }
 
 }

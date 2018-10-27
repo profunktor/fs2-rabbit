@@ -14,18 +14,11 @@
  * limitations under the License.
  */
 
-package com.github.gvolpe.fs2rabbit.config
+package com.github.gvolpe.fs2rabbit.algebra
 
-import javax.net.ssl.SSLContext
+import com.github.gvolpe.fs2rabbit.model.AckResult
+import com.rabbitmq.client.Channel
 
-case class Fs2RabbitConfig(
-    host: String,
-    port: Int,
-    virtualHost: String,
-    connectionTimeout: Int,
-    ssl: Boolean,
-    sslContext: Option[SSLContext],
-    username: Option[String],
-    password: Option[String],
-    requeueOnNack: Boolean
-)
+trait Acker[F[_]] {
+  def createAcker(channel: Channel): F[AckResult] => F[Unit]
+}

@@ -34,7 +34,8 @@ class AmqpPropertiesSpec extends FlatSpecLike with Matchers with AmqpPropertiesA
   }
 
   it should "create an empty amqp properties" in {
-    AmqpProperties.empty should be(AmqpProperties(None, None, None, None, Map.empty[String, AmqpHeaderVal]))
+    AmqpProperties.empty should be(
+      AmqpProperties(None, None, None, None, None, None, None, None, None, None, Map.empty[String, AmqpHeaderVal]))
   }
 
   it should "handle null values in Java AMQP.BasicProperties" in {
@@ -73,8 +74,25 @@ trait AmqpPropertiesArbitraries extends PropertyChecks {
       contentEncoding <- Gen.option(Gen.alphaStr)
       priority        <- Gen.option(Gen.posNum[Int])
       deliveryMode    <- Gen.option(Gen.oneOf(1, 2))
+      correlationId   <- Gen.option(Gen.alphaNumStr)
+      messageId       <- Gen.option(Gen.alphaNumStr)
+      messageType     <- Gen.option(Gen.alphaStr)
+      userId          <- Gen.option(Gen.alphaNumStr)
+      appId           <- Gen.option(Gen.alphaNumStr)
+      expiration      <- Gen.option(Gen.alphaNumStr)
       headers         <- Gen.mapOf[String, AmqpHeaderVal](headersGen)
-    } yield AmqpProperties(contentType, contentEncoding, priority, deliveryMode.map(DeliveryMode.from), headers)
+    } yield
+      AmqpProperties(contentType,
+                     contentEncoding,
+                     priority,
+                     deliveryMode.map(DeliveryMode.from),
+                     correlationId,
+                     messageId,
+                     messageType,
+                     userId,
+                     appId,
+                     expiration,
+                     headers)
   }
 
 }

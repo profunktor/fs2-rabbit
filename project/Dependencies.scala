@@ -3,21 +3,28 @@ import sbt._
 object Dependencies {
 
   object Versions {
-    val catsEffect = "1.0.0-RC2"
-    val fs2        = "1.0.0-M1"
-    val circe      = "0.10.0-M1"
-    val amqpClient = "4.6.0"
+    val catsEffect = "1.0.0"
+    val fs2        = "1.0.0"
+    val circe      = "0.10.0"
+    val amqpClient = "5.5.0"
     val logback    = "1.1.3"
     val monix      = "3.0.0-RC1"
 
-    val scalaTest  = "3.0.1"
-    val scalaCheck = "1.13.4"
+    val kindProjector    = "0.9.8"
+    val betterMonadicFor = "0.3.0-M4"
+
+    val scalaTest  = "3.0.5"
+    val scalaCheck = "1.14.0"
   }
 
   object Libraries {
     lazy val amqpClient = "com.rabbitmq"  % "amqp-client"  % Versions.amqpClient
     lazy val catsEffect = "org.typelevel" %% "cats-effect" % Versions.catsEffect
     lazy val fs2Core    = "co.fs2"        %% "fs2-core"    % Versions.fs2
+
+    // Compiler
+    lazy val kindProjector    = "org.spire-math" % "kind-projector" % Versions.kindProjector cross CrossVersion.binary
+    lazy val betterMonadicFor = "com.olegpy" %% "better-monadic-for" % Versions.betterMonadicFor
 
     // Examples
     lazy val monix   = "io.monix"       %% "monix"          % Versions.monix

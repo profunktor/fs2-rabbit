@@ -8,10 +8,12 @@ number: 12
 
 A stream-based `Json Encoder` that can be connected to a `StreamPublisher` is provided by the extra dependency `fs2-rabbit-circe`. Implicit encoders for your classes must be on scope. You can use `Circe`'s codec auto derivation for example:
 
-```scala
+```tut:book:silent
 import cats.effect.IO
 import com.github.gvolpe.fs2rabbit.json.Fs2JsonEncoder
 import com.github.gvolpe.fs2rabbit.model._
+import fs2.Stream
+import io.circe.generic.auto._
 
 case class Address(number: Int, streetName: String)
 case class Person(id: Long, name: String, address: Address)

@@ -23,7 +23,6 @@ import monix.eval.{Task, TaskApp}
 import monix.execution.Scheduler.Implicits.global
 
 object MonixAutoAckConsumer extends TaskApp {
-
   private val config: Fs2RabbitConfig = Fs2RabbitConfig(
     virtualHost = "/",
     host = "127.0.0.1",
@@ -37,9 +36,8 @@ object MonixAutoAckConsumer extends TaskApp {
   )
 
   override def runl(args: List[String]): Task[Unit] =
-    Fs2Rabbit[Task](config)
-      .flatMap { implicit interpreter =>
-        ResilientStream.run(new AutoAckConsumerDemo[Task].program)
-      }
+
+    ResilientStream
+      .run(new AutoAckConsumerDemo[Task].program)
 
 }

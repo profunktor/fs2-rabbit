@@ -50,6 +50,10 @@ options:
         url: publishers/publisher.html
         menu_section: publisher
 
+      - title: Publisher with Listener
+        url: publishers/publisher-with-listener.html
+        menu_section: publisher
+
       - title: Publishing Json
         url: publishers/json.html
         menu_section: publisher

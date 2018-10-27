@@ -22,7 +22,7 @@ import fs2.{Pipe, Stream}
 class Flow[F[_]: Concurrent](consumer: StreamConsumer[F],
                              acker: StreamAcker[F],
                              logger: Pipe[F, AmqpEnvelope, AckResult],
-                             publisher: StreamPublisher[F]) {
+                             publisher: StreamPublisher[F])(implicit SE: StreamEval[F]) {
 
   import io.circe.generic.auto._
 
@@ -35,7 +35,7 @@ class Flow[F[_]: Concurrent](consumer: StreamConsumer[F],
   val simpleMessage =
     AmqpMessage(
       "Hey!",
-      AmqpProperties(None, None, None, None, Map("demoId" -> LongVal(123), "app" -> StringVal("fs2RabbitDemo"))))
+        AmqpProperties(headers = Map("demoId" -> LongVal(123), "app" -> StringVal("fs2RabbitDemo"))))
   val classMessage = AmqpMessage(Person(1L, "Sherlock", Address(212, "Baker St")), AmqpProperties.empty)
 
   val flow: Stream[F, Unit] =
@@ -43,7 +43,7 @@ class Flow[F[_]: Concurrent](consumer: StreamConsumer[F],
       Stream(simpleMessage).covary[F] to publisher,
       Stream(classMessage).covary[F] through jsonEncode[Person] to publisher,
       consumer through logger to acker
-    ).join(3)
+    ).parJoin(3)
 
 }
 
@@ -65,8 +65,7 @@ class AckerConsumerDemo[F[_]: Concurrent](implicit F: Fs2Rabbit[F], SE: StreamEv
       _                 <- F.declareQueue(DeclarationQueueConfig.default(queueName))
       _                 <- F.declareExchange(exchangeName, ExchangeType.Topic)
       _                 <- F.bindQueue(queueName, exchangeName, routingKey)
-      ackerConsumer     <- F.createAckerConsumer(queueName)
-      (acker, consumer) = ackerConsumer
+      (acker, consumer) <- F.createAckerConsumer(queueName)
       publisher         <- F.createPublisher(exchangeName, routingKey)
       result            <- new Flow(consumer, acker, logPipe, publisher).flow
     } yield result
@@ -96,9 +95,10 @@ object IOAckerConsumer extends IOApp {
                                                         connectionTimeout = 3,
                                                         requeueOnNack = false)
 
+  implicit val fs2rabbit: Fs2Rabbit[IO] = Fs2Rabbit[IO](config)
+
   override def run(args: List[String]): IO[ExitCode] =
-    Fs2Rabbit[IO](config).flatMap { implicit interpreter =>
-      ResilientStream.run(new AckerConsumerDemo[IO]().program)
-    }.as(ExitCode.Success)
+    ResilientStream.run(new AckerConsumerDemo[IO]().program)
+      .as(ExitCode.Success)
 }
 ```

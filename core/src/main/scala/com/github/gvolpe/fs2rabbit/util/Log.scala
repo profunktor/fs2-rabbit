@@ -27,6 +27,8 @@ trait Log[F[_]] {
 object Log {
   private[fs2rabbit] val logger = LoggerFactory.getLogger(this.getClass)
 
+  def apply[F[_]](implicit ev: Log[F]): Log[F] = ev
+
   implicit def syncLogInstance[F[_]](implicit F: Sync[F]): Log[F] =
     new Log[F] {
       override def error(error: Throwable): F[Unit] = F.delay(logger.error(error.getMessage, error))

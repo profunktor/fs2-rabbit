@@ -30,6 +30,7 @@ object model {
   type StreamConsumer[F[_]]      = Stream[F, AmqpEnvelope]
   type StreamAckerConsumer[F[_]] = (StreamAcker[F], StreamConsumer[F])
   type StreamPublisher[F[_]]     = Sink[F, AmqpMessage[String]]
+  type PublishingListener[F[_]]  = PublishReturn => F[Unit]
 
   trait AMQPChannel {
     def value: Channel
@@ -96,22 +97,36 @@ object model {
     }
   }
 
-  case class AmqpProperties(contentType: Option[String],
-                            contentEncoding: Option[String],
-                            priority: Option[Int],
-                            deliveryMode: Option[DeliveryMode],
-                            headers: Map[String, AmqpHeaderVal])
+  case class AmqpProperties(
+      contentType: Option[String] = None,
+      contentEncoding: Option[String] = None,
+      priority: Option[Int] = None,
+      deliveryMode: Option[DeliveryMode] = None,
+      correlationId: Option[String] = None,
+      messageId: Option[String] = None,
+      `type`: Option[String] = None,
+      userId: Option[String] = None,
+      appId: Option[String] = None,
+      expiration: Option[String] = None,
+      headers: Map[String, AmqpHeaderVal] = Map.empty
+  )
 
   object AmqpProperties {
-    def empty = AmqpProperties(None, None, None, None, Map.empty[String, AmqpHeaderVal])
+    def empty = AmqpProperties()
 
     def from(basicProps: AMQP.BasicProperties): AmqpProperties =
       AmqpProperties(
-        Option(basicProps.getContentType),
-        Option(basicProps.getContentEncoding),
-        Option[Integer](basicProps.getPriority).map(Int.unbox),
-        Option(basicProps.getDeliveryMode).map(DeliveryMode.from(_)),
-        Option(basicProps.getHeaders)
+        contentType = Option(basicProps.getContentType),
+        contentEncoding = Option(basicProps.getContentEncoding),
+        priority = Option[Integer](basicProps.getPriority).map(Int.unbox),
+        deliveryMode = Option(basicProps.getDeliveryMode).map(DeliveryMode.from(_)),
+        correlationId = Option(basicProps.getCorrelationId),
+        messageId = Option(basicProps.getMessageId),
+        `type` = Option(basicProps.getType),
+        userId = Option(basicProps.getUserId),
+        appId = Option(basicProps.getAppId),
+        expiration = Option(basicProps.getExpiration),
+        headers = Option(basicProps.getHeaders)
           .fold(Map.empty[String, Object])(_.asScala.toMap)
           .map {
             case (k, v) => k -> AmqpHeaderVal.from(v)
@@ -125,6 +140,12 @@ object model {
           .contentEncoding(props.contentEncoding.orNull)
           .priority(props.priority.map(Int.box).orNull)
           .deliveryMode(props.deliveryMode.map(i => Int.box(i.value)).orNull)
+          .correlationId(props.correlationId.orNull)
+          .messageId(props.messageId.orNull)
+          .`type`(props.`type`.orNull)
+          .appId(props.appId.orNull)
+          .userId(props.userId.orNull)
+          .expiration(props.expiration.orNull)
           .headers(props.headers.mapValues[AnyRef](_.impure).asJava)
           .build()
     }
@@ -137,8 +158,28 @@ object model {
   case class QueueBindingArgs(value: Arguments)    extends AnyVal
   case class ExchangeBindingArgs(value: Arguments) extends AnyVal
 
+  // Unbind
+  case class QueueUnbindArgs(value: Arguments)    extends AnyVal
+  case class ExchangeUnbindArgs(value: Arguments) extends AnyVal
+
   // Declaration
   case class QueueDeclarationArgs(value: Arguments)    extends AnyVal
   case class ExchangeDeclarationArgs(value: Arguments) extends AnyVal
+
+  // Publishing
+  case class ReplyCode(value: Int)    extends AnyVal
+  case class ReplyText(value: String) extends AnyVal
+  case class AmqpBody(value: String)  extends AnyVal
+
+  case class PublishReturn(
+      replyCode: ReplyCode,
+      replyText: ReplyText,
+      exchange: ExchangeName,
+      routingKey: RoutingKey,
+      properties: AmqpProperties,
+      body: AmqpBody
+  )
+
+  case class PublishingFlag(mandatory: Boolean) extends AnyVal
 
 }

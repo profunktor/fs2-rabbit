@@ -17,20 +17,20 @@
 package com.github.gvolpe.fs2rabbit.algebra
 
 import com.github.gvolpe.fs2rabbit.arguments.Arguments
-import com.github.gvolpe.fs2rabbit.model.{AckResult, AmqpEnvelope, BasicQos, QueueName}
+import com.github.gvolpe.fs2rabbit.model.{AmqpEnvelope, BasicQos, QueueName}
 import com.rabbitmq.client.Channel
 
-trait AckerConsumer[F[_]] {
+trait Consumer[F[_]] {
 
-  def createAcker(channel: Channel): F[AckResult] => F[Unit]
-
-  def createConsumer(queueName: QueueName,
-                     channel: Channel,
-                     basicQos: BasicQos,
-                     autoAck: Boolean = false,
-                     noLocal: Boolean = false,
-                     exclusive: Boolean = false,
-                     consumerTag: String = "",
-                     args: Arguments = Map.empty): F[AmqpEnvelope]
+  def createConsumer(
+      queueName: QueueName,
+      channel: Channel,
+      basicQos: BasicQos,
+      autoAck: Boolean = false,
+      noLocal: Boolean = false,
+      exclusive: Boolean = false,
+      consumerTag: String = "",
+      args: Arguments = Map.empty
+  ): F[AmqpEnvelope]
 
 }
