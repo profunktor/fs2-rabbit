@@ -16,13 +16,15 @@
 
 package com.github.gvolpe.fs2rabbit.examples
 
+import cats.effect.ExitCode
+import cats.syntax.functor._
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
 import com.github.gvolpe.fs2rabbit.resiliency.ResilientStream
 import monix.eval.{Task, TaskApp}
-import monix.execution.Scheduler.Implicits.global
 
 object MonixAutoAckConsumer extends TaskApp {
+
   private val config: Fs2RabbitConfig = Fs2RabbitConfig(
     virtualHost = "/",
     host = "127.0.0.1",
@@ -35,9 +37,11 @@ object MonixAutoAckConsumer extends TaskApp {
     requeueOnNack = false
   )
 
-  override def runl(args: List[String]): Task[Unit] =
+  implicit val fs2Rabbit: Fs2Rabbit[Task] = Fs2Rabbit[Task](config)
 
+  override def run(args: List[String]): Task[ExitCode] =
     ResilientStream
       .run(new AutoAckConsumerDemo[Task].program)
+      .as(ExitCode.Success)
 
 }

@@ -9,7 +9,7 @@ number: 15
 Here we create a single `AutoAckConsumer`, a single `Publisher` and finally we publish two messages: a simple `String` message and a `Json` message by using the `fs2-rabbit-circe` extension.
 
 ```tut:book:silent
-import cats.effect.{Concurrent, Sync}
+import cats.effect._
 import com.github.gvolpe.fs2rabbit.config.declaration.DeclarationQueueConfig
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
 import com.github.gvolpe.fs2rabbit.json.Fs2JsonEncoder
@@ -77,11 +77,13 @@ class AutoAckConsumerDemo[F[_]: Concurrent](implicit F: Fs2Rabbit[F], SE: Stream
 At the edge of out program we define our effect, `monix.eval.Task` in this case, and ask to evaluate the effects:
 
 ```tut:book:silent
+import cats.syntax.functor._
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
 import com.github.gvolpe.fs2rabbit.resiliency.ResilientStream
 import monix.eval.{Task, TaskApp}
-import monix.execution.Scheduler.Implicits.global
+
+object MonixAutoAckConsumer extends TaskApp {
 
   private val config: Fs2RabbitConfig = Fs2RabbitConfig(virtualHost = "/",
                                                         host = "127.0.0.1",
@@ -95,7 +97,8 @@ import monix.execution.Scheduler.Implicits.global
 
   implicit val fs2rabbit: Fs2Rabbit[Task] = Fs2Rabbit[Task](config)
 
+  override def run(args: List[String]): Task[ExitCode] =
     ResilientStream.run(new AutoAckConsumerDemo[Task].program)
-     .toIO.as(ExitCode.Success)
+     .as(ExitCode.Success)
 }
 ```
