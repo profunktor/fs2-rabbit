@@ -34,7 +34,7 @@ val rk = RoutingKey("RKA")
 
 Here's our program `p1` creating a `Consumer` representing the first `Connection`:
 
-```tut:book
+```tut:book:silent
 def p1(implicit F: Fs2Rabbit[IO]) = F.createConnectionChannel.flatMap { implicit channel =>
   for {
     _  <- F.declareExchange(ex, ExchangeType.Topic)
@@ -47,7 +47,7 @@ def p1(implicit F: Fs2Rabbit[IO]) = F.createConnectionChannel.flatMap { implicit
 
 Here's our program `p2` creating a `Consumer` representing the second `Connection`:
 
-```tut:book
+```tut:book:silent
 def p2(implicit F: Fs2Rabbit[IO]) = F.createConnectionChannel.flatMap { implicit channel =>
   for {
     _  <- F.declareExchange(ex, ExchangeType.Topic)
@@ -60,7 +60,7 @@ def p2(implicit F: Fs2Rabbit[IO]) = F.createConnectionChannel.flatMap { implicit
 
 Here's our program `p3` creating a `Publisher` representing the third `Connection`:
 
-```tut:book
+```tut:book:silent
 def p3(implicit F: Fs2Rabbit[IO]) = F.createConnectionChannel.flatMap { implicit channel =>
   for {
     _  <- F.declareExchange(ex, ExchangeType.Topic)
@@ -71,7 +71,7 @@ def p3(implicit F: Fs2Rabbit[IO]) = F.createConnectionChannel.flatMap { implicit
 
 And finally we compose all the three programs together:
 
-```tut:book
+```tut:book:silent
 val pipe: Pipe[IO, AmqpEnvelope, AmqpMessage[String]] = _.map(env => AmqpMessage(env.payload, AmqpProperties.empty))
 
 def program(implicit F: Fs2Rabbit[IO]) =
