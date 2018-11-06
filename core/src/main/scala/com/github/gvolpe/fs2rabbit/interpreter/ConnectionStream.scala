@@ -29,7 +29,7 @@ import fs2.Stream
 
 class ConnectionStream[F[_]](config: Fs2RabbitConfig)(implicit F: Sync[F], L: Log[F]) extends Connection[Stream[F, ?]] {
 
-  private[fs2rabbit] lazy val connFactory: F[ConnectionFactory] =
+  private[fs2rabbit] val connFactory: F[ConnectionFactory] =
     F.delay {
       val factory = new ConnectionFactory()
       factory.setHost(config.host)
@@ -44,7 +44,7 @@ class ConnectionStream[F[_]](config: Fs2RabbitConfig)(implicit F: Sync[F], L: Lo
       factory
     }
 
-  private[fs2rabbit] def acquireConnection: F[(RabbitMQConnection, AMQPChannel)] =
+  private[fs2rabbit] val acquireConnection: F[(RabbitMQConnection, AMQPChannel)] =
     for {
       factory <- connFactory
       conn    <- F.delay(factory.newConnection)
