@@ -37,11 +37,13 @@ object Fs2Rabbit {
 }
 // $COVERAGE-ON$
 
-class Fs2Rabbit[F[_]: Concurrent](config: Fs2RabbitConfig,
-                                  connectionStream: Connection[Stream[F, ?]],
-                                  amqpClient: AMQPClient[Stream[F, ?], F],
-                                  acker: Acker[Stream[F, ?]],
-                                  consumer: Consumer[Stream[F, ?]]) {
+class Fs2Rabbit[F[_]: Concurrent](
+    config: Fs2RabbitConfig,
+    connectionStream: Connection[Stream[F, ?]],
+    amqpClient: AMQPClient[Stream[F, ?], F],
+    acker: Acker[Stream[F, ?]],
+    consumer: Consumer[Stream[F, ?]]
+) {
 
   private[fs2rabbit] val consumingProgram: Consuming[Stream[F, ?]] =
     new ConsumingProgram[F](acker, consumer)
