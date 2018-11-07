@@ -16,6 +16,8 @@
 
 package com.github.gvolpe.fs2rabbit.interpreter
 
+import javax.net.ssl.SSLContext
+
 import cats.effect.{Concurrent, ConcurrentEffect}
 import com.github.gvolpe.fs2rabbit.algebra._
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
@@ -27,9 +29,12 @@ import fs2.Stream
 
 // $COVERAGE-OFF$
 object Fs2Rabbit {
-  def apply[F[_]: ConcurrentEffect](config: Fs2RabbitConfig): Fs2Rabbit[F] = {
+  def apply[F[_]: ConcurrentEffect](
+      config: Fs2RabbitConfig,
+      sslContext: Option[SSLContext] = None
+  ): Fs2Rabbit[F] = {
     val amqpClient = new AMQPClientStream[F]
-    val connStream = new ConnectionStream[F](config)
+    val connStream = new ConnectionStream[F](config, sslContext)
     val acker      = new AckerProgram[F](config, amqpClient)
     val consumer   = new ConsumerProgram[F](amqpClient)
     new Fs2Rabbit[F](config, connStream, amqpClient, acker, consumer)

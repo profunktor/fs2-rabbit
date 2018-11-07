@@ -6,15 +6,19 @@ number: 2
 
 # Fs2 Rabbit Interpreter
 
-It is the main interpreter that will be interacting with `RabbitMQ`, a.k.a. the client. All it needs are a `Fs2RabbitConfig` and an implicit instance of `ConcurrentEffect[F]`. Its creation is side-effects free in latest versions (+1.0-RC2).
+It is the main interpreter that will be interacting with `RabbitMQ`, a.k.a. the client. All it needs are a `Fs2RabbitConfig`, an optional `SSLContext` and an implicit instance of `ConcurrentEffect[F]`. Its creation is side-effects free in latest versions (+1.0-RC2).
 
 ```tut:book:silent
 import cats.effect._
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
+import javax.net.ssl.SSLContext
 
 object Fs2Rabbit {
-  def apply[F[_]: ConcurrentEffect](config: Fs2RabbitConfig): Fs2Rabbit[F] = ???
+  def apply[F[_]: ConcurrentEffect](
+    config: Fs2RabbitConfig,
+    sslContext: Option[SSLContext] = None
+  ): Fs2Rabbit[F] = ???
 }
 ```
 
@@ -40,7 +44,6 @@ class Demo extends IOApp {
     password = Some("guest"),
     port = 5672,
     ssl = false,
-    sslContext = None,
     connectionTimeout = 3,
     requeueOnNack = false
   )

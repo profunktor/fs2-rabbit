@@ -45,7 +45,6 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
                     "hostnameAlias",
                     3,
                     ssl = false,
-                    sslContext = None,
                     username = None,
                     password = None,
                     requeueOnNack = false)
@@ -56,7 +55,6 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
                     "hostnameAlias",
                     3,
                     ssl = false,
-                    sslContext = None,
                     username = None,
                     password = None,
                     requeueOnNack = true)

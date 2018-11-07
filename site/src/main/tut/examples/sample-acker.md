@@ -19,10 +19,12 @@ import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.util.StreamEval
 import fs2.{Pipe, Stream}
 
-class Flow[F[_]: Concurrent](consumer: StreamConsumer[F],
-                             acker: StreamAcker[F],
-                             logger: Pipe[F, AmqpEnvelope, AckResult],
-                             publisher: StreamPublisher[F])(implicit SE: StreamEval[F]) {
+class Flow[F[_]: Concurrent](
+  consumer: StreamConsumer[F],
+  acker: StreamAcker[F],
+  logger: Pipe[F, AmqpEnvelope, AckResult],
+  publisher: StreamPublisher[F]
+)(implicit SE: StreamEval[F]) {
 
   import io.circe.generic.auto._
 
@@ -85,15 +87,16 @@ import com.github.gvolpe.fs2rabbit.resiliency.ResilientStream
 
 object IOAckerConsumer extends IOApp {
 
-  private val config: Fs2RabbitConfig = Fs2RabbitConfig(virtualHost = "/",
-                                                        host = "127.0.0.1",
-                                                        username = Some("guest"),
-                                                        password = Some("guest"),
-                                                        port = 5672,
-                                                        ssl = false,
-                                                        sslContext = None,
-                                                        connectionTimeout = 3,
-                                                        requeueOnNack = false)
+  private val config: Fs2RabbitConfig = Fs2RabbitConfig(
+    virtualHost = "/",
+    host = "127.0.0.1",
+    username = Some("guest"),
+    password = Some("guest"),
+    port = 5672,
+    ssl = false,
+    connectionTimeout = 3,
+    requeueOnNack = false
+  )
 
   implicit val fs2rabbit: Fs2Rabbit[IO] = Fs2Rabbit[IO](config)
 
