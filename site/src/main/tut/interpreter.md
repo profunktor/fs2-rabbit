@@ -6,7 +6,7 @@ number: 2
 
 # Fs2 Rabbit Interpreter
 
-It is the main interpreter that will be interacting with `RabbitMQ`, a.k.a. the client. All it needs are a `Fs2RabbitConfig`, an optional `SSLContext` and an implicit instance of `ConcurrentEffect[F]`. Its creation is side-effects free in latest versions (+1.0-RC2).
+It is the main interpreter that will be interacting with `RabbitMQ`, a.k.a. the client. All it needs are a `Fs2RabbitConfig`, an optional `SSLContext` and an implicit instance of `ConcurrentEffect[F]`. Its creation is effectful so it is wrapped in `F`.
 
 ```tut:book:silent
 import cats.effect._
@@ -18,11 +18,11 @@ object Fs2Rabbit {
   def apply[F[_]: ConcurrentEffect](
     config: Fs2RabbitConfig,
     sslContext: Option[SSLContext] = None
-  ): Fs2Rabbit[F] = ???
+  ): F[Fs2Rabbit[F]] = ???
 }
 ```
 
-The recommended way to create the interpreter is to call `apply` and make it available as an implicit. For example:
+The recommended way to create the interpreter is to call `apply` and `flatMap` on it to make it available as an implicit. For example:
 
 ```tut:book:silent
 import cats.effect.{ExitCode, IOApp}
@@ -48,10 +48,10 @@ class Demo extends IOApp {
     requeueOnNack = false
   )
 
-  implicit val fs2Rabbit: Fs2Rabbit[IO] = Fs2Rabbit[IO](config)
-
   override def run(args: List[String]): IO[ExitCode] =
-    Program.foo[IO].compile.drain.as(ExitCode.Success)
+    Fs2Rabbit[IO](config).flatMap { implicit fs2Rabbit =>
+      Program.foo[IO].compile.drain.as(ExitCode.Success)
+    }
 
 }
 ```

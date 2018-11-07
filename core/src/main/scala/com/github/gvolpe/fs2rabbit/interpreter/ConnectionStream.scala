@@ -29,30 +29,11 @@ import com.github.gvolpe.fs2rabbit.util.Log
 import com.rabbitmq.client.{ConnectionFactory, Connection => RabbitMQConnection}
 import fs2.Stream
 
-class ConnectionStream[F[_]](
-    config: Fs2RabbitConfig,
-    sslContext: Option[SSLContext]
-)(implicit F: Sync[F], L: Log[F])
+class ConnectionStream[F[_]](factory: ConnectionFactory)(implicit F: Sync[F], L: Log[F])
     extends Connection[Stream[F, ?]] {
-
-  private[fs2rabbit] val connFactory: F[ConnectionFactory] =
-    F.delay {
-      val factory = new ConnectionFactory()
-      factory.setHost(config.host)
-      factory.setPort(config.port)
-      factory.setVirtualHost(config.virtualHost)
-      factory.setConnectionTimeout(config.connectionTimeout)
-      if (config.ssl) {
-        sslContext.fold(factory.useSslProtocol())(factory.useSslProtocol)
-      }
-      config.username.foreach(factory.setUsername)
-      config.password.foreach(factory.setPassword)
-      factory
-    }
 
   private[fs2rabbit] val acquireConnection: F[(RabbitMQConnection, AMQPChannel)] =
     for {
-      factory <- connFactory
       conn    <- F.delay(factory.newConnection)
       channel <- F.delay(conn.createChannel)
     } yield (conn, RabbitChannel(channel))
@@ -70,5 +51,27 @@ class ConnectionStream[F[_]](
         case (_, _) => F.raiseError[Unit](new Exception("Unreachable"))
       }
       .map { case (_, channel) => channel }
+
+}
+
+object ConnectionStream {
+
+  private[fs2rabbit] def mkConnectionFactory[F[_]: Sync](
+      config: Fs2RabbitConfig,
+      sslContext: Option[SSLContext]
+  ): F[ConnectionFactory] =
+    Sync[F].delay {
+      val factory = new ConnectionFactory()
+      factory.setHost(config.host)
+      factory.setPort(config.port)
+      factory.setVirtualHost(config.virtualHost)
+      factory.setConnectionTimeout(config.connectionTimeout)
+      if (config.ssl) {
+        sslContext.fold(factory.useSslProtocol())(factory.useSslProtocol)
+      }
+      config.username.foreach(factory.setUsername)
+      config.password.foreach(factory.setPassword)
+      factory
+    }
 
 }

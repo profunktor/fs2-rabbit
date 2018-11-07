@@ -35,11 +35,11 @@ object IOAckerConsumer extends IOApp {
     requeueOnNack = false
   )
 
-  implicit val fs2Rabbit: Fs2Rabbit[IO] = Fs2Rabbit[IO](config)
-
   override def run(args: List[String]): IO[ExitCode] =
-    ResilientStream
-      .run(new AckerConsumerDemo[IO]().program)
-      .as(ExitCode.Success)
+    Fs2Rabbit[IO](config).flatMap { implicit fs2Rabbit =>
+      ResilientStream
+        .run(new AckerConsumerDemo[IO]().program)
+        .as(ExitCode.Success)
+    }
 
 }

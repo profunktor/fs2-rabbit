@@ -19,6 +19,7 @@ package com.github.gvolpe.fs2rabbit.interpreter
 import javax.net.ssl.SSLContext
 
 import cats.effect.{Concurrent, ConcurrentEffect}
+import cats.syntax.functor._
 import com.github.gvolpe.fs2rabbit.algebra._
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 import com.github.gvolpe.fs2rabbit.config.declaration.{DeclarationExchangeConfig, DeclarationQueueConfig}
@@ -32,13 +33,14 @@ object Fs2Rabbit {
   def apply[F[_]: ConcurrentEffect](
       config: Fs2RabbitConfig,
       sslContext: Option[SSLContext] = None
-  ): Fs2Rabbit[F] = {
-    val amqpClient = new AMQPClientStream[F]
-    val connStream = new ConnectionStream[F](config, sslContext)
-    val acker      = new AckerProgram[F](config, amqpClient)
-    val consumer   = new ConsumerProgram[F](amqpClient)
-    new Fs2Rabbit[F](config, connStream, amqpClient, acker, consumer)
-  }
+  ): F[Fs2Rabbit[F]] =
+    ConnectionStream.mkConnectionFactory[F](config, sslContext).map { factory =>
+      val amqpClient = new AMQPClientStream[F]
+      val connStream = new ConnectionStream[F](factory)
+      val acker      = new AckerProgram[F](config, amqpClient)
+      val consumer   = new ConsumerProgram[F](amqpClient)
+      new Fs2Rabbit[F](config, connStream, amqpClient, acker, consumer)
+    }
 }
 // $COVERAGE-ON$
 
@@ -58,16 +60,18 @@ class Fs2Rabbit[F[_]: Concurrent](
 
   def createConnectionChannel: Stream[F, AMQPChannel] = connectionStream.createConnectionChannel
 
-  def createAckerConsumer(queueName: QueueName,
-                          basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
-                          consumerArgs: Option[ConsumerArgs] = None)(
-      implicit channel: AMQPChannel): Stream[F, (StreamAcker[F], StreamConsumer[F])] =
+  def createAckerConsumer(
+      queueName: QueueName,
+      basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
+      consumerArgs: Option[ConsumerArgs] = None
+  )(implicit channel: AMQPChannel): Stream[F, (StreamAcker[F], StreamConsumer[F])] =
     consumingProgram.createAckerConsumer(channel.value, queueName, basicQos, consumerArgs)
 
   def createAutoAckConsumer(
       queueName: QueueName,
       basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
-      consumerArgs: Option[ConsumerArgs] = None)(implicit channel: AMQPChannel): Stream[F, StreamConsumer[F]] =
+      consumerArgs: Option[ConsumerArgs] = None
+  )(implicit channel: AMQPChannel): Stream[F, StreamConsumer[F]] =
     consumingProgram.createAutoAckConsumer(channel.value, queueName, basicQos, consumerArgs)
 
   def createPublisher(exchangeName: ExchangeName, routingKey: RoutingKey)(
@@ -78,7 +82,8 @@ class Fs2Rabbit[F[_]: Concurrent](
       exchangeName: ExchangeName,
       routingKey: RoutingKey,
       flags: PublishingFlag,
-      listener: PublishingListener[F])(implicit channel: AMQPChannel): Stream[F, StreamPublisher[F]] =
+      listener: PublishingListener[F]
+  )(implicit channel: AMQPChannel): Stream[F, StreamPublisher[F]] =
     publishingProgram.createPublisherWithListener(channel.value, exchangeName, routingKey, flags, listener)
 
   def addPublishingListener(listener: PublishingListener[F])(implicit channel: AMQPChannel): Stream[F, Unit] =
@@ -115,10 +120,12 @@ class Fs2Rabbit[F[_]: Concurrent](
       implicit channel: AMQPChannel): Stream[F, Unit] =
     bindExchange(destination, source, routingKey, ExchangeBindingArgs(Map.empty))
 
-  def bindExchangeNoWait(destination: ExchangeName,
-                         source: ExchangeName,
-                         routingKey: RoutingKey,
-                         args: ExchangeBindingArgs)(implicit channel: AMQPChannel): Stream[F, Unit] =
+  def bindExchangeNoWait(
+      destination: ExchangeName,
+      source: ExchangeName,
+      routingKey: RoutingKey,
+      args: ExchangeBindingArgs
+  )(implicit channel: AMQPChannel): Stream[F, Unit] =
     amqpClient.bindExchangeNoWait(channel.value, destination, source, routingKey, args)
 
   def unbindExchange(destination: ExchangeName, source: ExchangeName, routingKey: RoutingKey, args: ExchangeUnbindArgs)(
