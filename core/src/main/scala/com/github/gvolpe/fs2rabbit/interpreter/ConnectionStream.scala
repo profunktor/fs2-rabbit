@@ -16,6 +16,8 @@
 
 package com.github.gvolpe.fs2rabbit.interpreter
 
+import javax.net.ssl.SSLContext
+
 import cats.effect.Sync
 import cats.syntax.apply._
 import cats.syntax.flatMap._
@@ -27,7 +29,11 @@ import com.github.gvolpe.fs2rabbit.util.Log
 import com.rabbitmq.client.{ConnectionFactory, Connection => RabbitMQConnection}
 import fs2.Stream
 
-class ConnectionStream[F[_]](config: Fs2RabbitConfig)(implicit F: Sync[F], L: Log[F]) extends Connection[Stream[F, ?]] {
+class ConnectionStream[F[_]](
+    config: Fs2RabbitConfig,
+    sslContext: Option[SSLContext]
+)(implicit F: Sync[F], L: Log[F])
+    extends Connection[Stream[F, ?]] {
 
   private[fs2rabbit] val connFactory: F[ConnectionFactory] =
     F.delay {
@@ -37,7 +43,7 @@ class ConnectionStream[F[_]](config: Fs2RabbitConfig)(implicit F: Sync[F], L: Lo
       factory.setVirtualHost(config.virtualHost)
       factory.setConnectionTimeout(config.connectionTimeout)
       if (config.ssl) {
-        config.sslContext.fold(factory.useSslProtocol())(factory.useSslProtocol)
+        sslContext.fold(factory.useSslProtocol())(factory.useSslProtocol)
       }
       config.username.foreach(factory.setUsername)
       config.password.foreach(factory.setPassword)
