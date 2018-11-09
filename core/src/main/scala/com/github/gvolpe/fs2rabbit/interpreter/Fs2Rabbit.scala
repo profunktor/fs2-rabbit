@@ -24,39 +24,40 @@ import com.github.gvolpe.fs2rabbit.algebra._
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 import com.github.gvolpe.fs2rabbit.config.declaration.{DeclarationExchangeConfig, DeclarationQueueConfig}
 import com.github.gvolpe.fs2rabbit.config.deletion.{DeletionExchangeConfig, DeletionQueueConfig}
+import com.github.gvolpe.fs2rabbit.effects.EnvelopeDecoder
 import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.program._
 import fs2.Stream
 
 // $COVERAGE-OFF$
 object Fs2Rabbit {
-  def apply[F[_]: ConcurrentEffect](
+  def apply[F[_]: ConcurrentEffect, A](
       config: Fs2RabbitConfig,
       sslContext: Option[SSLContext] = None
-  ): F[Fs2Rabbit[F]] =
+  )(implicit decoder: EnvelopeDecoder[F, A]): F[Fs2Rabbit[F, A]] =
     ConnectionStream.mkConnectionFactory[F](config, sslContext).map { factory =>
-      val amqpClient = new AMQPClientStream[F]
+      val amqpClient = new AMQPClientStream[F, A]
       val connStream = new ConnectionStream[F](factory)
-      val acker      = new AckerProgram[F](config, amqpClient)
-      val consumer   = new ConsumerProgram[F](amqpClient)
-      new Fs2Rabbit[F](config, connStream, amqpClient, acker, consumer)
+      val acker      = new AckerProgram[F, A](config, amqpClient)
+      val consumer   = new ConsumerProgram[F, A](amqpClient)
+      new Fs2Rabbit[F, A](config, connStream, amqpClient, acker, consumer)
     }
 }
 // $COVERAGE-ON$
 
-class Fs2Rabbit[F[_]: Concurrent](
+private[fs2rabbit] class Fs2Rabbit[F[_]: Concurrent, A](
     config: Fs2RabbitConfig,
     connectionStream: Connection[Stream[F, ?]],
-    amqpClient: AMQPClient[Stream[F, ?], F],
+    amqpClient: AMQPClient[Stream[F, ?], F, A],
     acker: Acker[Stream[F, ?]],
-    consumer: Consumer[Stream[F, ?]]
+    consumer: Consumer[Stream[F, ?], A]
 ) {
 
-  private[fs2rabbit] val consumingProgram: Consuming[Stream[F, ?]] =
-    new ConsumingProgram[F](acker, consumer)
+  private[fs2rabbit] val consumingProgram: Consuming[Stream[F, ?], A] =
+    new ConsumingProgram[F, A](acker, consumer)
 
   private[fs2rabbit] val publishingProgram: Publishing[Stream[F, ?], F] =
-    new PublishingProgram[F](amqpClient)
+    new PublishingProgram[F, A](amqpClient)
 
   def createConnectionChannel: Stream[F, AMQPChannel] = connectionStream.createConnectionChannel
 
@@ -64,14 +65,14 @@ class Fs2Rabbit[F[_]: Concurrent](
       queueName: QueueName,
       basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
       consumerArgs: Option[ConsumerArgs] = None
-  )(implicit channel: AMQPChannel): Stream[F, (StreamAcker[F], StreamConsumer[F])] =
+  )(implicit channel: AMQPChannel): Stream[F, (StreamAcker[F], StreamConsumer[F, A])] =
     consumingProgram.createAckerConsumer(channel.value, queueName, basicQos, consumerArgs)
 
   def createAutoAckConsumer(
       queueName: QueueName,
       basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
       consumerArgs: Option[ConsumerArgs] = None
-  )(implicit channel: AMQPChannel): Stream[F, StreamConsumer[F]] =
+  )(implicit channel: AMQPChannel): Stream[F, StreamConsumer[F, A]] =
     consumingProgram.createAutoAckConsumer(channel.value, queueName, basicQos, consumerArgs)
 
   def createPublisher(exchangeName: ExchangeName, routingKey: RoutingKey)(

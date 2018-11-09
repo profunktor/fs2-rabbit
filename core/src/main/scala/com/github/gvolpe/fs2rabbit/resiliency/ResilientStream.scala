@@ -18,7 +18,7 @@ package com.github.gvolpe.fs2rabbit.resiliency
 
 import cats.effect.{Sync, Timer}
 import cats.syntax.apply._
-import com.github.gvolpe.fs2rabbit.util.Log
+import com.github.gvolpe.fs2rabbit.effects.Log
 import fs2.Stream
 
 import scala.concurrent.duration._

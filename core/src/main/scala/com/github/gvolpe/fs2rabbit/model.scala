@@ -26,11 +26,11 @@ import scala.collection.JavaConverters._
 
 object model {
 
-  type StreamAcker[F[_]]         = Sink[F, AckResult]
-  type StreamConsumer[F[_]]      = Stream[F, AmqpEnvelope]
-  type StreamAckerConsumer[F[_]] = (StreamAcker[F], StreamConsumer[F])
-  type StreamPublisher[F[_]]     = Sink[F, AmqpMessage[String]]
-  type PublishingListener[F[_]]  = PublishReturn => F[Unit]
+  type StreamAcker[F[_]]            = Sink[F, AckResult]
+  type StreamConsumer[F[_], A]      = Stream[F, AmqpEnvelope[A]]
+  type StreamAckerConsumer[F[_], A] = (StreamAcker[F], StreamConsumer[F, A])
+  type StreamPublisher[F[_]]        = Sink[F, AmqpMessage[String]]
+  type PublishingListener[F[_]]     = PublishReturn => F[Unit]
 
   trait AMQPChannel {
     def value: Channel
@@ -151,7 +151,7 @@ object model {
     }
   }
 
-  case class AmqpEnvelope(deliveryTag: DeliveryTag, payload: String, properties: AmqpProperties)
+  case class AmqpEnvelope[A](deliveryTag: DeliveryTag, payload: A, properties: AmqpProperties)
   case class AmqpMessage[A](payload: A, properties: AmqpProperties)
 
   // Binding

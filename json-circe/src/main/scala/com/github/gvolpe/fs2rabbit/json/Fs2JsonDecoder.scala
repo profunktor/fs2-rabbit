@@ -18,7 +18,7 @@ package com.github.gvolpe.fs2rabbit.json
 
 import cats.effect.Sync
 import com.github.gvolpe.fs2rabbit.model.{AmqpEnvelope, DeliveryTag}
-import com.github.gvolpe.fs2rabbit.util.Log
+import com.github.gvolpe.fs2rabbit.effects.Log
 import fs2.{Pipe, Stream}
 import io.circe.parser.decode
 import io.circe.{Decoder, Error}
@@ -47,7 +47,7 @@ class Fs2JsonDecoder[F[_]: Log: Sync] {
     *
     * The result will be a tuple (`Either` of `Error` and `A`, `DeliveryTag`)
     * */
-  def jsonDecode[A: Decoder]: Pipe[F, AmqpEnvelope, (Either[Error, A], DeliveryTag)] = _.flatMap { amqpMsg =>
+  def jsonDecode[A: Decoder]: Pipe[F, AmqpEnvelope[String], (Either[Error, A], DeliveryTag)] = _.flatMap { amqpMsg =>
     Stream
       .eval(Sync[F].delay(decode[A](amqpMsg.payload)))
       .evalTap(p => Log[F].info(s"Parsed: $p"))

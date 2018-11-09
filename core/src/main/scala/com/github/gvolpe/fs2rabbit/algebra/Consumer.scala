@@ -20,7 +20,7 @@ import com.github.gvolpe.fs2rabbit.arguments.Arguments
 import com.github.gvolpe.fs2rabbit.model.{AmqpEnvelope, BasicQos, QueueName}
 import com.rabbitmq.client.Channel
 
-trait Consumer[F[_]] {
+trait Consumer[F[_], A] {
 
   def createConsumer(
       queueName: QueueName,
@@ -31,6 +31,6 @@ trait Consumer[F[_]] {
       exclusive: Boolean = false,
       consumerTag: String = "",
       args: Arguments = Map.empty
-  ): F[AmqpEnvelope]
+  ): F[AmqpEnvelope[A]]
 
 }

@@ -18,27 +18,31 @@ package com.github.gvolpe.fs2rabbit.program
 
 import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, Publishing}
 import com.github.gvolpe.fs2rabbit.model._
-import com.github.gvolpe.fs2rabbit.util.StreamEval
+import com.github.gvolpe.fs2rabbit.effects.StreamEval
 import com.rabbitmq.client.Channel
 import fs2.Stream
 
-class PublishingProgram[F[_]](AMQP: AMQPClient[Stream[F, ?], F])(implicit SE: StreamEval[F])
+class PublishingProgram[F[_], A](AMQP: AMQPClient[Stream[F, ?], F, A])(implicit SE: StreamEval[F])
     extends Publishing[Stream[F, ?], F] {
 
-  override def createPublisher(channel: Channel,
-                               exchangeName: ExchangeName,
-                               routingKey: RoutingKey): Stream[F, StreamPublisher[F]] =
+  override def createPublisher(
+      channel: Channel,
+      exchangeName: ExchangeName,
+      routingKey: RoutingKey
+  ): Stream[F, StreamPublisher[F]] =
     SE.evalF {
       _.flatMap { msg =>
         AMQP.basicPublish(channel, exchangeName, routingKey, msg)
       }
     }
 
-  override def createPublisherWithListener(channel: Channel,
-                                           exchangeName: ExchangeName,
-                                           routingKey: RoutingKey,
-                                           flag: PublishingFlag,
-                                           listener: PublishingListener[F]): Stream[F, StreamPublisher[F]] =
+  override def createPublisherWithListener(
+      channel: Channel,
+      exchangeName: ExchangeName,
+      routingKey: RoutingKey,
+      flag: PublishingFlag,
+      listener: PublishingListener[F]
+  ): Stream[F, StreamPublisher[F]] =
     SE.evalF { publisher =>
       AMQP.addPublishingListener(channel, listener) ++ publisher.flatMap { msg =>
         AMQP.basicPublishWithFlag(channel, exchangeName, routingKey, flag, msg)

@@ -19,4 +19,4 @@ package com.github.gvolpe.fs2rabbit.algebra
 import com.github.gvolpe.fs2rabbit.model.AmqpEnvelope
 import fs2.concurrent.Queue
 
-case class AMQPInternals[F[_]](queue: Option[Queue[F, Either[Throwable, AmqpEnvelope]]])
+case class AMQPInternals[F[_], A](queue: Option[Queue[F, Either[Throwable, AmqpEnvelope[A]]]])

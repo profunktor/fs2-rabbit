@@ -23,7 +23,7 @@ import com.github.gvolpe.fs2rabbit.model._
 import com.rabbitmq.client.Channel
 import fs2.{Sink, Stream}
 
-class AckerProgram[F[_]](config: Fs2RabbitConfig, AMQP: AMQPClient[Stream[F, ?], F]) extends Acker[Stream[F, ?]] {
+class AckerProgram[F[_], A](config: Fs2RabbitConfig, AMQP: AMQPClient[Stream[F, ?], F, A]) extends Acker[Stream[F, ?]] {
 
   def createAcker(channel: Channel): Sink[F, AckResult] =
     _.flatMap {

@@ -19,7 +19,7 @@ package com.github.gvolpe.fs2rabbit.resiliency
 import cats.effect.IO
 import cats.effect.concurrent.Ref
 import cats.syntax.apply._
-import com.github.gvolpe.fs2rabbit.util.Log
+import com.github.gvolpe.fs2rabbit.effects.Log
 import fs2._
 import org.scalatest.{FlatSpecLike, Matchers}
 

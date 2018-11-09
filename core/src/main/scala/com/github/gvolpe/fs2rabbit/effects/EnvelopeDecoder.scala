@@ -14,24 +14,19 @@
  * limitations under the License.
  */
 
-package com.github.gvolpe.fs2rabbit.util
+package com.github.gvolpe.fs2rabbit.effects
 
-import cats.effect.Sync
-import org.slf4j.LoggerFactory
+import cats.ApplicativeError
 
-trait Log[F[_]] {
-  def info(value: String): F[Unit]
-  def error(error: Throwable): F[Unit]
+trait EnvelopeDecoder[F[_], A] {
+  def decode(raw: Array[Byte]): F[A]
 }
 
-object Log {
-  private[fs2rabbit] val logger = LoggerFactory.getLogger(this.getClass)
+object EnvelopeDecoder {
+  def apply[F[_], A](implicit ev: EnvelopeDecoder[F, A]): EnvelopeDecoder[F, A] = ev
 
-  def apply[F[_]](implicit ev: Log[F]): Log[F] = ev
-
-  implicit def syncLogInstance[F[_]](implicit F: Sync[F]): Log[F] =
-    new Log[F] {
-      override def error(error: Throwable): F[Unit] = F.delay(logger.error(error.getMessage, error))
-      override def info(value: String): F[Unit]     = F.delay(logger.info(value))
+  implicit def utf8StringDecoder[F[_]](implicit F: ApplicativeError[F, Throwable]): EnvelopeDecoder[F, String] =
+    new EnvelopeDecoder[F, String] {
+      override def decode(raw: Array[Byte]): F[String] = F.catchNonFatal(new String(raw, "UTF-8"))
     }
 }
