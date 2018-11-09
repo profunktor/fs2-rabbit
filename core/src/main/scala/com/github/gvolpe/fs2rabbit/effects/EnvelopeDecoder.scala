@@ -18,6 +18,11 @@ package com.github.gvolpe.fs2rabbit.effects
 
 import cats.ApplicativeError
 
+/**
+  * Typeclass that provides the machinery to decode a given AMQP Envelope's payload.
+  *
+  * There's a default instance for decoding payloads into a UTF-8 String.
+  * */
 trait EnvelopeDecoder[F[_], A] {
   def decode(raw: Array[Byte]): F[A]
 }
