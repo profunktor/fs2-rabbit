@@ -18,38 +18,41 @@ package com.github.gvolpe.fs2rabbit.program
 
 import com.github.gvolpe.fs2rabbit.algebra.{Acker, Consumer, Consuming}
 import com.github.gvolpe.fs2rabbit.model._
-import com.github.gvolpe.fs2rabbit.effects.StreamEval
+import com.github.gvolpe.fs2rabbit.effects.{EnvelopeDecoder, StreamEval}
 import com.rabbitmq.client.Channel
 import fs2.Stream
 
-class ConsumingProgram[F[_], A](A: Acker[Stream[F, ?]], C: Consumer[Stream[F, ?], A])(implicit SE: StreamEval[F])
-    extends Consuming[Stream[F, ?], A] {
+class ConsumingProgram[F[_]](A: Acker[Stream[F, ?]], C: Consumer[Stream[F, ?], F])(implicit SE: StreamEval[F])
+    extends Consuming[Stream[F, ?], F] {
 
-  override def createAckerConsumer(
-      channel: Channel,
-      queueName: QueueName,
-      basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
-      consumerArgs: Option[ConsumerArgs] = None): Stream[F, (StreamAcker[F], StreamConsumer[F, A])] = {
-    val consumer = consumerArgs.fold(C.createConsumer(queueName, channel, basicQos)) { args =>
-      C.createConsumer(queueName = queueName,
-                       channel = channel,
-                       basicQos = basicQos,
-                       noLocal = args.noLocal,
-                       exclusive = args.exclusive,
-                       consumerTag = args.consumerTag,
-                       args = args.args)
-    }
-    SE.pure((A.createAcker(channel), consumer))
-  }
-
-  override def createAutoAckConsumer(
+  override def createAckerConsumer[A](
       channel: Channel,
       queueName: QueueName,
       basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
       consumerArgs: Option[ConsumerArgs] = None
-  ): Stream[F, StreamConsumer[F, A]] = {
+  )(implicit decoder: EnvelopeDecoder[F, A]): Stream[F, (StreamAcker[F], StreamConsumer[F, A])] = {
+    val consumer = consumerArgs.fold(C.createConsumer(queueName, channel, basicQos)) { args =>
+      C.createConsumer[A](
+        queueName = queueName,
+        channel = channel,
+        basicQos = basicQos,
+        noLocal = args.noLocal,
+        exclusive = args.exclusive,
+        consumerTag = args.consumerTag,
+        args = args.args
+      )
+    }
+    SE.pure((A.createAcker(channel), consumer))
+  }
+
+  override def createAutoAckConsumer[A](
+      channel: Channel,
+      queueName: QueueName,
+      basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
+      consumerArgs: Option[ConsumerArgs] = None
+  )(implicit decoder: EnvelopeDecoder[F, A]): Stream[F, StreamConsumer[F, A]] = {
     val consumer = consumerArgs.fold(C.createConsumer(queueName, channel, basicQos, autoAck = true)) { args =>
-      C.createConsumer(
+      C.createConsumer[A](
         queueName = queueName,
         channel = channel,
         basicQos = basicQos,

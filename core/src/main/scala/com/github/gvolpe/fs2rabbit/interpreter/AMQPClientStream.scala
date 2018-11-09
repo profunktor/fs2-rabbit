@@ -30,13 +30,12 @@ import com.github.gvolpe.fs2rabbit.effects.{EnvelopeDecoder, StreamEval}
 import com.rabbitmq.client._
 import fs2.Stream
 
-class AMQPClientStream[F[_]: Effect, A](implicit SE: StreamEval[F], decoder: EnvelopeDecoder[F, A])
-    extends AMQPClient[Stream[F, ?], F, A] {
+class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPClient[Stream[F, ?], F] {
 
-  private[fs2rabbit] def defaultConsumer(
+  private[fs2rabbit] def defaultConsumer[A](
       channel: Channel,
       internals: AMQPInternals[F, A]
-  ): Stream[F, Consumer] =
+  )(implicit decoder: EnvelopeDecoder[F, A]): Stream[F, Consumer] =
     SE.pure(
       new DefaultConsumer(channel) {
 
@@ -94,7 +93,7 @@ class AMQPClientStream[F[_]: Effect, A](implicit SE: StreamEval[F], decoder: Env
     channel.basicQos(basicQos.prefetchSize, basicQos.prefetchCount, basicQos.global)
   }
 
-  override def basicConsume(
+  override def basicConsume[A](
       channel: Channel,
       queueName: QueueName,
       autoAck: Boolean,
@@ -102,7 +101,7 @@ class AMQPClientStream[F[_]: Effect, A](implicit SE: StreamEval[F], decoder: Env
       noLocal: Boolean,
       exclusive: Boolean,
       args: Arguments
-  )(internals: AMQPInternals[F, A]): Stream[F, String] =
+  )(internals: AMQPInternals[F, A])(implicit decoder: EnvelopeDecoder[F, A]): Stream[F, String] =
     for {
       dc <- defaultConsumer(channel, internals)
       rs <- SE.evalF(channel.basicConsume(queueName.value, autoAck, consumerTag, noLocal, exclusive, args, dc))

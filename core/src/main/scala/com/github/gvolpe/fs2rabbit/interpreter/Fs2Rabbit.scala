@@ -31,48 +31,48 @@ import fs2.Stream
 
 // $COVERAGE-OFF$
 object Fs2Rabbit {
-  def apply[F[_]: ConcurrentEffect, A](
+  def apply[F[_]: ConcurrentEffect](
       config: Fs2RabbitConfig,
       sslContext: Option[SSLContext] = None
-  )(implicit decoder: EnvelopeDecoder[F, A]): F[Fs2Rabbit[F, A]] =
+  ): F[Fs2Rabbit[F]] =
     ConnectionStream.mkConnectionFactory[F](config, sslContext).map { factory =>
-      val amqpClient = new AMQPClientStream[F, A]
+      val amqpClient = new AMQPClientStream[F]
       val connStream = new ConnectionStream[F](factory)
-      val acker      = new AckerProgram[F, A](config, amqpClient)
-      val consumer   = new ConsumerProgram[F, A](amqpClient)
-      new Fs2Rabbit[F, A](config, connStream, amqpClient, acker, consumer)
+      val acker      = new AckerProgram[F](config, amqpClient)
+      val consumer   = new ConsumerProgram[F](amqpClient)
+      new Fs2Rabbit[F](config, connStream, amqpClient, acker, consumer)
     }
 }
 // $COVERAGE-ON$
 
-private[fs2rabbit] class Fs2Rabbit[F[_]: Concurrent, A](
+private[fs2rabbit] class Fs2Rabbit[F[_]: Concurrent](
     config: Fs2RabbitConfig,
     connectionStream: Connection[Stream[F, ?]],
-    amqpClient: AMQPClient[Stream[F, ?], F, A],
+    amqpClient: AMQPClient[Stream[F, ?], F],
     acker: Acker[Stream[F, ?]],
-    consumer: Consumer[Stream[F, ?], A]
+    consumer: Consumer[Stream[F, ?], F]
 ) {
 
-  private[fs2rabbit] val consumingProgram: Consuming[Stream[F, ?], A] =
-    new ConsumingProgram[F, A](acker, consumer)
+  private[fs2rabbit] val consumingProgram: Consuming[Stream[F, ?], F] =
+    new ConsumingProgram[F](acker, consumer)
 
   private[fs2rabbit] val publishingProgram: Publishing[Stream[F, ?], F] =
-    new PublishingProgram[F, A](amqpClient)
+    new PublishingProgram[F](amqpClient)
 
   def createConnectionChannel: Stream[F, AMQPChannel] = connectionStream.createConnectionChannel
 
-  def createAckerConsumer(
+  def createAckerConsumer[A](
       queueName: QueueName,
       basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
       consumerArgs: Option[ConsumerArgs] = None
-  )(implicit channel: AMQPChannel): Stream[F, (StreamAcker[F], StreamConsumer[F, A])] =
+  )(implicit channel: AMQPChannel, decoder: EnvelopeDecoder[F, A]): Stream[F, (StreamAcker[F], StreamConsumer[F, A])] =
     consumingProgram.createAckerConsumer(channel.value, queueName, basicQos, consumerArgs)
 
-  def createAutoAckConsumer(
+  def createAutoAckConsumer[A](
       queueName: QueueName,
       basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
       consumerArgs: Option[ConsumerArgs] = None
-  )(implicit channel: AMQPChannel): Stream[F, StreamConsumer[F, A]] =
+  )(implicit channel: AMQPChannel, decoder: EnvelopeDecoder[F, A]): Stream[F, StreamConsumer[F, A]] =
     consumingProgram.createAutoAckConsumer(channel.value, queueName, basicQos, consumerArgs)
 
   def createPublisher(exchangeName: ExchangeName, routingKey: RoutingKey)(

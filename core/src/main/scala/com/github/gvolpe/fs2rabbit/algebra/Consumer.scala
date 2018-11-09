@@ -17,12 +17,13 @@
 package com.github.gvolpe.fs2rabbit.algebra
 
 import com.github.gvolpe.fs2rabbit.arguments.Arguments
+import com.github.gvolpe.fs2rabbit.effects.EnvelopeDecoder
 import com.github.gvolpe.fs2rabbit.model.{AmqpEnvelope, BasicQos, QueueName}
 import com.rabbitmq.client.Channel
 
-trait Consumer[F[_], A] {
+trait Consumer[F[_], G[_]] {
 
-  def createConsumer(
+  def createConsumer[A](
       queueName: QueueName,
       channel: Channel,
       basicQos: BasicQos,
@@ -31,6 +32,6 @@ trait Consumer[F[_], A] {
       exclusive: Boolean = false,
       consumerTag: String = "",
       args: Arguments = Map.empty
-  ): F[AmqpEnvelope[A]]
+  )(implicit decoder: EnvelopeDecoder[G, A]): F[AmqpEnvelope[A]]
 
 }

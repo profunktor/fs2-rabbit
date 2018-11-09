@@ -26,7 +26,7 @@ import com.github.gvolpe.fs2rabbit.model.AmqpHeaderVal.{LongVal, StringVal}
 import com.github.gvolpe.fs2rabbit.model._
 import fs2.{Pipe, Stream}
 
-class AckerConsumerDemo[F[_]: Concurrent: Timer, A](implicit R: Fs2Rabbit[F, A]) {
+class AckerConsumerDemo[F[_]: Concurrent: Timer](implicit R: Fs2Rabbit[F]) {
 
   private val queueName    = QueueName("testQ")
   private val exchangeName = ExchangeName("testEX")
@@ -34,7 +34,7 @@ class AckerConsumerDemo[F[_]: Concurrent: Timer, A](implicit R: Fs2Rabbit[F, A])
 
   def putStrLn(str: String): F[Unit] = Sync[F].delay(println(str))
 
-  def logPipe: Pipe[F, AmqpEnvelope[A], AckResult] = _.evalMap { amqpMsg =>
+  def logPipe: Pipe[F, AmqpEnvelope[String], AckResult] = _.evalMap { amqpMsg =>
     putStrLn(s"Consumed: $amqpMsg").as(Ack(amqpMsg.deliveryTag))
   }
 
@@ -48,9 +48,9 @@ class AckerConsumerDemo[F[_]: Concurrent: Timer, A](implicit R: Fs2Rabbit[F, A])
       _                 <- R.declareQueue(DeclarationQueueConfig.default(queueName))
       _                 <- R.declareExchange(exchangeName, ExchangeType.Topic)
       _                 <- R.bindQueue(queueName, exchangeName, routingKey)
-      (acker, consumer) <- R.createAckerConsumer(queueName)
+      (acker, consumer) <- R.createAckerConsumer[String](queueName)
       publisher         <- R.createPublisherWithListener(exchangeName, routingKey, publishingFlag, publishingListener)
-      result            <- new Flow(consumer, acker, logPipe, publisher).flow
+      result            <- new Flow[F, String](consumer, acker, logPipe, publisher).flow
     } yield result
   }
 

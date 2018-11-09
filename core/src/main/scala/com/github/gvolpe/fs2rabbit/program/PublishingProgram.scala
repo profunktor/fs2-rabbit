@@ -22,7 +22,7 @@ import com.github.gvolpe.fs2rabbit.effects.StreamEval
 import com.rabbitmq.client.Channel
 import fs2.Stream
 
-class PublishingProgram[F[_], A](AMQP: AMQPClient[Stream[F, ?], F, A])(implicit SE: StreamEval[F])
+class PublishingProgram[F[_]](AMQP: AMQPClient[Stream[F, ?], F])(implicit SE: StreamEval[F])
     extends Publishing[Stream[F, ?], F] {
 
   override def createPublisher(

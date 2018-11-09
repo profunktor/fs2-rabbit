@@ -37,9 +37,9 @@ object MonixAutoAckConsumer extends TaskApp {
   )
 
   override def run(args: List[String]): Task[ExitCode] =
-    Fs2Rabbit[Task, String](config).flatMap { implicit fs2Rabbit =>
+    Fs2Rabbit[Task](config).flatMap { implicit fs2Rabbit =>
       ResilientStream
-        .run(new AutoAckConsumerDemo[Task, String].program)
+        .run(new AutoAckConsumerDemo[Task].program)
         .as(ExitCode.Success)
     }
 

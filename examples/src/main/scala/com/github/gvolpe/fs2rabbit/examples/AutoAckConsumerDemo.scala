@@ -27,7 +27,7 @@ import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.effects.StreamEval
 import fs2.{Pipe, Stream}
 
-class AutoAckConsumerDemo[F[_]: Concurrent, A](implicit R: Fs2Rabbit[F, A]) {
+class AutoAckConsumerDemo[F[_]: Concurrent](implicit R: Fs2Rabbit[F]) {
 
   private val queueName    = QueueName("testQ")
   private val exchangeName = ExchangeName("testEX")
@@ -35,7 +35,7 @@ class AutoAckConsumerDemo[F[_]: Concurrent, A](implicit R: Fs2Rabbit[F, A]) {
 
   def putStrLn(str: String): F[Unit] = Sync[F].delay(println(str))
 
-  def logPipe: Pipe[F, AmqpEnvelope[A], AckResult] = _.evalMap { amqpMsg =>
+  def logPipe: Pipe[F, AmqpEnvelope[String], AckResult] = _.evalMap { amqpMsg =>
     putStrLn(s"Consumed: $amqpMsg").as(Ack(amqpMsg.deliveryTag))
   }
 
@@ -44,9 +44,9 @@ class AutoAckConsumerDemo[F[_]: Concurrent, A](implicit R: Fs2Rabbit[F, A]) {
       _         <- R.declareQueue(DeclarationQueueConfig.default(queueName))
       _         <- R.declareExchange(exchangeName, ExchangeType.Topic)
       _         <- R.bindQueue(queueName, exchangeName, routingKey)
-      consumer  <- R.createAutoAckConsumer(queueName)
+      consumer  <- R.createAutoAckConsumer[String](queueName)
       publisher <- R.createPublisher(exchangeName, routingKey)
-      result    <- new AutoAckFlow(consumer, logPipe, publisher).flow
+      result    <- new AutoAckFlow[F, String](consumer, logPipe, publisher).flow
     } yield result
   }
 

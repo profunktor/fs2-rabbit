@@ -20,21 +20,21 @@ import cats.effect.Concurrent
 import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, AMQPInternals, Consumer}
 import com.github.gvolpe.fs2rabbit.arguments.Arguments
 import com.github.gvolpe.fs2rabbit.model._
-import com.github.gvolpe.fs2rabbit.effects.StreamEval
+import com.github.gvolpe.fs2rabbit.effects.{EnvelopeDecoder, StreamEval}
 import com.rabbitmq.client.Channel
 import fs2.{Pipe, Stream}
 import fs2.concurrent.Queue
 
-class ConsumerProgram[F[_]: Concurrent, A](AMQP: AMQPClient[Stream[F, ?], F, A])(implicit SE: StreamEval[F])
-    extends Consumer[Stream[F, ?], A] {
+class ConsumerProgram[F[_]: Concurrent](AMQP: AMQPClient[Stream[F, ?], F])(implicit SE: StreamEval[F])
+    extends Consumer[Stream[F, ?], F] {
 
-  private[fs2rabbit] def resilientConsumer: Pipe[F, Either[Throwable, AmqpEnvelope[A]], AmqpEnvelope[A]] =
+  private[fs2rabbit] def resilientConsumer[A]: Pipe[F, Either[Throwable, AmqpEnvelope[A]], AmqpEnvelope[A]] =
     _.flatMap {
       case Left(err)  => Stream.raiseError[F](err)
       case Right(env) => SE.pure[AmqpEnvelope[A]](env)
     }
 
-  override def createConsumer(
+  override def createConsumer[A](
       queueName: QueueName,
       channel: Channel,
       basicQos: BasicQos,
@@ -43,7 +43,7 @@ class ConsumerProgram[F[_]: Concurrent, A](AMQP: AMQPClient[Stream[F, ?], F, A])
       exclusive: Boolean = false,
       consumerTag: String = "",
       args: Arguments = Map.empty
-  ): StreamConsumer[F, A] =
+  )(implicit decoder: EnvelopeDecoder[F, A]): StreamConsumer[F, A] =
     for {
       internalQ <- Stream.eval(Queue.bounded[F, Either[Throwable, AmqpEnvelope[A]]](500))
       internals = AMQPInternals[F, A](Some(internalQ))
