@@ -45,7 +45,7 @@ object Fs2Rabbit {
 }
 // $COVERAGE-ON$
 
-private[fs2rabbit] class Fs2Rabbit[F[_]: Concurrent](
+class Fs2Rabbit[F[_]: Concurrent] private (
     config: Fs2RabbitConfig,
     connectionStream: Connection[Stream[F, ?]],
     amqpClient: AMQPClient[Stream[F, ?], F],
