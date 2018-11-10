@@ -83,7 +83,8 @@ val commonSettings = Seq(
   resolvers += "Apache public" at "https://repository.apache.org/content/groups/public/",
   scalacOptions ++= commonScalacOptions,
   scalafmtOnCompile := true,
-  coverageExcludedPackages := "com\\.github\\.gvolpe\\.fs2rabbit\\.examples.*;com\\.github\\.gvolpe\\.fs2rabbit\\.util.*;.*QueueName*;.*RoutingKey*;.*ExchangeName*;.*DeliveryTag*;.*AMQPClientStream*;.*ConnectionStream*;",
+  coverageExcludedPackages :=
+  "com\\.github\\.gvolpe\\.fs2rabbit\\.examples.*;com\\.github\\.gvolpe\\.fs2rabbit\\.effects.*;.*QueueName*;.*RoutingKey*;.*ExchangeName*;.*DeliveryTag*;.*AMQPClientStream*;.*ConnectionStream*;",
   publishTo := {
     val sonatype = "https://oss.sonatype.org/"
     if (isSnapshot.value)
