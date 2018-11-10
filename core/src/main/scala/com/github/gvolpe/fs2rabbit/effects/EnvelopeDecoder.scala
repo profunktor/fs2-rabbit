@@ -16,6 +16,8 @@
 
 package com.github.gvolpe.fs2rabbit.effects
 
+import java.nio.charset.StandardCharsets.UTF_8
+
 import cats.ApplicativeError
 
 /**
@@ -32,6 +34,6 @@ object EnvelopeDecoder {
 
   implicit def utf8StringDecoder[F[_]](implicit F: ApplicativeError[F, Throwable]): EnvelopeDecoder[F, String] =
     new EnvelopeDecoder[F, String] {
-      override def decode(raw: Array[Byte]): F[String] = F.catchNonFatal(new String(raw, "UTF-8"))
+      override def decode(raw: Array[Byte]): F[String] = F.catchNonFatal(new String(raw, UTF_8))
     }
 }

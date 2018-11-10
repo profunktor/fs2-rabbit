@@ -40,31 +40,37 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
   implicit val cs    = IO.contextShift(ExecutionContext.global)
 
   private val config =
-    Fs2RabbitConfig("localhost",
-                    45947,
-                    "hostnameAlias",
-                    3,
-                    ssl = false,
-                    username = None,
-                    password = None,
-                    requeueOnNack = false)
+    Fs2RabbitConfig(
+      "localhost",
+      45947,
+      "hostnameAlias",
+      3,
+      ssl = false,
+      username = None,
+      password = None,
+      requeueOnNack = false
+    )
 
   private val nackConfig =
-    Fs2RabbitConfig("localhost",
-                    45947,
-                    "hostnameAlias",
-                    3,
-                    ssl = false,
-                    username = None,
-                    password = None,
-                    requeueOnNack = true)
+    Fs2RabbitConfig(
+      "localhost",
+      45947,
+      "hostnameAlias",
+      3,
+      ssl = false,
+      username = None,
+      password = None,
+      requeueOnNack = true
+    )
 
   /**
     * Runtime Test Suite that makes sure the internal queues are connected when publishing and consuming in order to
     * simulate a running RabbitMQ server. It should run concurrently with every single test.
     * */
-  def rabbitRTS(ref: Ref[IO, AMQPInternals[IO]],
-                publishingQ: Queue[IO, Either[Throwable, AmqpEnvelope]]): Stream[IO, Unit] =
+  def rabbitRTS(
+      ref: Ref[IO, AMQPInternals[IO, String]],
+      publishingQ: Queue[IO, Either[Throwable, AmqpEnvelope[String]]]
+  ): Stream[IO, Unit] =
     Stream.eval(ref.get).flatMap { internals =>
       internals.queue.fold(rabbitRTS(ref, publishingQ)) { internalQ =>
         for {
@@ -78,10 +84,10 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
   object TestFs2Rabbit {
     def apply(config: Fs2RabbitConfig): (Fs2Rabbit[IO], Stream[IO, Unit]) = {
       val interpreter = for {
-        publishingQ  <- Queue.bounded[IO, Either[Throwable, AmqpEnvelope]](500)
+        publishingQ  <- Queue.bounded[IO, Either[Throwable, AmqpEnvelope[String]]](500)
         listenerQ    <- Queue.bounded[IO, PublishReturn](500)
         ackerQ       <- Queue.bounded[IO, AckResult](500)
-        queueRef     <- Ref.of[IO, AMQPInternals[IO]](AMQPInternals(None))
+        queueRef     <- Ref.of[IO, AMQPInternals[IO, String]](AMQPInternals(None))
         queues       <- Ref.of[IO, Set[QueueName]](Set.empty)
         exchanges    <- Ref.of[IO, Set[ExchangeName]](Set.empty)
         binds        <- Ref.of[IO, Map[String, ExchangeName]](Map.empty)
@@ -179,7 +185,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
       import interpreter._
       createConnectionChannel flatMap { implicit channel =>
         for {
-          testQ             <- Stream.eval(Queue.bounded[IO, AmqpEnvelope](100))
+          testQ             <- Stream.eval(Queue.bounded[IO, AmqpEnvelope[String]](100))
           ackerQ            <- Stream.eval(Queue.bounded[IO, AckResult](100))
           _                 <- declareExchange(exchangeName, ExchangeType.Topic)
           _                 <- declareQueue(DeclarationQueueConfig.default(queueName))
@@ -275,7 +281,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
       import interpreter._
       createConnectionChannel flatMap { implicit channel =>
         for {
-          testQ     <- Stream.eval(Queue.bounded[IO, AmqpEnvelope](100))
+          testQ     <- Stream.eval(Queue.bounded[IO, AmqpEnvelope[String]](100))
           ackerQ    <- Stream.eval(Queue.bounded[IO, AckResult](100))
           _         <- declareExchange(exchangeName, ExchangeType.Topic)
           _         <- declareQueue(DeclarationQueueConfig.default(queueName))
@@ -392,7 +398,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
     import interpreter._
     createConnectionChannel flatMap { implicit channel =>
       for {
-        testQ     <- Stream.eval(Queue.bounded[IO, AmqpEnvelope](100))
+        testQ     <- Stream.eval(Queue.bounded[IO, AmqpEnvelope[String]](100))
         ackerQ    <- Stream.eval(Queue.bounded[IO, AckResult](100))
         _         <- declareExchange(sourceExchangeName, ExchangeType.Direct)
         _         <- declareExchange(destinationExchangeName, ExchangeType.Direct)
@@ -456,7 +462,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
         _                 <- consumer.take(1) // Message will be re-queued
         ackResult         <- ackerQ.dequeue.take(1)
       } yield {
-        result shouldBe an[AmqpEnvelope]
+        result shouldBe an[AmqpEnvelope[String]]
         ackResult should be(NAck(DeliveryTag(1)))
       }
     }
