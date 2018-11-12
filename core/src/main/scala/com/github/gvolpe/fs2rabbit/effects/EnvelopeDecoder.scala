@@ -16,9 +16,11 @@
 
 package com.github.gvolpe.fs2rabbit.effects
 
+import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets.UTF_8
 
 import cats.ApplicativeError
+import com.github.gvolpe.fs2rabbit.model.AmqpProperties
 
 /**
   * Typeclass that provides the machinery to decode a given AMQP Envelope's payload.
@@ -26,7 +28,7 @@ import cats.ApplicativeError
   * There's a default instance for decoding payloads into a UTF-8 String.
   * */
 trait EnvelopeDecoder[F[_], A] {
-  def decode(raw: Array[Byte]): F[A]
+  def decode(raw: Array[Byte], properties: AmqpProperties): F[A]
 }
 
 object EnvelopeDecoder {
@@ -34,6 +36,9 @@ object EnvelopeDecoder {
 
   implicit def utf8StringDecoder[F[_]](implicit F: ApplicativeError[F, Throwable]): EnvelopeDecoder[F, String] =
     new EnvelopeDecoder[F, String] {
-      override def decode(raw: Array[Byte]): F[String] = F.catchNonFatal(new String(raw, UTF_8))
+      override def decode(raw: Array[Byte], properties: AmqpProperties): F[String] = {
+        val encoding = properties.contentEncoding.fold(UTF_8)(Charset.forName)
+        F.catchNonFatal(new String(raw, encoding))
+      }
     }
 }
