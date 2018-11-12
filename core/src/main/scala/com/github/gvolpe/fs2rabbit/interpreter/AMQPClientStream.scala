@@ -57,7 +57,7 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
           val props = AmqpProperties.from(properties)
           internals.queue.fold(()) { internalQ =>
             decoder
-              .decode(body)
+              .decode(body, props)
               .flatMap { msg =>
                 internalQ.enqueue1(Right(AmqpEnvelope(DeliveryTag(tag), msg, props)))
               }

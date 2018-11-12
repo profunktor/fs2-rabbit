@@ -16,9 +16,11 @@ When creating a consumer, either by using `createAutoAckConsumer` or `createAcke
 
 ```scala
 trait EnvelopeDecoder[F[_], A] {
-  def decode(raw: Array[Byte]): F[A]
+  def decode(raw: Array[Byte], properties: AmqpProperties): F[A]
 }
 ```
+
+You could check the `contentType` and `contentEncoding` values to decide how to decode the payload.
 
 - **[AutoAckConsumer](./autoackconsumer.html)**: A consumer that acknowledges message consumption automatically.
 - **[AckerConsumer](./ackerconsumer)**: A consumer that delegates the responsibility to acknowledge message consumption to the user.
