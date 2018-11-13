@@ -40,7 +40,7 @@ def p1(implicit F: Fs2Rabbit[IO]) = F.createConnectionChannel.flatMap { implicit
     _  <- F.declareExchange(ex, ExchangeType.Topic)
     _  <- F.declareQueue(DeclarationQueueConfig.default(q1))
     _  <- F.bindQueue(q1, ex, rk)
-    c1 <- F.createAutoAckConsumer(q1)
+    c1 <- F.createAutoAckConsumer[String](q1)
   } yield c1
 }
 ```
@@ -53,7 +53,7 @@ def p2(implicit F: Fs2Rabbit[IO]) = F.createConnectionChannel.flatMap { implicit
     _  <- F.declareExchange(ex, ExchangeType.Topic)
     _  <- F.declareQueue(DeclarationQueueConfig.default(q1))
     _  <- F.bindQueue(q1, ex, rk)
-    c2 <- F.createAutoAckConsumer(q1)
+    c2 <- F.createAutoAckConsumer[String](q1)
   } yield c2
 }
 ```
@@ -72,7 +72,7 @@ def p3(implicit F: Fs2Rabbit[IO]) = F.createConnectionChannel.flatMap { implicit
 And finally we compose all the three programs together:
 
 ```tut:book:silent
-val pipe: Pipe[IO, AmqpEnvelope, AmqpMessage[String]] = _.map(env => AmqpMessage(env.payload, AmqpProperties.empty))
+val pipe: Pipe[IO, AmqpEnvelope[String], AmqpMessage[String]] = _.map(env => AmqpMessage(env.payload, AmqpProperties.empty))
 
 def program(implicit F: Fs2Rabbit[IO]) =
   for {

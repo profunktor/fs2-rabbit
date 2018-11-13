@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.github.gvolpe.fs2rabbit.util
+package com.github.gvolpe.fs2rabbit.effects
 
 import cats.effect.Sync
 import org.slf4j.LoggerFactory

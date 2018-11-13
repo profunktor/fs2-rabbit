@@ -25,6 +25,7 @@ lazy val commonScalacOptions = Seq(
   "-language:higherKinds",
   "-language:implicitConversions",
   "-language:experimental.macros",
+  "-Ypartial-unification",
   "-unchecked",
   "-Xfatal-warnings",
   "-Xlint",
@@ -55,17 +56,6 @@ lazy val warnUnusedImport = Seq(
   scalacOptions in (Test, console) := (scalacOptions in (Compile, console)).value
 )
 
-lazy val partialUnification = Seq(
-  scalacOptions ++= {
-    CrossVersion.partialVersion(scalaVersion.value) match {
-      case Some((2, n)) if n >= 12 =>
-        Seq("-Ypartial-unification")
-      case _ =>
-        Seq()
-    }
-  }
-)
-
 val commonSettings = Seq(
   organizationName := "Fs2 Rabbit",
   startYear := Some(2017),
@@ -83,7 +73,8 @@ val commonSettings = Seq(
   resolvers += "Apache public" at "https://repository.apache.org/content/groups/public/",
   scalacOptions ++= commonScalacOptions,
   scalafmtOnCompile := true,
-  coverageExcludedPackages := "com\\.github\\.gvolpe\\.fs2rabbit\\.examples.*;com\\.github\\.gvolpe\\.fs2rabbit\\.util.*;.*QueueName*;.*RoutingKey*;.*ExchangeName*;.*DeliveryTag*;.*AMQPClientStream*;.*ConnectionStream*;",
+  coverageExcludedPackages :=
+  "com\\.github\\.gvolpe\\.fs2rabbit\\.examples.*;com\\.github\\.gvolpe\\.fs2rabbit\\.effects.*;.*QueueName*;.*RoutingKey*;.*ExchangeName*;.*DeliveryTag*;.*AMQPClientStream*;.*ConnectionStream*;",
   publishTo := {
     val sonatype = "https://oss.sonatype.org/"
     if (isSnapshot.value)
@@ -102,7 +93,7 @@ val commonSettings = Seq(
           <url>http://github.com/gvolpe</url>
         </developer>
       </developers>
-) ++ warnUnusedImport ++ partialUnification
+) ++ warnUnusedImport
 
 val CoreDependencies: Seq[ModuleID] = Seq(
   Libraries.logback % "test"

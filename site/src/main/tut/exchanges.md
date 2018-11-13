@@ -22,7 +22,7 @@ import fs2._
 val x1 = ExchangeName("x1")
 val x2 = ExchangeName("x2")
 
-def exchanges(implicit F: Fs2Rabbit[IO]) = F.createConnectionChannel flatMap { implicit channel =>
+def exchanges(implicit F: Fs2Rabbit[IO]) = F.createConnectionChannel.flatMap { implicit channel =>
   for {
     _ <- F.declareExchange(x1, ExchangeType.Topic)
     _ <- F.declareExchange(x2, ExchangeType.FanOut)
@@ -40,7 +40,7 @@ import fs2._
 
 val x = ExchangeName("x")
 
-def exchanges(implicit F: Fs2Rabbit[IO]) = F.createConnectionChannel flatMap { implicit channel =>
+def exchanges(implicit F: Fs2Rabbit[IO]) = F.createConnectionChannel.flatMap { implicit channel =>
   for {
     _ <- F.declareExchangePassive(x)
   } yield ()

@@ -24,6 +24,7 @@ import com.github.gvolpe.fs2rabbit.arguments.Arguments
 import com.github.gvolpe.fs2rabbit.config.declaration.{DeclarationExchangeConfig, DeclarationQueueConfig}
 import com.github.gvolpe.fs2rabbit.config.deletion.DeletionQueueConfig
 import com.github.gvolpe.fs2rabbit.config.{Fs2RabbitConfig, deletion}
+import com.github.gvolpe.fs2rabbit.effects.EnvelopeDecoder
 import com.github.gvolpe.fs2rabbit.model
 import com.github.gvolpe.fs2rabbit.model.AckResult.{Ack, NAck}
 import com.github.gvolpe.fs2rabbit.model._
@@ -31,14 +32,16 @@ import com.rabbitmq.client.Channel
 import fs2.Stream
 import fs2.concurrent.Queue
 
-class AMQPClientInMemory(queues: Ref[IO, Set[QueueName]],
-                         exchanges: Ref[IO, Set[ExchangeName]],
-                         binds: Ref[IO, Map[String, ExchangeName]],
-                         ref: Ref[IO, AMQPInternals[IO]],
-                         publishingQ: Queue[IO, Either[Throwable, AmqpEnvelope]],
-                         listenerQ: Queue[IO, PublishReturn],
-                         ackerQ: Queue[IO, AckResult],
-                         config: Fs2RabbitConfig)(implicit cs: ContextShift[IO])
+class AMQPClientInMemory(
+    queues: Ref[IO, Set[QueueName]],
+    exchanges: Ref[IO, Set[ExchangeName]],
+    binds: Ref[IO, Map[String, ExchangeName]],
+    ref: Ref[IO, AMQPInternals[IO, String]],
+    publishingQ: Queue[IO, Either[Throwable, AmqpEnvelope[String]]],
+    listenerQ: Queue[IO, PublishReturn],
+    ackerQ: Queue[IO, AckResult],
+    config: Fs2RabbitConfig
+)(implicit cs: ContextShift[IO])
     extends AMQPClient[Stream[IO, ?], IO] {
 
   private def raiseError[A](message: String): Stream[IO, A] =
@@ -67,20 +70,24 @@ class AMQPClientInMemory(queues: Ref[IO, Set[QueueName]],
       basicQos: model.BasicQos
   ): Stream[IO, Unit] = Stream.eval(IO.unit)
 
-  override def basicConsume(channel: Channel,
-                            queueName: model.QueueName,
-                            autoAck: Boolean,
-                            consumerTag: String,
-                            noLocal: Boolean,
-                            exclusive: Boolean,
-                            args: Arguments)(internals: AMQPInternals[IO]): Stream[IO, String] = {
+  override def basicConsume[A](
+      channel: Channel,
+      queueName: model.QueueName,
+      autoAck: Boolean,
+      consumerTag: String,
+      noLocal: Boolean,
+      exclusive: Boolean,
+      args: Arguments
+  )(internals: AMQPInternals[IO, A])(implicit decoder: EnvelopeDecoder[IO, A]): Stream[IO, String] = {
     val ifError =
       raiseError[String](s"Queue ${queueName.value} does not exist!")
+
+    val stringInternals = internals.asInstanceOf[AMQPInternals[IO, String]]
 
     Stream
       .eval(queues.get)
       .flatMap(_.find(_.value == queueName.value).fold(ifError) { _ =>
-        Stream.eval(ref.set(internals)).map(_ => "dequeue1 happens in AckerConsumerProgram.createConsumer")
+        Stream.eval(ref.set(stringInternals)).map(_ => "dequeue1 happens in AckerConsumerProgram.createConsumer")
       })
   }
 

@@ -34,7 +34,7 @@ class AckerConsumerDemo[F[_]: Concurrent: Timer](implicit R: Fs2Rabbit[F]) {
 
   def putStrLn(str: String): F[Unit] = Sync[F].delay(println(str))
 
-  def logPipe: Pipe[F, AmqpEnvelope, AckResult] = _.evalMap { amqpMsg =>
+  def logPipe: Pipe[F, AmqpEnvelope[String], AckResult] = _.evalMap { amqpMsg =>
     putStrLn(s"Consumed: $amqpMsg").as(Ack(amqpMsg.deliveryTag))
   }
 
@@ -48,18 +48,20 @@ class AckerConsumerDemo[F[_]: Concurrent: Timer](implicit R: Fs2Rabbit[F]) {
       _                 <- R.declareQueue(DeclarationQueueConfig.default(queueName))
       _                 <- R.declareExchange(exchangeName, ExchangeType.Topic)
       _                 <- R.bindQueue(queueName, exchangeName, routingKey)
-      (acker, consumer) <- R.createAckerConsumer(queueName)
+      (acker, consumer) <- R.createAckerConsumer[String](queueName)
       publisher         <- R.createPublisherWithListener(exchangeName, routingKey, publishingFlag, publishingListener)
-      result            <- new Flow(consumer, acker, logPipe, publisher).flow
+      result            <- new Flow[F, String](consumer, acker, logPipe, publisher).flow
     } yield result
   }
 
 }
 
-class Flow[F[_]: Concurrent](consumer: StreamConsumer[F],
-                             acker: StreamAcker[F],
-                             logger: Pipe[F, AmqpEnvelope, AckResult],
-                             publisher: StreamPublisher[F]) {
+class Flow[F[_]: Concurrent, A](
+    consumer: StreamConsumer[F, A],
+    acker: StreamAcker[F],
+    logger: Pipe[F, AmqpEnvelope[A], AckResult],
+    publisher: StreamPublisher[F]
+) {
 
   import io.circe.generic.auto._
 

@@ -20,31 +20,33 @@ import cats.effect.Concurrent
 import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, AMQPInternals, Consumer}
 import com.github.gvolpe.fs2rabbit.arguments.Arguments
 import com.github.gvolpe.fs2rabbit.model._
-import com.github.gvolpe.fs2rabbit.util.StreamEval
+import com.github.gvolpe.fs2rabbit.effects.{EnvelopeDecoder, StreamEval}
 import com.rabbitmq.client.Channel
 import fs2.{Pipe, Stream}
 import fs2.concurrent.Queue
 
 class ConsumerProgram[F[_]: Concurrent](AMQP: AMQPClient[Stream[F, ?], F])(implicit SE: StreamEval[F])
-    extends Consumer[Stream[F, ?]] {
+    extends Consumer[Stream[F, ?], F] {
 
-  private[fs2rabbit] def resilientConsumer: Pipe[F, Either[Throwable, AmqpEnvelope], AmqpEnvelope] =
+  private[fs2rabbit] def resilientConsumer[A]: Pipe[F, Either[Throwable, AmqpEnvelope[A]], AmqpEnvelope[A]] =
     _.flatMap {
       case Left(err)  => Stream.raiseError[F](err)
-      case Right(env) => SE.pure[AmqpEnvelope](env)
+      case Right(env) => SE.pure[AmqpEnvelope[A]](env)
     }
 
-  override def createConsumer(queueName: QueueName,
-                              channel: Channel,
-                              basicQos: BasicQos,
-                              autoAck: Boolean = false,
-                              noLocal: Boolean = false,
-                              exclusive: Boolean = false,
-                              consumerTag: String = "",
-                              args: Arguments = Map.empty): StreamConsumer[F] =
+  override def createConsumer[A](
+      queueName: QueueName,
+      channel: Channel,
+      basicQos: BasicQos,
+      autoAck: Boolean = false,
+      noLocal: Boolean = false,
+      exclusive: Boolean = false,
+      consumerTag: String = "",
+      args: Arguments = Map.empty
+  )(implicit decoder: EnvelopeDecoder[F, A]): StreamConsumer[F, A] =
     for {
-      internalQ <- Stream.eval(Queue.bounded[F, Either[Throwable, AmqpEnvelope]](500))
-      internals = AMQPInternals[F](Some(internalQ))
+      internalQ <- Stream.eval(Queue.bounded[F, Either[Throwable, AmqpEnvelope[A]]](500))
+      internals = AMQPInternals[F, A](Some(internalQ))
       _         <- AMQP.basicQos(channel, basicQos)
       _         <- AMQP.basicConsume(channel, queueName, autoAck, consumerTag, noLocal, exclusive, args)(internals)
       consumer  <- Stream.repeatEval(internalQ.dequeue1) through resilientConsumer

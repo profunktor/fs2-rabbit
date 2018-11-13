@@ -18,20 +18,24 @@ package com.github.gvolpe.fs2rabbit.interpreter
 
 import cats.effect.Effect
 import cats.effect.syntax.effect._
+import cats.syntax.flatMap._
 import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, AMQPInternals}
 import com.github.gvolpe.fs2rabbit.arguments._
 import com.github.gvolpe.fs2rabbit.config.declaration.{DeclarationExchangeConfig, DeclarationQueueConfig}
 import com.github.gvolpe.fs2rabbit.config.deletion
 import com.github.gvolpe.fs2rabbit.config.deletion.DeletionQueueConfig
 import com.github.gvolpe.fs2rabbit.model._
-import com.github.gvolpe.fs2rabbit.util.BoolValue.syntax._
-import com.github.gvolpe.fs2rabbit.util.StreamEval
+import com.github.gvolpe.fs2rabbit.effects.BoolValue.syntax._
+import com.github.gvolpe.fs2rabbit.effects.{EnvelopeDecoder, StreamEval}
 import com.rabbitmq.client._
 import fs2.Stream
 
 class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPClient[Stream[F, ?], F] {
 
-  private[fs2rabbit] def defaultConsumer(channel: Channel, internals: AMQPInternals[F]): Stream[F, Consumer] =
+  private[fs2rabbit] def defaultConsumer[A](
+      channel: Channel,
+      internals: AMQPInternals[F, A]
+  )(implicit decoder: EnvelopeDecoder[F, A]): Stream[F, Consumer] =
     SE.pure(
       new DefaultConsumer(channel) {
 
@@ -43,16 +47,20 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
               .unsafeRunAsync(_ => ())
           }
 
-        override def handleDelivery(consumerTag: String,
-                                    envelope: Envelope,
-                                    properties: AMQP.BasicProperties,
-                                    body: Array[Byte]): Unit = {
-          val msg   = new String(body, "UTF-8")
+        override def handleDelivery(
+            consumerTag: String,
+            envelope: Envelope,
+            properties: AMQP.BasicProperties,
+            body: Array[Byte]
+        ): Unit = {
           val tag   = envelope.getDeliveryTag
           val props = AmqpProperties.from(properties)
           internals.queue.fold(()) { internalQ =>
-            internalQ
-              .enqueue1(Right(AmqpEnvelope(DeliveryTag(tag), msg, props)))
+            decoder
+              .decode(body, props)
+              .flatMap { msg =>
+                internalQ.enqueue1(Right(AmqpEnvelope(DeliveryTag(tag), msg, props)))
+              }
               .toIO
               .unsafeRunAsync(_ => ())
           }
@@ -85,7 +93,7 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
     channel.basicQos(basicQos.prefetchSize, basicQos.prefetchCount, basicQos.global)
   }
 
-  override def basicConsume(
+  override def basicConsume[A](
       channel: Channel,
       queueName: QueueName,
       autoAck: Boolean,
@@ -93,7 +101,7 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
       noLocal: Boolean,
       exclusive: Boolean,
       args: Arguments
-  )(internals: AMQPInternals[F]): Stream[F, String] =
+  )(internals: AMQPInternals[F, A])(implicit decoder: EnvelopeDecoder[F, A]): Stream[F, String] =
     for {
       dc <- defaultConsumer(channel, internals)
       rs <- SE.evalF(channel.basicConsume(queueName.value, autoAck, consumerTag, noLocal, exclusive, args, dc))
@@ -134,12 +142,14 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
       listener: PublishingListener[F]
   ): Stream[F, Unit] = SE.evalDiscard {
     val returnListener = new ReturnListener {
-      override def handleReturn(replyCode: Int,
-                                replyText: String,
-                                exchange: String,
-                                routingKey: String,
-                                properties: AMQP.BasicProperties,
-                                body: Array[Byte]): Unit = {
+      override def handleReturn(
+          replyCode: Int,
+          replyText: String,
+          exchange: String,
+          routingKey: String,
+          properties: AMQP.BasicProperties,
+          body: Array[Byte]
+      ): Unit = {
         val publishReturn =
           PublishReturn(
             ReplyCode(replyCode),

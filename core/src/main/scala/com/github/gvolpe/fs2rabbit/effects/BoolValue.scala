@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.github.gvolpe.fs2rabbit.util
+package com.github.gvolpe.fs2rabbit.effects
 
 import com.github.gvolpe.fs2rabbit.config.declaration._
 import com.github.gvolpe.fs2rabbit.config.deletion.{Empty, IfEmptyCfg, IfUnusedCfg, Unused}

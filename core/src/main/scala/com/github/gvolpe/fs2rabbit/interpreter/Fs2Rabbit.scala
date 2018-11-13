@@ -24,6 +24,7 @@ import com.github.gvolpe.fs2rabbit.algebra._
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 import com.github.gvolpe.fs2rabbit.config.declaration.{DeclarationExchangeConfig, DeclarationQueueConfig}
 import com.github.gvolpe.fs2rabbit.config.deletion.{DeletionExchangeConfig, DeletionQueueConfig}
+import com.github.gvolpe.fs2rabbit.effects.EnvelopeDecoder
 import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.program._
 import fs2.Stream
@@ -44,15 +45,15 @@ object Fs2Rabbit {
 }
 // $COVERAGE-ON$
 
-class Fs2Rabbit[F[_]: Concurrent](
+class Fs2Rabbit[F[_]: Concurrent] private[fs2rabbit] (
     config: Fs2RabbitConfig,
     connectionStream: Connection[Stream[F, ?]],
     amqpClient: AMQPClient[Stream[F, ?], F],
     acker: Acker[Stream[F, ?]],
-    consumer: Consumer[Stream[F, ?]]
+    consumer: Consumer[Stream[F, ?], F]
 ) {
 
-  private[fs2rabbit] val consumingProgram: Consuming[Stream[F, ?]] =
+  private[fs2rabbit] val consumingProgram: Consuming[Stream[F, ?], F] =
     new ConsumingProgram[F](acker, consumer)
 
   private[fs2rabbit] val publishingProgram: Publishing[Stream[F, ?], F] =
@@ -60,18 +61,18 @@ class Fs2Rabbit[F[_]: Concurrent](
 
   def createConnectionChannel: Stream[F, AMQPChannel] = connectionStream.createConnectionChannel
 
-  def createAckerConsumer(
+  def createAckerConsumer[A](
       queueName: QueueName,
       basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
       consumerArgs: Option[ConsumerArgs] = None
-  )(implicit channel: AMQPChannel): Stream[F, (StreamAcker[F], StreamConsumer[F])] =
+  )(implicit channel: AMQPChannel, decoder: EnvelopeDecoder[F, A]): Stream[F, (StreamAcker[F], StreamConsumer[F, A])] =
     consumingProgram.createAckerConsumer(channel.value, queueName, basicQos, consumerArgs)
 
-  def createAutoAckConsumer(
+  def createAutoAckConsumer[A](
       queueName: QueueName,
       basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
       consumerArgs: Option[ConsumerArgs] = None
-  )(implicit channel: AMQPChannel): Stream[F, StreamConsumer[F]] =
+  )(implicit channel: AMQPChannel, decoder: EnvelopeDecoder[F, A]): Stream[F, StreamConsumer[F, A]] =
     consumingProgram.createAutoAckConsumer(channel.value, queueName, basicQos, consumerArgs)
 
   def createPublisher(exchangeName: ExchangeName, routingKey: RoutingKey)(
