@@ -25,6 +25,7 @@ lazy val commonScalacOptions = Seq(
   "-language:higherKinds",
   "-language:implicitConversions",
   "-language:experimental.macros",
+  "-Ypartial-unification",
   "-unchecked",
   "-Xfatal-warnings",
   "-Xlint",
@@ -53,17 +54,6 @@ lazy val warnUnusedImport = Seq(
   },
   scalacOptions in (Compile, console) ~= { _.filterNot(Seq("-Xlint", "-Ywarn-unused-import").contains) },
   scalacOptions in (Test, console) := (scalacOptions in (Compile, console)).value
-)
-
-lazy val partialUnification = Seq(
-  scalacOptions ++= {
-    CrossVersion.partialVersion(scalaVersion.value) match {
-      case Some((2, n)) if n >= 12 =>
-        Seq("-Ypartial-unification")
-      case _ =>
-        Seq()
-    }
-  }
 )
 
 val commonSettings = Seq(
@@ -103,7 +93,7 @@ val commonSettings = Seq(
           <url>http://github.com/gvolpe</url>
         </developer>
       </developers>
-) ++ warnUnusedImport ++ partialUnification
+) ++ warnUnusedImport
 
 val CoreDependencies: Seq[ModuleID] = Seq(
   Libraries.logback % "test"
