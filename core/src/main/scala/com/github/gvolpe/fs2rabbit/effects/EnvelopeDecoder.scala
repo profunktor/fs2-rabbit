@@ -36,9 +36,10 @@ object EnvelopeDecoder {
 
   implicit def utf8StringDecoder[F[_]](implicit F: ApplicativeError[F, Throwable]): EnvelopeDecoder[F, String] =
     new EnvelopeDecoder[F, String] {
-      override def decode(raw: Array[Byte], properties: AmqpProperties): F[String] = {
-        val encoding = properties.contentEncoding.fold(UTF_8)(Charset.forName)
-        F.catchNonFatal(new String(raw, encoding))
-      }
+      override def decode(raw: Array[Byte], properties: AmqpProperties): F[String] =
+        F.catchNonFatal {
+          val encoding = properties.contentEncoding.fold(UTF_8)(Charset.forName)
+          new String(raw, encoding)
+        }
     }
 }
