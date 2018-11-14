@@ -56,10 +56,11 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
           val tag   = envelope.getDeliveryTag
           val props = AmqpProperties.from(properties)
           internals.queue.fold(()) { internalQ =>
+            val envelope = AmqpEnvelope(DeliveryTag(tag), body, props)
             decoder
-              .decode(body, props)
+              .run(envelope)
               .flatMap { msg =>
-                internalQ.enqueue1(Right(AmqpEnvelope(DeliveryTag(tag), msg, props)))
+                internalQ.enqueue1(Right(envelope.copy(payload = msg)))
               }
               .toIO
               .unsafeRunAsync(_ => ())

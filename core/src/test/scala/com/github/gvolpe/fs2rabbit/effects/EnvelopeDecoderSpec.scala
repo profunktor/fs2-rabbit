@@ -22,7 +22,7 @@ import cats.data.EitherT
 import cats.effect.{IO, SyncIO}
 import cats.instances.either._
 import cats.instances.try_._
-import com.github.gvolpe.fs2rabbit.model.AmqpProperties
+import com.github.gvolpe.fs2rabbit.model.{AmqpEnvelope, AmqpProperties, DeliveryTag}
 import org.scalatest.AsyncFunSuite
 
 import scala.util.Try
@@ -40,7 +40,7 @@ class EnvelopeDecoderSpec extends AsyncFunSuite {
     val raw = msg.getBytes(StandardCharsets.UTF_8)
 
     EnvelopeDecoder[IO, String]
-      .decode(raw, AmqpProperties.empty)
+      .run(AmqpEnvelope(DeliveryTag(0L), raw, AmqpProperties.empty))
       .flatMap { result =>
         IO(assert(result == msg))
       }
@@ -52,7 +52,7 @@ class EnvelopeDecoderSpec extends AsyncFunSuite {
     val raw = msg.getBytes(StandardCharsets.UTF_8)
 
     EnvelopeDecoder[IO, String]
-      .decode(raw, AmqpProperties.empty.copy(contentEncoding = Some("UTF-16")))
+      .run(AmqpEnvelope(DeliveryTag(0L), raw, AmqpProperties.empty.copy(contentEncoding = Some("UTF-16"))))
       .flatMap { result =>
         IO(assert(result != msg))
       }
@@ -64,7 +64,7 @@ class EnvelopeDecoderSpec extends AsyncFunSuite {
     val raw = msg.getBytes(StandardCharsets.UTF_16)
 
     EnvelopeDecoder[IO, String]
-      .decode(raw, AmqpProperties.empty)
+      .run(AmqpEnvelope(DeliveryTag(0L), raw, AmqpProperties.empty))
       .flatMap { result =>
         IO(assert(result != msg))
       }
