@@ -38,7 +38,8 @@ object Foo {
 Another useful combinator is `flatMapF`. For example a decoder for circe's JSON type can be defined as follows:
 ```scala
 import io.circe.parser._
-implicit def jsonDecoder[F[_]](implicit F: MonadError[F, Throwable]): EnvelopeDecoder[F] =
+import io.circe.Json
+implicit def jsonDecoder[F[_]](implicit F: MonadError[F, Throwable]): EnvelopeDecoder[F, Json] =
   EnvelopeDecoder[F, String].flatMapF(s => F.fromEither(parse(s)))
 
 ```
