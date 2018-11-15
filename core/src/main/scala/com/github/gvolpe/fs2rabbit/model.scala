@@ -16,11 +16,18 @@
 
 package com.github.gvolpe.fs2rabbit
 
+import java.nio.charset.Charset
+import java.nio.charset.StandardCharsets.UTF_8
+
+import cats.ApplicativeError
+import cats.data.Kleisli
 import com.github.gvolpe.fs2rabbit.arguments.Arguments
+import com.github.gvolpe.fs2rabbit.effects.EnvelopeDecoder
 import com.github.gvolpe.fs2rabbit.model.AmqpHeaderVal._
 import com.rabbitmq.client.impl.LongStringHelper
 import com.rabbitmq.client.{AMQP, Channel, LongString}
 import fs2.{Sink, Stream}
+import cats.implicits._
 
 import scala.collection.JavaConverters._
 
@@ -153,6 +160,17 @@ object model {
 
   case class AmqpEnvelope[A](deliveryTag: DeliveryTag, payload: A, properties: AmqpProperties)
   case class AmqpMessage[A](payload: A, properties: AmqpProperties)
+
+  object AmqpEnvelope {
+    private def encoding[F[_]](implicit F: ApplicativeError[F, Throwable]): EnvelopeDecoder[F, Option[Charset]] =
+      Kleisli(_.properties.contentEncoding.traverse(n => F.catchNonFatal(Charset.forName(n))))
+
+    // usually this would go in the EnvelopeDecoder companion object, but since that's only a type alias,
+    // we need to put it here for the compiler to find it during implicit search
+    implicit def stringDecoder[F[_]: ApplicativeError[?[_], Throwable]]: EnvelopeDecoder[F, String] =
+      (EnvelopeDecoder.payload[F], encoding[F]).mapN((p, e) => new String(p, e.getOrElse(UTF_8)))
+
+  }
 
   // Binding
   case class QueueBindingArgs(value: Arguments)    extends AnyVal
