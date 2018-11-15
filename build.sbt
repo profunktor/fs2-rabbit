@@ -60,7 +60,8 @@ val commonSettings = Seq(
   organizationName := "Fs2 Rabbit",
   startYear := Some(2017),
   licenses += ("Apache-2.0", new URL("https://www.apache.org/licenses/LICENSE-2.0.txt")),
-  homepage := Some(url("https://github.com/gvolpe/fs2-rabbit")),
+  homepage := Some(url("https://gvolpe.github.io/fs2-rabbit/")),
+  headerLicense := Some(HeaderLicense.ALv2("2017-2019", "Fs2 Rabbit")),
   libraryDependencies ++= Seq(
     compilerPlugin(Libraries.kindProjector),
     compilerPlugin(Libraries.betterMonadicFor),
