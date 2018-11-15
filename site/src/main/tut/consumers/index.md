@@ -7,8 +7,15 @@ number: 6
 # Consumers
 
 There are two types of consumer: `AutoAck` and `AckerConsumer`. Each of them are parameterized on the effect type (eg. `IO`) and the data type it consumes (the payload). It's defined as below:
-
-```scala
+```tut:invisible
+import fs2.Stream
+import com.github.gvolpe.fs2rabbit.model._
+import cats.data.Kleisli
+import cats.implicits._
+import cats._
+import com.github.gvolpe.fs2rabbit.effects.EnvelopeDecoder
+```
+```tut:book:silent
 type StreamConsumer[F[_], A] = Stream[F, AmqpEnvelope[A]]
 ```
 
@@ -21,22 +28,20 @@ type EnvelopeDecoder[F[_], A] = Kleisli[F, AmqpEnvelope[Array[Byte]], A]
 ```
 
 `Kleisli[F, AmqpEnvelope[Array[Byte]], A]` is a wrapper around a function `AmqpEnvelope[Array[Byte]] => F[A]`. You can for example write an `EnvelopeDecoder` for the payload bytes thusly:
-```scala
-implicit def bytesDecoder[F[_]]: EnvelopeDecoder[F, Array[Byte]] =
+```tut:book:silent
+implicit def bytesDecoder[F[_]: Applicative]: EnvelopeDecoder[F, Array[Byte]] =
   Kleisli(_.payload.pure[F])
 ```
 
 You can write all your `EnvelopeDecoder` instances this way, but it's usually easier to make use of existing instances. `Kleisli` forms a Monad, so you can use all the usual combinators like `map`:
-```scala
+```tut:book:silent
 case class Foo(s: String)
-object Foo {
-  implicit def fooDecoder[F[_]: Functor]: EnvelopeDecoder[F, Foo] =
-    EnvelopeDecoder[F, String].map(Foo.apply)
-}
+implicit def fooDecoder[F[_]: ApplicativeError[?[_], Throwable]]: EnvelopeDecoder[F, Foo] =
+  EnvelopeDecoder[F, String].map(Foo.apply)
 ```
 
 Another useful combinator is `flatMapF`. For example a decoder for circe's JSON type can be defined as follows:
-```scala
+```tut:book:silent
 import io.circe.parser._
 import io.circe.Json
 implicit def jsonDecoder[F[_]](implicit F: MonadError[F, Throwable]): EnvelopeDecoder[F, Json] =
