@@ -18,17 +18,17 @@ package com.github.gvolpe.fs2rabbit.interpreter
 
 import cats.effect.Effect
 import cats.effect.syntax.effect._
+import cats.implicits._
 import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, AMQPInternals}
 import com.github.gvolpe.fs2rabbit.arguments._
 import com.github.gvolpe.fs2rabbit.config.declaration.{DeclarationExchangeConfig, DeclarationQueueConfig}
 import com.github.gvolpe.fs2rabbit.config.deletion
 import com.github.gvolpe.fs2rabbit.config.deletion.DeletionQueueConfig
-import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.effects.BoolValue.syntax._
 import com.github.gvolpe.fs2rabbit.effects.{EnvelopeDecoder, StreamEval}
+import com.github.gvolpe.fs2rabbit.model._
 import com.rabbitmq.client._
 import fs2.Stream
-import cats.implicits._
 
 class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPClient[Stream[F, ?], F] {
 
