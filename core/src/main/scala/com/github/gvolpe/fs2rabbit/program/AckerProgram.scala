@@ -27,7 +27,7 @@ import fs2.Stream
 class AckerProgram[F[_]](config: Fs2RabbitConfig, AMQP: AMQPClient[Stream[F, ?], F])(implicit F: Applicative[F])
     extends Acker[F] {
 
-  def createAcker(channel: Channel): F[AckResult => F[Unit]] =
+  def createAcker(channel: Channel): F[StreamAcker[F]] =
     F.pure {
       case Ack(tag)  => AMQP.basicAck(channel, tag, multiple = false)
       case NAck(tag) => AMQP.basicNack(channel, tag, multiple = false, config.requeueOnNack)

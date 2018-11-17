@@ -30,7 +30,7 @@ class ConsumingProgram[F[_]](A: Acker[F], C: Consumer[Stream[F, ?], F])(implicit
       queueName: QueueName,
       basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
       consumerArgs: Option[ConsumerArgs] = None
-  )(implicit decoder: EnvelopeDecoder[F, A]): Stream[F, (AckResult => F[Unit], StreamConsumer[F, A])] = {
+  )(implicit decoder: EnvelopeDecoder[F, A]): Stream[F, (StreamAcker[F], StreamConsumer[F, A])] = {
     val consumer = consumerArgs.fold(C.createConsumer(queueName, channel, basicQos)) { args =>
       C.createConsumer[A](
         queueName = queueName,

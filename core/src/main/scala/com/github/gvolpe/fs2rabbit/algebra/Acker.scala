@@ -16,9 +16,9 @@
 
 package com.github.gvolpe.fs2rabbit.algebra
 
-import com.github.gvolpe.fs2rabbit.model.AckResult
+import com.github.gvolpe.fs2rabbit.model.StreamAcker
 import com.rabbitmq.client.Channel
 
 trait Acker[F[_]] {
-  def createAcker(channel: Channel): F[AckResult => F[Unit]]
+  def createAcker(channel: Channel): F[StreamAcker[F]]
 }
