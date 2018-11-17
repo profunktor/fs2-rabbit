@@ -18,7 +18,6 @@ package com.github.gvolpe.fs2rabbit.interpreter
 
 import cats.effect.Effect
 import cats.effect.syntax.effect._
-import cats.syntax.flatMap._
 import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, AMQPInternals}
 import com.github.gvolpe.fs2rabbit.arguments._
 import com.github.gvolpe.fs2rabbit.config.declaration.{DeclarationExchangeConfig, DeclarationQueueConfig}
@@ -29,6 +28,7 @@ import com.github.gvolpe.fs2rabbit.effects.BoolValue.syntax._
 import com.github.gvolpe.fs2rabbit.effects.{EnvelopeDecoder, StreamEval}
 import com.rabbitmq.client._
 import fs2.Stream
+import cats.implicits._
 
 class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPClient[Stream[F, ?], F] {
 
@@ -59,8 +59,9 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
             val envelope = AmqpEnvelope(DeliveryTag(tag), body, props)
             decoder
               .run(envelope)
+              .attempt
               .flatMap { msg =>
-                internalQ.enqueue1(Right(envelope.copy(payload = msg)))
+                internalQ.enqueue1(msg.map(a => envelope.copy(payload = a)))
               }
               .toIO
               .unsafeRunAsync(_ => ())
