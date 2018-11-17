@@ -197,7 +197,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
           (acker, consumer) = ackerConsumer
           _ <- Stream(
                 consumer.take(1) to testQ.enqueue,
-                Stream(Ack(DeliveryTag(1))).covary[IO].observe(ackerQ.enqueue) to acker
+                Stream(Ack(DeliveryTag(1))).covary[IO].observe(ackerQ.enqueue).evalMap(acker)
               ).parJoin(2).take(1)
           result    <- Stream.eval(testQ.dequeue1)
           ackResult <- Stream.eval(ackerQ.dequeue1)
@@ -223,7 +223,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
         ackerConsumer     <- createAckerConsumer(queueName)
         (acker, consumer) = ackerConsumer
         result            <- consumer.take(1)
-        _                 <- (Stream(NAck(DeliveryTag(1))).covary[IO].observe(ackerQ.enqueue) to acker).take(1)
+        _                 <- (Stream(NAck(DeliveryTag(1))).covary[IO].observe(ackerQ.enqueue) evalMap acker).take(1)
         ackResult         <- Stream.eval(ackerQ.dequeue1)
       } yield {
         result should be(AmqpEnvelope(DeliveryTag(1), "NAck-test", AmqpProperties()))
@@ -299,7 +299,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
           _                 <- msg.covary[IO] to publisher
           _ <- Stream(
                 consumer.take(1) to testQ.enqueue,
-                Stream(Ack(DeliveryTag(1))).covary[IO] observe ackerQ.enqueue to acker
+                Stream(Ack(DeliveryTag(1))).covary[IO] observe ackerQ.enqueue evalMap acker
               ).parJoin(2).take(1)
           result    <- Stream.eval(testQ.dequeue1)
           ackResult <- Stream.eval(ackerQ.dequeue1)
@@ -418,7 +418,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
         _                 <- msg.covary[IO] to publisher
         _ <- Stream(
               consumer.take(1) to testQ.enqueue,
-              Stream(Ack(DeliveryTag(1))).covary[IO] observe ackerQ.enqueue to acker
+              Stream(Ack(DeliveryTag(1))).covary[IO] observe ackerQ.enqueue evalMap acker
             ).parJoin(2).take(1)
         result    <- Stream.eval(testQ.dequeue1)
         ackResult <- Stream.eval(ackerQ.dequeue1)
@@ -458,7 +458,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
         ackerConsumer     <- createAckerConsumer(queueName)
         (acker, consumer) = ackerConsumer
         result            <- consumer.take(1)
-        _                 <- (Stream(NAck(DeliveryTag(1))).covary[IO].observe(ackerQ.enqueue) to acker).take(1)
+        _                 <- (Stream(NAck(DeliveryTag(1))).covary[IO].observe(ackerQ.enqueue) evalMap acker).take(1)
         _                 <- consumer.take(1) // Message will be re-queued
         ackResult         <- ackerQ.dequeue.take(1)
       } yield {

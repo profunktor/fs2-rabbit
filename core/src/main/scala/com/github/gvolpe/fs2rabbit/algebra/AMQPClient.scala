@@ -25,8 +25,8 @@ import com.rabbitmq.client.Channel
 
 // format: off
 trait AMQPClient[F[_], G[_]] extends Binding[F] with Declaration[F] with Deletion[F] {
-  def basicAck(channel: Channel, tag: DeliveryTag, multiple: Boolean): F[Unit]
-  def basicNack(channel: Channel, tag: DeliveryTag, multiple: Boolean, requeue: Boolean): F[Unit]
+  def basicAck(channel: Channel, tag: DeliveryTag, multiple: Boolean): G[Unit]
+  def basicNack(channel: Channel, tag: DeliveryTag, multiple: Boolean, requeue: Boolean): G[Unit]
   def basicQos(channel: Channel, basicQos: BasicQos): F[Unit]
   def basicConsume[A](channel: Channel, queueName: QueueName, autoAck: Boolean, consumerTag: String, noLocal: Boolean, exclusive: Boolean, args: Arguments)
                   (internals: AMQPInternals[G, A])(implicit decoder: EnvelopeDecoder[G, A]): F[String]

@@ -47,21 +47,21 @@ class AMQPClientInMemory(
   private def raiseError[A](message: String): Stream[IO, A] =
     Stream.raiseError[IO](new java.io.IOException(message))
 
-  override def basicAck(channel: Channel, tag: model.DeliveryTag, multiple: Boolean): Stream[IO, Unit] =
-    Stream.eval(ackerQ.enqueue1(Ack(tag)))
+  override def basicAck(channel: Channel, tag: model.DeliveryTag, multiple: Boolean): IO[Unit] =
+    ackerQ.enqueue1(Ack(tag))
 
   override def basicNack(
       channel: Channel,
       tag: model.DeliveryTag,
       multiple: Boolean,
       requeue: Boolean
-  ): Stream[IO, Unit] = {
+  ): IO[Unit] = {
     // Imitating the RabbitMQ behavior
     val envelope = AmqpEnvelope(DeliveryTag(1), "requeued msg", AmqpProperties.empty)
     for {
-      _ <- Stream.eval(ackerQ.enqueue1(NAck(tag)))
-      _ <- if (config.requeueOnNack) Stream.eval(publishingQ.enqueue1(Right(envelope)))
-          else Stream.eval(IO.unit)
+      _ <- ackerQ.enqueue1(NAck(tag))
+      _ <- if (config.requeueOnNack) publishingQ.enqueue1(Right(envelope))
+          else IO.unit
     } yield ()
   }
 

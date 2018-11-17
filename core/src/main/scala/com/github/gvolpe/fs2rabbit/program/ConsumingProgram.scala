@@ -22,7 +22,7 @@ import com.github.gvolpe.fs2rabbit.effects.{EnvelopeDecoder, StreamEval}
 import com.rabbitmq.client.Channel
 import fs2.Stream
 
-class ConsumingProgram[F[_]](A: Acker[Stream[F, ?]], C: Consumer[Stream[F, ?], F])(implicit SE: StreamEval[F])
+class ConsumingProgram[F[_]](A: Acker[F], C: Consumer[Stream[F, ?], F])(implicit SE: StreamEval[F])
     extends Consuming[Stream[F, ?], F] {
 
   override def createAckerConsumer[A](
@@ -30,7 +30,7 @@ class ConsumingProgram[F[_]](A: Acker[Stream[F, ?]], C: Consumer[Stream[F, ?], F
       queueName: QueueName,
       basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
       consumerArgs: Option[ConsumerArgs] = None
-  )(implicit decoder: EnvelopeDecoder[F, A]): Stream[F, (StreamAcker[F], StreamConsumer[F, A])] = {
+  )(implicit decoder: EnvelopeDecoder[F, A]): Stream[F, (AckResult => F[Unit], StreamConsumer[F, A])] = {
     val consumer = consumerArgs.fold(C.createConsumer(queueName, channel, basicQos)) { args =>
       C.createConsumer[A](
         queueName = queueName,
@@ -42,7 +42,7 @@ class ConsumingProgram[F[_]](A: Acker[Stream[F, ?]], C: Consumer[Stream[F, ?], F
         args = args.args
       )
     }
-    SE.pure((A.createAcker(channel), consumer))
+    Stream.eval(A.createAcker(channel)).map((_, consumer))
   }
 
   override def createAutoAckConsumer[A](

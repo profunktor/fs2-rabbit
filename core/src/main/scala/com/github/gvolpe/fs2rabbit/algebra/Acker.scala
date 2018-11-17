@@ -20,5 +20,5 @@ import com.github.gvolpe.fs2rabbit.model.AckResult
 import com.rabbitmq.client.Channel
 
 trait Acker[F[_]] {
-  def createAcker(channel: Channel): F[AckResult] => F[Unit]
+  def createAcker(channel: Channel): F[AckResult => F[Unit]]
 }

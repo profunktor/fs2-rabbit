@@ -49,7 +49,7 @@ class Fs2Rabbit[F[_]: Concurrent] private[fs2rabbit] (
     config: Fs2RabbitConfig,
     connectionStream: Connection[Stream[F, ?]],
     amqpClient: AMQPClient[Stream[F, ?], F],
-    acker: Acker[Stream[F, ?]],
+    acker: Acker[F],
     consumer: Consumer[Stream[F, ?], F]
 ) {
 
@@ -65,7 +65,8 @@ class Fs2Rabbit[F[_]: Concurrent] private[fs2rabbit] (
       queueName: QueueName,
       basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
       consumerArgs: Option[ConsumerArgs] = None
-  )(implicit channel: AMQPChannel, decoder: EnvelopeDecoder[F, A]): Stream[F, (StreamAcker[F], StreamConsumer[F, A])] =
+  )(implicit channel: AMQPChannel,
+    decoder: EnvelopeDecoder[F, A]): Stream[F, (AckResult => F[Unit], StreamConsumer[F, A])] =
     consumingProgram.createAckerConsumer(channel.value, queueName, basicQos, consumerArgs)
 
   def createAutoAckConsumer[A](
