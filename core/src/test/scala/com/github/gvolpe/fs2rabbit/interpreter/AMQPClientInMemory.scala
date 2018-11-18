@@ -96,9 +96,9 @@ class AMQPClientInMemory(
       exchangeName: model.ExchangeName,
       routingKey: model.RoutingKey,
       msg: model.AmqpMessage[String]
-  ): Stream[IO, Unit] = {
+  ): IO[Unit] = {
     val envelope = AmqpEnvelope(DeliveryTag(1), msg.payload, msg.properties)
-    Stream.eval(publishingQ.enqueue1(Right(envelope)))
+    publishingQ.enqueue1(Right(envelope))
   }
 
   override def basicPublishWithFlag(
@@ -107,7 +107,7 @@ class AMQPClientInMemory(
       routingKey: RoutingKey,
       flag: PublishingFlag,
       msg: AmqpMessage[String]
-  ): Stream[IO, Unit] = {
+  ): IO[Unit] = {
     val ifNoBind = {
       val publishReturn =
         PublishReturn(
@@ -118,14 +118,12 @@ class AMQPClientInMemory(
           msg.properties,
           AmqpBody(msg.payload)
         )
-      Stream.eval(listenerQ.enqueue1(publishReturn))
+      listenerQ.enqueue1(publishReturn)
     }
 
-    Stream
-      .eval(binds.get)
-      .flatMap(_.get(routingKey.value).fold(ifNoBind) { _ =>
-        basicPublish(channel, exchangeName, routingKey, msg)
-      })
+    binds.get.flatMap(_.get(routingKey.value).fold(ifNoBind) { _ =>
+      basicPublish(channel, exchangeName, routingKey, msg)
+    })
   }
 
   override def addPublishingListener(

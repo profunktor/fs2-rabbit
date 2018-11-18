@@ -29,7 +29,7 @@ val msg = Stream(AmqpMessage("Hey!", AmqpProperties.empty)).covary[IO]
 
 def multipleConsumers(c1: StreamConsumer[IO, String], c2: StreamConsumer[IO, String], p: StreamPublisher[IO]) = {
   Stream(
-    msg to p,
+    msg evalMap p,
     c1 to (_.evalMap(m => IO(println(s"Consumer #1 >> $m")))),
     c2 to (_.evalMap(m => IO(println(s"Consumer #2 >> $m"))))
   ).parJoin(3)

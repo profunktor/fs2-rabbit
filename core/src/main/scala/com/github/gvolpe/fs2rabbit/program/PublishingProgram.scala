@@ -30,10 +30,8 @@ class PublishingProgram[F[_]](AMQP: AMQPClient[Stream[F, ?], F])(implicit SE: St
       exchangeName: ExchangeName,
       routingKey: RoutingKey
   ): Stream[F, StreamPublisher[F]] =
-    SE.evalF {
-      _.flatMap { msg =>
-        AMQP.basicPublish(channel, exchangeName, routingKey, msg)
-      }
+    SE.pure { msg =>
+      AMQP.basicPublish(channel, exchangeName, routingKey, msg)
     }
 
   override def createPublisherWithListener(
@@ -43,10 +41,8 @@ class PublishingProgram[F[_]](AMQP: AMQPClient[Stream[F, ?], F])(implicit SE: St
       flag: PublishingFlag,
       listener: PublishingListener[F]
   ): Stream[F, StreamPublisher[F]] =
-    SE.evalF { publisher =>
-      AMQP.addPublishingListener(channel, listener) ++ publisher.flatMap { msg =>
-        AMQP.basicPublishWithFlag(channel, exchangeName, routingKey, flag, msg)
-      }
+    AMQP.addPublishingListener(channel, listener).drain ++ SE.pure { msg: AmqpMessage[String] =>
+      AMQP.basicPublishWithFlag(channel, exchangeName, routingKey, flag, msg)
     }
 
 }

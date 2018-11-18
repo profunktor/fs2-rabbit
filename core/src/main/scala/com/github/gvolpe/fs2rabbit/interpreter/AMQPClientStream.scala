@@ -113,7 +113,7 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
       exchangeName: ExchangeName,
       routingKey: RoutingKey,
       msg: AmqpMessage[String]
-  ): Stream[F, Unit] = SE.evalDiscard {
+  ): F[Unit] = Effect[F].delay {
     channel.basicPublish(
       exchangeName.value,
       routingKey.value,
@@ -128,7 +128,7 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
       routingKey: RoutingKey,
       flag: PublishingFlag,
       msg: AmqpMessage[String]
-  ): Stream[F, Unit] = SE.evalDiscard {
+  ): F[Unit] = Effect[F].delay {
     channel.basicPublish(
       exchangeName.value,
       routingKey.value,
