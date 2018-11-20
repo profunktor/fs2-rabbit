@@ -60,7 +60,7 @@ class Flow[F[_]: Concurrent, A](
     consumer: StreamConsumer[F, A],
     acker: AckResult => F[Unit],
     logger: Pipe[F, AmqpEnvelope[A], AckResult],
-    publisher: StreamPublisher[F]
+    publisher: Publisher[F]
 ) {
 
   import io.circe.generic.auto._

@@ -22,7 +22,7 @@ case class Person(id: Long, name: String, address: Address)
 
 object ioDecoder extends Fs2JsonDecoder[IO]
 
-def program(consumer: StreamConsumer[IO, String], acker: StreamAcker[IO], errorSink: Sink[IO, Error], processorSink: Sink[IO, (Person, DeliveryTag)]) = {
+def program(consumer: StreamConsumer[IO, String], acker: Acker[IO], errorSink: Sink[IO, Error], processorSink: Sink[IO, (Person, DeliveryTag)]) = {
   import ioDecoder._
 
   (consumer through jsonDecode[Person]).flatMap {

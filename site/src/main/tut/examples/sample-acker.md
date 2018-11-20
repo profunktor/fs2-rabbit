@@ -21,9 +21,9 @@ import fs2.{Pipe, Stream}
 
 class Flow[F[_]: Concurrent](
   consumer: StreamConsumer[F, String],
-  acker: StreamAcker[F],
+  acker: Acker[F],
   logger: Pipe[F, AmqpEnvelope[String], AckResult],
-  publisher: StreamPublisher[F]
+  publisher: Publisher[F]
 )(implicit SE: StreamEval[F]) {
 
   import io.circe.generic.auto._

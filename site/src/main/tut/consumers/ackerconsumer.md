@@ -16,12 +16,12 @@ import fs2._
 
 val queueName = QueueName("daQ")
 
-def doSomething(consumer: StreamConsumer[IO, String], acker: StreamAcker[IO]): Stream[IO, Unit] = Stream.eval(IO.unit)
+def doSomething(consumer: StreamConsumer[IO, String], acker: Acker[IO]): Stream[IO, Unit] = Stream.eval(IO.unit)
 
 def program(implicit R: Fs2Rabbit[IO]) =
   R.createConnectionChannel.flatMap { implicit channel =>       // Stream[IO, AMQPChannel]
     for {
-      (acker, consumer) <- R.createAckerConsumer[String](queueName)	    // (StreamAcker[IO], StreamConsumer[IO, String])
+      (acker, consumer) <- R.createAckerConsumer[String](queueName)	    // (Acker[IO], StreamConsumer[IO, String])
       _                 <- doSomething(consumer, acker)
     } yield ()
   }

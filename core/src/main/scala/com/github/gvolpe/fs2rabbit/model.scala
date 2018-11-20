@@ -33,10 +33,10 @@ import scala.collection.JavaConverters._
 
 object model {
 
-  type StreamAcker[F[_]]            = AckResult => F[Unit]
+  type Acker[F[_]]                  = AckResult => F[Unit]
   type StreamConsumer[F[_], A]      = Stream[F, AmqpEnvelope[A]]
-  type StreamAckerConsumer[F[_], A] = (StreamAcker[F], StreamConsumer[F, A])
-  type StreamPublisher[F[_]]        = AmqpMessage[String] => F[Unit]
+  type StreamAckerConsumer[F[_], A] = (Acker[F], StreamConsumer[F, A])
+  type Publisher[F[_]]              = AmqpMessage[String] => F[Unit]
   type PublishingListener[F[_]]     = PublishReturn => F[Unit]
 
   trait AMQPChannel {

@@ -29,7 +29,7 @@ class PublishingProgram[F[_]](AMQP: AMQPClient[Stream[F, ?], F])(implicit SE: St
       channel: Channel,
       exchangeName: ExchangeName,
       routingKey: RoutingKey
-  ): Stream[F, StreamPublisher[F]] =
+  ): Stream[F, Publisher[F]] =
     SE.pure { msg =>
       AMQP.basicPublish(channel, exchangeName, routingKey, msg)
     }
@@ -40,7 +40,7 @@ class PublishingProgram[F[_]](AMQP: AMQPClient[Stream[F, ?], F])(implicit SE: St
       routingKey: RoutingKey,
       flag: PublishingFlag,
       listener: PublishingListener[F]
-  ): Stream[F, StreamPublisher[F]] =
+  ): Stream[F, Publisher[F]] =
     AMQP.addPublishingListener(channel, listener).drain ++ SE.pure { msg: AmqpMessage[String] =>
       AMQP.basicPublishWithFlag(channel, exchangeName, routingKey, flag, msg)
     }

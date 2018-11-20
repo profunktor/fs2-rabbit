@@ -22,7 +22,7 @@ import fs2.{Pipe, Stream}
 class AutoAckFlow[F[_]: Concurrent](
   consumer: StreamConsumer[F, String],
   logger: Pipe[F, AmqpEnvelope[String], AckResult],
-  publisher: StreamPublisher[F]
+  publisher: Publisher[F]
 )(implicit SE: StreamEval[F]) {
 
   import io.circe.generic.auto._

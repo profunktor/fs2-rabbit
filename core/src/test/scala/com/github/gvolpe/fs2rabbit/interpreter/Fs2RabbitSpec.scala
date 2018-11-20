@@ -26,7 +26,7 @@ import com.github.gvolpe.fs2rabbit.config.declaration._
 import com.github.gvolpe.fs2rabbit.config.deletion.{DeletionExchangeConfig, DeletionQueueConfig}
 import com.github.gvolpe.fs2rabbit.model.AckResult.{Ack, NAck}
 import com.github.gvolpe.fs2rabbit.model._
-import com.github.gvolpe.fs2rabbit.program.{AckerProgram, ConsumerProgram}
+import com.github.gvolpe.fs2rabbit.program.{AckingProgram, ConsumingProgram}
 import fs2.Stream
 import fs2.concurrent.Queue
 import org.scalatest.{FlatSpecLike, Matchers}
@@ -93,8 +93,8 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
         binds        <- Ref.of[IO, Map[String, ExchangeName]](Map.empty)
         amqpClient   = new AMQPClientInMemory(queues, exchanges, binds, queueRef, publishingQ, listenerQ, ackerQ, config)
         connStream   = new ConnectionStub
-        acker        = new AckerProgram[IO](config, amqpClient)
-        consumer     = new ConsumerProgram[IO](amqpClient)
+        acker        = new AckingProgram[IO](config, amqpClient)
+        consumer     = new ConsumingProgram[IO](amqpClient)
         fs2Rabbit    = new Fs2Rabbit[IO](config, connStream, amqpClient, acker, consumer)
         testSuiteRTS = rabbitRTS(queueRef, publishingQ)
       } yield (fs2Rabbit, testSuiteRTS)
