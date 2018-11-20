@@ -113,29 +113,29 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
       channel: Channel,
       exchangeName: ExchangeName,
       routingKey: RoutingKey,
-      msg: AmqpMessage[String]
+      msg: AmqpMessage[Array[Byte]]
   ): F[Unit] = Sync[F].delay {
     channel.basicPublish(
       exchangeName.value,
       routingKey.value,
       msg.properties.asBasicProps,
-      msg.payload.getBytes("UTF-8")
+      msg.payload
     )
   }
 
-  def basicPublishWithFlag(
+  override def basicPublishWithFlag(
       channel: Channel,
       exchangeName: ExchangeName,
       routingKey: RoutingKey,
       flag: PublishingFlag,
-      msg: AmqpMessage[String]
+      msg: AmqpMessage[Array[Byte]]
   ): F[Unit] = Sync[F].delay {
     channel.basicPublish(
       exchangeName.value,
       routingKey.value,
       flag.mandatory,
       msg.properties.asBasicProps,
-      msg.payload.getBytes("UTF-8")
+      msg.payload
     )
   }
 
@@ -159,7 +159,7 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
             ExchangeName(exchange),
             RoutingKey(routingKey),
             AmqpProperties.from(properties),
-            AmqpBody(new String(body, "UTF-8"))
+            AmqpBody(body)
           )
 
         listener(publishReturn).toIO.unsafeRunAsync(_ => ())

@@ -19,10 +19,10 @@ package com.github.gvolpe.fs2rabbit
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets.UTF_8
 
-import cats.ApplicativeError
+import cats.{Applicative, ApplicativeError}
 import cats.data.Kleisli
 import com.github.gvolpe.fs2rabbit.arguments.Arguments
-import com.github.gvolpe.fs2rabbit.effects.EnvelopeDecoder
+import com.github.gvolpe.fs2rabbit.effects.{EnvelopeDecoder, MessageEncoder}
 import com.github.gvolpe.fs2rabbit.model.AmqpHeaderVal._
 import com.rabbitmq.client.impl.LongStringHelper
 import com.rabbitmq.client.{AMQP, Channel, LongString}
@@ -36,7 +36,7 @@ object model {
   type StreamAcker[F[_]]            = AckResult => F[Unit]
   type StreamConsumer[F[_], A]      = Stream[F, AmqpEnvelope[A]]
   type StreamAckerConsumer[F[_], A] = (StreamAcker[F], StreamConsumer[F, A])
-  type StreamPublisher[F[_]]        = AmqpMessage[String] => F[Unit]
+  type StreamPublisher[F[_], A]     = A => F[Unit]
   type PublishingListener[F[_]]     = PublishReturn => F[Unit]
 
   trait AMQPChannel {
@@ -172,6 +172,13 @@ object model {
 
   }
 
+  object AmqpMessage {
+    implicit def stringEncoder[F[_]: Applicative]: MessageEncoder[F, String] =
+      Kleisli { str =>
+        AmqpMessage(str.getBytes(UTF_8), AmqpProperties.empty.copy(contentEncoding = Some(UTF_8.name()))).pure[F]
+      }
+  }
+
   // Binding
   case class QueueBindingArgs(value: Arguments)    extends AnyVal
   case class ExchangeBindingArgs(value: Arguments) extends AnyVal
@@ -185,9 +192,9 @@ object model {
   case class ExchangeDeclarationArgs(value: Arguments) extends AnyVal
 
   // Publishing
-  case class ReplyCode(value: Int)    extends AnyVal
-  case class ReplyText(value: String) extends AnyVal
-  case class AmqpBody(value: String)  extends AnyVal
+  case class ReplyCode(value: Int)        extends AnyVal
+  case class ReplyText(value: String)     extends AnyVal
+  case class AmqpBody(value: Array[Byte]) extends AnyVal
 
   case class PublishReturn(
       replyCode: ReplyCode,

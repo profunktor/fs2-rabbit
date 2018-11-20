@@ -17,14 +17,13 @@
 package com.github.gvolpe.fs2rabbit.interpreter
 
 import javax.net.ssl.SSLContext
-
 import cats.effect.{Concurrent, ConcurrentEffect}
 import cats.syntax.functor._
 import com.github.gvolpe.fs2rabbit.algebra._
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 import com.github.gvolpe.fs2rabbit.config.declaration.{DeclarationExchangeConfig, DeclarationQueueConfig}
 import com.github.gvolpe.fs2rabbit.config.deletion.{DeletionExchangeConfig, DeletionQueueConfig}
-import com.github.gvolpe.fs2rabbit.effects.EnvelopeDecoder
+import com.github.gvolpe.fs2rabbit.effects.{EnvelopeDecoder, MessageEncoder}
 import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.program._
 import fs2.Stream
@@ -75,16 +74,17 @@ class Fs2Rabbit[F[_]: Concurrent] private[fs2rabbit] (
   )(implicit channel: AMQPChannel, decoder: EnvelopeDecoder[F, A]): Stream[F, StreamConsumer[F, A]] =
     consumingProgram.createAutoAckConsumer(channel.value, queueName, basicQos, consumerArgs)
 
-  def createPublisher(exchangeName: ExchangeName, routingKey: RoutingKey)(
-      implicit channel: AMQPChannel): Stream[F, StreamPublisher[F]] =
+  def createPublisher[A](exchangeName: ExchangeName, routingKey: RoutingKey)(
+      implicit channel: AMQPChannel,
+      encoder: MessageEncoder[F, A]): Stream[F, StreamPublisher[F, A]] =
     publishingProgram.createPublisher(channel.value, exchangeName, routingKey)
 
-  def createPublisherWithListener(
+  def createPublisherWithListener[A](
       exchangeName: ExchangeName,
       routingKey: RoutingKey,
       flags: PublishingFlag,
       listener: PublishingListener[F]
-  )(implicit channel: AMQPChannel): Stream[F, StreamPublisher[F]] =
+  )(implicit channel: AMQPChannel, encoder: MessageEncoder[F, A]): Stream[F, StreamPublisher[F, A]] =
     publishingProgram.createPublisherWithListener(channel.value, exchangeName, routingKey, flags, listener)
 
   def addPublishingListener(listener: PublishingListener[F])(implicit channel: AMQPChannel): Stream[F, Unit] =
