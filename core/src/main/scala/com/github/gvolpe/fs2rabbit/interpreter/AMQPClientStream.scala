@@ -16,7 +16,7 @@
 
 package com.github.gvolpe.fs2rabbit.interpreter
 
-import cats.effect.Effect
+import cats.effect.{Effect, Sync}
 import cats.effect.syntax.effect._
 import cats.implicits._
 import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, AMQPInternals}
@@ -74,7 +74,7 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
       channel: Channel,
       tag: DeliveryTag,
       multiple: Boolean
-  ): Stream[F, Unit] = SE.evalDiscard {
+  ): F[Unit] = Sync[F].delay {
     channel.basicAck(tag.value, multiple)
   }
 
@@ -83,8 +83,8 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
       tag: DeliveryTag,
       multiple: Boolean,
       requeue: Boolean
-  ): Stream[F, Unit] =
-    SE.evalDiscard {
+  ): F[Unit] =
+    Sync[F].delay {
       channel.basicNack(tag.value, multiple, requeue)
     }
 
@@ -114,7 +114,7 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
       exchangeName: ExchangeName,
       routingKey: RoutingKey,
       msg: AmqpMessage[String]
-  ): Stream[F, Unit] = SE.evalDiscard {
+  ): F[Unit] = Sync[F].delay {
     channel.basicPublish(
       exchangeName.value,
       routingKey.value,
@@ -129,7 +129,7 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
       routingKey: RoutingKey,
       flag: PublishingFlag,
       msg: AmqpMessage[String]
-  ): Stream[F, Unit] = SE.evalDiscard {
+  ): F[Unit] = Sync[F].delay {
     channel.basicPublish(
       exchangeName.value,
       routingKey.value,

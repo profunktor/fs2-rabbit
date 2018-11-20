@@ -47,21 +47,21 @@ class AMQPClientInMemory(
   private def raiseError[A](message: String): Stream[IO, A] =
     Stream.raiseError[IO](new java.io.IOException(message))
 
-  override def basicAck(channel: Channel, tag: model.DeliveryTag, multiple: Boolean): Stream[IO, Unit] =
-    Stream.eval(ackerQ.enqueue1(Ack(tag)))
+  override def basicAck(channel: Channel, tag: model.DeliveryTag, multiple: Boolean): IO[Unit] =
+    ackerQ.enqueue1(Ack(tag))
 
   override def basicNack(
       channel: Channel,
       tag: model.DeliveryTag,
       multiple: Boolean,
       requeue: Boolean
-  ): Stream[IO, Unit] = {
+  ): IO[Unit] = {
     // Imitating the RabbitMQ behavior
     val envelope = AmqpEnvelope(DeliveryTag(1), "requeued msg", AmqpProperties.empty)
     for {
-      _ <- Stream.eval(ackerQ.enqueue1(NAck(tag)))
-      _ <- if (config.requeueOnNack) Stream.eval(publishingQ.enqueue1(Right(envelope)))
-          else Stream.eval(IO.unit)
+      _ <- ackerQ.enqueue1(NAck(tag))
+      _ <- if (config.requeueOnNack) publishingQ.enqueue1(Right(envelope))
+          else IO.unit
     } yield ()
   }
 
@@ -96,9 +96,9 @@ class AMQPClientInMemory(
       exchangeName: model.ExchangeName,
       routingKey: model.RoutingKey,
       msg: model.AmqpMessage[String]
-  ): Stream[IO, Unit] = {
+  ): IO[Unit] = {
     val envelope = AmqpEnvelope(DeliveryTag(1), msg.payload, msg.properties)
-    Stream.eval(publishingQ.enqueue1(Right(envelope)))
+    publishingQ.enqueue1(Right(envelope))
   }
 
   override def basicPublishWithFlag(
@@ -107,7 +107,7 @@ class AMQPClientInMemory(
       routingKey: RoutingKey,
       flag: PublishingFlag,
       msg: AmqpMessage[String]
-  ): Stream[IO, Unit] = {
+  ): IO[Unit] = {
     val ifNoBind = {
       val publishReturn =
         PublishReturn(
@@ -118,14 +118,12 @@ class AMQPClientInMemory(
           msg.properties,
           AmqpBody(msg.payload)
         )
-      Stream.eval(listenerQ.enqueue1(publishReturn))
+      listenerQ.enqueue1(publishReturn)
     }
 
-    Stream
-      .eval(binds.get)
-      .flatMap(_.get(routingKey.value).fold(ifNoBind) { _ =>
-        basicPublish(channel, exchangeName, routingKey, msg)
-      })
+    binds.get.flatMap(_.get(routingKey.value).fold(ifNoBind) { _ =>
+      basicPublish(channel, exchangeName, routingKey, msg)
+    })
   }
 
   override def addPublishingListener(

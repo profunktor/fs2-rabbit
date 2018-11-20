@@ -22,7 +22,7 @@ import com.github.gvolpe.fs2rabbit.effects.{EnvelopeDecoder, StreamEval}
 import com.rabbitmq.client.Channel
 import fs2.Stream
 
-class ConsumingProgram[F[_]](A: Acker[Stream[F, ?]], C: Consumer[Stream[F, ?], F])(implicit SE: StreamEval[F])
+class ConsumingProgram[F[_]](A: Acker[F], C: Consumer[Stream[F, ?], F])(implicit SE: StreamEval[F])
     extends Consuming[Stream[F, ?], F] {
 
   override def createAckerConsumer[A](
@@ -42,7 +42,7 @@ class ConsumingProgram[F[_]](A: Acker[Stream[F, ?]], C: Consumer[Stream[F, ?], F
         args = args.args
       )
     }
-    SE.pure((A.createAcker(channel), consumer))
+    Stream.eval(A.createAcker(channel)).map((_, consumer))
   }
 
   override def createAutoAckConsumer[A](

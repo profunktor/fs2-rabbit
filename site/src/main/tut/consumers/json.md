@@ -26,7 +26,7 @@ def program(consumer: StreamConsumer[IO, String], acker: StreamAcker[IO], errorS
   import ioDecoder._
 
   (consumer through jsonDecode[Person]).flatMap {
-    case (Left(error), tag) => (Stream.eval(IO(error)) to errorSink).map(_ => NAck(tag)) to acker
+    case (Left(error), tag) => (Stream.eval(IO(error)) to errorSink).map(_ => NAck(tag)) evalMap acker
     case (Right(msg), tag)  => Stream.eval(IO((msg, tag))) to processorSink
   }
 }

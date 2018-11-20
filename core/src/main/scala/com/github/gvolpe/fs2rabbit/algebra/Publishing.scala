@@ -25,7 +25,7 @@ trait Publishing[F[_], G[_]] {
       channel: Channel,
       exchangeName: ExchangeName,
       routingKey: RoutingKey
-  ): F[F[AmqpMessage[String]] => F[Unit]]
+  ): F[StreamPublisher[G]]
 
   def createPublisherWithListener(
       channel: Channel,
@@ -33,6 +33,6 @@ trait Publishing[F[_], G[_]] {
       routingKey: RoutingKey,
       flags: PublishingFlag,
       listener: PublishingListener[G]
-  ): F[F[AmqpMessage[String]] => F[Unit]]
+  ): F[StreamPublisher[G]]
 
 }

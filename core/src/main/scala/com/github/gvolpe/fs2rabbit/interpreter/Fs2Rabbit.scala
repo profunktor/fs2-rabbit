@@ -49,7 +49,7 @@ class Fs2Rabbit[F[_]: Concurrent] private[fs2rabbit] (
     config: Fs2RabbitConfig,
     connectionStream: Connection[Stream[F, ?]],
     amqpClient: AMQPClient[Stream[F, ?], F],
-    acker: Acker[Stream[F, ?]],
+    acker: Acker[F],
     consumer: Consumer[Stream[F, ?], F]
 ) {
 

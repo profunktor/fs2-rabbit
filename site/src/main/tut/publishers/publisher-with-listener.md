@@ -56,7 +56,7 @@ import fs2._
 
 def publishSimpleMessage[F[_]: Sync](publisher: StreamPublisher[F]): Stream[F, Unit] = {
   val message = AmqpMessage("Hello world!", AmqpProperties.empty)
-  Stream(message).covary[F] to publisher
+  Stream(message).covary[F] evalMap publisher
 }
 ```
 

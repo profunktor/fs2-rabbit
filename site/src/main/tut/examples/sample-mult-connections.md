@@ -79,6 +79,6 @@ def program(implicit F: Fs2Rabbit[IO]) =
     c1 <- p1
     c2 <- p2
     pb <- p3
-    _  <- (c1 through pipe to pb).concurrently(c2 through pipe to pb)
+    _  <- (c1 through pipe evalMap pb).concurrently(c2 through pipe evalMap pb)
   } yield ()
 ```

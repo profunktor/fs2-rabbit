@@ -26,17 +26,17 @@ import com.github.gvolpe.fs2rabbit.effects.EnvelopeDecoder
 import com.github.gvolpe.fs2rabbit.model.AmqpHeaderVal._
 import com.rabbitmq.client.impl.LongStringHelper
 import com.rabbitmq.client.{AMQP, Channel, LongString}
-import fs2.{Sink, Stream}
+import fs2.Stream
 import cats.implicits._
 
 import scala.collection.JavaConverters._
 
 object model {
 
-  type StreamAcker[F[_]]            = Sink[F, AckResult]
+  type StreamAcker[F[_]]            = AckResult => F[Unit]
   type StreamConsumer[F[_], A]      = Stream[F, AmqpEnvelope[A]]
   type StreamAckerConsumer[F[_], A] = (StreamAcker[F], StreamConsumer[F, A])
-  type StreamPublisher[F[_]]        = Sink[F, AmqpMessage[String]]
+  type StreamPublisher[F[_]]        = AmqpMessage[String] => F[Unit]
   type PublishingListener[F[_]]     = PublishReturn => F[Unit]
 
   trait AMQPChannel {

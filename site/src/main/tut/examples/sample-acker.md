@@ -42,9 +42,9 @@ class Flow[F[_]: Concurrent](
 
   val flow: Stream[F, Unit] =
     Stream(
-      Stream(simpleMessage).covary[F] to publisher,
-      Stream(classMessage).covary[F] through jsonEncode[Person] to publisher,
-      consumer through logger to acker
+      Stream(simpleMessage).covary[F] evalMap publisher,
+      Stream(classMessage).covary[F] through jsonEncode[Person] evalMap publisher,
+      consumer through logger evalMap acker
     ).parJoin(3)
 
 }

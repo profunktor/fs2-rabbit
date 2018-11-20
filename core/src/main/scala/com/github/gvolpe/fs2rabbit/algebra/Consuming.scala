@@ -17,7 +17,7 @@
 package com.github.gvolpe.fs2rabbit.algebra
 
 import com.github.gvolpe.fs2rabbit.effects.EnvelopeDecoder
-import com.github.gvolpe.fs2rabbit.model.{AckResult, AmqpEnvelope, BasicQos, ConsumerArgs, QueueName}
+import com.github.gvolpe.fs2rabbit.model._
 import com.rabbitmq.client.Channel
 
 trait Consuming[F[_], G[_]] {
@@ -27,7 +27,7 @@ trait Consuming[F[_], G[_]] {
       queueName: QueueName,
       basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
       consumerArgs: Option[ConsumerArgs] = None
-  )(implicit decoder: EnvelopeDecoder[G, A]): F[(F[AckResult] => F[Unit], F[AmqpEnvelope[A]])]
+  )(implicit decoder: EnvelopeDecoder[G, A]): F[(StreamAcker[G], F[AmqpEnvelope[A]])]
 
   def createAutoAckConsumer[A](
       channel: Channel,
