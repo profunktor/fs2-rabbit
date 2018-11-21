@@ -16,6 +16,7 @@
 
 package com.github.gvolpe.fs2rabbit.examples
 
+import cats.data.Kleisli
 import cats.effect.{Concurrent, Sync, Timer}
 import cats.syntax.functor._
 import com.github.gvolpe.fs2rabbit.config.declaration.DeclarationQueueConfig
@@ -25,12 +26,16 @@ import com.github.gvolpe.fs2rabbit.model.AckResult.Ack
 import com.github.gvolpe.fs2rabbit.model.AmqpHeaderVal.{LongVal, StringVal}
 import com.github.gvolpe.fs2rabbit.model._
 import fs2.{Pipe, Stream}
+import java.nio.charset.StandardCharsets.UTF_8
+import cats.syntax.applicative._
 
 class AckerConsumerDemo[F[_]: Concurrent: Timer](implicit R: Fs2Rabbit[F]) {
 
   private val queueName    = QueueName("testQ")
   private val exchangeName = ExchangeName("testEX")
   private val routingKey   = RoutingKey("testRK")
+  implicit val stringMessageEncoder =
+    Kleisli[F, AmqpMessage[String], AmqpMessage[Array[Byte]]](s => s.copy(payload = s.payload.getBytes(UTF_8)).pure[F])
 
   def putStrLn(str: String): F[Unit] = Sync[F].delay(println(str))
 
@@ -49,8 +54,11 @@ class AckerConsumerDemo[F[_]: Concurrent: Timer](implicit R: Fs2Rabbit[F]) {
       _                 <- R.declareExchange(exchangeName, ExchangeType.Topic)
       _                 <- R.bindQueue(queueName, exchangeName, routingKey)
       (acker, consumer) <- R.createAckerConsumer[String](queueName)
-      publisher         <- R.createPublisherWithListener(exchangeName, routingKey, publishingFlag, publishingListener)
-      result            <- new Flow[F, String](consumer, acker, logPipe, publisher).flow
+      publisher <- R.createPublisherWithListener[AmqpMessage[String]](exchangeName,
+                                                                      routingKey,
+                                                                      publishingFlag,
+                                                                      publishingListener)
+      result <- new Flow[F, String](consumer, acker, logPipe, publisher).flow
     } yield result
   }
 
@@ -60,7 +68,7 @@ class Flow[F[_]: Concurrent, A](
     consumer: StreamConsumer[F, A],
     acker: AckResult => F[Unit],
     logger: Pipe[F, AmqpEnvelope[A], AckResult],
-    publisher: StreamPublisher[F]
+    publisher: StreamPublisher[F, AmqpMessage[String]]
 ) {
 
   import io.circe.generic.auto._
