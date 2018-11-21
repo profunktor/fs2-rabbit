@@ -41,7 +41,7 @@ class ConsumerProgram[F[_]: Concurrent](AMQP: AMQPClient[Stream[F, ?], F])(impli
       autoAck: Boolean = false,
       noLocal: Boolean = false,
       exclusive: Boolean = false,
-      consumerTag: String = "",
+      consumerTag: ConsumerTag = ConsumerTag(""),
       args: Arguments = Map.empty
   )(implicit decoder: EnvelopeDecoder[F, A]): StreamConsumer[F, A] =
     for {
