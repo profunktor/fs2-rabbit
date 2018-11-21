@@ -99,15 +99,22 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
       channel: Channel,
       queueName: QueueName,
       autoAck: Boolean,
-      consumerTag: String,
+      consumerTag: ConsumerTag,
       noLocal: Boolean,
       exclusive: Boolean,
       args: Arguments
-  )(internals: AMQPInternals[F, A])(implicit decoder: EnvelopeDecoder[F, A]): Stream[F, String] =
+  )(internals: AMQPInternals[F, A])(implicit decoder: EnvelopeDecoder[F, A]): Stream[F, ConsumerTag] =
     for {
       dc <- defaultConsumer(channel, internals)
-      rs <- SE.evalF(channel.basicConsume(queueName.value, autoAck, consumerTag, noLocal, exclusive, args, dc))
-    } yield rs
+      rs <- SE.evalF(channel.basicConsume(queueName.value, autoAck, consumerTag.value, noLocal, exclusive, args, dc))
+    } yield ConsumerTag(rs)
+
+  override def basicCancel(
+      channel: Channel,
+      consumerTag: ConsumerTag
+  ): Stream[F, Unit] = SE.evalF {
+    channel.basicCancel(consumerTag.value)
+  }
 
   override def basicPublish(
       channel: Channel,

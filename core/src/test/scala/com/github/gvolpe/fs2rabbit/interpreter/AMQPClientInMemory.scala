@@ -37,6 +37,7 @@ class AMQPClientInMemory(
     exchanges: Ref[IO, Set[ExchangeName]],
     binds: Ref[IO, Map[String, ExchangeName]],
     ref: Ref[IO, AMQPInternals[IO, String]],
+    consumers: Ref[IO, Set[ConsumerTag]],
     publishingQ: Queue[IO, Either[Throwable, AmqpEnvelope[String]]],
     listenerQ: Queue[IO, PublishReturn],
     ackerQ: Queue[IO, AckResult],
@@ -74,20 +75,41 @@ class AMQPClientInMemory(
       channel: Channel,
       queueName: model.QueueName,
       autoAck: Boolean,
-      consumerTag: String,
+      consumerTag: ConsumerTag,
       noLocal: Boolean,
       exclusive: Boolean,
       args: Arguments
-  )(internals: AMQPInternals[IO, A])(implicit decoder: EnvelopeDecoder[IO, A]): Stream[IO, String] = {
+  )(internals: AMQPInternals[IO, A])(implicit decoder: EnvelopeDecoder[IO, A]): Stream[IO, ConsumerTag] = {
     val ifError =
-      raiseError[String](s"Queue ${queueName.value} does not exist!")
+      raiseError[ConsumerTag](s"Queue ${queueName.value} does not exist!")
 
     val stringInternals = internals.asInstanceOf[AMQPInternals[IO, String]]
 
     Stream
       .eval(queues.get)
       .flatMap(_.find(_.value == queueName.value).fold(ifError) { _ =>
-        Stream.eval(ref.set(stringInternals)).map(_ => "dequeue1 happens in AckerConsumerProgram.createConsumer")
+        val update = for {
+          _ <- ref.set(stringInternals)
+          _ <- consumers.update(_ + consumerTag)
+          tag = if (consumerTag.value.isEmpty) "dequeue1 happens in AckerConsumerProgram.createConsumer"
+          else consumerTag.value
+        } yield ConsumerTag(tag)
+
+        Stream.eval(update)
+      })
+  }
+
+  override def basicCancel(
+      channel: Channel,
+      consumerTag: ConsumerTag
+  ): Stream[IO, Unit] = {
+    val ifError =
+      raiseError[Unit](s"ConsumerTag ${consumerTag.value} does not exist!")
+
+    Stream
+      .eval(consumers.get)
+      .flatMap(_.find(_ == consumerTag).fold(ifError) { _ =>
+        Stream.eval(consumers.update(_ - consumerTag))
       })
   }
 
