@@ -36,4 +36,16 @@ trait Publishing[F[_], G[_]] {
       listener: PublishReturn => G[Unit]
   )(implicit encoder: MessageEncoder[G, A]): F[A => G[Unit]]
 
+  def createRoutingPublisher[A](
+      channel: Channel,
+      exchangeName: ExchangeName
+  )(implicit encoder: MessageEncoder[G, A]): F[RoutingKey => A => G[Unit]]
+
+  def createRoutingPublisherWithListener[A](
+      channel: Channel,
+      exchangeName: ExchangeName,
+      flags: PublishingFlag,
+      listener: PublishReturn => G[Unit]
+  )(implicit encoder: MessageEncoder[G, A]): F[RoutingKey => A => G[Unit]]
+
 }

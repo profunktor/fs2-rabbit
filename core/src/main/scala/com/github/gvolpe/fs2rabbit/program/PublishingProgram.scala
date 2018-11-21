@@ -30,9 +30,7 @@ class PublishingProgram[F[_]: FlatMap](AMQP: AMQPClient[Stream[F, ?], F]) extend
       exchangeName: ExchangeName,
       routingKey: RoutingKey
   )(implicit encoder: MessageEncoder[F, A]): Stream[F, A => F[Unit]] =
-    Stream(
-      encoder.flatMapF(AMQP.basicPublish(channel, exchangeName, routingKey, _)).run
-    )
+    createRoutingPublisher(channel, exchangeName).map(_(routingKey))
 
   override def createPublisherWithListener[A](
       channel: Channel,
@@ -41,8 +39,24 @@ class PublishingProgram[F[_]: FlatMap](AMQP: AMQPClient[Stream[F, ?], F]) extend
       flag: PublishingFlag,
       listener: PublishReturn => F[Unit]
   )(implicit encoder: MessageEncoder[F, A]): Stream[F, A => F[Unit]] =
+    createRoutingPublisherWithListener(channel, exchangeName, flag, listener).map(_(routingKey))
+
+  override def createRoutingPublisher[A](
+      channel: Channel,
+      exchangeName: ExchangeName
+  )(implicit encoder: MessageEncoder[F, A]): Stream[F, RoutingKey => A => F[Unit]] =
+    Stream(
+      routingKey => encoder.flatMapF(msg => AMQP.basicPublish(channel, exchangeName, routingKey, msg)).run
+    )
+
+  override def createRoutingPublisherWithListener[A](
+      channel: Channel,
+      exchangeName: ExchangeName,
+      flag: PublishingFlag,
+      listener: PublishReturn => F[Unit]
+  )(implicit encoder: MessageEncoder[F, A]): Stream[F, RoutingKey => A => F[Unit]] =
     AMQP.addPublishingListener(channel, listener).drain ++ Stream(
-      encoder.flatMapF(AMQP.basicPublishWithFlag(channel, exchangeName, routingKey, flag, _)).run
+      routingKey => encoder.flatMapF(msg => AMQP.basicPublishWithFlag(channel, exchangeName, routingKey, flag, msg)).run
     )
 
 }

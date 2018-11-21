@@ -544,4 +544,49 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
     }
   }
 
+  it should "create a routing publisher, an auto-ack consumer, publish a message and consume it" in StreamAssertion(
+    TestFs2Rabbit(config)) { interpreter =>
+    import interpreter._
+    createConnectionChannel flatMap { implicit channel =>
+      for {
+        _         <- declareExchange(exchangeName, ExchangeType.Topic)
+        _         <- declareQueue(DeclarationQueueConfig.default(queueName))
+        _         <- bindQueue(queueName, exchangeName, routingKey)
+        publisher <- createRoutingPublisher[String](exchangeName)
+        consumer  <- createAutoAckConsumer(queueName)
+        msg       = Stream("test")
+        _         <- msg.covary[IO] evalMap publisher(routingKey)
+        result    <- consumer.take(1)
+      } yield {
+        result should be(AmqpEnvelope(DeliveryTag(1), "test", AmqpProperties(contentEncoding = Some("UTF-8"))))
+      }
+    }
+  }
+
+  it should "create a routing publisher with listener and flag 'mandatory=true', an auto-ack consumer, publish a message and return to the listener" in StreamAssertion(
+    TestFs2Rabbit(config)) { interpreter =>
+    import interpreter._
+    val flag = PublishingFlag(mandatory = true)
+
+    createConnectionChannel.flatMap { implicit channel =>
+      for {
+        _         <- declareExchange(exchangeName, ExchangeType.Topic)
+        _         <- declareQueue(DeclarationQueueConfig.default(queueName))
+        _         <- bindQueue(queueName, exchangeName, routingKey)
+        promise   <- Stream.eval(Deferred[IO, PublishReturn])
+        publisher <- createRoutingPublisherWithListener[String](exchangeName, flag, listener(promise))
+        consumer  <- createAutoAckConsumer(queueName)
+        msg       = Stream("test")
+        _         <- msg.covary[IO] evalMap publisher(RoutingKey("diff-rk"))
+        callback  <- Stream.eval(promise.get.map(_.some).timeoutTo(500.millis, IO.pure(none[PublishReturn]))).unNone
+        result    <- takeWithTimeOut(consumer, 500.millis)
+      } yield {
+        result should be(None)
+        callback.body.value should equal("test".getBytes(UTF_8))
+        callback.routingKey should be(RoutingKey("diff-rk"))
+        callback.replyText should be(ReplyText("test"))
+      }
+    }
+  }
+
 }
