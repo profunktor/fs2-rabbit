@@ -48,8 +48,8 @@ class ConsumingProgram[F[_]: Concurrent](AMQP: AMQPClient[Stream[F, ?], F])(impl
       internalQ <- Stream.eval(Queue.bounded[F, Either[Throwable, AmqpEnvelope[A]]](500))
       internals = AMQPInternals[F, A](Some(internalQ))
       _         <- AMQP.basicQos(channel, basicQos)
-      _         <- AMQP.basicConsume(channel, queueName, autoAck, consumerTag, noLocal, exclusive, args)(internals)
+      consumeF  = AMQP.basicConsume(channel, queueName, autoAck, consumerTag, noLocal, exclusive, args)(internals)
+      _         <- Stream.bracket(consumeF)(tag => AMQP.basicCancel(channel, tag))
       consumer  <- Stream.repeatEval(internalQ.dequeue1) through resilientConsumer
     } yield consumer
-
 }

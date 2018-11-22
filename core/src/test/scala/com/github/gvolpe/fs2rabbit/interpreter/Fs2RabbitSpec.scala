@@ -189,27 +189,6 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
       }
   }
 
-  it should "create a consumer and cancel subscription" in StreamAssertion(TestFs2Rabbit(config)) { interpreter =>
-    import interpreter._
-    createConnectionChannel flatMap { implicit channel =>
-      for {
-        _            <- declareExchange(exchangeName, ExchangeType.Topic)
-        _            <- declareQueue(DeclarationQueueConfig.default(queueName))
-        _            <- bindQueue(queueName, exchangeName, routingKey, QueueBindingArgs(Map.empty))
-        publisher    <- createPublisher(exchangeName, routingKey)
-        consumerTag  = ConsumerTag("XclusiveConsumer")
-        consumerArgs = ConsumerArgs(consumerTag = consumerTag, noLocal = false, exclusive = true, args = Map.empty)
-        consumer     <- createAutoAckConsumer(queueName, BasicQos(prefetchSize = 0, prefetchCount = 10), Some(consumerArgs))
-        msg          = Stream(AmqpMessage("test", AmqpProperties.empty))
-        _            <- msg.covary[IO] evalMap publisher
-        result       <- consumer.take(1)
-        _            <- basicCancel(consumerTag)
-      } yield {
-        result should be(AmqpEnvelope(DeliveryTag(1), "test", AmqpProperties()))
-      }
-    }
-  }
-
   it should "return an error as the result of 'basicCancel' if consumer doesn't exist" in StreamAssertion(
     TestFs2Rabbit(config)) { interpreter =>
     import interpreter._
@@ -218,7 +197,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
         _      <- declareExchange(exchangeName, ExchangeType.Topic)
         _      <- declareQueue(DeclarationQueueConfig.default(queueName))
         _      <- bindQueue(queueName, exchangeName, routingKey, QueueBindingArgs(Map.empty))
-        result <- basicCancel(ConsumerTag("something-random")).attempt.take(1)
+        result <- Stream.eval(basicCancel(ConsumerTag("something-random"))).attempt.take(1)
       } yield {
         result.left.get shouldBe a[java.io.IOException]
       }
