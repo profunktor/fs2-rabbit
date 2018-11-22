@@ -93,7 +93,7 @@ class Fs2Rabbit[F[_]: Concurrent] private[fs2rabbit] (
   def clearPublishingListeners(implicit channel: AMQPChannel): Stream[F, Unit] =
     amqpClient.clearPublishingListeners(channel.value)
 
-  def basicCancel(consumerTag: ConsumerTag)(implicit channel: AMQPChannel): Stream[F, Unit] =
+  def basicCancel(consumerTag: ConsumerTag)(implicit channel: AMQPChannel): F[Unit] =
     amqpClient.basicCancel(channel.value, consumerTag)
 
   def bindQueue(queueName: QueueName, exchangeName: ExchangeName, routingKey: RoutingKey)(

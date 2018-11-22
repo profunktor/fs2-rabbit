@@ -35,40 +35,38 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
   private[fs2rabbit] def defaultConsumer[A](
       channel: Channel,
       internals: AMQPInternals[F, A]
-  )(implicit decoder: EnvelopeDecoder[F, A]): Stream[F, Consumer] =
-    SE.pure(
-      new DefaultConsumer(channel) {
+  )(implicit decoder: EnvelopeDecoder[F, A]): F[Consumer] = Sync[F].delay {
+    new DefaultConsumer(channel) {
 
-        override def handleCancel(consumerTag: String): Unit =
-          internals.queue.fold(()) { internalQ =>
-            internalQ
-              .enqueue1(Left(new Exception(s"Queue might have been DELETED! $consumerTag")))
-              .toIO
-              .unsafeRunAsync(_ => ())
-          }
+      override def handleCancel(consumerTag: String): Unit =
+        internals.queue.fold(()) { internalQ =>
+          internalQ
+            .enqueue1(Left(new Exception(s"Queue might have been DELETED! $consumerTag")))
+            .toIO
+            .unsafeRunAsync(_ => ())
+        }
 
-        override def handleDelivery(
-            consumerTag: String,
-            envelope: Envelope,
-            properties: AMQP.BasicProperties,
-            body: Array[Byte]
-        ): Unit = {
-          val tag   = envelope.getDeliveryTag
-          val props = AmqpProperties.from(properties)
-          internals.queue.fold(()) { internalQ =>
-            val envelope = AmqpEnvelope(DeliveryTag(tag), body, props)
-            decoder
-              .run(envelope)
-              .attempt
-              .flatMap { msg =>
-                internalQ.enqueue1(msg.map(a => envelope.copy(payload = a)))
-              }
-              .toIO
-              .unsafeRunAsync(_ => ())
-          }
+      override def handleDelivery(
+          consumerTag: String,
+          envelope: Envelope,
+          properties: AMQP.BasicProperties,
+          body: Array[Byte]
+      ): Unit = {
+        val tag   = envelope.getDeliveryTag
+        val props = AmqpProperties.from(properties)
+        internals.queue.fold(()) { internalQ =>
+          val envelope = AmqpEnvelope(DeliveryTag(tag), body, props)
+          decoder
+            .run(envelope)
+            .attempt
+            .flatMap { msg => internalQ.enqueue1(msg.map(a => envelope.copy(payload = a)))
+            }
+            .toIO
+            .unsafeRunAsync(_ => ())
         }
       }
-    )
+    }
+  }
 
   override def basicAck(
       channel: Channel,
@@ -103,16 +101,18 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
       noLocal: Boolean,
       exclusive: Boolean,
       args: Arguments
-  )(internals: AMQPInternals[F, A])(implicit decoder: EnvelopeDecoder[F, A]): Stream[F, ConsumerTag] =
+  )(internals: AMQPInternals[F, A])(implicit decoder: EnvelopeDecoder[F, A]): F[ConsumerTag] =
     for {
       dc <- defaultConsumer(channel, internals)
-      rs <- SE.evalF(channel.basicConsume(queueName.value, autoAck, consumerTag.value, noLocal, exclusive, args, dc))
+      rs <- Sync[F].delay(
+             channel.basicConsume(queueName.value, autoAck, consumerTag.value, noLocal, exclusive, args, dc)
+           )
     } yield ConsumerTag(rs)
 
   override def basicCancel(
       channel: Channel,
       consumerTag: ConsumerTag
-  ): Stream[F, Unit] = SE.evalF {
+  ): F[Unit] = Sync[F].delay {
     channel.basicCancel(consumerTag.value)
   }
 

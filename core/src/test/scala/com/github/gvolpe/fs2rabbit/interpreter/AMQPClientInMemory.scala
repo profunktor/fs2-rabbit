@@ -79,38 +79,35 @@ class AMQPClientInMemory(
       noLocal: Boolean,
       exclusive: Boolean,
       args: Arguments
-  )(internals: AMQPInternals[IO, A])(implicit decoder: EnvelopeDecoder[IO, A]): Stream[IO, ConsumerTag] = {
-    val ifError =
-      raiseError[ConsumerTag](s"Queue ${queueName.value} does not exist!")
+  )(internals: AMQPInternals[IO, A])(implicit decoder: EnvelopeDecoder[IO, A]): IO[ConsumerTag] = {
+    val ifMissing =
+      new java.io.IOException(s"Queue ${queueName.value} does not exist!")
 
     val stringInternals = internals.asInstanceOf[AMQPInternals[IO, String]]
 
-    Stream
-      .eval(queues.get)
-      .flatMap(_.find(_.value == queueName.value).fold(ifError) { _ =>
-        val update = for {
-          _ <- ref.set(stringInternals)
-          _ <- consumers.update(_ + consumerTag)
-          tag = if (consumerTag.value.isEmpty) "dequeue1 happens in AckerConsumerProgram.createConsumer"
-          else consumerTag.value
-        } yield ConsumerTag(tag)
+    val tag =
+      if (consumerTag.value.isEmpty) ConsumerTag("consumer-" + scala.util.Random.alphanumeric.take(5).mkString(""))
+      else consumerTag
 
-        Stream.eval(update)
-      })
+    for {
+      q <- queues.get
+      _ <- IO.fromEither(q.find(_.value == queueName.value).toRight(ifMissing))
+      _ <- ref.set(stringInternals)
+      _ <- consumers.update(_ + tag)
+    } yield tag
   }
 
   override def basicCancel(
       channel: Channel,
       consumerTag: ConsumerTag
-  ): Stream[IO, Unit] = {
-    val ifError =
-      raiseError[Unit](s"ConsumerTag ${consumerTag.value} does not exist!")
+  ): IO[Unit] = {
+    def ifMissing = new java.io.IOException(s"ConsumerTag ${consumerTag.value} does not exist!")
 
-    Stream
-      .eval(consumers.get)
-      .flatMap(_.find(_ == consumerTag).fold(ifError) { _ =>
-        Stream.eval(consumers.update(_ - consumerTag))
-      })
+    for {
+      c <- consumers.get
+      _ <- IO.fromEither(c.find(_ == consumerTag).toRight(ifMissing))
+      _ <- consumers.update(_ - consumerTag)
+    } yield ()
   }
 
   override def basicPublish(
