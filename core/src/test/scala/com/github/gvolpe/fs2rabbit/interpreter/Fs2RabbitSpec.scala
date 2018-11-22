@@ -496,7 +496,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
     }
   }
 
-  def listener(promise: Deferred[IO, PublishReturn]): PublishingListener[IO] = promise.complete
+  def listener(promise: Deferred[IO, PublishReturn]): PublishReturn => IO[Unit] = promise.complete
 
   it should "create a publisher with listener and flag 'mandatory=true', an auto-ack consumer, publish a message and return to the listener" in StreamAssertion(
     TestFs2Rabbit(config)) { interpreter =>

@@ -30,7 +30,7 @@ class AckConsumingProgram[F[_]](A: Acking[F], C: Consuming[Stream[F, ?], F])(imp
       queueName: QueueName,
       basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
       consumerArgs: Option[ConsumerArgs] = None
-  )(implicit decoder: EnvelopeDecoder[F, A]): Stream[F, (Acker[F], StreamConsumer[F, A])] = {
+  )(implicit decoder: EnvelopeDecoder[F, A]): Stream[F, (AckResult => F[Unit], Stream[F, AmqpEnvelope[A]])] = {
     val consumer = consumerArgs.fold(C.createConsumer(queueName, channel, basicQos)) { args =>
       C.createConsumer[A](
         queueName = queueName,
@@ -50,7 +50,7 @@ class AckConsumingProgram[F[_]](A: Acking[F], C: Consuming[Stream[F, ?], F])(imp
       queueName: QueueName,
       basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
       consumerArgs: Option[ConsumerArgs] = None
-  )(implicit decoder: EnvelopeDecoder[F, A]): Stream[F, StreamConsumer[F, A]] = {
+  )(implicit decoder: EnvelopeDecoder[F, A]): Stream[F, Stream[F, AmqpEnvelope[A]]] = {
     val consumer = consumerArgs.fold(C.createConsumer(queueName, channel, basicQos, autoAck = true)) { args =>
       C.createConsumer[A](
         queueName = queueName,

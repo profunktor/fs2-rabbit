@@ -6,7 +6,7 @@ number: 9
 
 # Json message Consuming
 
-A stream-based `Json Decoder` that can be connected to a `StreamConsumer` is provided by the extra dependency `fs2-rabbit-circe`. Implicit decoders for your classes must be on scope. You can use `Circe`'s codec auto derivation for example:
+A stream-based `Json Decoder` that can be connected to a stream of `AmqpEnvelope` is provided by the extra dependency `fs2-rabbit-circe`. Implicit decoders for your classes must be on scope. You can use `Circe`'s codec auto derivation for example:
 
 ```tut:book:silent
 import cats.effect.IO
@@ -22,7 +22,7 @@ case class Person(id: Long, name: String, address: Address)
 
 object ioDecoder extends Fs2JsonDecoder[IO]
 
-def program(consumer: StreamConsumer[IO, String], acker: Acker[IO], errorSink: Sink[IO, Error], processorSink: Sink[IO, (Person, DeliveryTag)]) = {
+def program(consumer: Stream[IO, AmqpEnvelope[String]], acker: AckResult => IO[Unit], errorSink: Sink[IO, Error], processorSink: Sink[IO, (Person, DeliveryTag)]) = {
   import ioDecoder._
 
   (consumer through jsonDecode[Person]).flatMap {

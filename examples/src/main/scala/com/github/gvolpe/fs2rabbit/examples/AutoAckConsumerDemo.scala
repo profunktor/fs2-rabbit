@@ -53,9 +53,9 @@ class AutoAckConsumerDemo[F[_]: Concurrent](implicit R: Fs2Rabbit[F]) {
 }
 
 class AutoAckFlow[F[_]: Concurrent, A](
-    consumer: StreamConsumer[F, A],
+    consumer: Stream[F, AmqpEnvelope[A]],
     logger: Pipe[F, AmqpEnvelope[A], AckResult],
-    publisher: Publisher[F]
+    publisher: AmqpMessage[String] => F[Unit]
 )(implicit SE: StreamEval[F]) {
 
   import io.circe.generic.auto._

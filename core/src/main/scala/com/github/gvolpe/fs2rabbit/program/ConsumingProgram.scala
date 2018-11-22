@@ -43,7 +43,7 @@ class ConsumingProgram[F[_]: Concurrent](AMQP: AMQPClient[Stream[F, ?], F])(impl
       exclusive: Boolean = false,
       consumerTag: String = "",
       args: Arguments = Map.empty
-  )(implicit decoder: EnvelopeDecoder[F, A]): StreamConsumer[F, A] =
+  )(implicit decoder: EnvelopeDecoder[F, A]): Stream[F, AmqpEnvelope[A]] =
     for {
       internalQ <- Stream.eval(Queue.bounded[F, Either[Throwable, AmqpEnvelope[A]]](500))
       internals = AMQPInternals[F, A](Some(internalQ))

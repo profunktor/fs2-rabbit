@@ -27,7 +27,7 @@ trait AckConsuming[F[_], G[_]] {
       queueName: QueueName,
       basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
       consumerArgs: Option[ConsumerArgs] = None
-  )(implicit decoder: EnvelopeDecoder[G, A]): F[(Acker[G], F[AmqpEnvelope[A]])]
+  )(implicit decoder: EnvelopeDecoder[G, A]): F[(AckResult => G[Unit], F[AmqpEnvelope[A]])]
 
   def createAutoAckConsumer[A](
       channel: Channel,

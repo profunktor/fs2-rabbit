@@ -20,7 +20,7 @@ case class Person(id: Long, name: String, address: Address)
 
 object ioEncoder extends Fs2JsonEncoder[IO]
 
-def program(publisher: Publisher[IO]) = {
+def program(publisher: AmqpMessage[String] => IO[Unit]) = {
   import ioEncoder._
 
   val message = AmqpMessage(Person(1L, "Sherlock", Address(212, "Baker St")), AmqpProperties.empty)

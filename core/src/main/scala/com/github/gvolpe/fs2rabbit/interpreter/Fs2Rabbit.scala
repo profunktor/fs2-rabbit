@@ -65,29 +65,30 @@ class Fs2Rabbit[F[_]: Concurrent] private[fs2rabbit] (
       queueName: QueueName,
       basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
       consumerArgs: Option[ConsumerArgs] = None
-  )(implicit channel: AMQPChannel, decoder: EnvelopeDecoder[F, A]): Stream[F, (Acker[F], StreamConsumer[F, A])] =
+  )(implicit channel: AMQPChannel,
+    decoder: EnvelopeDecoder[F, A]): Stream[F, (AckResult => F[Unit], Stream[F, AmqpEnvelope[A]])] =
     consumingProgram.createAckerConsumer(channel.value, queueName, basicQos, consumerArgs)
 
   def createAutoAckConsumer[A](
       queueName: QueueName,
       basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
       consumerArgs: Option[ConsumerArgs] = None
-  )(implicit channel: AMQPChannel, decoder: EnvelopeDecoder[F, A]): Stream[F, StreamConsumer[F, A]] =
+  )(implicit channel: AMQPChannel, decoder: EnvelopeDecoder[F, A]): Stream[F, Stream[F, AmqpEnvelope[A]]] =
     consumingProgram.createAutoAckConsumer(channel.value, queueName, basicQos, consumerArgs)
 
   def createPublisher(exchangeName: ExchangeName, routingKey: RoutingKey)(
-      implicit channel: AMQPChannel): Stream[F, Publisher[F]] =
+      implicit channel: AMQPChannel): Stream[F, AmqpMessage[String] => F[Unit]] =
     publishingProgram.createPublisher(channel.value, exchangeName, routingKey)
 
   def createPublisherWithListener(
       exchangeName: ExchangeName,
       routingKey: RoutingKey,
       flags: PublishingFlag,
-      listener: PublishingListener[F]
-  )(implicit channel: AMQPChannel): Stream[F, Publisher[F]] =
+      listener: PublishReturn => F[Unit]
+  )(implicit channel: AMQPChannel): Stream[F, AmqpMessage[String] => F[Unit]] =
     publishingProgram.createPublisherWithListener(channel.value, exchangeName, routingKey, flags, listener)
 
-  def addPublishingListener(listener: PublishingListener[F])(implicit channel: AMQPChannel): Stream[F, Unit] =
+  def addPublishingListener(listener: PublishReturn => F[Unit])(implicit channel: AMQPChannel): Stream[F, Unit] =
     amqpClient.addPublishingListener(channel.value, listener)
 
   def clearPublishingListeners(implicit channel: AMQPChannel): Stream[F, Unit] =
