@@ -18,14 +18,13 @@ package com.github.gvolpe.fs2rabbit.interpreter
 
 import cats.effect.{Effect, Sync}
 import cats.effect.syntax.effect._
-import cats.implicits._
 import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, AMQPInternals}
 import com.github.gvolpe.fs2rabbit.arguments._
 import com.github.gvolpe.fs2rabbit.config.declaration.{DeclarationExchangeConfig, DeclarationQueueConfig}
 import com.github.gvolpe.fs2rabbit.config.deletion
 import com.github.gvolpe.fs2rabbit.config.deletion.DeletionQueueConfig
 import com.github.gvolpe.fs2rabbit.effects.BoolValue.syntax._
-import com.github.gvolpe.fs2rabbit.effects.{EnvelopeDecoder, StreamEval}
+import com.github.gvolpe.fs2rabbit.effects.StreamEval
 import com.github.gvolpe.fs2rabbit.model._
 import com.rabbitmq.client._
 import fs2.Stream
@@ -34,8 +33,8 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
 
   private[fs2rabbit] def defaultConsumer[A](
       channel: Channel,
-      internals: AMQPInternals[F, A]
-  )(implicit decoder: EnvelopeDecoder[F, A]): Stream[F, Consumer] =
+      internals: AMQPInternals[F]
+  ): Stream[F, Consumer] =
     SE.pure(
       new DefaultConsumer(channel) {
 
@@ -57,12 +56,8 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
           val props = AmqpProperties.from(properties)
           internals.queue.fold(()) { internalQ =>
             val envelope = AmqpEnvelope(DeliveryTag(tag), body, props)
-            decoder
-              .run(envelope)
-              .attempt
-              .flatMap { msg =>
-                internalQ.enqueue1(msg.map(a => envelope.copy(payload = a)))
-              }
+            internalQ
+              .enqueue1(Right(envelope))
               .toIO
               .unsafeRunAsync(_ => ())
           }
@@ -103,7 +98,7 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
       noLocal: Boolean,
       exclusive: Boolean,
       args: Arguments
-  )(internals: AMQPInternals[F, A])(implicit decoder: EnvelopeDecoder[F, A]): Stream[F, String] =
+  )(internals: AMQPInternals[F]): Stream[F, String] =
     for {
       dc <- defaultConsumer(channel, internals)
       rs <- SE.evalF(channel.basicConsume(queueName.value, autoAck, consumerTag, noLocal, exclusive, args, dc))

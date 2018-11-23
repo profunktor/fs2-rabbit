@@ -24,6 +24,10 @@ import com.github.gvolpe.fs2rabbit.effects.{EnvelopeDecoder, StreamEval}
 import com.rabbitmq.client.Channel
 import fs2.{Pipe, Stream}
 import fs2.concurrent.Queue
+import cats.syntax.flatMap._
+import cats.syntax.monadError._
+import cats.syntax.applicativeError._
+import cats.syntax.functor._
 
 class ConsumerProgram[F[_]: Concurrent](AMQP: AMQPClient[Stream[F, ?], F])(implicit SE: StreamEval[F])
     extends Consumer[Stream[F, ?], F] {
@@ -45,11 +49,14 @@ class ConsumerProgram[F[_]: Concurrent](AMQP: AMQPClient[Stream[F, ?], F])(impli
       args: Arguments = Map.empty
   )(implicit decoder: EnvelopeDecoder[F, A]): StreamConsumer[F, A] =
     for {
-      internalQ <- Stream.eval(Queue.bounded[F, Either[Throwable, AmqpEnvelope[A]]](500))
-      internals = AMQPInternals[F, A](Some(internalQ))
+      internalQ <- Stream.eval(Queue.bounded[F, Either[Throwable, AmqpEnvelope[Array[Byte]]]](500))
+      internals = AMQPInternals[F](Some(internalQ))
       _         <- AMQP.basicQos(channel, basicQos)
       _         <- AMQP.basicConsume(channel, queueName, autoAck, consumerTag, noLocal, exclusive, args)(internals)
-      consumer  <- Stream.repeatEval(internalQ.dequeue1) through resilientConsumer
+      consumer <- Stream.repeatEval(
+                   internalQ.dequeue1.rethrow
+                     .flatMap(env => decoder(env).map(a => env.copy(payload = a)))
+                     .attempt) through resilientConsumer
     } yield consumer
 
 }

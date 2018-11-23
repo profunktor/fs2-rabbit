@@ -24,7 +24,6 @@ import com.github.gvolpe.fs2rabbit.arguments.Arguments
 import com.github.gvolpe.fs2rabbit.config.declaration.{DeclarationExchangeConfig, DeclarationQueueConfig}
 import com.github.gvolpe.fs2rabbit.config.deletion.DeletionQueueConfig
 import com.github.gvolpe.fs2rabbit.config.{Fs2RabbitConfig, deletion}
-import com.github.gvolpe.fs2rabbit.effects.EnvelopeDecoder
 import com.github.gvolpe.fs2rabbit.model
 import com.github.gvolpe.fs2rabbit.model.AckResult.{Ack, NAck}
 import com.github.gvolpe.fs2rabbit.model._
@@ -37,7 +36,7 @@ class AMQPClientInMemory(
     queues: Ref[IO, Set[QueueName]],
     exchanges: Ref[IO, Set[ExchangeName]],
     binds: Ref[IO, Map[String, ExchangeName]],
-    ref: Ref[IO, AMQPInternals[IO, Array[Byte]]],
+    ref: Ref[IO, AMQPInternals[IO]],
     publishingQ: Queue[IO, Either[Throwable, AmqpEnvelope[Array[Byte]]]],
     listenerQ: Queue[IO, PublishReturn],
     ackerQ: Queue[IO, AckResult],
@@ -79,16 +78,14 @@ class AMQPClientInMemory(
       noLocal: Boolean,
       exclusive: Boolean,
       args: Arguments
-  )(internals: AMQPInternals[IO, A])(implicit decoder: EnvelopeDecoder[IO, A]): Stream[IO, String] = {
+  )(internals: AMQPInternals[IO]): Stream[IO, String] = {
     val ifError =
       raiseError[String](s"Queue ${queueName.value} does not exist!")
-
-    val bytesInternals = internals.asInstanceOf[AMQPInternals[IO, Array[Byte]]]
 
     Stream
       .eval(queues.get)
       .flatMap(_.find(_.value == queueName.value).fold(ifError) { _ =>
-        Stream.eval(ref.set(bytesInternals)).map(_ => "dequeue1 happens in AckerConsumerProgram.createConsumer")
+        Stream.eval(ref.set(internals)).map(_ => "dequeue1 happens in AckerConsumerProgram.createConsumer")
       })
   }
 
