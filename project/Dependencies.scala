@@ -10,7 +10,7 @@ object Dependencies {
     val logback    = "1.1.3"
     val monix      = "3.0.0-RC2-c84f485"
 
-    val kindProjector    = "0.9.8"
+    val kindProjector    = "0.9.9"
     val betterMonadicFor = "0.3.0-M4"
 
     val scalaTest  = "3.0.5"
