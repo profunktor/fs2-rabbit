@@ -25,9 +25,9 @@ val ex  = ExchangeName("testEX")
 val rka = RoutingKey("RKA")
 val rkb = RoutingKey("RKB")
 
-val msg = Stream(AmqpMessage("Hey!", AmqpProperties.empty)).covary[IO]
+val msg = Stream("Hey!").covary[IO]
 
-def multipleConsumers(c1: StreamConsumer[IO, String], c2: StreamConsumer[IO, String], p: StreamPublisher[IO]) = {
+def multipleConsumers(c1: StreamConsumer[IO, String], c2: StreamConsumer[IO, String], p: StreamPublisher[IO, String]) = {
   Stream(
     msg evalMap p,
     c1 to (_.evalMap(m => IO(println(s"Consumer #1 >> $m")))),
@@ -44,7 +44,7 @@ def program(F: Fs2Rabbit[IO]) = F.createConnectionChannel.flatMap { implicit cha
       _  <- F.bindQueue(q2, ex, rkb)
       c1 <- F.createAutoAckConsumer[String](q1)
       c2 <- F.createAutoAckConsumer[String](q2)
-      p  <- F.createPublisher(ex, rka)
+      p  <- F.createPublisher[String](ex, rka)
       _  <- multipleConsumers(c1, c2, p)
     } yield ()
   }

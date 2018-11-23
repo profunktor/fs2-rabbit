@@ -10,6 +10,9 @@ Here we create a single `AutoAckConsumer`, a single `Publisher` and finally we p
 
 ```tut:book:silent
 import cats.effect._
+import cats.syntax.applicative._
+import cats.data.Kleisli
+import com.github.gvolpe.fs2rabbit.effects.MessageEncoder
 import com.github.gvolpe.fs2rabbit.config.declaration.DeclarationQueueConfig
 import com.github.gvolpe.fs2rabbit.effects.StreamEval
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
@@ -18,11 +21,12 @@ import com.github.gvolpe.fs2rabbit.model.AckResult.Ack
 import com.github.gvolpe.fs2rabbit.model.AmqpHeaderVal.{LongVal, StringVal}
 import com.github.gvolpe.fs2rabbit.model._
 import fs2.{Pipe, Stream}
+import java.nio.charset.StandardCharsets.UTF_8
 
 class AutoAckFlow[F[_]: Concurrent](
   consumer: StreamConsumer[F, String],
   logger: Pipe[F, AmqpEnvelope[String], AckResult],
-  publisher: StreamPublisher[F]
+  publisher: StreamPublisher[F, AmqpMessage[String]]
 )(implicit SE: StreamEval[F]) {
 
   import io.circe.generic.auto._
@@ -53,6 +57,9 @@ class AutoAckConsumerDemo[F[_]: Concurrent](implicit F: Fs2Rabbit[F], SE: Stream
   private val queueName    = QueueName("testQ")
   private val exchangeName = ExchangeName("testEX")
   private val routingKey   = RoutingKey("testRK")
+  implicit val amqpMessageEncoder: MessageEncoder[F, AmqpMessage[String]] = Kleisli { msg: AmqpMessage[String] =>
+    msg.copy(payload = msg.payload.getBytes(UTF_8)).pure[F]
+  }
 
   def logPipe: Pipe[F, AmqpEnvelope[String], AckResult] = { streamMsg =>
     for {
@@ -67,7 +74,7 @@ class AutoAckConsumerDemo[F[_]: Concurrent](implicit F: Fs2Rabbit[F], SE: Stream
       _         <- F.declareExchange(exchangeName, ExchangeType.Topic)
       _         <- F.bindQueue(queueName, exchangeName, routingKey)
       consumer  <- F.createAutoAckConsumer[String](queueName)
-      publisher <- F.createPublisher(exchangeName, routingKey)
+      publisher <- F.createPublisher[AmqpMessage[String]](exchangeName, routingKey)
       result    <- new AutoAckFlow(consumer, logPipe, publisher).flow
     } yield result
   }

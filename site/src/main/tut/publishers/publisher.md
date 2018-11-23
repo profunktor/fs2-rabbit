@@ -17,12 +17,12 @@ import fs2._
 val exchangeName = ExchangeName("testEX")
 val routingKey   = RoutingKey("testRK")
 
-def doSomething(publisher: StreamPublisher[IO]): Stream[IO, Unit] = Stream.eval(IO.unit)
+def doSomething(publisher: StreamPublisher[IO, String]): Stream[IO, Unit] = Stream.eval(IO.unit)
 
 def program(implicit R: Fs2Rabbit[IO]) =
   R.createConnectionChannel.flatMap { implicit channel => // Stream[IO, AMQPChannel]
     for {
-      p <- R.createPublisher(exchangeName, routingKey)	  // StreamPublisher[IO]
+      p <- R.createPublisher[String](exchangeName, routingKey)	  // StreamPublisher[IO, String]
       _ <- doSomething(p)
     } yield ()
   }
@@ -37,8 +37,8 @@ import cats.effect.Sync
 import com.github.gvolpe.fs2rabbit.model._
 import fs2._
 
-def publishSimpleMessage[F[_]: Sync](publisher: StreamPublisher[F]): Stream[F, Unit] = {
-  val message = AmqpMessage("Hello world!", AmqpProperties.empty)
+def publishSimpleMessage[F[_]: Sync](publisher: StreamPublisher[F, String]): Stream[F, Unit] = {
+  val message = "Hello world!"
   Stream(message).covary[F] evalMap publisher
 }
 ```
