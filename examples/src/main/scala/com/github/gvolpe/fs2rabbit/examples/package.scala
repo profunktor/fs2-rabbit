@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
-package com.github.gvolpe.fs2rabbit.algebra
+package com.github.gvolpe.fs2rabbit
 
-import com.github.gvolpe.fs2rabbit.model.StreamAcker
-import com.rabbitmq.client.Channel
+import cats.effect.Sync
 
-trait Acker[F[_]] {
-  def createAcker(channel: Channel): F[StreamAcker[F]]
+package object examples {
+
+  def putStrLn[F[_]: Sync, A](a: A): F[Unit] = Sync[F].delay(println(a))
+
 }

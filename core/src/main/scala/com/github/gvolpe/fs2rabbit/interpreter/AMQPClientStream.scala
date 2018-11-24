@@ -136,7 +136,7 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
 
   override def addPublishingListener(
       channel: Channel,
-      listener: PublishingListener[F]
+      listener: PublishReturn => F[Unit]
   ): Stream[F, Unit] = SE.evalDiscard {
     val returnListener = new ReturnListener {
       override def handleReturn(

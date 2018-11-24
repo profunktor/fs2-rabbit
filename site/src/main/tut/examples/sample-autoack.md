@@ -24,9 +24,9 @@ import fs2.{Pipe, Stream}
 import java.nio.charset.StandardCharsets.UTF_8
 
 class AutoAckFlow[F[_]: Concurrent](
-  consumer: StreamConsumer[F, String],
+  consumer: Stream[F, AmqpEnvelope[String]],
   logger: Pipe[F, AmqpEnvelope[String], AckResult],
-  publisher: StreamPublisher[F, AmqpMessage[String]]
+  publisher: AmqpMessage[String] => F[Unit]
 )(implicit SE: StreamEval[F]) {
 
   import io.circe.generic.auto._

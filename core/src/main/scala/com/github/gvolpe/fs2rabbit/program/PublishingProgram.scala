@@ -30,7 +30,7 @@ class PublishingProgram[F[_]: FlatMap](AMQP: AMQPClient[Stream[F, ?], F])(implic
       channel: Channel,
       exchangeName: ExchangeName,
       routingKey: RoutingKey
-  )(implicit encoder: MessageEncoder[F, A]): Stream[F, StreamPublisher[F, A]] =
+  )(implicit encoder: MessageEncoder[F, A]): Stream[F, A => F[Unit]] =
     SE.pure {
       encoder.flatMapF(AMQP.basicPublish(channel, exchangeName, routingKey, _)).run
     }
@@ -40,8 +40,8 @@ class PublishingProgram[F[_]: FlatMap](AMQP: AMQPClient[Stream[F, ?], F])(implic
       exchangeName: ExchangeName,
       routingKey: RoutingKey,
       flag: PublishingFlag,
-      listener: PublishingListener[F]
-  )(implicit encoder: MessageEncoder[F, A]): Stream[F, StreamPublisher[F, A]] =
+      listener: PublishReturn => F[Unit]
+  )(implicit encoder: MessageEncoder[F, A]): Stream[F, A => F[Unit]] =
     AMQP.addPublishingListener(channel, listener).drain ++ SE.pure {
       encoder.flatMapF(AMQP.basicPublishWithFlag(channel, exchangeName, routingKey, flag, _)).run
     }

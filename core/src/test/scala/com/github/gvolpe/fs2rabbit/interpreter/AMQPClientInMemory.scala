@@ -126,7 +126,7 @@ class AMQPClientInMemory(
 
   override def addPublishingListener(
       channel: Channel,
-      listener: PublishingListener[IO]
+      listener: PublishReturn => IO[Unit]
   ): Stream[IO, Unit] =
     Stream.eval(listenerQ.dequeue1.flatMap(listener).start.void)
 

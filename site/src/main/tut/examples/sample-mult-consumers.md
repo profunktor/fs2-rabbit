@@ -27,7 +27,7 @@ val rkb = RoutingKey("RKB")
 
 val msg = Stream("Hey!").covary[IO]
 
-def multipleConsumers(c1: StreamConsumer[IO, String], c2: StreamConsumer[IO, String], p: StreamPublisher[IO, String]) = {
+def multipleConsumers(c1: Stream[IO, AmqpEnvelope[String]], c2: Stream[IO, AmqpEnvelope[String]], p: String => IO[Unit]) = {
   Stream(
     msg evalMap p,
     c1 to (_.evalMap(m => IO(println(s"Consumer #1 >> $m")))),

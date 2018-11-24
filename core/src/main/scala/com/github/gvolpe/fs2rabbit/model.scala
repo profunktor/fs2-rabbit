@@ -21,23 +21,19 @@ import java.nio.charset.StandardCharsets.UTF_8
 
 import cats.{Applicative, ApplicativeError}
 import cats.data.Kleisli
+import cats.implicits._
 import com.github.gvolpe.fs2rabbit.arguments.Arguments
 import com.github.gvolpe.fs2rabbit.effects.{EnvelopeDecoder, MessageEncoder}
 import com.github.gvolpe.fs2rabbit.model.AmqpHeaderVal._
 import com.rabbitmq.client.impl.LongStringHelper
 import com.rabbitmq.client.{AMQP, Channel, LongString}
 import fs2.Stream
-import cats.implicits._
 
 import scala.collection.JavaConverters._
 
 object model {
 
-  type StreamAcker[F[_]]            = AckResult => F[Unit]
-  type StreamConsumer[F[_], A]      = Stream[F, AmqpEnvelope[A]]
-  type StreamAckerConsumer[F[_], A] = (StreamAcker[F], StreamConsumer[F, A])
-  type StreamPublisher[F[_], A]     = A => F[Unit]
-  type PublishingListener[F[_]]     = PublishReturn => F[Unit]
+  type StreamAckerConsumer[F[_], A] = (AckResult => F[Unit], Stream[F, AmqpEnvelope[A]])
 
   trait AMQPChannel {
     def value: Channel

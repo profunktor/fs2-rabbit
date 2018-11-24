@@ -26,14 +26,14 @@ trait Publishing[F[_], G[_]] {
       channel: Channel,
       exchangeName: ExchangeName,
       routingKey: RoutingKey
-  )(implicit encoder: MessageEncoder[G, A]): F[StreamPublisher[G, A]]
+  )(implicit encoder: MessageEncoder[G, A]): F[A => G[Unit]]
 
   def createPublisherWithListener[A](
       channel: Channel,
       exchangeName: ExchangeName,
       routingKey: RoutingKey,
       flags: PublishingFlag,
-      listener: PublishingListener[G]
-  )(implicit encoder: MessageEncoder[G, A]): F[StreamPublisher[G, A]]
+      listener: PublishReturn => G[Unit]
+  )(implicit encoder: MessageEncoder[G, A]): F[A => G[Unit]]
 
 }

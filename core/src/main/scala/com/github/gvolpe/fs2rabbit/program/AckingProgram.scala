@@ -17,17 +17,17 @@
 package com.github.gvolpe.fs2rabbit.program
 
 import cats.Applicative
-import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, Acker}
+import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, Acking}
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 import com.github.gvolpe.fs2rabbit.model.AckResult.{Ack, NAck}
 import com.github.gvolpe.fs2rabbit.model._
 import com.rabbitmq.client.Channel
 import fs2.Stream
 
-class AckerProgram[F[_]](config: Fs2RabbitConfig, AMQP: AMQPClient[Stream[F, ?], F])(implicit F: Applicative[F])
-    extends Acker[F] {
+class AckingProgram[F[_]](config: Fs2RabbitConfig, AMQP: AMQPClient[Stream[F, ?], F])(implicit F: Applicative[F])
+    extends Acking[F] {
 
-  def createAcker(channel: Channel): F[StreamAcker[F]] =
+  def createAcker(channel: Channel): F[AckResult => F[Unit]] =
     F.pure {
       case Ack(tag)  => AMQP.basicAck(channel, tag, multiple = false)
       case NAck(tag) => AMQP.basicNack(channel, tag, multiple = false, config.requeueOnNack)
