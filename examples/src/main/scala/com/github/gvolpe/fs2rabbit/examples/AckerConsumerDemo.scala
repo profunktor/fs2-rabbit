@@ -57,10 +57,10 @@ class AckerConsumerDemo[F[_]: Concurrent: Timer](implicit R: Fs2Rabbit[F]) {
 }
 
 class Flow[F[_]: Concurrent, A](
-    consumer: StreamConsumer[F, A],
+    consumer: Stream[F, AmqpEnvelope[A]],
     acker: AckResult => F[Unit],
     logger: Pipe[F, AmqpEnvelope[A], AckResult],
-    publisher: StreamPublisher[F]
+    publisher: AmqpMessage[String] => F[Unit]
 ) {
 
   import io.circe.generic.auto._

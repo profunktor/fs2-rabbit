@@ -16,24 +16,22 @@
 
 package com.github.gvolpe.fs2rabbit.algebra
 
+import com.github.gvolpe.fs2rabbit.arguments.Arguments
 import com.github.gvolpe.fs2rabbit.effects.EnvelopeDecoder
-import com.github.gvolpe.fs2rabbit.model._
+import com.github.gvolpe.fs2rabbit.model.{AmqpEnvelope, BasicQos, QueueName}
 import com.rabbitmq.client.Channel
 
 trait Consuming[F[_], G[_]] {
 
-  def createAckerConsumer[A](
-      channel: Channel,
+  def createConsumer[A](
       queueName: QueueName,
-      basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
-      consumerArgs: Option[ConsumerArgs] = None
-  )(implicit decoder: EnvelopeDecoder[G, A]): F[(StreamAcker[G], F[AmqpEnvelope[A]])]
-
-  def createAutoAckConsumer[A](
       channel: Channel,
-      queueName: QueueName,
-      basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
-      consumerArgs: Option[ConsumerArgs] = None
-  )(implicit decoder: EnvelopeDecoder[G, A]): F[F[AmqpEnvelope[A]]]
+      basicQos: BasicQos,
+      autoAck: Boolean = false,
+      noLocal: Boolean = false,
+      exclusive: Boolean = false,
+      consumerTag: String = "",
+      args: Arguments = Map.empty
+  )(implicit decoder: EnvelopeDecoder[G, A]): F[AmqpEnvelope[A]]
 
 }

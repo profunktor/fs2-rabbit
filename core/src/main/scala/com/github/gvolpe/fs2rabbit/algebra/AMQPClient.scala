@@ -32,7 +32,7 @@ trait AMQPClient[F[_], G[_]] extends Binding[F] with Declaration[F] with Deletio
                   (internals: AMQPInternals[G, A])(implicit decoder: EnvelopeDecoder[G, A]): F[String]
   def basicPublish(channel: Channel, exchangeName: ExchangeName, routingKey: RoutingKey, msg: AmqpMessage[String]): G[Unit]
   def basicPublishWithFlag(channel: Channel, exchangeName: ExchangeName, routingKey: RoutingKey, flag: PublishingFlag, msg: AmqpMessage[String]): G[Unit]
-  def addPublishingListener(channel: Channel, listener: PublishingListener[G]): F[Unit]
+  def addPublishingListener(channel: Channel, listener: PublishReturn => G[Unit]): F[Unit]
   def clearPublishingListeners(channel: Channel): F[Unit]
 }
 

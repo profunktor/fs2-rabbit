@@ -20,10 +20,10 @@ import com.github.gvolpe.fs2rabbit.model._
 import fs2.{Pipe, Stream}
 
 class Flow[F[_]: Concurrent](
-  consumer: StreamConsumer[F, String],
-  acker: StreamAcker[F],
+  consumer: Stream[F, AmqpEnvelope[String]],
+  acker: AckResult => F[Unit],
   logger: Pipe[F, AmqpEnvelope[String], AckResult],
-  publisher: StreamPublisher[F]
+  publisher: AmqpMessage[String] => F[Unit]
 )(implicit SE: StreamEval[F]) {
 
   import io.circe.generic.auto._

@@ -15,9 +15,6 @@ import cats.implicits._
 import cats._
 import com.github.gvolpe.fs2rabbit.effects.EnvelopeDecoder
 ```
-```tut:book:silent
-type StreamConsumer[F[_], A] = Stream[F, AmqpEnvelope[A]]
-```
 
 # `EnvelopeDecoder`
 
