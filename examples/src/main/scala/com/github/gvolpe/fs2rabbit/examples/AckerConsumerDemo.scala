@@ -16,7 +16,7 @@
 
 package com.github.gvolpe.fs2rabbit.examples
 
-import cats.effect.{Concurrent, Sync, Timer}
+import cats.effect.{Concurrent, Timer}
 import cats.syntax.functor._
 import com.github.gvolpe.fs2rabbit.config.declaration.DeclarationQueueConfig
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
@@ -31,8 +31,6 @@ class AckerConsumerDemo[F[_]: Concurrent: Timer](implicit R: Fs2Rabbit[F]) {
   private val queueName    = QueueName("testQ")
   private val exchangeName = ExchangeName("testEX")
   private val routingKey   = RoutingKey("testRK")
-
-  def putStrLn(str: String): F[Unit] = Sync[F].delay(println(str))
 
   def logPipe: Pipe[F, AmqpEnvelope[String], AckResult] = _.evalMap { amqpMsg =>
     putStrLn(s"Consumed: $amqpMsg").as(Ack(amqpMsg.deliveryTag))
