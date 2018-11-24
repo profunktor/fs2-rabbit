@@ -21,13 +21,13 @@ import java.nio.charset.StandardCharsets.UTF_8
 
 import cats.ApplicativeError
 import cats.data.Kleisli
+import cats.implicits._
 import com.github.gvolpe.fs2rabbit.arguments.Arguments
 import com.github.gvolpe.fs2rabbit.effects.EnvelopeDecoder
 import com.github.gvolpe.fs2rabbit.model.AmqpHeaderVal._
 import com.rabbitmq.client.impl.LongStringHelper
 import com.rabbitmq.client.{AMQP, Channel, LongString}
 import fs2.Stream
-import cats.implicits._
 
 import scala.collection.JavaConverters._
 
