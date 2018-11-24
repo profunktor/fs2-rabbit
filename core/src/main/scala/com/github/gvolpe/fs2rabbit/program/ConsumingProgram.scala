@@ -22,13 +22,13 @@ import cats.syntax.functor._
 import cats.syntax.monadError._
 import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, AMQPInternals, Consuming}
 import com.github.gvolpe.fs2rabbit.arguments.Arguments
-import com.github.gvolpe.fs2rabbit.effects.{EnvelopeDecoder, StreamEval}
+import com.github.gvolpe.fs2rabbit.effects.EnvelopeDecoder
 import com.github.gvolpe.fs2rabbit.model._
 import com.rabbitmq.client.Channel
 import fs2.Stream
 import fs2.concurrent.Queue
 
-class ConsumingProgram[F[_]: Concurrent](AMQP: AMQPClient[Stream[F, ?], F])(implicit SE: StreamEval[F])
+class ConsumingProgram[F[_]: Concurrent](AMQP: AMQPClient[Stream[F, ?], F])
     extends Consuming[Stream[F, ?], F] {
 
   override def createConsumer[A](
