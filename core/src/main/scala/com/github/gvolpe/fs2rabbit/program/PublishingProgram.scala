@@ -16,12 +16,12 @@
 
 package com.github.gvolpe.fs2rabbit.program
 
+import cats.FlatMap
 import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, Publishing}
-import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.effects.{MessageEncoder, StreamEval}
+import com.github.gvolpe.fs2rabbit.model._
 import com.rabbitmq.client.Channel
 import fs2.Stream
-import cats.FlatMap
 
 class PublishingProgram[F[_]: FlatMap](AMQP: AMQPClient[Stream[F, ?], F])(implicit SE: StreamEval[F])
     extends Publishing[Stream[F, ?], F] {

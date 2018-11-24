@@ -17,26 +17,19 @@
 package com.github.gvolpe.fs2rabbit.program
 
 import cats.effect.Concurrent
-import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, AMQPInternals, Consuming}
-import com.github.gvolpe.fs2rabbit.arguments.Arguments
-import com.github.gvolpe.fs2rabbit.model._
-import com.github.gvolpe.fs2rabbit.effects.{EnvelopeDecoder, StreamEval}
-import com.rabbitmq.client.Channel
-import fs2.{Pipe, Stream}
-import fs2.concurrent.Queue
-import cats.syntax.monadError._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
-import cats.syntax.applicativeError._
+import cats.syntax.monadError._
+import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, AMQPInternals, Consuming}
+import com.github.gvolpe.fs2rabbit.arguments.Arguments
+import com.github.gvolpe.fs2rabbit.effects.{EnvelopeDecoder, StreamEval}
+import com.github.gvolpe.fs2rabbit.model._
+import com.rabbitmq.client.Channel
+import fs2.Stream
+import fs2.concurrent.Queue
 
 class ConsumingProgram[F[_]: Concurrent](AMQP: AMQPClient[Stream[F, ?], F])(implicit SE: StreamEval[F])
     extends Consuming[Stream[F, ?], F] {
-
-  private[fs2rabbit] def resilientConsumer[A]: Pipe[F, Either[Throwable, AmqpEnvelope[A]], AmqpEnvelope[A]] =
-    _.flatMap {
-      case Left(err)  => Stream.raiseError[F](err)
-      case Right(env) => SE.pure[AmqpEnvelope[A]](env)
-    }
 
   override def createConsumer[A](
       queueName: QueueName,
@@ -54,10 +47,7 @@ class ConsumingProgram[F[_]: Concurrent](AMQP: AMQPClient[Stream[F, ?], F])(impl
       _         <- AMQP.basicQos(channel, basicQos)
       _         <- AMQP.basicConsume(channel, queueName, autoAck, consumerTag, noLocal, exclusive, args)(internals)
       consumer <- Stream.repeatEval(
-                   internalQ.dequeue1.rethrow
-                     .flatMap(env => decoder(env).map(a => env.copy(payload = a)))
-                     .attempt) through resilientConsumer
-
+                   internalQ.dequeue1.rethrow.flatMap(env => decoder(env).map(a => env.copy(payload = a))))
     } yield consumer
 
 }
