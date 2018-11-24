@@ -16,6 +16,7 @@
 
 package com.github.gvolpe.fs2rabbit.interpreter
 
+import cats.Applicative
 import cats.effect.{Effect, Sync}
 import cats.effect.syntax.effect._
 import cats.implicits._
@@ -35,7 +36,7 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
   private[fs2rabbit] def defaultConsumer[A](
       channel: Channel,
       internals: AMQPInternals[F, A]
-  )(implicit decoder: EnvelopeDecoder[F, A]): F[Consumer] = Sync[F].delay {
+  )(implicit decoder: EnvelopeDecoder[F, A]): F[Consumer] = Applicative[F].pure {
     new DefaultConsumer(channel) {
 
       override def handleCancel(consumerTag: String): Unit =
