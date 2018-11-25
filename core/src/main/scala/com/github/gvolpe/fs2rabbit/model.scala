@@ -44,8 +44,9 @@ object model {
   case class QueueName(value: String)    extends AnyVal
   case class RoutingKey(value: String)   extends AnyVal
   case class DeliveryTag(value: Long)    extends AnyVal
+  case class ConsumerTag(value: String)  extends AnyVal
 
-  case class ConsumerArgs(consumerTag: String, noLocal: Boolean, exclusive: Boolean, args: Arguments)
+  case class ConsumerArgs(consumerTag: ConsumerTag, noLocal: Boolean, exclusive: Boolean, args: Arguments)
   case class BasicQos(prefetchSize: Int, prefetchCount: Int, global: Boolean = false)
 
   sealed trait ExchangeType extends Product with Serializable

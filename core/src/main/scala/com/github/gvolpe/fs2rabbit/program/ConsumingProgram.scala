@@ -37,16 +37,16 @@ class ConsumingProgram[F[_]: MonadError[?[_], Throwable]](AMQP: AMQPClient[Strea
       autoAck: Boolean = false,
       noLocal: Boolean = false,
       exclusive: Boolean = false,
-      consumerTag: String = "",
+      consumerTag: ConsumerTag = ConsumerTag(""),
       args: Arguments = Map.empty
   )(implicit decoder: EnvelopeDecoder[F, A]): Stream[F, AmqpEnvelope[A]] =
     for {
       internalQ <- Stream.eval(IQ.create)
       internals = AMQPInternals[F](Some(internalQ))
       _         <- AMQP.basicQos(channel, basicQos)
-      _         <- AMQP.basicConsume(channel, queueName, autoAck, consumerTag, noLocal, exclusive, args)(internals)
+      consumeF  = AMQP.basicConsume(channel, queueName, autoAck, consumerTag, noLocal, exclusive, args)(internals)
+      _         <- Stream.bracket(consumeF)(tag => AMQP.basicCancel(channel, tag))
       consumer <- Stream.repeatEval(
                    internalQ.dequeue1.rethrow.flatMap(env => decoder(env).map(a => env.copy(payload = a))))
     } yield consumer
-
 }

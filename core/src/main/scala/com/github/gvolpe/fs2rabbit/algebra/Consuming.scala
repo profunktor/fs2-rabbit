@@ -18,7 +18,7 @@ package com.github.gvolpe.fs2rabbit.algebra
 
 import com.github.gvolpe.fs2rabbit.arguments.Arguments
 import com.github.gvolpe.fs2rabbit.effects.EnvelopeDecoder
-import com.github.gvolpe.fs2rabbit.model.{AmqpEnvelope, BasicQos, QueueName}
+import com.github.gvolpe.fs2rabbit.model.{AmqpEnvelope, BasicQos, ConsumerTag, QueueName}
 import com.rabbitmq.client.Channel
 
 trait Consuming[F[_], G[_]] {
@@ -30,7 +30,7 @@ trait Consuming[F[_], G[_]] {
       autoAck: Boolean = false,
       noLocal: Boolean = false,
       exclusive: Boolean = false,
-      consumerTag: String = "",
+      consumerTag: ConsumerTag = ConsumerTag(""),
       args: Arguments = Map.empty
   )(implicit decoder: EnvelopeDecoder[G, A]): F[AmqpEnvelope[A]]
 

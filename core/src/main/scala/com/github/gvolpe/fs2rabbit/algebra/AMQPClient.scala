@@ -27,8 +27,9 @@ trait AMQPClient[F[_], G[_]] extends Binding[F] with Declaration[F] with Deletio
   def basicAck(channel: Channel, tag: DeliveryTag, multiple: Boolean): G[Unit]
   def basicNack(channel: Channel, tag: DeliveryTag, multiple: Boolean, requeue: Boolean): G[Unit]
   def basicQos(channel: Channel, basicQos: BasicQos): F[Unit]
-  def basicConsume[A](channel: Channel, queueName: QueueName, autoAck: Boolean, consumerTag: String, noLocal: Boolean, exclusive: Boolean, args: Arguments)
-                  (internals: AMQPInternals[G]): F[String]
+  def basicConsume[A](channel: Channel, queueName: QueueName, autoAck: Boolean, consumerTag: ConsumerTag, noLocal: Boolean, exclusive: Boolean, args: Arguments)
+                  (internals: AMQPInternals[G]): G[ConsumerTag]
+  def basicCancel(channel: Channel, consumerTag: ConsumerTag): G[Unit]
   def basicPublish(channel: Channel, exchangeName: ExchangeName, routingKey: RoutingKey, msg: AmqpMessage[Array[Byte]]): G[Unit]
   def basicPublishWithFlag(channel: Channel, exchangeName: ExchangeName, routingKey: RoutingKey, flag: PublishingFlag, msg: AmqpMessage[Array[Byte]]): G[Unit]
   def addPublishingListener(channel: Channel, listener: PublishReturn => G[Unit]): F[Unit]

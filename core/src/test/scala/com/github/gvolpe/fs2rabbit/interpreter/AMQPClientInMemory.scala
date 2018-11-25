@@ -37,6 +37,7 @@ class AMQPClientInMemory(
     exchanges: Ref[IO, Set[ExchangeName]],
     binds: Ref[IO, Map[String, ExchangeName]],
     ref: Ref[IO, AMQPInternals[IO]],
+    consumers: Ref[IO, Set[ConsumerTag]],
     publishingQ: Queue[IO, Either[Throwable, AmqpEnvelope[Array[Byte]]]],
     listenerQ: Queue[IO, PublishReturn],
     ackerQ: Queue[IO, AckResult],
@@ -74,19 +75,37 @@ class AMQPClientInMemory(
       channel: Channel,
       queueName: model.QueueName,
       autoAck: Boolean,
-      consumerTag: String,
+      consumerTag: ConsumerTag,
       noLocal: Boolean,
       exclusive: Boolean,
       args: Arguments
-  )(internals: AMQPInternals[IO]): Stream[IO, String] = {
-    val ifError =
-      raiseError[String](s"Queue ${queueName.value} does not exist!")
+  )(internals: AMQPInternals[IO]): IO[ConsumerTag] = {
+    val ifMissing =
+      new java.io.IOException(s"Queue ${queueName.value} does not exist!")
 
-    Stream
-      .eval(queues.get)
-      .flatMap(_.find(_.value == queueName.value).fold(ifError) { _ =>
-        Stream.eval(ref.set(internals)).as("dequeue1 happens in AckerConsumerProgram.createConsumer")
-      })
+    val tag =
+      if (consumerTag.value.isEmpty) ConsumerTag("consumer-" + scala.util.Random.alphanumeric.take(5).mkString(""))
+      else consumerTag
+
+    for {
+      q <- queues.get
+      _ <- IO.fromEither(q.find(_.value == queueName.value).toRight(ifMissing))
+      _ <- ref.set(internals)
+      _ <- consumers.update(_ + tag)
+    } yield tag
+  }
+
+  override def basicCancel(
+      channel: Channel,
+      consumerTag: ConsumerTag
+  ): IO[Unit] = {
+    def ifMissing = new java.io.IOException(s"ConsumerTag ${consumerTag.value} does not exist!")
+
+    for {
+      c <- consumers.get
+      _ <- IO.fromEither(c.find(_ == consumerTag).toRight(ifMissing))
+      _ <- consumers.update(_ - consumerTag)
+    } yield ()
   }
 
   override def basicPublish(

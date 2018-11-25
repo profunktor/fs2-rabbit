@@ -16,8 +16,11 @@
 
 package com.github.gvolpe.fs2rabbit.interpreter
 
+import cats.Applicative
 import cats.effect.{Effect, Sync}
 import cats.effect.syntax.effect._
+import cats.syntax.flatMap._
+import cats.syntax.functor._
 import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, AMQPInternals}
 import com.github.gvolpe.fs2rabbit.arguments._
 import com.github.gvolpe.fs2rabbit.config.declaration.{DeclarationExchangeConfig, DeclarationQueueConfig}
@@ -34,36 +37,35 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
   private[fs2rabbit] def defaultConsumer[A](
       channel: Channel,
       internals: AMQPInternals[F]
-  ): Stream[F, Consumer] =
-    Stream(
-      new DefaultConsumer(channel) {
+  ): F[Consumer] = Applicative[F].pure {
+    new DefaultConsumer(channel) {
 
-        override def handleCancel(consumerTag: String): Unit =
-          internals.queue.fold(()) { internalQ =>
-            internalQ
-              .enqueue1(Left(new Exception(s"Queue might have been DELETED! $consumerTag")))
-              .toIO
-              .unsafeRunAsync(_ => ())
-          }
+      override def handleCancel(consumerTag: String): Unit =
+        internals.queue.fold(()) { internalQ =>
+          internalQ
+            .enqueue1(Left(new Exception(s"Queue might have been DELETED! $consumerTag")))
+            .toIO
+            .unsafeRunAsync(_ => ())
+        }
 
-        override def handleDelivery(
-            consumerTag: String,
-            envelope: Envelope,
-            properties: AMQP.BasicProperties,
-            body: Array[Byte]
-        ): Unit = {
-          val tag   = envelope.getDeliveryTag
-          val props = AmqpProperties.from(properties)
-          internals.queue.fold(()) { internalQ =>
-            val envelope = AmqpEnvelope(DeliveryTag(tag), body, props)
-            internalQ
-              .enqueue1(Right(envelope))
-              .toIO
-              .unsafeRunAsync(_ => ())
-          }
+      override def handleDelivery(
+          consumerTag: String,
+          envelope: Envelope,
+          properties: AMQP.BasicProperties,
+          body: Array[Byte]
+      ): Unit = {
+        val tag   = envelope.getDeliveryTag
+        val props = AmqpProperties.from(properties)
+        internals.queue.fold(()) { internalQ =>
+          val envelope = AmqpEnvelope(DeliveryTag(tag), body, props)
+          internalQ
+            .enqueue1(Right(envelope))
+            .toIO
+            .unsafeRunAsync(_ => ())
         }
       }
-    )
+    }
+  }
 
   override def basicAck(
       channel: Channel,
@@ -94,15 +96,24 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
       channel: Channel,
       queueName: QueueName,
       autoAck: Boolean,
-      consumerTag: String,
+      consumerTag: ConsumerTag,
       noLocal: Boolean,
       exclusive: Boolean,
       args: Arguments
-  )(internals: AMQPInternals[F]): Stream[F, String] =
+  )(internals: AMQPInternals[F]): F[ConsumerTag] =
     for {
       dc <- defaultConsumer(channel, internals)
-      rs <- SE.evalF(channel.basicConsume(queueName.value, autoAck, consumerTag, noLocal, exclusive, args, dc))
-    } yield rs
+      rs <- Sync[F].delay(
+             channel.basicConsume(queueName.value, autoAck, consumerTag.value, noLocal, exclusive, args, dc)
+           )
+    } yield ConsumerTag(rs)
+
+  override def basicCancel(
+      channel: Channel,
+      consumerTag: ConsumerTag
+  ): F[Unit] = Sync[F].delay {
+    channel.basicCancel(consumerTag.value)
+  }
 
   override def basicPublish(
       channel: Channel,

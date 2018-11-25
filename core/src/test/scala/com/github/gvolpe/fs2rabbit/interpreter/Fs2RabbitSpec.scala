@@ -87,14 +87,23 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
   object TestFs2Rabbit {
     def apply(config: Fs2RabbitConfig): (Fs2Rabbit[IO], Stream[IO, Unit]) = {
       val interpreter = for {
-        publishingQ  <- Queue.bounded[IO, Either[Throwable, AmqpEnvelope[Array[Byte]]]](500)
-        listenerQ    <- Queue.bounded[IO, PublishReturn](500)
-        ackerQ       <- Queue.bounded[IO, AckResult](500)
-        queueRef     <- Ref.of[IO, AMQPInternals[IO]](AMQPInternals(None))
-        queues       <- Ref.of[IO, Set[QueueName]](Set.empty)
-        exchanges    <- Ref.of[IO, Set[ExchangeName]](Set.empty)
-        binds        <- Ref.of[IO, Map[String, ExchangeName]](Map.empty)
-        amqpClient   = new AMQPClientInMemory(queues, exchanges, binds, queueRef, publishingQ, listenerQ, ackerQ, config)
+        publishingQ <- Queue.bounded[IO, Either[Throwable, AmqpEnvelope[Array[Byte]]]](500)
+        listenerQ   <- Queue.bounded[IO, PublishReturn](500)
+        ackerQ      <- Queue.bounded[IO, AckResult](500)
+        queueRef    <- Ref.of[IO, AMQPInternals[IO]](AMQPInternals(None))
+        queues      <- Ref.of[IO, Set[QueueName]](Set.empty)
+        consumers   <- Ref.of[IO, Set[ConsumerTag]](Set.empty)
+        exchanges   <- Ref.of[IO, Set[ExchangeName]](Set.empty)
+        binds       <- Ref.of[IO, Map[String, ExchangeName]](Map.empty)
+        amqpClient = new AMQPClientInMemory(queues,
+                                            exchanges,
+                                            binds,
+                                            queueRef,
+                                            consumers,
+                                            publishingQ,
+                                            listenerQ,
+                                            ackerQ,
+                                            config)
         connStream   = new ConnectionStub
         acker        = new AckingProgram[IO](config, amqpClient)
         internalQ    = new LiveInternalQueue[IO](config.internalQueueSize.getOrElse(500))
@@ -184,6 +193,21 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
       }
   }
 
+  it should "return an error as the result of 'basicCancel' if consumer doesn't exist" in StreamAssertion(
+    TestFs2Rabbit(config)) { interpreter =>
+    import interpreter._
+    createConnectionChannel flatMap { implicit channel =>
+      for {
+        _      <- declareExchange(exchangeName, ExchangeType.Topic)
+        _      <- declareQueue(DeclarationQueueConfig.default(queueName))
+        _      <- bindQueue(queueName, exchangeName, routingKey, QueueBindingArgs(Map.empty))
+        result <- Stream.eval(basicCancel(ConsumerTag("something-random"))).attempt.take(1)
+      } yield {
+        result.left.get shouldBe a[java.io.IOException]
+      }
+    }
+  }
+
   it should "create an acker consumer and verify both envelope and ack result" in StreamAssertion(TestFs2Rabbit(config)) {
     interpreter =>
       import interpreter._
@@ -262,7 +286,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
           _         <- declareQueue(DeclarationQueueConfig.default(queueName))
           _         <- bindQueue(queueName, exchangeName, routingKey)
           publisher <- createPublisher[String](exchangeName, routingKey)
-          consumerArgs = ConsumerArgs(consumerTag = "XclusiveConsumer",
+          consumerArgs = ConsumerArgs(consumerTag = ConsumerTag("XclusiveConsumer"),
                                       noLocal = false,
                                       exclusive = true,
                                       args = Map.empty)
@@ -288,7 +312,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
           _         <- declareQueue(DeclarationQueueConfig.default(queueName))
           _         <- bindQueue(queueName, exchangeName, routingKey)
           publisher <- createPublisher[String](exchangeName, routingKey)
-          consumerArgs = ConsumerArgs(consumerTag = "XclusiveConsumer",
+          consumerArgs = ConsumerArgs(consumerTag = ConsumerTag("XclusiveConsumer"),
                                       noLocal = false,
                                       exclusive = true,
                                       args = Map.empty)
@@ -406,7 +430,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
         _         <- bindQueue(queueName, destinationExchangeName, routingKey)
         _         <- bindExchange(destinationExchangeName, sourceExchangeName, routingKey, ExchangeBindingArgs(Map.empty))
         publisher <- createPublisher[String](sourceExchangeName, routingKey)
-        consumerArgs = ConsumerArgs(consumerTag = "XclusiveConsumer",
+        consumerArgs = ConsumerArgs(consumerTag = ConsumerTag("XclusiveConsumer"),
                                     noLocal = false,
                                     exclusive = true,
                                     args = Map.empty)
