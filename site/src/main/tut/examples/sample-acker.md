@@ -10,6 +10,10 @@ Here we create a single `AckerConsumer`, a single `Publisher` and finally we pub
 
 ```tut:book:silent
 import cats.effect.Concurrent
+import cats.Applicative
+import cats.data.Kleisli
+import cats.syntax.applicative._
+import java.nio.charset.StandardCharsets.UTF_8
 import com.github.gvolpe.fs2rabbit.config.declaration.DeclarationQueueConfig
 import com.github.gvolpe.fs2rabbit.effects.StreamEval
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
@@ -17,6 +21,7 @@ import com.github.gvolpe.fs2rabbit.json.Fs2JsonEncoder
 import com.github.gvolpe.fs2rabbit.model.AckResult.Ack
 import com.github.gvolpe.fs2rabbit.model.AmqpHeaderVal.{LongVal, StringVal}
 import com.github.gvolpe.fs2rabbit.model._
+import com.github.gvolpe.fs2rabbit.effects.MessageEncoder
 import fs2.{Pipe, Stream}
 
 class Flow[F[_]: Concurrent](
@@ -55,6 +60,10 @@ class AckerConsumerDemo[F[_]: Concurrent](implicit F: Fs2Rabbit[F], SE: StreamEv
   private val exchangeName = ExchangeName("testEX")
   private val routingKey   = RoutingKey("testRK")
 
+  implicit val amqpMessageEncoder: MessageEncoder[F, AmqpMessage[String]] = Kleisli { msg =>
+    msg.copy(payload = msg.payload.getBytes(UTF_8)).pure[F]
+  }
+
   def logPipe: Pipe[F, AmqpEnvelope[String], AckResult] = { streamMsg =>
     for {
       amqpMsg <- streamMsg
@@ -68,7 +77,7 @@ class AckerConsumerDemo[F[_]: Concurrent](implicit F: Fs2Rabbit[F], SE: StreamEv
       _                 <- F.declareExchange(exchangeName, ExchangeType.Topic)
       _                 <- F.bindQueue(queueName, exchangeName, routingKey)
       (acker, consumer) <- F.createAckerConsumer[String](queueName)
-      publisher         <- F.createPublisher(exchangeName, routingKey)
+      publisher         <- F.createPublisher[AmqpMessage[String]](exchangeName, routingKey)
       result            <- new Flow(consumer, acker, logPipe, publisher).flow
     } yield result
   }
@@ -95,7 +104,8 @@ object IOAckerConsumer extends IOApp {
     port = 5672,
     ssl = false,
     connectionTimeout = 3,
-    requeueOnNack = false
+    requeueOnNack = false,
+    internalQueueSize = Some(500)
   )
 
   override def run(args: List[String]): IO[ExitCode] =

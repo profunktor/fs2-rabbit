@@ -17,14 +17,13 @@
 package com.github.gvolpe.fs2rabbit.interpreter
 
 import javax.net.ssl.SSLContext
-
 import cats.effect.{Concurrent, ConcurrentEffect}
 import cats.syntax.functor._
 import com.github.gvolpe.fs2rabbit.algebra._
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 import com.github.gvolpe.fs2rabbit.config.declaration.{DeclarationExchangeConfig, DeclarationQueueConfig}
 import com.github.gvolpe.fs2rabbit.config.deletion.{DeletionExchangeConfig, DeletionQueueConfig}
-import com.github.gvolpe.fs2rabbit.effects.EnvelopeDecoder
+import com.github.gvolpe.fs2rabbit.effects.{EnvelopeDecoder, MessageEncoder}
 import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.program._
 import fs2.Stream
@@ -38,8 +37,9 @@ object Fs2Rabbit {
     ConnectionStream.mkConnectionFactory[F](config, sslContext).map { factory =>
       val amqpClient = new AMQPClientStream[F]
       val connStream = new ConnectionStream[F](factory)
+      val internalQ  = new LiveInternalQueue[F](config.internalQueueSize.getOrElse(500))
       val acker      = new AckingProgram[F](config, amqpClient)
-      val consumer   = new ConsumingProgram[F](amqpClient)
+      val consumer   = new ConsumingProgram[F](amqpClient, internalQ)
       new Fs2Rabbit[F](config, connStream, amqpClient, acker, consumer)
     }
 }
@@ -76,16 +76,17 @@ class Fs2Rabbit[F[_]: Concurrent] private[fs2rabbit] (
   )(implicit channel: AMQPChannel, decoder: EnvelopeDecoder[F, A]): Stream[F, Stream[F, AmqpEnvelope[A]]] =
     consumingProgram.createAutoAckConsumer(channel.value, queueName, basicQos, consumerArgs)
 
-  def createPublisher(exchangeName: ExchangeName, routingKey: RoutingKey)(
-      implicit channel: AMQPChannel): Stream[F, AmqpMessage[String] => F[Unit]] =
+  def createPublisher[A](exchangeName: ExchangeName, routingKey: RoutingKey)(
+      implicit channel: AMQPChannel,
+      encoder: MessageEncoder[F, A]): Stream[F, A => F[Unit]] =
     publishingProgram.createPublisher(channel.value, exchangeName, routingKey)
 
-  def createPublisherWithListener(
+  def createPublisherWithListener[A](
       exchangeName: ExchangeName,
       routingKey: RoutingKey,
       flags: PublishingFlag,
       listener: PublishReturn => F[Unit]
-  )(implicit channel: AMQPChannel): Stream[F, AmqpMessage[String] => F[Unit]] =
+  )(implicit channel: AMQPChannel, encoder: MessageEncoder[F, A]): Stream[F, A => F[Unit]] =
     publishingProgram.createPublisherWithListener(channel.value, exchangeName, routingKey, flags, listener)
 
   def addPublishingListener(listener: PublishReturn => F[Unit])(implicit channel: AMQPChannel): Stream[F, Unit] =

@@ -14,16 +14,16 @@
  * limitations under the License.
  */
 
-package com.github.gvolpe.fs2rabbit.config
+package com.github.gvolpe.fs2rabbit.interpreter
 
-case class Fs2RabbitConfig(
-    host: String,
-    port: Int,
-    virtualHost: String,
-    connectionTimeout: Int,
-    ssl: Boolean,
-    username: Option[String],
-    password: Option[String],
-    requeueOnNack: Boolean,
-    internalQueueSize: Option[Int]
-)
+import cats.effect.Concurrent
+import com.github.gvolpe.fs2rabbit.algebra.InternalQueue
+import com.github.gvolpe.fs2rabbit.model.AmqpEnvelope
+import fs2.concurrent.Queue
+
+class LiveInternalQueue[F[_]: Concurrent](queueSize: Int) extends InternalQueue[F] {
+
+  override def create: F[Queue[F, Either[Throwable, AmqpEnvelope[Array[Byte]]]]] =
+    Queue.bounded[F, Either[Throwable, AmqpEnvelope[Array[Byte]]]](queueSize)
+
+}

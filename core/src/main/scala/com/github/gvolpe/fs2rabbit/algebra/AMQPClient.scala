@@ -19,7 +19,6 @@ package com.github.gvolpe.fs2rabbit.algebra
 import com.github.gvolpe.fs2rabbit.arguments.Arguments
 import com.github.gvolpe.fs2rabbit.config.declaration.{DeclarationExchangeConfig, DeclarationQueueConfig}
 import com.github.gvolpe.fs2rabbit.config.deletion.{DeletionExchangeConfig, DeletionQueueConfig}
-import com.github.gvolpe.fs2rabbit.effects.EnvelopeDecoder
 import com.github.gvolpe.fs2rabbit.model._
 import com.rabbitmq.client.Channel
 
@@ -29,10 +28,10 @@ trait AMQPClient[F[_], G[_]] extends Binding[F] with Declaration[F] with Deletio
   def basicNack(channel: Channel, tag: DeliveryTag, multiple: Boolean, requeue: Boolean): G[Unit]
   def basicQos(channel: Channel, basicQos: BasicQos): F[Unit]
   def basicConsume[A](channel: Channel, queueName: QueueName, autoAck: Boolean, consumerTag: ConsumerTag, noLocal: Boolean, exclusive: Boolean, args: Arguments)
-                  (internals: AMQPInternals[G, A])(implicit decoder: EnvelopeDecoder[G, A]): G[ConsumerTag]
+                  (internals: AMQPInternals[G]): G[ConsumerTag]
   def basicCancel(channel: Channel, consumerTag: ConsumerTag): G[Unit]
-  def basicPublish(channel: Channel, exchangeName: ExchangeName, routingKey: RoutingKey, msg: AmqpMessage[String]): G[Unit]
-  def basicPublishWithFlag(channel: Channel, exchangeName: ExchangeName, routingKey: RoutingKey, flag: PublishingFlag, msg: AmqpMessage[String]): G[Unit]
+  def basicPublish(channel: Channel, exchangeName: ExchangeName, routingKey: RoutingKey, msg: AmqpMessage[Array[Byte]]): G[Unit]
+  def basicPublishWithFlag(channel: Channel, exchangeName: ExchangeName, routingKey: RoutingKey, flag: PublishingFlag, msg: AmqpMessage[Array[Byte]]): G[Unit]
   def addPublishingListener(channel: Channel, listener: PublishReturn => G[Unit]): F[Unit]
   def clearPublishingListeners(channel: Channel): F[Unit]
 }

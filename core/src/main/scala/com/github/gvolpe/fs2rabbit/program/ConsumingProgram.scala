@@ -16,23 +16,19 @@
 
 package com.github.gvolpe.fs2rabbit.program
 
-import cats.effect.Concurrent
-import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, AMQPInternals, Consuming}
+import cats.MonadError
+import cats.syntax.flatMap._
+import cats.syntax.functor._
+import cats.syntax.monadError._
+import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, AMQPInternals, Consuming, InternalQueue}
 import com.github.gvolpe.fs2rabbit.arguments.Arguments
+import com.github.gvolpe.fs2rabbit.effects.EnvelopeDecoder
 import com.github.gvolpe.fs2rabbit.model._
-import com.github.gvolpe.fs2rabbit.effects.{EnvelopeDecoder, StreamEval}
 import com.rabbitmq.client.Channel
-import fs2.{Pipe, Stream}
-import fs2.concurrent.Queue
+import fs2.Stream
 
-class ConsumingProgram[F[_]: Concurrent](AMQP: AMQPClient[Stream[F, ?], F])(implicit SE: StreamEval[F])
+class ConsumingProgram[F[_]: MonadError[?[_], Throwable]](AMQP: AMQPClient[Stream[F, ?], F], IQ: InternalQueue[F])
     extends Consuming[Stream[F, ?], F] {
-
-  private[fs2rabbit] def resilientConsumer[A]: Pipe[F, Either[Throwable, AmqpEnvelope[A]], AmqpEnvelope[A]] =
-    _.flatMap {
-      case Left(err)  => Stream.raiseError[F](err)
-      case Right(env) => SE.pure[AmqpEnvelope[A]](env)
-    }
 
   override def createConsumer[A](
       queueName: QueueName,
@@ -45,11 +41,12 @@ class ConsumingProgram[F[_]: Concurrent](AMQP: AMQPClient[Stream[F, ?], F])(impl
       args: Arguments = Map.empty
   )(implicit decoder: EnvelopeDecoder[F, A]): Stream[F, AmqpEnvelope[A]] =
     for {
-      internalQ <- Stream.eval(Queue.bounded[F, Either[Throwable, AmqpEnvelope[A]]](500))
-      internals = AMQPInternals[F, A](Some(internalQ))
+      internalQ <- Stream.eval(IQ.create)
+      internals = AMQPInternals[F](Some(internalQ))
       _         <- AMQP.basicQos(channel, basicQos)
       consumeF  = AMQP.basicConsume(channel, queueName, autoAck, consumerTag, noLocal, exclusive, args)(internals)
       _         <- Stream.bracket(consumeF)(tag => AMQP.basicCancel(channel, tag))
-      consumer  <- Stream.repeatEval(internalQ.dequeue1) through resilientConsumer
+      consumer <- Stream.repeatEval(
+                   internalQ.dequeue1.rethrow.flatMap(env => decoder(env).map(a => env.copy(payload = a))))
     } yield consumer
 }

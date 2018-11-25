@@ -16,7 +16,7 @@
 
 package com.github.gvolpe.fs2rabbit
 import cats.data.Kleisli
-import com.github.gvolpe.fs2rabbit.model.AmqpEnvelope
+import com.github.gvolpe.fs2rabbit.model.{AmqpEnvelope, AmqpMessage}
 
 package object effects {
 
@@ -26,4 +26,6 @@ package object effects {
     * There's a default instance for decoding payloads into a UTF-8 String.
     * */
   type EnvelopeDecoder[F[_], A] = Kleisli[F, AmqpEnvelope[Array[Byte]], A]
+
+  type MessageEncoder[F[_], A] = Kleisli[F, A, AmqpMessage[Array[Byte]]]
 }

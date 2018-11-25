@@ -24,11 +24,10 @@ import com.github.gvolpe.fs2rabbit.model._
 import com.rabbitmq.client.Channel
 import fs2.Stream
 
-class AckingProgram[F[_]](config: Fs2RabbitConfig, AMQP: AMQPClient[Stream[F, ?], F])(implicit F: Applicative[F])
-    extends Acking[F] {
+class AckingProgram[F[_]: Applicative](config: Fs2RabbitConfig, AMQP: AMQPClient[Stream[F, ?], F]) extends Acking[F] {
 
   def createAcker(channel: Channel): F[AckResult => F[Unit]] =
-    F.pure {
+    Applicative[F].pure {
       case Ack(tag)  => AMQP.basicAck(channel, tag, multiple = false)
       case NAck(tag) => AMQP.basicNack(channel, tag, multiple = false, config.requeueOnNack)
     }

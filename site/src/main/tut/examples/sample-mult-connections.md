@@ -72,7 +72,7 @@ def p3(implicit F: Fs2Rabbit[IO]) = F.createConnectionChannel.flatMap { implicit
 And finally we compose all the three programs together:
 
 ```tut:book:silent
-val pipe: Pipe[IO, AmqpEnvelope[String], AmqpMessage[String]] = _.map(env => AmqpMessage(env.payload, AmqpProperties.empty))
+val pipe: Pipe[IO, AmqpEnvelope[String], String] = _.map(_.payload)
 
 def program(implicit F: Fs2Rabbit[IO]) =
   for {

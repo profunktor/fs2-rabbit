@@ -37,12 +37,17 @@ import scala.util.control.NonFatal
   * */
 object ResilientStream {
 
-  def run[F[_]: Log: Sync: Timer](program: Stream[F, Unit], retry: FiniteDuration = 5.seconds): F[Unit] =
+  def run[F[_]: Log: Sync: Timer](
+      program: Stream[F, Unit],
+      retry: FiniteDuration = 5.seconds
+  ): F[Unit] =
     loop(program, retry, 1).compile.drain
 
-  private def loop[F[_]: Log: Sync: Timer](program: Stream[F, Unit],
-                                           retry: FiniteDuration,
-                                           count: Int): Stream[F, Unit] =
+  private def loop[F[_]: Log: Sync: Timer](
+      program: Stream[F, Unit],
+      retry: FiniteDuration,
+      count: Int
+  ): Stream[F, Unit] =
     program.handleErrorWith {
       case NonFatal(err) =>
         Stream.eval(Log[F].error(err) *> Log[F].info(s"Restarting in ${retry * count}...")) >>

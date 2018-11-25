@@ -34,12 +34,12 @@ val publishingFlag: PublishingFlag = PublishingFlag(mandatory = true)
 // Run when there's no consumer for the routing key specified by the publisher and the flag mandatory is true
 val publishingListener: PublishReturn => IO[Unit] = pr => IO(println(s"Publish listener: $pr"))
 
-def doSomething(publisher: AmqpMessage[String] => IO[Unit]): Stream[IO, Unit] = Stream.eval(IO.unit)
+def doSomething(publisher: String => IO[Unit]): Stream[IO, Unit] = Stream.eval(IO.unit)
 
 def program(implicit R: Fs2Rabbit[IO]) =
   R.createConnectionChannel.flatMap { implicit channel => // Stream[IO, AMQPChannel]
     for {
-      p <- R.createPublisherWithListener(exchangeName, routingKey, publishingFlag, publishingListener)	  // AmqpMessage[String] => IO[Unit]
+      p <- R.createPublisherWithListener[String](exchangeName, routingKey, publishingFlag, publishingListener)	  // String => IO[Unit]
       _ <- doSomething(p)
     } yield ()
   }
@@ -54,8 +54,8 @@ import cats.effect.Sync
 import com.github.gvolpe.fs2rabbit.model._
 import fs2._
 
-def publishSimpleMessage[F[_]: Sync](publisher: AmqpMessage[String] => F[Unit]): Stream[F, Unit] = {
-  val message = AmqpMessage("Hello world!", AmqpProperties.empty)
+def publishSimpleMessage[F[_]: Sync](publisher: String => F[Unit]): Stream[F, Unit] = {
+  val message = "Hello world!"
   Stream(message).covary[F] evalMap publisher
 }
 ```
