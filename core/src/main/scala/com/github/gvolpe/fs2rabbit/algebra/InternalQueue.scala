@@ -14,16 +14,11 @@
  * limitations under the License.
  */
 
-package com.github.gvolpe.fs2rabbit.config
+package com.github.gvolpe.fs2rabbit.algebra
 
-case class Fs2RabbitConfig(
-    host: String,
-    port: Int,
-    virtualHost: String,
-    connectionTimeout: Int,
-    ssl: Boolean,
-    username: Option[String],
-    password: Option[String],
-    requeueOnNack: Boolean,
-    internalQueueSize: Option[Int]
-)
+import com.github.gvolpe.fs2rabbit.model.AmqpEnvelope
+import fs2.concurrent.Queue
+
+trait InternalQueue[F[_]] {
+  def create: F[Queue[F, Either[Throwable, AmqpEnvelope[Array[Byte]]]]]
+}

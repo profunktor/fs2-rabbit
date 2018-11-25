@@ -59,7 +59,7 @@ class AckerConsumerDemo[F[_]: Concurrent](implicit F: Fs2Rabbit[F], SE: StreamEv
   private val queueName    = QueueName("testQ")
   private val exchangeName = ExchangeName("testEX")
   private val routingKey   = RoutingKey("testRK")
-  
+
   implicit val amqpMessageEncoder: MessageEncoder[F, AmqpMessage[String]] = Kleisli { msg =>
     msg.copy(payload = msg.payload.getBytes(UTF_8)).pure[F]
   }
@@ -104,7 +104,8 @@ object IOAckerConsumer extends IOApp {
     port = 5672,
     ssl = false,
     connectionTimeout = 3,
-    requeueOnNack = false
+    requeueOnNack = false,
+    internalQueueSize = Some(500)
   )
 
   override def run(args: List[String]): IO[ExitCode] =

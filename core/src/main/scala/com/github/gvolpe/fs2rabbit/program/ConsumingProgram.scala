@@ -16,19 +16,18 @@
 
 package com.github.gvolpe.fs2rabbit.program
 
-import cats.effect.Concurrent
+import cats.MonadError
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.monadError._
-import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, AMQPInternals, Consuming}
+import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, AMQPInternals, Consuming, InternalQueue}
 import com.github.gvolpe.fs2rabbit.arguments.Arguments
 import com.github.gvolpe.fs2rabbit.effects.EnvelopeDecoder
 import com.github.gvolpe.fs2rabbit.model._
 import com.rabbitmq.client.Channel
 import fs2.Stream
-import fs2.concurrent.Queue
 
-class ConsumingProgram[F[_]: Concurrent](AMQP: AMQPClient[Stream[F, ?], F])
+class ConsumingProgram[F[_]: MonadError[?[_], Throwable]](AMQP: AMQPClient[Stream[F, ?], F], IQ: InternalQueue[F])
     extends Consuming[Stream[F, ?], F] {
 
   override def createConsumer[A](
@@ -42,7 +41,7 @@ class ConsumingProgram[F[_]: Concurrent](AMQP: AMQPClient[Stream[F, ?], F])
       args: Arguments = Map.empty
   )(implicit decoder: EnvelopeDecoder[F, A]): Stream[F, AmqpEnvelope[A]] =
     for {
-      internalQ <- Stream.eval(Queue.bounded[F, Either[Throwable, AmqpEnvelope[Array[Byte]]]](500))
+      internalQ <- Stream.eval(IQ.create)
       internals = AMQPInternals[F](Some(internalQ))
       _         <- AMQP.basicQos(channel, basicQos)
       _         <- AMQP.basicConsume(channel, queueName, autoAck, consumerTag, noLocal, exclusive, args)(internals)
