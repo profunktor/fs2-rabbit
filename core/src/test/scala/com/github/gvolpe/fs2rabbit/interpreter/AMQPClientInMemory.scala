@@ -85,7 +85,7 @@ class AMQPClientInMemory(
     Stream
       .eval(queues.get)
       .flatMap(_.find(_.value == queueName.value).fold(ifError) { _ =>
-        Stream.eval(ref.set(internals)).map(_ => "dequeue1 happens in AckerConsumerProgram.createConsumer")
+        Stream.eval(ref.set(internals)).as("dequeue1 happens in AckerConsumerProgram.createConsumer")
       })
   }
 

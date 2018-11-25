@@ -35,7 +35,7 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
       channel: Channel,
       internals: AMQPInternals[F]
   ): Stream[F, Consumer] =
-    SE.pure(
+    Stream(
       new DefaultConsumer(channel) {
 
         override def handleCancel(consumerTag: String): Unit =

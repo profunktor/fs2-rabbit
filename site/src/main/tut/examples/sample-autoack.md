@@ -101,7 +101,8 @@ object MonixAutoAckConsumer extends TaskApp {
     port = 5672,
     ssl = false,
     connectionTimeout = 3,
-    requeueOnNack = false
+    requeueOnNack = false,
+    internalQueueSize = Some(500)
   )
 
   override def run(args: List[String]): Task[ExitCode] =

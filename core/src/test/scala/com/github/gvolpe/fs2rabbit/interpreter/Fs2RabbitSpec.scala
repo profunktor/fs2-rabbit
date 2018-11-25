@@ -49,7 +49,8 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
       ssl = false,
       username = None,
       password = None,
-      requeueOnNack = false
+      requeueOnNack = false,
+      internalQueueSize = None
     )
 
   private val nackConfig =
@@ -61,7 +62,8 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
       ssl = false,
       username = None,
       password = None,
-      requeueOnNack = true
+      requeueOnNack = true,
+      internalQueueSize = None
     )
 
   /**
@@ -95,7 +97,8 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
         amqpClient   = new AMQPClientInMemory(queues, exchanges, binds, queueRef, publishingQ, listenerQ, ackerQ, config)
         connStream   = new ConnectionStub
         acker        = new AckingProgram[IO](config, amqpClient)
-        consumer     = new ConsumingProgram[IO](amqpClient)
+        internalQ    = new InternalQueueStream[IO](config.internalQueueSize.getOrElse(500))
+        consumer     = new ConsumingProgram[IO](amqpClient, internalQ)
         fs2Rabbit    = new Fs2Rabbit[IO](config, connStream, amqpClient, acker, consumer)
         testSuiteRTS = rabbitRTS(queueRef, publishingQ)
       } yield (fs2Rabbit, testSuiteRTS)

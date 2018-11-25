@@ -18,22 +18,21 @@ package com.github.gvolpe.fs2rabbit.program
 
 import cats.FlatMap
 import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, Publishing}
-import com.github.gvolpe.fs2rabbit.effects.{MessageEncoder, StreamEval}
+import com.github.gvolpe.fs2rabbit.effects.MessageEncoder
 import com.github.gvolpe.fs2rabbit.model._
 import com.rabbitmq.client.Channel
 import fs2.Stream
 
-class PublishingProgram[F[_]: FlatMap](AMQP: AMQPClient[Stream[F, ?], F])(implicit SE: StreamEval[F])
-    extends Publishing[Stream[F, ?], F] {
+class PublishingProgram[F[_]: FlatMap](AMQP: AMQPClient[Stream[F, ?], F]) extends Publishing[Stream[F, ?], F] {
 
   override def createPublisher[A](
       channel: Channel,
       exchangeName: ExchangeName,
       routingKey: RoutingKey
   )(implicit encoder: MessageEncoder[F, A]): Stream[F, A => F[Unit]] =
-    SE.pure {
+    Stream(
       encoder.flatMapF(AMQP.basicPublish(channel, exchangeName, routingKey, _)).run
-    }
+    )
 
   override def createPublisherWithListener[A](
       channel: Channel,
@@ -42,8 +41,8 @@ class PublishingProgram[F[_]: FlatMap](AMQP: AMQPClient[Stream[F, ?], F])(implic
       flag: PublishingFlag,
       listener: PublishReturn => F[Unit]
   )(implicit encoder: MessageEncoder[F, A]): Stream[F, A => F[Unit]] =
-    AMQP.addPublishingListener(channel, listener).drain ++ SE.pure {
+    AMQP.addPublishingListener(channel, listener).drain ++ Stream(
       encoder.flatMapF(AMQP.basicPublishWithFlag(channel, exchangeName, routingKey, flag, _)).run
-    }
+    )
 
 }
