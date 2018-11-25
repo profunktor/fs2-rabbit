@@ -37,7 +37,7 @@ object Fs2Rabbit {
     ConnectionStream.mkConnectionFactory[F](config, sslContext).map { factory =>
       val amqpClient = new AMQPClientStream[F]
       val connStream = new ConnectionStream[F](factory)
-      val internalQ  = new InternalQueueStream[F](config.internalQueueSize.getOrElse(500))
+      val internalQ  = new LiveInternalQueue[F](config.internalQueueSize.getOrElse(500))
       val acker      = new AckingProgram[F](config, amqpClient)
       val consumer   = new ConsumingProgram[F](amqpClient, internalQ)
       new Fs2Rabbit[F](config, connStream, amqpClient, acker, consumer)

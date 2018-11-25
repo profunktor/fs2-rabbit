@@ -97,7 +97,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
         amqpClient   = new AMQPClientInMemory(queues, exchanges, binds, queueRef, publishingQ, listenerQ, ackerQ, config)
         connStream   = new ConnectionStub
         acker        = new AckingProgram[IO](config, amqpClient)
-        internalQ    = new InternalQueueStream[IO](config.internalQueueSize.getOrElse(500))
+        internalQ    = new LiveInternalQueue[IO](config.internalQueueSize.getOrElse(500))
         consumer     = new ConsumingProgram[IO](amqpClient, internalQ)
         fs2Rabbit    = new Fs2Rabbit[IO](config, connStream, amqpClient, acker, consumer)
         testSuiteRTS = rabbitRTS(queueRef, publishingQ)

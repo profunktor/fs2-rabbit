@@ -21,7 +21,7 @@ import com.github.gvolpe.fs2rabbit.algebra.InternalQueue
 import com.github.gvolpe.fs2rabbit.model.AmqpEnvelope
 import fs2.concurrent.Queue
 
-class InternalQueueStream[F[_]: Concurrent](queueSize: Int) extends InternalQueue[F] {
+class LiveInternalQueue[F[_]: Concurrent](queueSize: Int) extends InternalQueue[F] {
 
   override def create: F[Queue[F, Either[Throwable, AmqpEnvelope[Array[Byte]]]]] =
     Queue.bounded[F, Either[Throwable, AmqpEnvelope[Array[Byte]]]](queueSize)
