@@ -24,20 +24,20 @@ import com.github.gvolpe.fs2rabbit.arguments.Arguments
 import com.github.gvolpe.fs2rabbit.config.declaration.{DeclarationExchangeConfig, DeclarationQueueConfig}
 import com.github.gvolpe.fs2rabbit.config.deletion.DeletionQueueConfig
 import com.github.gvolpe.fs2rabbit.config.{Fs2RabbitConfig, deletion}
-import com.github.gvolpe.fs2rabbit.effects.EnvelopeDecoder
 import com.github.gvolpe.fs2rabbit.model
 import com.github.gvolpe.fs2rabbit.model.AckResult.{Ack, NAck}
 import com.github.gvolpe.fs2rabbit.model._
 import com.rabbitmq.client.Channel
 import fs2.Stream
 import fs2.concurrent.Queue
+import java.nio.charset.StandardCharsets.UTF_8
 
 class AMQPClientInMemory(
     queues: Ref[IO, Set[QueueName]],
     exchanges: Ref[IO, Set[ExchangeName]],
     binds: Ref[IO, Map[String, ExchangeName]],
-    ref: Ref[IO, AMQPInternals[IO, String]],
-    publishingQ: Queue[IO, Either[Throwable, AmqpEnvelope[String]]],
+    ref: Ref[IO, AMQPInternals[IO]],
+    publishingQ: Queue[IO, Either[Throwable, AmqpEnvelope[Array[Byte]]]],
     listenerQ: Queue[IO, PublishReturn],
     ackerQ: Queue[IO, AckResult],
     config: Fs2RabbitConfig
@@ -57,7 +57,7 @@ class AMQPClientInMemory(
       requeue: Boolean
   ): IO[Unit] = {
     // Imitating the RabbitMQ behavior
-    val envelope = AmqpEnvelope(DeliveryTag(1), "requeued msg", AmqpProperties.empty)
+    val envelope = AmqpEnvelope(DeliveryTag(1), "requeued msg".getBytes(UTF_8), AmqpProperties.empty)
     for {
       _ <- ackerQ.enqueue1(NAck(tag))
       _ <- if (config.requeueOnNack) publishingQ.enqueue1(Right(envelope))
@@ -78,16 +78,14 @@ class AMQPClientInMemory(
       noLocal: Boolean,
       exclusive: Boolean,
       args: Arguments
-  )(internals: AMQPInternals[IO, A])(implicit decoder: EnvelopeDecoder[IO, A]): Stream[IO, String] = {
+  )(internals: AMQPInternals[IO]): Stream[IO, String] = {
     val ifError =
       raiseError[String](s"Queue ${queueName.value} does not exist!")
-
-    val stringInternals = internals.asInstanceOf[AMQPInternals[IO, String]]
 
     Stream
       .eval(queues.get)
       .flatMap(_.find(_.value == queueName.value).fold(ifError) { _ =>
-        Stream.eval(ref.set(stringInternals)).map(_ => "dequeue1 happens in AckerConsumerProgram.createConsumer")
+        Stream.eval(ref.set(internals)).map(_ => "dequeue1 happens in AckerConsumerProgram.createConsumer")
       })
   }
 
@@ -95,7 +93,7 @@ class AMQPClientInMemory(
       channel: Channel,
       exchangeName: model.ExchangeName,
       routingKey: model.RoutingKey,
-      msg: model.AmqpMessage[String]
+      msg: model.AmqpMessage[Array[Byte]]
   ): IO[Unit] = {
     val envelope = AmqpEnvelope(DeliveryTag(1), msg.payload, msg.properties)
     publishingQ.enqueue1(Right(envelope))
@@ -106,7 +104,7 @@ class AMQPClientInMemory(
       exchangeName: ExchangeName,
       routingKey: RoutingKey,
       flag: PublishingFlag,
-      msg: AmqpMessage[String]
+      msg: AmqpMessage[Array[Byte]]
   ): IO[Unit] = {
     val ifNoBind = {
       val publishReturn =

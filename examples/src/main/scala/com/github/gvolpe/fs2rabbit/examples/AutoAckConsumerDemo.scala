@@ -16,7 +16,11 @@
 
 package com.github.gvolpe.fs2rabbit.examples
 
+import java.nio.charset.StandardCharsets.UTF_8
+
+import cats.data.Kleisli
 import cats.effect.Concurrent
+import cats.syntax.applicative._
 import cats.syntax.functor._
 import com.github.gvolpe.fs2rabbit.config.declaration.DeclarationQueueConfig
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
@@ -31,6 +35,8 @@ class AutoAckConsumerDemo[F[_]: Concurrent](implicit R: Fs2Rabbit[F]) {
   private val queueName    = QueueName("testQ")
   private val exchangeName = ExchangeName("testEX")
   private val routingKey   = RoutingKey("testRK")
+  implicit val stringMessageEncoder =
+    Kleisli[F, AmqpMessage[String], AmqpMessage[Array[Byte]]](s => s.copy(payload = s.payload.getBytes(UTF_8)).pure[F])
 
   def logPipe: Pipe[F, AmqpEnvelope[String], AckResult] = _.evalMap { amqpMsg =>
     putStrLn(s"Consumed: $amqpMsg").as(Ack(amqpMsg.deliveryTag))
@@ -42,7 +48,7 @@ class AutoAckConsumerDemo[F[_]: Concurrent](implicit R: Fs2Rabbit[F]) {
       _         <- R.declareExchange(exchangeName, ExchangeType.Topic)
       _         <- R.bindQueue(queueName, exchangeName, routingKey)
       consumer  <- R.createAutoAckConsumer[String](queueName)
-      publisher <- R.createPublisher(exchangeName, routingKey)
+      publisher <- R.createPublisher[AmqpMessage[String]](exchangeName, routingKey)
       result    <- new AutoAckFlow[F, String](consumer, logPipe, publisher).flow
     } yield result
   }

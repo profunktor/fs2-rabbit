@@ -16,23 +16,24 @@
 
 package com.github.gvolpe.fs2rabbit.algebra
 
+import com.github.gvolpe.fs2rabbit.effects.MessageEncoder
 import com.github.gvolpe.fs2rabbit.model._
 import com.rabbitmq.client.Channel
 
 trait Publishing[F[_], G[_]] {
 
-  def createPublisher(
+  def createPublisher[A](
       channel: Channel,
       exchangeName: ExchangeName,
       routingKey: RoutingKey
-  ): F[AmqpMessage[String] => G[Unit]]
+  )(implicit encoder: MessageEncoder[G, A]): F[A => G[Unit]]
 
-  def createPublisherWithListener(
+  def createPublisherWithListener[A](
       channel: Channel,
       exchangeName: ExchangeName,
       routingKey: RoutingKey,
       flags: PublishingFlag,
       listener: PublishReturn => G[Unit]
-  ): F[AmqpMessage[String] => G[Unit]]
+  )(implicit encoder: MessageEncoder[G, A]): F[A => G[Unit]]
 
 }
