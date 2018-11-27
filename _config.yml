@@ -6,6 +6,6 @@ docs: true
 collections:
   tut:
     output: true
-version: 1.0-RC5
+version: 1.0-RC6
 org: Fs2 Rabbit
 markdown: kramdown

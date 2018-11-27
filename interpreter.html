@@ -37,7 +37,8 @@
     <span class="n">port</span> <span class="k">=</span> <span class="mi">5672</span><span class="o">,</span>
     <span class="n">ssl</span> <span class="k">=</span> <span class="kc">false</span><span class="o">,</span>
     <span class="n">connectionTimeout</span> <span class="k">=</span> <span class="mi">3</span><span class="o">,</span>
-    <span class="n">requeueOnNack</span> <span class="k">=</span> <span class="kc">false</span>
+    <span class="n">requeueOnNack</span> <span class="k">=</span> <span class="kc">false</span><span class="o">,</span>
+    <span class="n">internalQueueSize</span> <span class="k">=</span> <span class="nc">Some</span><span class="o">(</span><span class="mi">500</span><span class="o">)</span>
   <span class="o">)</span>
 
   <span class="k">override</span> <span class="k">def</span> <span class="n">run</span><span class="o">(</span><span class="n">args</span><span class="k">:</span> <span class="kt">List</span><span class="o">[</span><span class="kt">String</span><span class="o">])</span><span class="k">:</span> <span class="kt">IO</span><span class="o">[</span><span class="kt">ExitCode</span><span class="o">]</span> <span class="k">=</span>
