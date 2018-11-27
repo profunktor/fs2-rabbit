@@ -18,7 +18,9 @@ package com.github.gvolpe.fs2rabbit.interpreter
 
 import javax.net.ssl.SSLContext
 
-import cats.effect.Sync
+import cats.effect.concurrent.MVar
+import cats.effect.syntax.effect._
+import cats.effect.{ConcurrentEffect, Sync}
 import cats.syntax.apply._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
@@ -26,31 +28,47 @@ import com.github.gvolpe.fs2rabbit.algebra.Connection
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 import com.github.gvolpe.fs2rabbit.model.{AMQPChannel, RabbitChannel}
 import com.github.gvolpe.fs2rabbit.effects.Log
-import com.rabbitmq.client.{ConnectionFactory, Connection => RabbitMQConnection}
+import com.rabbitmq.client.{Connection => RabbitMQConnection, _}
 import fs2.Stream
 
-class ConnectionStream[F[_]](factory: ConnectionFactory)(implicit F: Sync[F], L: Log[F])
+class ConnectionStream[F[_]: ConcurrentEffect](factory: ConnectionFactory)(implicit F: Sync[F], L: Log[F])
     extends Connection[Stream[F, ?]] {
 
-  private[fs2rabbit] val acquireConnection: F[(RabbitMQConnection, AMQPChannel)] =
+  private[fs2rabbit] def acquireConnection(q: MVar[F, ShutdownSignalException]): F[(RabbitMQConnection, AMQPChannel)] =
     for {
+      _       <- F.delay(factory.setAutomaticRecoveryEnabled(false))
       conn    <- F.delay(factory.newConnection)
       channel <- F.delay(conn.createChannel)
+      _       = conn.addShutdownListener(shutdownListener(q))
     } yield (conn, RabbitChannel(channel))
 
   /**
     * Creates a connection and a channel in a safe way using Stream.bracket.
     * In case of failure, the resources will be cleaned up properly.
     **/
-  override def createConnectionChannel: Stream[F, AMQPChannel] =
-    Stream
-      .bracket(acquireConnection) {
-        case (conn, RabbitChannel(channel)) =>
-          L.info(s"Releasing connection: $conn previously acquired.") *>
-            F.delay { if (channel.isOpen) channel.close() } *> F.delay { if (conn.isOpen) conn.close() }
-        case (_, _) => F.raiseError[Unit](new Exception("Unreachable"))
-      }
-      .map { case (_, channel) => channel }
+  override def createConnectionChannel: Stream[F, AMQPChannel] = {
+    def makeChannel(queue: MVar[F, ShutdownSignalException]): Stream[F, AMQPChannel] =
+      Stream
+        .bracket(acquireConnection(queue)) {
+          case (conn, RabbitChannel(channel)) =>
+            L.info(s"Releasing connection: $conn previously acquired.") *>
+              F.delay { if (channel.isOpen) channel.close() } *> F.delay { if (conn.isOpen) conn.close() }
+          case (_, _) => F.raiseError[Unit](new Exception("Unreachable"))
+        }
+        .map { case (_, channel) => channel }
+
+    def terminator(queue: MVar[F, ShutdownSignalException]): Stream[F, AMQPChannel] =
+      Stream.eval(queue.read >>= F.raiseError[AMQPChannel])
+
+    for {
+      queue   <- Stream.eval(MVar[F].empty[ShutdownSignalException])
+      channel <- makeChannel(queue).concurrently(terminator(queue))
+    } yield channel
+  }
+
+  private def shutdownListener(queue: MVar[F, ShutdownSignalException]): ShutdownListener = cause => {
+    queue.put(cause).toIO.unsafeRunAsync(_ => ())
+  }
 
 }
 
