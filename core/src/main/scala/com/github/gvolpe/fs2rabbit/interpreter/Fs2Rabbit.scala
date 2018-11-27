@@ -89,6 +89,18 @@ class Fs2Rabbit[F[_]: Concurrent] private[fs2rabbit] (
   )(implicit channel: AMQPChannel, encoder: MessageEncoder[F, A]): Stream[F, A => F[Unit]] =
     publishingProgram.createPublisherWithListener(channel.value, exchangeName, routingKey, flags, listener)
 
+  def createRoutingPublisher[A](exchangeName: ExchangeName)(
+      implicit channel: AMQPChannel,
+      encoder: MessageEncoder[F, A]): Stream[F, RoutingKey => A => F[Unit]] =
+    publishingProgram.createRoutingPublisher(channel.value, exchangeName)
+
+  def createRoutingPublisherWithListener[A](
+      exchangeName: ExchangeName,
+      flags: PublishingFlag,
+      listener: PublishReturn => F[Unit]
+  )(implicit channel: AMQPChannel, encoder: MessageEncoder[F, A]): Stream[F, RoutingKey => A => F[Unit]] =
+    publishingProgram.createRoutingPublisherWithListener(channel.value, exchangeName, flags, listener)
+
   def addPublishingListener(listener: PublishReturn => F[Unit])(implicit channel: AMQPChannel): Stream[F, Unit] =
     amqpClient.addPublishingListener(channel.value, listener)
 

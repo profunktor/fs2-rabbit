@@ -18,7 +18,7 @@ The server SHOULD implement the mandatory flag.
 
 ### Creating a Publisher with Listener
 
-It is simply created by specifying `ExchangeName`, `RoutingKey`, `PublishingFlag` and a `PublishingListener`. The latter is just a function from `PublishReturn` (a data structure) to `F[Unit]`:
+It is simply created by specifying `ExchangeName`, `RoutingKey`, `PublishingFlag` and a listener, i.e. a function from `PublishReturn` (a data structure) to `F[Unit]`:
 
 ```tut:book:silent
 import cats.effect.IO
