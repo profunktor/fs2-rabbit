@@ -230,7 +230,12 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
           ackResult <- Stream.eval(ackerQ.dequeue1)
         } yield {
           result should be(
-            AmqpEnvelope(DeliveryTag(1), "acker-test", AmqpProperties.empty.copy(contentEncoding = Some("UTF-8"))))
+            AmqpEnvelope(DeliveryTag(1),
+                         "acker-test",
+                         AmqpProperties.empty.copy(contentEncoding = Some("UTF-8")),
+                         exchangeName,
+                         routingKey,
+                         false))
           ackResult should be(Ack(DeliveryTag(1)))
         }
       }
@@ -253,7 +258,13 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
         _                 <- (Stream(NAck(DeliveryTag(1))).covary[IO].observe(ackerQ.enqueue) evalMap acker).take(1)
         ackResult         <- Stream.eval(ackerQ.dequeue1)
       } yield {
-        result should be(AmqpEnvelope(DeliveryTag(1), "NAck-test", AmqpProperties(contentEncoding = Some("UTF-8"))))
+        result should be(
+          AmqpEnvelope(DeliveryTag(1),
+                       "NAck-test",
+                       AmqpProperties(contentEncoding = Some("UTF-8")),
+                       exchangeName,
+                       routingKey,
+                       false))
         ackResult should be(NAck(DeliveryTag(1)))
       }
     }
@@ -272,7 +283,13 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
         _         <- Stream.eval(publisher("test"))
         result    <- consumer.take(1)
       } yield {
-        result should be(AmqpEnvelope(DeliveryTag(1), "test", AmqpProperties(contentEncoding = Some("UTF-8"))))
+        result should be(
+          AmqpEnvelope(DeliveryTag(1),
+                       "test",
+                       AmqpProperties(contentEncoding = Some("UTF-8")),
+                       exchangeName,
+                       routingKey,
+                       false))
       }
     }
   }
@@ -296,7 +313,13 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
           _      <- Stream.eval(publisher("test"))
           result <- consumer.take(1)
         } yield {
-          result should be(AmqpEnvelope(DeliveryTag(1), "test", AmqpProperties(contentEncoding = Some("UTF-8"))))
+          result should be(
+            AmqpEnvelope(DeliveryTag(1),
+                         "test",
+                         AmqpProperties(contentEncoding = Some("UTF-8")),
+                         exchangeName,
+                         routingKey,
+                         false))
         }
       }
   }
@@ -328,7 +351,13 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
           result    <- Stream.eval(testQ.dequeue1)
           ackResult <- Stream.eval(ackerQ.dequeue1)
         } yield {
-          result should be(AmqpEnvelope(DeliveryTag(1), "test", AmqpProperties(contentEncoding = Some("UTF-8"))))
+          result should be(
+            AmqpEnvelope(DeliveryTag(1),
+                         "test",
+                         AmqpProperties(contentEncoding = Some("UTF-8")),
+                         exchangeName,
+                         routingKey,
+                         false))
           ackResult should be(Ack(DeliveryTag(1)))
         }
       }
@@ -446,7 +475,13 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
         result    <- Stream.eval(testQ.dequeue1)
         ackResult <- Stream.eval(ackerQ.dequeue1)
       } yield {
-        result should be(AmqpEnvelope(DeliveryTag(1), "test", AmqpProperties(contentEncoding = Some("UTF-8"))))
+        result should be(
+          AmqpEnvelope(DeliveryTag(1),
+                       "test",
+                       AmqpProperties(contentEncoding = Some("UTF-8")),
+                       sourceExchangeName,
+                       routingKey,
+                       false))
         ackResult should be(Ack(DeliveryTag(1)))
       }
     }
@@ -511,7 +546,13 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
         result    <- c1.take(1)
         rs2       <- takeWithTimeOut(c2, 1.second)
       } yield {
-        result should be(AmqpEnvelope(DeliveryTag(1), "test", AmqpProperties(contentEncoding = Some("UTF-8"))))
+        result should be(
+          AmqpEnvelope(DeliveryTag(1),
+                       "test",
+                       AmqpProperties(contentEncoding = Some("UTF-8")),
+                       exchangeName,
+                       routingKey,
+                       false))
         rs2 should be(None)
       }
     }
@@ -558,7 +599,13 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
         _         <- msg.covary[IO] evalMap publisher(routingKey)
         result    <- consumer.take(1)
       } yield {
-        result should be(AmqpEnvelope(DeliveryTag(1), "test", AmqpProperties(contentEncoding = Some("UTF-8"))))
+        result should be(
+          AmqpEnvelope(DeliveryTag(1),
+                       "test",
+                       AmqpProperties(contentEncoding = Some("UTF-8")),
+                       exchangeName,
+                       routingKey,
+                       false))
       }
     }
   }
