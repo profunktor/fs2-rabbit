@@ -54,10 +54,13 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
           properties: AMQP.BasicProperties,
           body: Array[Byte]
       ): Unit = {
-        val tag   = envelope.getDeliveryTag
-        val props = AmqpProperties.from(properties)
+        val tag         = envelope.getDeliveryTag
+        val routingKey  = RoutingKey(envelope.getRoutingKey)
+        val exchange    = ExchangeName(envelope.getExchange)
+        val redelivered = envelope.isRedeliver
+        val props       = AmqpProperties.from(properties)
         internals.queue.fold(()) { internalQ =>
-          val envelope = AmqpEnvelope(DeliveryTag(tag), body, props)
+          val envelope = AmqpEnvelope(DeliveryTag(tag), body, props, exchange, routingKey, redelivered)
           internalQ
             .enqueue1(Right(envelope))
             .toIO

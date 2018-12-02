@@ -17,7 +17,7 @@
 package com.github.gvolpe.fs2rabbit.effects
 import cats.{Applicative, ApplicativeError}
 import cats.data.Kleisli
-import com.github.gvolpe.fs2rabbit.model.{AmqpHeaderVal, AmqpProperties}
+import com.github.gvolpe.fs2rabbit.model.{AmqpHeaderVal, AmqpProperties, ExchangeName, RoutingKey}
 import com.github.gvolpe.fs2rabbit.model.AmqpHeaderVal._
 import cats.implicits._
 
@@ -29,6 +29,15 @@ object EnvelopeDecoder {
 
   def payload[F[_]: Applicative]: EnvelopeDecoder[F, Array[Byte]] =
     Kleisli(_.payload.pure[F])
+
+  def routingKey[F[_]: Applicative]: EnvelopeDecoder[F, RoutingKey] =
+    Kleisli(e => e.routingKey.pure[F])
+
+  def exchangeName[F[_]: Applicative]: EnvelopeDecoder[F, ExchangeName] =
+    Kleisli(e => e.exchangeName.pure[F])
+
+  def redelivered[F[_]: Applicative]: EnvelopeDecoder[F, Boolean] =
+    Kleisli(e => e.redelivered.pure[F])
 
   def header[F[_]](name: String)(implicit F: ApplicativeError[F, Throwable]): EnvelopeDecoder[F, AmqpHeaderVal] =
     Kleisli(e => F.catchNonFatal(e.properties.headers(name)))
