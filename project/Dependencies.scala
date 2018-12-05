@@ -8,7 +8,8 @@ object Dependencies {
     val circe      = "0.10.1"
     val amqpClient = "5.5.0"
     val logback    = "1.1.3"
-    val monix      = "3.0.0-RC2-c84f485"
+    val monix      = "3.0.0-RC2"
+    val zio        = "0.5.0"
 
     val kindProjector    = "0.9.9"
     val betterMonadicFor = "0.3.0-M4"
@@ -27,8 +28,10 @@ object Dependencies {
     lazy val betterMonadicFor = "com.olegpy" %% "better-monadic-for" % Versions.betterMonadicFor
 
     // Examples
-    lazy val monix   = "io.monix"       %% "monix"          % Versions.monix
-    lazy val logback = "ch.qos.logback" % "logback-classic" % Versions.logback
+    lazy val monix   = "io.monix"       %% "monix"              % Versions.monix
+    lazy val zio     = "org.scalaz"     %% "scalaz-zio"         % Versions.zio
+    lazy val zioCats = "org.scalaz"     %% "scalaz-zio-interop" % Versions.zio
+    lazy val logback = "ch.qos.logback" % "logback-classic"     % Versions.logback
 
     // Json libraries
     def circe(artifact: String): ModuleID = "io.circe" %% artifact % Versions.circe
