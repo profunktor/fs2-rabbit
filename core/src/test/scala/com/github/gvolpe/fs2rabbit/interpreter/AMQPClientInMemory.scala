@@ -19,7 +19,7 @@ package com.github.gvolpe.fs2rabbit.interpreter
 import cats.effect.{ContextShift, IO}
 import cats.effect.concurrent.Ref
 import cats.syntax.functor._
-import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, AMQPInternals}
+import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, AQMPInternals}
 import com.github.gvolpe.fs2rabbit.arguments.Arguments
 import com.github.gvolpe.fs2rabbit.config.declaration.{DeclarationExchangeConfig, DeclarationQueueConfig}
 import com.github.gvolpe.fs2rabbit.config.deletion.DeletionQueueConfig
@@ -28,25 +28,24 @@ import com.github.gvolpe.fs2rabbit.model
 import com.github.gvolpe.fs2rabbit.model.AckResult.{Ack, NAck}
 import com.github.gvolpe.fs2rabbit.model._
 import com.rabbitmq.client.Channel
-import fs2.Stream
 import fs2.concurrent.Queue
 import java.nio.charset.StandardCharsets.UTF_8
 
-class AMQPClientInMemory(
+class AmqpClientInMemory(
     queues: Ref[IO, Set[QueueName]],
     exchanges: Ref[IO, Set[ExchangeName]],
     binds: Ref[IO, Map[String, ExchangeName]],
-    ref: Ref[IO, AMQPInternals[IO]],
+    ref: Ref[IO, AQMPInternals[IO]],
     consumers: Ref[IO, Set[ConsumerTag]],
     publishingQ: Queue[IO, Either[Throwable, AmqpEnvelope[Array[Byte]]]],
     listenerQ: Queue[IO, PublishReturn],
     ackerQ: Queue[IO, AckResult],
     config: Fs2RabbitConfig
 )(implicit cs: ContextShift[IO])
-    extends AMQPClient[Stream[IO, ?], IO] {
+    extends AMQPClient[IO] {
 
-  private def raiseError[A](message: String): Stream[IO, A] =
-    Stream.raiseError[IO](new java.io.IOException(message))
+  private def raiseError[A](message: String): IO[A] =
+    IO.raiseError(new java.io.IOException(message))
 
   override def basicAck(channel: Channel, tag: model.DeliveryTag, multiple: Boolean): IO[Unit] =
     ackerQ.enqueue1(Ack(tag))
@@ -74,7 +73,7 @@ class AMQPClientInMemory(
   override def basicQos(
       channel: Channel,
       basicQos: model.BasicQos
-  ): Stream[IO, Unit] = Stream.eval(IO.unit)
+  ): IO[Unit] = IO.unit
 
   override def basicConsume[A](
       channel: Channel,
@@ -84,7 +83,7 @@ class AMQPClientInMemory(
       noLocal: Boolean,
       exclusive: Boolean,
       args: Arguments
-  )(internals: AMQPInternals[IO]): IO[ConsumerTag] = {
+  )(internals: AQMPInternals[IO]): IO[ConsumerTag] = {
     val ifMissing =
       new java.io.IOException(s"Queue ${queueName.value} does not exist!")
 
@@ -97,6 +96,7 @@ class AMQPClientInMemory(
       _ <- IO.fromEither(q.find(_.value == queueName.value).toRight(ifMissing))
       _ <- ref.set(internals)
       _ <- consumers.update(_ + tag)
+      _ <- if (autoAck) ackerQ.enqueue1(Ack(DeliveryTag(42))) else IO.unit
     } yield tag
   }
 
@@ -151,41 +151,39 @@ class AMQPClientInMemory(
   override def addPublishingListener(
       channel: Channel,
       listener: PublishReturn => IO[Unit]
-  ): Stream[IO, Unit] =
-    Stream.eval(listenerQ.dequeue1.flatMap(listener).start.void)
+  ): IO[Unit] =
+    listenerQ.dequeue1.flatMap(listener).start.void
 
   override def clearPublishingListeners(
       channel: Channel
-  ): Stream[IO, Unit] = Stream.eval(IO.unit)
+  ): IO[Unit] = IO.unit
 
   override def deleteQueue(
       channel: Channel,
       config: DeletionQueueConfig
-  ): Stream[IO, Unit] =
-    Stream.eval(queues.update(_ - config.queueName))
+  ): IO[Unit] =
+    queues.update(_ - config.queueName)
 
   override def deleteQueueNoWait(
       channel: Channel,
       config: DeletionQueueConfig
-  ): Stream[IO, Unit] =
+  ): IO[Unit] =
     deleteQueue(channel, config)
 
   override def deleteExchange(
       channel: Channel,
       config: deletion.DeletionExchangeConfig
-  ): Stream[IO, Unit] =
-    Stream
-      .eval(exchanges.get)
-      .flatMap(
-        _.find(_ == config.exchangeName).fold(raiseError[Unit](s"Exchange ${config.exchangeName} does not exist")) {
-          exchange =>
-            Stream.eval(exchanges.update(_ - exchange))
-        })
+  ): IO[Unit] = exchanges.get.flatMap(
+    _.find(_ == config.exchangeName).fold(raiseError[Unit](s"Exchange ${config.exchangeName} does not exist")) {
+      exchange =>
+        exchanges.update(_ - exchange)
+    }
+  )
 
   override def deleteExchangeNoWait(
       channel: Channel,
       config: deletion.DeletionExchangeConfig
-  ): Stream[IO, Unit] =
+  ): IO[Unit] =
     deleteExchange(channel, config)
 
   override def bindQueue(
@@ -193,8 +191,8 @@ class AMQPClientInMemory(
       queueName: model.QueueName,
       exchangeName: model.ExchangeName,
       routingKey: model.RoutingKey
-  ): Stream[IO, Unit] =
-    Stream.eval(binds.update(_.updated(routingKey.value, exchangeName)))
+  ): IO[Unit] =
+    binds.update(_.updated(routingKey.value, exchangeName))
 
   override def bindQueue(
       channel: Channel,
@@ -202,7 +200,7 @@ class AMQPClientInMemory(
       exchangeName: model.ExchangeName,
       routingKey: model.RoutingKey,
       args: model.QueueBindingArgs
-  ): Stream[IO, Unit] =
+  ): IO[Unit] =
     bindQueue(channel, queueName, exchangeName, routingKey)
 
   override def bindQueueNoWait(
@@ -211,7 +209,7 @@ class AMQPClientInMemory(
       exchangeName: model.ExchangeName,
       routingKey: model.RoutingKey,
       args: model.QueueBindingArgs
-  ): Stream[IO, Unit] =
+  ): IO[Unit] =
     bindQueue(channel, queueName, exchangeName, routingKey)
 
   override def unbindQueue(
@@ -219,8 +217,8 @@ class AMQPClientInMemory(
       queueName: model.QueueName,
       exchangeName: model.ExchangeName,
       routingKey: model.RoutingKey
-  ): Stream[IO, Unit] =
-    Stream.eval(binds.update(_ - routingKey.value))
+  ): IO[Unit] =
+    binds.update(_ - routingKey.value)
 
   override def unbindQueue(
       channel: Channel,
@@ -228,7 +226,7 @@ class AMQPClientInMemory(
       exchangeName: model.ExchangeName,
       routingKey: model.RoutingKey,
       args: QueueUnbindArgs
-  ): Stream[IO, Unit] =
+  ): IO[Unit] =
     unbindQueue(channel, queueName, exchangeName, routingKey)
 
   override def bindExchange(
@@ -237,7 +235,7 @@ class AMQPClientInMemory(
       source: model.ExchangeName,
       routingKey: model.RoutingKey,
       args: model.ExchangeBindingArgs
-  ): Stream[IO, Unit] = Stream.eval(IO.unit)
+  ): IO[Unit] = IO.unit
 
   override def bindExchangeNoWait(
       channel: Channel,
@@ -245,7 +243,7 @@ class AMQPClientInMemory(
       source: ExchangeName,
       routingKey: RoutingKey,
       args: ExchangeBindingArgs
-  ): Stream[IO, Unit] = Stream.eval(IO.unit)
+  ): IO[Unit] = IO.unit
 
   override def unbindExchange(
       channel: Channel,
@@ -253,42 +251,42 @@ class AMQPClientInMemory(
       source: ExchangeName,
       routingKey: RoutingKey,
       args: ExchangeUnbindArgs
-  ): Stream[IO, Unit] = Stream.eval(IO.unit)
+  ): IO[Unit] = IO.unit
 
   override def declareExchange(
       channel: Channel,
       exchangeConfig: DeclarationExchangeConfig
-  ): Stream[IO, Unit] =
+  ): IO[Unit] =
     declareExchangePassive(channel, exchangeConfig.exchangeName)
 
   override def declareExchangeNoWait(
       channel: Channel,
       exchangeConfig: DeclarationExchangeConfig
-  ): Stream[IO, Unit] =
+  ): IO[Unit] =
     declareExchangePassive(channel, exchangeConfig.exchangeName)
 
   override def declareExchangePassive(
       channel: Channel,
       exchangeName: ExchangeName
-  ): Stream[IO, Unit] =
-    Stream.eval(exchanges.update(_ + exchangeName))
+  ): IO[Unit] =
+    exchanges.update(_ + exchangeName)
 
   override def declareQueue(
       channel: Channel,
       queueConfig: DeclarationQueueConfig
-  ): Stream[IO, Unit] =
+  ): IO[Unit] =
     declareQueuePassive(channel, queueConfig.queueName)
 
   override def declareQueueNoWait(
       channel: Channel,
       queueConfig: DeclarationQueueConfig
-  ): Stream[IO, Unit] =
+  ): IO[Unit] =
     declareQueuePassive(channel, queueConfig.queueName)
 
   override def declareQueuePassive(
       channel: Channel,
       queueName: QueueName
-  ): Stream[IO, Unit] =
-    Stream.eval(queues.update(_ + queueName))
+  ): IO[Unit] =
+    queues.update(_ + queueName)
 
 }

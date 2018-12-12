@@ -16,17 +16,18 @@
 
 package com.github.gvolpe.fs2rabbit.interpreter
 
-import cats.effect.IO
+import cats.effect.{IO, Resource}
+import cats.effect.concurrent.Ref
+import cats.implicits._
 import com.github.gvolpe.fs2rabbit.algebra.Connection
 import com.github.gvolpe.fs2rabbit.model.AMQPChannel
-import com.github.gvolpe.fs2rabbit.effects.StreamEval
 import com.rabbitmq.client.Channel
-import fs2.Stream
 
-class ConnectionStub(implicit SE: StreamEval[IO]) extends Connection[Stream[IO, ?]] {
+class ConnectionStub(open: Ref[IO, Boolean]) extends Connection[Resource[IO, ?]] {
 
   case class ChannelStub(value: Channel = null) extends AMQPChannel
 
-  override def createConnectionChannel: Stream[IO, AMQPChannel] = SE.pure(ChannelStub())
+  override def createConnectionChannel: Resource[IO, AMQPChannel] =
+    Resource.make(open.set(true))(_ => open.set(false)).map(_ => ChannelStub())
 
 }

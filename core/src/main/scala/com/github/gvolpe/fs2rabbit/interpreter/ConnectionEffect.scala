@@ -18,7 +18,7 @@ package com.github.gvolpe.fs2rabbit.interpreter
 
 import javax.net.ssl.SSLContext
 
-import cats.effect.Sync
+import cats.effect.{Resource, Sync}
 import cats.syntax.apply._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
@@ -27,34 +27,35 @@ import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 import com.github.gvolpe.fs2rabbit.model.{AMQPChannel, RabbitChannel}
 import com.github.gvolpe.fs2rabbit.effects.Log
 import com.rabbitmq.client.{ConnectionFactory, Connection => RabbitMQConnection}
-import fs2.Stream
 
-class ConnectionStream[F[_]](factory: ConnectionFactory)(implicit F: Sync[F], L: Log[F])
-    extends Connection[Stream[F, ?]] {
+class ConnectionEffect[F[_]](factory: ConnectionFactory)(implicit F: Sync[F], L: Log[F])
+    extends Connection[Resource[F, ?]] {
 
   private[fs2rabbit] val acquireConnection: F[(RabbitMQConnection, AMQPChannel)] =
     for {
       conn    <- F.delay(factory.newConnection)
       channel <- F.delay(conn.createChannel)
+      _       <- L.info(s"Acquired connection: $conn")
     } yield (conn, RabbitChannel(channel))
 
   /**
     * Creates a connection and a channel in a safe way using Stream.bracket.
     * In case of failure, the resources will be cleaned up properly.
     **/
-  override def createConnectionChannel: Stream[F, AMQPChannel] =
-    Stream
-      .bracket(acquireConnection) {
+  override def createConnectionChannel: Resource[F, AMQPChannel] =
+    Resource
+      .make(
+        acquireConnection
+      ) {
         case (conn, RabbitChannel(channel)) =>
           L.info(s"Releasing connection: $conn previously acquired.") *>
             F.delay { if (channel.isOpen) channel.close() } *> F.delay { if (conn.isOpen) conn.close() }
         case (_, _) => F.raiseError[Unit](new Exception("Unreachable"))
       }
       .map { case (_, channel) => channel }
-
 }
 
-object ConnectionStream {
+object ConnectionEffect {
 
   private[fs2rabbit] def mkConnectionFactory[F[_]: Sync](
       config: Fs2RabbitConfig,

@@ -22,9 +22,8 @@ import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 import com.github.gvolpe.fs2rabbit.model.AckResult.{Ack, NAck}
 import com.github.gvolpe.fs2rabbit.model._
 import com.rabbitmq.client.Channel
-import fs2.Stream
 
-class AckingProgram[F[_]: Applicative](config: Fs2RabbitConfig, AMQP: AMQPClient[Stream[F, ?], F]) extends Acking[F] {
+class AckingProgram[F[_]: Applicative](config: Fs2RabbitConfig, AMQP: AMQPClient[F]) extends Acking[F] {
 
   def createAcker(channel: Channel): F[AckResult => F[Unit]] =
     Applicative[F].pure {

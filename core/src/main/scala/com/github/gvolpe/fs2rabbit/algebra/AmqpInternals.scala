@@ -14,16 +14,9 @@
  * limitations under the License.
  */
 
-package com.github.gvolpe.fs2rabbit
+package com.github.gvolpe.fs2rabbit.algebra
 
-import cats.effect.{ContextShift, IO}
-import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
-import fs2.Stream
+import com.github.gvolpe.fs2rabbit.model.AmqpEnvelope
+import fs2.concurrent.Queue
 
-object StreamAssertion {
-  def apply[A](tuple: (Fs2Rabbit[IO], Stream[IO, Unit]))(fa: Fs2Rabbit[IO] => Stream[IO, A])(
-      implicit cs: ContextShift[IO]): Unit = {
-    val (rabbit, testSuiteRTS) = tuple
-    testSuiteRTS.mergeHaltR(fa(rabbit)).compile.drain.unsafeRunSync()
-  }
-}
+case class AQMPInternals[F[_]](queue: Option[Queue[F, Either[Throwable, AmqpEnvelope[Array[Byte]]]]])

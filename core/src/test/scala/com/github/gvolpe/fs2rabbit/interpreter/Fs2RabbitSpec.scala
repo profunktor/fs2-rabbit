@@ -17,18 +17,20 @@
 package com.github.gvolpe.fs2rabbit.interpreter
 
 import cats.effect.IO
+import cats.implicits._
 import cats.effect.concurrent.{Deferred, Ref}
-import cats.syntax.option._
-import com.github.gvolpe.fs2rabbit.StreamAssertion
-import com.github.gvolpe.fs2rabbit.algebra.AMQPInternals
-import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
+import com.github.gvolpe.fs2rabbit.{EffectAssertion, RTS, TestWorld}
+import com.github.gvolpe.fs2rabbit.algebra.AQMPInternals
 import com.github.gvolpe.fs2rabbit.config.declaration._
 import com.github.gvolpe.fs2rabbit.config.deletion.{DeletionExchangeConfig, DeletionQueueConfig}
-import com.github.gvolpe.fs2rabbit.model.AckResult.{Ack, NAck}
+import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 import com.github.gvolpe.fs2rabbit.model._
+import com.github.gvolpe.fs2rabbit.model.AckResult.{Ack, NAck}
 import com.github.gvolpe.fs2rabbit.program.{AckingProgram, ConsumingProgram}
-import fs2.Stream
 import fs2.concurrent.Queue
+import org.scalatest.{FlatSpecLike, Matchers}
+
+import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 import org.scalatest.{FlatSpecLike, Matchers}
 
 import scala.concurrent.ExecutionContext
@@ -36,7 +38,6 @@ import scala.concurrent.duration._
 import java.nio.charset.StandardCharsets.UTF_8
 
 class Fs2RabbitSpec extends FlatSpecLike with Matchers {
-
   implicit val timer = IO.timer(ExecutionContext.global)
   implicit val cs    = IO.contextShift(ExecutionContext.global)
 
@@ -66,36 +67,19 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
       internalQueueSize = None
     )
 
-  /**
-    * Runtime Test Suite that makes sure the internal queues are connected when publishing and consuming in order to
-    * simulate a running RabbitMQ server. It should run concurrently with every single test.
-    * */
-  def rabbitRTS(
-      ref: Ref[IO, AMQPInternals[IO]],
-      publishingQ: Queue[IO, Either[Throwable, AmqpEnvelope[Array[Byte]]]]
-  ): Stream[IO, Unit] =
-    Stream.eval(ref.get).flatMap { internals =>
-      internals.queue.fold(rabbitRTS(ref, publishingQ)) { internalQ =>
-        for {
-          _ <- Stream.eval(publishingQ.dequeue1.flatMap(internalQ.enqueue1))
-          _ <- Stream.eval(ref.set(AMQPInternals(None)))
-          _ <- rabbitRTS(ref, publishingQ)
-        } yield ()
-      }
-    }
-
   object TestFs2Rabbit {
-    def apply(config: Fs2RabbitConfig): (Fs2Rabbit[IO], Stream[IO, Unit]) = {
+    def apply(config: Fs2RabbitConfig): (Fs2Rabbit[IO], IO[Unit], TestWorld) = {
       val interpreter = for {
-        publishingQ <- Queue.bounded[IO, Either[Throwable, AmqpEnvelope[Array[Byte]]]](500)
-        listenerQ   <- Queue.bounded[IO, PublishReturn](500)
-        ackerQ      <- Queue.bounded[IO, AckResult](500)
-        queueRef    <- Ref.of[IO, AMQPInternals[IO]](AMQPInternals(None))
-        queues      <- Ref.of[IO, Set[QueueName]](Set.empty)
-        consumers   <- Ref.of[IO, Set[ConsumerTag]](Set.empty)
-        exchanges   <- Ref.of[IO, Set[ExchangeName]](Set.empty)
-        binds       <- Ref.of[IO, Map[String, ExchangeName]](Map.empty)
-        amqpClient = new AMQPClientInMemory(queues,
+        publishingQ    <- Queue.bounded[IO, Either[Throwable, AmqpEnvelope[Array[Byte]]]](500)
+        listenerQ      <- Queue.bounded[IO, PublishReturn](500)
+        ackerQ         <- Queue.bounded[IO, AckResult](500)
+        queueRef       <- Ref.of[IO, AQMPInternals[IO]](AQMPInternals(None))
+        queues         <- Ref.of[IO, Set[QueueName]](Set.empty)
+        consumers      <- Ref.of[IO, Set[ConsumerTag]](Set.empty)
+        exchanges      <- Ref.of[IO, Set[ExchangeName]](Set.empty)
+        binds          <- Ref.of[IO, Map[String, ExchangeName]](Map.empty)
+        connectionOpen <- Ref.of[IO, Boolean](false)
+        amqpClient = new AmqpClientInMemory(queues,
                                             exchanges,
                                             binds,
                                             queueRef,
@@ -104,13 +88,13 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
                                             listenerQ,
                                             ackerQ,
                                             config)
-        connStream   = new ConnectionStub
+        conn         = new ConnectionStub(connectionOpen)
         acker        = new AckingProgram[IO](config, amqpClient)
         internalQ    = new LiveInternalQueue[IO](config.internalQueueSize.getOrElse(500))
         consumer     = new ConsumingProgram[IO](amqpClient, internalQ)
-        fs2Rabbit    = new Fs2Rabbit[IO](config, connStream, amqpClient, acker, consumer)
-        testSuiteRTS = rabbitRTS(queueRef, publishingQ)
-      } yield (fs2Rabbit, testSuiteRTS)
+        fs2Rabbit    = new Fs2Rabbit[IO](config, conn, amqpClient, acker, consumer)
+        testSuiteRTS = RTS.rabbitRTS(queueRef, publishingQ)
+      } yield (fs2Rabbit, testSuiteRTS, TestWorld(connectionOpen, queues, exchanges, ackerQ, binds))
       interpreter.unsafeRunSync()
     }
   }
@@ -119,115 +103,139 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
   private val queueName    = QueueName("daQ")
   private val routingKey   = RoutingKey("rk")
 
-  it should "create a connection and a queue with default arguments" in StreamAssertion(TestFs2Rabbit(config)) {
-    interpreter =>
+  // This is just a sanity check on the connectionstub
+  it should "create a connection and a open it during use" in EffectAssertion(TestFs2Rabbit(config)) {
+    (interpreter, world) =>
       import interpreter._
-      createConnectionChannel flatMap { implicit channel =>
+
+      val connectionOpenBeforeUse = world.connectionOpen.get
+      val connectionOpenDuringUse = createConnectionChannel use { _ =>
+        world.connectionOpen.get
+      }
+      val connectionOpenAfterUse = world.connectionOpen.get
+
+      connectionOpenBeforeUse.map(_ should be(false)) *>
+        connectionOpenDuringUse.map(_ should be(true)) *>
+        connectionOpenAfterUse.map(_ should be(false))
+  }
+
+  it should "create a connection and a queue with default arguments" in EffectAssertion(TestFs2Rabbit(config)) {
+    (interpreter, world) =>
+      import interpreter._
+      createConnectionChannel use { implicit channel =>
         for {
-          _ <- declareQueue(DeclarationQueueConfig.default(queueName))
-          _ <- declareExchange(exchangeName, ExchangeType.Topic)
-        } yield ()
+          _              <- declareQueue(DeclarationQueueConfig.default(queueName))
+          _              <- declareExchange(exchangeName, ExchangeType.Topic)
+          declaredQueues <- world.queues.get
+        } yield (declaredQueues should contain(queueName))
       }
   }
 
-  it should "create a connection and a queue with options enabled" in StreamAssertion(TestFs2Rabbit(config)) {
-    interpreter =>
+  it should "create a connection and a queue with options enabled" in EffectAssertion(TestFs2Rabbit(config)) {
+    (interpreter, world) =>
       import interpreter._
-      createConnectionChannel flatMap { implicit channel =>
+      createConnectionChannel use { implicit channel =>
         for {
-          _ <- declareQueue(DeclarationQueueConfig(queueName, Durable, Exclusive, AutoDelete, Map.empty))
-          _ <- declareExchange(exchangeName, ExchangeType.Topic)
-        } yield ()
+          _              <- declareQueue(DeclarationQueueConfig(queueName, Durable, Exclusive, AutoDelete, Map.empty))
+          _              <- declareExchange(exchangeName, ExchangeType.Topic)
+          declaredQueues <- world.queues.get
+        } yield (declaredQueues should contain(queueName))
       }
   }
 
-  it should "create a connection and a queue (no wait)" in StreamAssertion(TestFs2Rabbit(config)) { interpreter =>
-    import interpreter._
-    createConnectionChannel flatMap { implicit channel =>
-      for {
-        _ <- declareQueueNoWait(DeclarationQueueConfig.default(queueName))
-        _ <- declareExchange(exchangeName, ExchangeType.Topic)
-      } yield ()
-    }
-  }
-
-  it should "create a connection and a passive queue" in StreamAssertion(TestFs2Rabbit(config)) { interpreter =>
-    import interpreter._
-    createConnectionChannel flatMap { implicit channel =>
-      for {
-        _ <- declareQueuePassive(queueName)
-        _ <- declareExchange(exchangeName, ExchangeType.Topic)
-      } yield ()
-    }
-  }
-
-  it should "create a connection and an exchange" in StreamAssertion(TestFs2Rabbit(config)) { interpreter =>
-    import interpreter._
-    createConnectionChannel flatMap { implicit channel =>
-      for {
-        _ <- declareQueue(DeclarationQueueConfig.default(queueName))
-        _ <- declareExchange(exchangeName, ExchangeType.Topic)
-      } yield ()
-    }
-  }
-
-  it should "create a connection and an exchange (no wait)" in StreamAssertion(TestFs2Rabbit(config)) { interpreter =>
-    import interpreter._
-    createConnectionChannel flatMap { implicit channel =>
-      for {
-        _ <- declareQueue(DeclarationQueueConfig.default(queueName))
-        _ <- declareExchangeNoWait(DeclarationExchangeConfig.default(exchangeName, ExchangeType.Topic))
-      } yield ()
-    }
-  }
-
-  it should "create a connection and declare an exchange passively" in StreamAssertion(TestFs2Rabbit(config)) {
-    interpreter =>
+  it should "create a connection and a queue (no wait)" in EffectAssertion(TestFs2Rabbit(config)) {
+    (interpreter, world) =>
       import interpreter._
-      createConnectionChannel flatMap { implicit channel =>
+      createConnectionChannel use { implicit channel =>
         for {
-          _ <- declareQueue(DeclarationQueueConfig.default(queueName))
-          _ <- declareExchangePassive(exchangeName)
-          _ <- bindQueue(queueName, exchangeName, RoutingKey("some.routing.key"))
-        } yield ()
+          _              <- declareQueueNoWait(DeclarationQueueConfig.default(queueName))
+          _              <- declareExchange(exchangeName, ExchangeType.Topic)
+          declaredQueues <- world.queues.get
+        } yield (declaredQueues should contain(queueName))
       }
   }
 
-  it should "return an error as the result of 'basicCancel' if consumer doesn't exist" in StreamAssertion(
-    TestFs2Rabbit(config)) { interpreter =>
+  it should "create a connection and a passive queue" in EffectAssertion(TestFs2Rabbit(config)) {
+    (interpreter, world) =>
+      import interpreter._
+      createConnectionChannel use { implicit channel =>
+        for {
+          _              <- declareQueuePassive(queueName)
+          _              <- declareExchange(exchangeName, ExchangeType.Topic)
+          declaredQueues <- world.queues.get
+        } yield (declaredQueues should contain(queueName))
+      }
+  }
+
+  it should "create a connection and an exchange" in EffectAssertion(TestFs2Rabbit(config)) { (interpreter, world) =>
     import interpreter._
-    createConnectionChannel flatMap { implicit channel =>
+    createConnectionChannel use { implicit channel =>
+      for {
+        _                 <- declareQueue(DeclarationQueueConfig.default(queueName))
+        _                 <- declareExchange(exchangeName, ExchangeType.Topic)
+        declaredExchanges <- world.exchanges.get
+      } yield (declaredExchanges should contain(exchangeName))
+    }
+  }
+
+  it should "create a connection and an exchange (no wait)" in EffectAssertion(TestFs2Rabbit(config)) {
+    (interpreter, world) =>
+      import interpreter._
+      createConnectionChannel use { implicit channel =>
+        for {
+          _                 <- declareQueue(DeclarationQueueConfig.default(queueName))
+          _                 <- declareExchangeNoWait(DeclarationExchangeConfig.default(exchangeName, ExchangeType.Topic))
+          declaredExchanges <- world.exchanges.get
+        } yield (declaredExchanges should contain(exchangeName))
+      }
+  }
+
+  it should "create a connection and declare an exchange passively" in EffectAssertion(TestFs2Rabbit(config)) {
+    (interpreter, world) =>
+      import interpreter._
+      createConnectionChannel use { implicit channel =>
+        for {
+          _                 <- declareQueue(DeclarationQueueConfig.default(queueName))
+          _                 <- declareExchangePassive(exchangeName)
+          _                 <- bindQueue(queueName, exchangeName, RoutingKey("some.routing.key"))
+          declaredExchanges <- world.exchanges.get
+        } yield (declaredExchanges should contain(exchangeName))
+      }
+  }
+
+  it should "return an error as the result of 'basicCancel' if consumer doesn't exist" in EffectAssertion(
+    TestFs2Rabbit(config)) { (interpreter, world) =>
+    import interpreter._
+    createConnectionChannel use { implicit channel =>
       for {
         _      <- declareExchange(exchangeName, ExchangeType.Topic)
         _      <- declareQueue(DeclarationQueueConfig.default(queueName))
         _      <- bindQueue(queueName, exchangeName, routingKey, QueueBindingArgs(Map.empty))
-        result <- Stream.eval(basicCancel(ConsumerTag("something-random"))).attempt.take(1)
+        result <- basicCancel(ConsumerTag("something-random")).attempt
       } yield {
         result.left.get shouldBe a[java.io.IOException]
       }
     }
   }
 
-  it should "create an acker consumer and verify both envelope and ack result" in StreamAssertion(TestFs2Rabbit(config)) {
-    interpreter =>
+  it should "create an acker consumer and verify both envelope and ack result" in EffectAssertion(TestFs2Rabbit(config)) {
+    (interpreter, world) =>
       import interpreter._
-      createConnectionChannel flatMap { implicit channel =>
+      createConnectionChannel use { implicit channel =>
         for {
-          testQ             <- Stream.eval(Queue.bounded[IO, AmqpEnvelope[String]](100))
-          ackerQ            <- Stream.eval(Queue.bounded[IO, AckResult](100))
+          testQ             <- Queue.bounded[IO, AmqpEnvelope[String]](100)
           _                 <- declareExchange(exchangeName, ExchangeType.Topic)
           _                 <- declareQueue(DeclarationQueueConfig.default(queueName))
           _                 <- bindQueue(queueName, exchangeName, routingKey, QueueBindingArgs(Map.empty))
           publisher         <- createPublisher[String](exchangeName, routingKey)
-          _                 <- Stream.eval(publisher("acker-test"))
+          _                 <- publisher("acker-test")
           ackerConsumer     <- createAckerConsumer(queueName)
           (acker, consumer) = ackerConsumer
-          _ <- Stream(
-                consumer.take(1) to testQ.enqueue,
-                Stream(Ack(DeliveryTag(1))).covary[IO].observe(ackerQ.enqueue).evalMap(acker)
-              ).parJoin(2).take(1)
-          result    <- Stream.eval(testQ.dequeue1)
-          ackResult <- Stream.eval(ackerQ.dequeue1)
+          _                 <- consumer.flatMap(testQ.enqueue1)
+          ack               = Ack(DeliveryTag(1))
+          _                 <- acker(ack)
+          result            <- testQ.dequeue1
+          ackResult         <- world.ackerQ.tryDequeue1
         } yield {
           result should be(
             AmqpEnvelope(DeliveryTag(1),
@@ -236,27 +244,27 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
                          exchangeName,
                          routingKey,
                          false))
-          ackResult should be(Ack(DeliveryTag(1)))
+          ackResult should be(Some(Ack(DeliveryTag(1))))
         }
       }
   }
 
-  it should "NOT requeue a message in case of NAck when option 'requeueOnNack = false'" in StreamAssertion(
-    TestFs2Rabbit(config)) { interpreter =>
+  it should "NOT requeue a message in case of NAck when option 'requeueOnNack = false'" in EffectAssertion(
+    TestFs2Rabbit(config)) { (interpreter, world) =>
     import interpreter._
-    createConnectionChannel flatMap { implicit channel =>
+    createConnectionChannel use { implicit channel =>
       for {
-        ackerQ            <- Stream.eval(Queue.bounded[IO, AckResult](100))
         _                 <- declareExchange(exchangeName, ExchangeType.Topic)
         _                 <- declareQueue(DeclarationQueueConfig.default(queueName))
         _                 <- bindQueue(queueName, exchangeName, routingKey, QueueBindingArgs(Map.empty))
         publisher         <- createPublisher[String](exchangeName, routingKey)
-        _                 <- Stream.eval(publisher("NAck-test"))
+        _                 <- publisher("NAck-test")
         ackerConsumer     <- createAckerConsumer(queueName)
         (acker, consumer) = ackerConsumer
-        result            <- consumer.take(1)
-        _                 <- (Stream(NAck(DeliveryTag(1))).covary[IO].observe(ackerQ.enqueue) evalMap acker).take(1)
-        ackResult         <- Stream.eval(ackerQ.dequeue1)
+        result            <- consumer
+        nack              = NAck(DeliveryTag(1))
+        _                 <- acker(nack)
+        ackResult         <- world.ackerQ.tryDequeue1
       } yield {
         result should be(
           AmqpEnvelope(DeliveryTag(1),
@@ -265,23 +273,24 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
                        exchangeName,
                        routingKey,
                        false))
-        ackResult should be(NAck(DeliveryTag(1)))
+        ackResult should be(Some(NAck(DeliveryTag(1))))
       }
     }
   }
 
-  it should "create a publisher, an auto-ack consumer, publish a message and consume it" in StreamAssertion(
-    TestFs2Rabbit(config)) { interpreter =>
+  it should "create a publisher, an auto-ack consumer, publish a message, consume and acknowledge it" in EffectAssertion(
+    TestFs2Rabbit(config)) { (interpreter, world) =>
     import interpreter._
-    createConnectionChannel flatMap { implicit channel =>
+    createConnectionChannel use { implicit channel =>
       for {
         _         <- declareExchange(exchangeName, ExchangeType.Topic)
         _         <- declareQueue(DeclarationQueueConfig.default(queueName))
         _         <- bindQueue(queueName, exchangeName, routingKey)
         publisher <- createPublisher[String](exchangeName, routingKey)
         consumer  <- createAutoAckConsumer(queueName)
-        _         <- Stream.eval(publisher("test"))
-        result    <- consumer.take(1)
+        _         <- publisher("test")
+        result    <- consumer
+        ackResult <- world.ackerQ.tryDequeue1
       } yield {
         result should be(
           AmqpEnvelope(DeliveryTag(1),
@@ -290,14 +299,15 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
                        exchangeName,
                        routingKey,
                        false))
+        ackResult shouldBe defined
       }
     }
   }
 
-  it should "create an exclusive auto-ack consumer with specific BasicQos" in StreamAssertion(TestFs2Rabbit(config)) {
-    interpreter =>
+  it should "create an exclusive auto-ack consumer with specific BasicQos" in EffectAssertion(TestFs2Rabbit(config)) {
+    (interpreter, world) =>
       import interpreter._
-      createConnectionChannel flatMap { implicit channel =>
+      createConnectionChannel use { implicit channel =>
         for {
           _         <- declareExchange(exchangeName, ExchangeType.Topic)
           _         <- declareQueue(DeclarationQueueConfig.default(queueName))
@@ -310,8 +320,9 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
           consumer <- createAutoAckConsumer(queueName,
                                             BasicQos(prefetchSize = 0, prefetchCount = 10),
                                             Some(consumerArgs))
-          _      <- Stream.eval(publisher("test"))
-          result <- consumer.take(1)
+          _         <- publisher("test")
+          result    <- consumer
+          ackResult <- world.ackerQ.tryDequeue1
         } yield {
           result should be(
             AmqpEnvelope(DeliveryTag(1),
@@ -320,17 +331,17 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
                          exchangeName,
                          routingKey,
                          false))
+          ackResult shouldBe defined
         }
       }
   }
 
-  it should "create an exclusive acker consumer with specific BasicQos" in StreamAssertion(TestFs2Rabbit(config)) {
-    interpreter =>
+  it should "create an exclusive acker consumer with specific BasicQos" in EffectAssertion(TestFs2Rabbit(config)) {
+    (interpreter, world) =>
       import interpreter._
-      createConnectionChannel flatMap { implicit channel =>
+      createConnectionChannel use { implicit channel =>
         for {
-          testQ     <- Stream.eval(Queue.bounded[IO, AmqpEnvelope[String]](100))
-          ackerQ    <- Stream.eval(Queue.bounded[IO, AckResult](100))
+          testQ     <- Queue.bounded[IO, AmqpEnvelope[String]](100)
           _         <- declareExchange(exchangeName, ExchangeType.Topic)
           _         <- declareQueue(DeclarationQueueConfig.default(queueName))
           _         <- bindQueue(queueName, exchangeName, routingKey)
@@ -343,13 +354,12 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
                                                BasicQos(prefetchSize = 0, prefetchCount = 10),
                                                Some(consumerArgs))
           (acker, consumer) = ackerConsumer
-          _                 <- Stream.eval(publisher("test"))
-          _ <- Stream(
-                consumer.take(1) to testQ.enqueue,
-                Stream(Ack(DeliveryTag(1))).covary[IO] observe ackerQ.enqueue evalMap acker
-              ).parJoin(2).take(1)
-          result    <- Stream.eval(testQ.dequeue1)
-          ackResult <- Stream.eval(ackerQ.dequeue1)
+          _                 <- publisher("test")
+          ack               = Ack(DeliveryTag(1))
+          _                 <- consumer.flatMap(testQ.enqueue1)
+          _                 <- acker(ack)
+          result            <- testQ.dequeue1
+          ackResult         <- world.ackerQ.tryDequeue1
         } yield {
           result should be(
             AmqpEnvelope(DeliveryTag(1),
@@ -358,35 +368,38 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
                          exchangeName,
                          routingKey,
                          false))
-          ackResult should be(Ack(DeliveryTag(1)))
+          ackResult should be(Some(Ack(DeliveryTag(1))))
         }
       }
   }
 
-  it should "bind a queue with the nowait parameter set to true" in StreamAssertion(TestFs2Rabbit(config)) {
-    interpreter =>
+  it should "bind a queue with the nowait parameter set to true" in EffectAssertion(TestFs2Rabbit(config)) {
+    (interpreter, world) =>
       import interpreter._
-      createConnectionChannel flatMap { implicit channel =>
+      createConnectionChannel use { implicit channel =>
         for {
-          _ <- declareExchange(exchangeName, ExchangeType.Topic)
-          _ <- declareQueue(DeclarationQueueConfig.default(queueName))
-          _ <- bindQueueNoWait(queueName, exchangeName, routingKey, QueueBindingArgs(Map.empty))
-        } yield ()
+          _     <- declareExchange(exchangeName, ExchangeType.Topic)
+          _     <- declareQueue(DeclarationQueueConfig.default(queueName))
+          _     <- bindQueueNoWait(queueName, exchangeName, routingKey, QueueBindingArgs(Map.empty))
+          binds <- world.binds.get
+        } yield
+          (
+            binds.get(routingKey.value) should be(Some(exchangeName))
+          )
       }
   }
-
-  it should "try to delete a queue twice (only first time should be okay)" in StreamAssertion(TestFs2Rabbit(config)) {
-    interpreter =>
+  it should "try to delete a queue twice (only first time should be okay)" in EffectAssertion(TestFs2Rabbit(config)) {
+    (interpreter, world) =>
       import interpreter._
       val QtoDelete = QueueName("deleteMe")
-      createConnectionChannel flatMap { implicit channel =>
+      createConnectionChannel use { implicit channel =>
         for {
           _        <- declareExchange(exchangeName, ExchangeType.Direct)
           _        <- declareQueue(DeclarationQueueConfig.default(queueName))
           _        <- deleteQueue(DeletionQueueConfig.default(QtoDelete))
           _        <- deleteQueueNoWait(DeletionQueueConfig.default(QtoDelete))
           consumer <- createAutoAckConsumer(QtoDelete)
-          either   <- consumer.attempt.take(1)
+          either   <- consumer.attempt
         } yield {
           either shouldBe a[Left[_, _]]
           either.left.get shouldBe a[java.io.IOException]
@@ -394,26 +407,26 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
       }
   }
 
-  it should "delete an exchange successfully" in StreamAssertion(TestFs2Rabbit(config)) { interpreter =>
+  it should "delete an exchange successfully" in EffectAssertion(TestFs2Rabbit(config)) { (interpreter, world) =>
     import interpreter._
-    createConnectionChannel flatMap { implicit channel =>
+    createConnectionChannel use { implicit channel =>
       for {
         _      <- declareExchange(exchangeName, ExchangeType.Direct)
-        either <- deleteExchangeNoWait(DeletionExchangeConfig.default(exchangeName)).attempt.take(1)
+        either <- deleteExchangeNoWait(DeletionExchangeConfig.default(exchangeName)).attempt
       } yield {
         either shouldBe a[Right[_, _]]
       }
     }
   }
 
-  it should "try to delete an exchange twice (only first time should be okay)" in StreamAssertion(TestFs2Rabbit(config)) {
-    interpreter =>
+  it should "try to delete an exchange twice (only first time should be okay)" in EffectAssertion(TestFs2Rabbit(config)) {
+    (interpreter, world) =>
       import interpreter._
-      createConnectionChannel flatMap { implicit channel =>
+      createConnectionChannel use { implicit channel =>
         for {
           _      <- declareExchange(exchangeName, ExchangeType.Direct)
           _      <- deleteExchange(DeletionExchangeConfig.default(exchangeName))
-          either <- deleteExchangeNoWait(DeletionExchangeConfig.default(exchangeName)).attempt.take(1)
+          either <- deleteExchangeNoWait(DeletionExchangeConfig.default(exchangeName)).attempt
         } yield {
           either shouldBe a[Left[_, _]]
           either.left.get shouldBe a[java.io.IOException]
@@ -421,38 +434,73 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
       }
   }
 
-  it should "try to unbind a queue when there is no binding" in StreamAssertion(TestFs2Rabbit(config)) { interpreter =>
+  it should "try to unbind a queue when there is no binding" in EffectAssertion(TestFs2Rabbit(config)) {
+    (interpreter, world) =>
+      import interpreter._
+      createConnectionChannel use { implicit channel =>
+        for {
+          _     <- declareExchange(exchangeName, ExchangeType.Direct)
+          _     <- declareQueue(DeclarationQueueConfig.default(queueName))
+          _     <- unbindQueue(queueName, exchangeName, routingKey)
+          binds <- world.binds.get
+        } yield
+          (
+            binds.get(routingKey.value) should be(None)
+          )
+      }
+  }
+
+  it should "unbind a queue" in EffectAssertion(TestFs2Rabbit(config)) { (interpreter, world) =>
     import interpreter._
-    createConnectionChannel flatMap { implicit channel =>
+    createConnectionChannel use { implicit channel =>
       for {
-        _ <- declareExchange(exchangeName, ExchangeType.Direct)
-        _ <- declareQueue(DeclarationQueueConfig.default(queueName))
-        _ <- unbindQueue(queueName, exchangeName, routingKey)
-      } yield ()
+        _            <- declareExchange(exchangeName, ExchangeType.Direct)
+        _            <- declareQueue(DeclarationQueueConfig.default(queueName))
+        _            <- bindQueue(queueName, exchangeName, routingKey)
+        beforeUnbind <- world.binds.get
+        _            <- unbindQueue(queueName, exchangeName, routingKey)
+        afterUnbind  <- world.binds.get
+      } yield {
+        beforeUnbind.get(routingKey.value) should be(Some((exchangeName)))
+        afterUnbind.get(routingKey.value) should be(None)
+      }
     }
   }
 
-  it should "unbind a queue" in StreamAssertion(TestFs2Rabbit(config)) { interpreter =>
+  it should "create a routing publisher, an auto-ack consumer, publish a message and consume it" in EffectAssertion(
+    TestFs2Rabbit(config)) { (interpreter, world) =>
     import interpreter._
-    createConnectionChannel flatMap { implicit channel =>
+    createConnectionChannel use { implicit channel =>
       for {
-        _ <- declareExchange(exchangeName, ExchangeType.Direct)
-        _ <- declareQueue(DeclarationQueueConfig.default(queueName))
-        _ <- bindQueue(queueName, exchangeName, routingKey)
-        _ <- unbindQueue(queueName, exchangeName, routingKey)
-      } yield ()
+        _         <- declareExchange(exchangeName, ExchangeType.Topic)
+        _         <- declareQueue(DeclarationQueueConfig.default(queueName))
+        _         <- bindQueue(queueName, exchangeName, routingKey)
+        publisher <- createRoutingPublisher[String](exchangeName)
+        consumer  <- createAutoAckConsumer(queueName)
+        msg       = "test"
+        _         <- publisher(routingKey)(msg)
+        result    <- consumer
+      } yield {
+        result should be(
+          AmqpEnvelope(DeliveryTag(1),
+                       "test",
+                       AmqpProperties(contentEncoding = Some("UTF-8")),
+                       exchangeName,
+                       routingKey,
+                       false))
+      }
     }
   }
 
-  it should "bind an exchange to another exchange" in StreamAssertion(TestFs2Rabbit(config)) { interpreter =>
+  it should "bind an exchange to another exchange" in EffectAssertion(TestFs2Rabbit(config)) { (interpreter, world) =>
     val sourceExchangeName      = ExchangeName("sourceExchange")
     val destinationExchangeName = ExchangeName("destinationExchange")
 
     import interpreter._
-    createConnectionChannel flatMap { implicit channel =>
+    createConnectionChannel use { implicit channel =>
       for {
-        testQ     <- Stream.eval(Queue.bounded[IO, AmqpEnvelope[String]](100))
-        ackerQ    <- Stream.eval(Queue.bounded[IO, AckResult](100))
+        testQ     <- Queue.bounded[IO, AmqpEnvelope[String]](100)
+        ackerQ    <- Queue.bounded[IO, AckResult](100)
         _         <- declareExchange(sourceExchangeName, ExchangeType.Direct)
         _         <- declareExchange(destinationExchangeName, ExchangeType.Direct)
         _         <- declareQueue(DeclarationQueueConfig.default(queueName))
@@ -467,13 +515,12 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
                                              BasicQos(prefetchSize = 0, prefetchCount = 10),
                                              Some(consumerArgs))
         (acker, consumer) = ackerConsumer
-        _                 <- Stream.eval(publisher("test"))
-        _ <- Stream(
-              consumer.take(1) to testQ.enqueue,
-              Stream(Ack(DeliveryTag(1))).covary[IO] observe ackerQ.enqueue evalMap acker
-            ).parJoin(2).take(1)
-        result    <- Stream.eval(testQ.dequeue1)
-        ackResult <- Stream.eval(ackerQ.dequeue1)
+        _                 <- publisher("test")
+        _                 <- consumer.flatMap(testQ.enqueue1)
+        ack               = Ack(DeliveryTag(1))
+        _                 <- ackerQ.enqueue1(ack) *> acker(ack)
+        result            <- testQ.dequeue1
+        ackResult         <- ackerQ.dequeue1
       } yield {
         result should be(
           AmqpEnvelope(DeliveryTag(1),
@@ -487,11 +534,11 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
     }
   }
 
-  it should "unbind an exchange" in StreamAssertion(TestFs2Rabbit(config)) { interpreter =>
+  it should "unbind an exchange" in EffectAssertion(TestFs2Rabbit(config)) { (interpreter, world) =>
     import interpreter._
     val sourceExchangeName      = ExchangeName("sourceExchange")
     val destinationExchangeName = ExchangeName("destinationExchange")
-    createConnectionChannel flatMap { implicit channel =>
+    createConnectionChannel use { implicit channel =>
       for {
         _ <- declareExchange(sourceExchangeName, ExchangeType.Direct)
         _ <- declareExchange(destinationExchangeName, ExchangeType.Direct)
@@ -501,37 +548,34 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
     }
   }
 
-  it should "requeue a message in case of NAck when option 'requeueOnNack = true'" in StreamAssertion(
-    TestFs2Rabbit(nackConfig)) { interpreter =>
+  it should "requeue a message in case of NAck when option 'requeueOnNack = true'" in EffectAssertion(
+    TestFs2Rabbit(nackConfig)) { (interpreter, world) =>
     import interpreter._
-    createConnectionChannel flatMap { implicit channel =>
+    createConnectionChannel use { implicit channel =>
       for {
-        ackerQ            <- Stream.eval(Queue.bounded[IO, AckResult](100))
+        ackerQ            <- Queue.bounded[IO, AckResult](100)
         _                 <- declareExchange(exchangeName, ExchangeType.Topic)
         _                 <- declareQueue(DeclarationQueueConfig.default(queueName))
         _                 <- bindQueue(queueName, exchangeName, routingKey, QueueBindingArgs(Map.empty))
         publisher         <- createPublisher[String](exchangeName, routingKey)
-        _                 <- Stream.eval(publisher("NAck-test"))
+        _                 <- publisher("NAck-test")
         ackerConsumer     <- createAckerConsumer(queueName)
         (acker, consumer) = ackerConsumer
-        result            <- consumer.take(1)
-        _                 <- (Stream(NAck(DeliveryTag(1))).covary[IO].observe(ackerQ.enqueue) evalMap acker).take(1)
-        _                 <- consumer.take(1) // Message will be re-queued
-        ackResult         <- ackerQ.dequeue.take(1)
+        result            <- consumer
+        nack              = NAck(DeliveryTag(1))
+        _                 <- ackerQ.enqueue1(nack) *> acker(nack)
+        _                 <- consumer // Message will be re-queued
+        ackResult         <- ackerQ.dequeue1
       } yield {
         result shouldBe an[AmqpEnvelope[String]]
         ackResult should be(NAck(DeliveryTag(1)))
       }
     }
   }
-
-  def takeWithTimeOut[A](stream: Stream[IO, A], timeout: FiniteDuration): Stream[IO, Option[A]] =
-    stream.last.mergeHaltR(Stream.sleep(timeout).map(_ => none[A]))
-
-  it should "create a publisher, two auto-ack consumers with different routing keys and assert the routing is correct" in StreamAssertion(
-    TestFs2Rabbit(config)) { interpreter =>
+  it should "create a publisher, two auto-ack consumers with different routing keys and assert the routing is correct" in EffectAssertion(
+    TestFs2Rabbit(config)) { (interpreter, world) =>
     import interpreter._
-    createConnectionChannel flatMap { implicit channel =>
+    createConnectionChannel use { implicit channel =>
       val diffQ = QueueName("diffQ")
       for {
         _         <- declareExchange(exchangeName, ExchangeType.Topic)
@@ -542,9 +586,9 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
         _         <- bindQueue(queueName, exchangeName, RoutingKey("diffRK"))
         c1        <- createAutoAckConsumer(queueName)
         c2        <- createAutoAckConsumer(diffQ)
-        _         <- Stream.eval(publisher("test"))
-        result    <- c1.take(1)
-        rs2       <- takeWithTimeOut(c2, 1.second)
+        _         <- publisher("test")
+        result    <- c1
+        rs2       <- c2.timeoutTo(1.second, IO.pure(None))
       } yield {
         result should be(
           AmqpEnvelope(DeliveryTag(1),
@@ -560,45 +604,78 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
 
   def listener(promise: Deferred[IO, PublishReturn]): PublishReturn => IO[Unit] = promise.complete
 
-  it should "create a publisher with listener and flag 'mandatory=true', an auto-ack consumer, publish a message and return to the listener" in StreamAssertion(
-    TestFs2Rabbit(config)) { interpreter =>
+  it should "create a publisher with listener and flag 'mandatory=true', an auto-ack consumer, publish a message and return to the listener" in EffectAssertion(
+    TestFs2Rabbit(config)) { (interpreter, world) =>
+    import org.scalatest.OptionValues._
     import interpreter._
     val flag = PublishingFlag(mandatory = true)
 
-    createConnectionChannel.flatMap { implicit channel =>
+    createConnectionChannel use { implicit channel =>
       for {
         _         <- declareExchange(exchangeName, ExchangeType.Topic)
         _         <- declareQueue(DeclarationQueueConfig.default(queueName))
         _         <- bindQueue(queueName, exchangeName, routingKey)
-        promise   <- Stream.eval(Deferred[IO, PublishReturn])
+        promise   <- Deferred[IO, PublishReturn]
         publisher <- createPublisherWithListener(exchangeName, RoutingKey("diff-rk"), flag, listener(promise))
         consumer  <- createAutoAckConsumer(queueName)
-        _         <- Stream.eval(publisher("test"))
-        callback  <- Stream.eval(promise.get.map(_.some).timeoutTo(500.millis, IO.pure(none[PublishReturn]))).unNone
-        result    <- takeWithTimeOut(consumer, 500.millis)
+        _         <- publisher("test")
+        callback  <- promise.get.map(_.some).timeoutTo(500.millis, IO.pure(none[PublishReturn]))
+        result    <- consumer.timeoutTo(500.millis, None.pure[IO])
       } yield {
         result should be(None)
-        callback.body.value should equal("test".getBytes(UTF_8))
-        callback.routingKey should be(RoutingKey("diff-rk"))
-        callback.replyText should be(ReplyText("test"))
+        callback.value.body.value should equal("test".getBytes(UTF_8))
+        callback.value.routingKey should be(RoutingKey("diff-rk"))
+        callback.value.replyText should be(ReplyText("test"))
       }
     }
   }
 
-  it should "create a routing publisher, an auto-ack consumer, publish a message and consume it" in StreamAssertion(
-    TestFs2Rabbit(config)) { interpreter =>
+  it should "create a routing publisher with listener and flag 'mandatory=true', an auto-ack consumer, publish a non-routable message and return to the listener" in EffectAssertion(
+    TestFs2Rabbit(config)) { (interpreter, world) =>
+    import org.scalatest.OptionValues._
     import interpreter._
-    createConnectionChannel flatMap { implicit channel =>
+    val flag = PublishingFlag(mandatory = true)
+
+    createConnectionChannel use { implicit channel =>
       for {
         _         <- declareExchange(exchangeName, ExchangeType.Topic)
         _         <- declareQueue(DeclarationQueueConfig.default(queueName))
         _         <- bindQueue(queueName, exchangeName, routingKey)
-        publisher <- createRoutingPublisher[String](exchangeName)
+        promise   <- Deferred[IO, PublishReturn]
+        publisher <- createRoutingPublisherWithListener[String](exchangeName, flag, listener(promise))
         consumer  <- createAutoAckConsumer(queueName)
-        msg       = Stream("test")
-        _         <- msg.covary[IO] evalMap publisher(routingKey)
-        result    <- consumer.take(1)
+        msg       = "test"
+        _         <- publisher(RoutingKey("diff-rk"))(msg)
+        callback  <- promise.get.map(_.some).timeoutTo(500.millis, IO.pure(none[PublishReturn]))
+        result    <- consumer.timeoutTo(500.millis, IO.pure(None))
       } yield {
+        result should be(None)
+        callback.value.body.value should equal("test".getBytes(UTF_8))
+        callback.value.routingKey should be(RoutingKey("diff-rk"))
+        callback.value.replyText should be(ReplyText("test"))
+      }
+    }
+  }
+
+  it should "create a routing publisher with listener and flag 'mandatory=true', an auto-ack consumer, publish a routable message and not return to the listener" in EffectAssertion(
+    TestFs2Rabbit(config)) { (interpreter, world) =>
+    import interpreter._
+    val flag = PublishingFlag(mandatory = true)
+
+    createConnectionChannel use { implicit channel =>
+      for {
+        _         <- declareExchange(exchangeName, ExchangeType.Topic)
+        _         <- declareQueue(DeclarationQueueConfig.default(queueName))
+        _         <- bindQueue(queueName, exchangeName, routingKey)
+        promise   <- Deferred[IO, PublishReturn]
+        publisher <- createRoutingPublisherWithListener[String](exchangeName, flag, listener(promise))
+        consumer  <- createAutoAckConsumer(queueName)
+        msg       = "test"
+        _         <- publisher(routingKey)(msg)
+        callback  <- promise.get.map(_.some).timeoutTo(500.millis, IO.pure(none[PublishReturn]))
+        result    <- consumer.timeoutTo(500.millis, IO.pure(None))
+      } yield {
+        callback should be(None)
         result should be(
           AmqpEnvelope(DeliveryTag(1),
                        "test",
@@ -609,31 +686,4 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
       }
     }
   }
-
-  it should "create a routing publisher with listener and flag 'mandatory=true', an auto-ack consumer, publish a message and return to the listener" in StreamAssertion(
-    TestFs2Rabbit(config)) { interpreter =>
-    import interpreter._
-    val flag = PublishingFlag(mandatory = true)
-
-    createConnectionChannel.flatMap { implicit channel =>
-      for {
-        _         <- declareExchange(exchangeName, ExchangeType.Topic)
-        _         <- declareQueue(DeclarationQueueConfig.default(queueName))
-        _         <- bindQueue(queueName, exchangeName, routingKey)
-        promise   <- Stream.eval(Deferred[IO, PublishReturn])
-        publisher <- createRoutingPublisherWithListener[String](exchangeName, flag, listener(promise))
-        consumer  <- createAutoAckConsumer(queueName)
-        msg       = Stream("test")
-        _         <- msg.covary[IO] evalMap publisher(RoutingKey("diff-rk"))
-        callback  <- Stream.eval(promise.get.map(_.some).timeoutTo(500.millis, IO.pure(none[PublishReturn]))).unNone
-        result    <- takeWithTimeOut(consumer, 500.millis)
-      } yield {
-        result should be(None)
-        callback.body.value should equal("test".getBytes(UTF_8))
-        callback.routingKey should be(RoutingKey("diff-rk"))
-        callback.replyText should be(ReplyText("test"))
-      }
-    }
-  }
-
 }

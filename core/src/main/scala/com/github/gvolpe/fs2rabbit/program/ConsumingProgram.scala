@@ -16,19 +16,15 @@
 
 package com.github.gvolpe.fs2rabbit.program
 
-import cats.MonadError
-import cats.syntax.flatMap._
-import cats.syntax.functor._
-import cats.syntax.monadError._
-import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, AMQPInternals, Consuming, InternalQueue}
+import cats.effect.{Bracket, Resource}
+import cats.implicits._
+import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, AQMPInternals, Consuming, InternalQueue}
 import com.github.gvolpe.fs2rabbit.arguments.Arguments
 import com.github.gvolpe.fs2rabbit.effects.EnvelopeDecoder
 import com.github.gvolpe.fs2rabbit.model._
 import com.rabbitmq.client.Channel
-import fs2.Stream
 
-class ConsumingProgram[F[_]: MonadError[?[_], Throwable]](AMQP: AMQPClient[Stream[F, ?], F], IQ: InternalQueue[F])
-    extends Consuming[Stream[F, ?], F] {
+class ConsumingProgram[F[_]: Bracket[?[_], Throwable]](AMQP: AMQPClient[F], IQ: InternalQueue[F]) extends Consuming[F] {
 
   override def createConsumer[A](
       queueName: QueueName,
@@ -39,14 +35,12 @@ class ConsumingProgram[F[_]: MonadError[?[_], Throwable]](AMQP: AMQPClient[Strea
       exclusive: Boolean = false,
       consumerTag: ConsumerTag = ConsumerTag(""),
       args: Arguments = Map.empty
-  )(implicit decoder: EnvelopeDecoder[F, A]): Stream[F, AmqpEnvelope[A]] =
+  )(implicit decoder: EnvelopeDecoder[F, A]): F[F[AmqpEnvelope[A]]] =
     for {
-      internalQ <- Stream.eval(IQ.create)
-      internals = AMQPInternals[F](Some(internalQ))
+      internalQ <- IQ.create
+      internals = AQMPInternals[F](Some(internalQ))
       _         <- AMQP.basicQos(channel, basicQos)
       consumeF  = AMQP.basicConsume(channel, queueName, autoAck, consumerTag, noLocal, exclusive, args)(internals)
-      _         <- Stream.bracket(consumeF)(tag => AMQP.basicCancel(channel, tag))
-      consumer <- Stream.repeatEval(
-                   internalQ.dequeue1.rethrow.flatMap(env => decoder(env).map(a => env.copy(payload = a))))
-    } yield consumer
+      resource  = Resource.make(consumeF)(tag => AMQP.basicCancel(channel, tag))
+    } yield resource.use(_ => internalQ.dequeue1.rethrow.flatMap(env => decoder(env).map(a => env.copy(payload = a))))
 }

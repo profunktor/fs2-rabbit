@@ -16,20 +16,18 @@
 
 package com.github.gvolpe.fs2rabbit.examples
 
-import cats.effect.ExitCode
-import cats.syntax.functor._
-import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
+import cats.effect.{ExitCode, IO, IOApp}
+import cats.implicits._
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
-import com.github.gvolpe.fs2rabbit.resiliency.ResilientStream
-import monix.eval.{Task, TaskApp}
+import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 
-object MonixAutoAckConsumer extends TaskApp {
+object SimpleStreamConsumer extends IOApp {
 
   private val config: Fs2RabbitConfig = Fs2RabbitConfig(
     virtualHost = "/",
     host = "127.0.0.1",
-    username = Some("guest"),
-    password = Some("guest"),
+    username = Some("user"),
+    password = Some("password"),
     port = 5672,
     ssl = false,
     connectionTimeout = 3,
@@ -37,11 +35,10 @@ object MonixAutoAckConsumer extends TaskApp {
     internalQueueSize = Some(500)
   )
 
-  override def run(args: List[String]): Task[ExitCode] =
-    Fs2Rabbit[Task](config).flatMap { implicit fs2Rabbit =>
-      ResilientStream
-        .run(new AutoAckConsumerDemo[Task].program)
-        .as(ExitCode.Success)
+  override def run(args: List[String]): IO[ExitCode] =
+    Fs2Rabbit[IO](config).flatMap { implicit fs2rabbit =>
+      val demo = new SimpleStreamConsumerDemo[IO]
+      demo.program.compile.drain.as(ExitCode.Success)
     }
 
 }

@@ -17,18 +17,17 @@
 package com.github.gvolpe.fs2rabbit.examples
 
 import cats.effect.{ExitCode, IO, IOApp}
-import cats.syntax.functor._
-import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
+import cats.implicits._
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
-import com.github.gvolpe.fs2rabbit.resiliency.ResilientStream
+import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 
-object IOAckerConsumer extends IOApp {
+object SimpleConsumer extends IOApp {
 
   private val config: Fs2RabbitConfig = Fs2RabbitConfig(
     virtualHost = "/",
     host = "127.0.0.1",
-    username = Some("guest"),
-    password = Some("guest"),
+    username = Some("user"),
+    password = Some("password"),
     port = 5672,
     ssl = false,
     connectionTimeout = 3,
@@ -37,10 +36,9 @@ object IOAckerConsumer extends IOApp {
   )
 
   override def run(args: List[String]): IO[ExitCode] =
-    Fs2Rabbit[IO](config).flatMap { implicit fs2Rabbit =>
-      ResilientStream
-        .run(new AckerConsumerDemo[IO]().program)
-        .as(ExitCode.Success)
+    Fs2Rabbit[IO](config).flatMap { implicit fs2rabbit =>
+      val demo = new SimpleConsumerDemo[IO]
+      demo.program.as(ExitCode.Success)
     }
 
 }
