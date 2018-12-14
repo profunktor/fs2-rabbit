@@ -19,7 +19,7 @@ package com.github.gvolpe.fs2rabbit.interpreter
 import cats.effect.{ContextShift, IO}
 import cats.effect.concurrent.Ref
 import cats.syntax.functor._
-import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, AQMPInternals}
+import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, AMQPInternals}
 import com.github.gvolpe.fs2rabbit.arguments.Arguments
 import com.github.gvolpe.fs2rabbit.config.declaration.{DeclarationExchangeConfig, DeclarationQueueConfig}
 import com.github.gvolpe.fs2rabbit.config.deletion.DeletionQueueConfig
@@ -35,7 +35,7 @@ class AmqpClientInMemory(
     queues: Ref[IO, Set[QueueName]],
     exchanges: Ref[IO, Set[ExchangeName]],
     binds: Ref[IO, Map[String, ExchangeName]],
-    ref: Ref[IO, AQMPInternals[IO]],
+    ref: Ref[IO, AMQPInternals[IO]],
     consumers: Ref[IO, Set[ConsumerTag]],
     publishingQ: Queue[IO, Either[Throwable, AmqpEnvelope[Array[Byte]]]],
     listenerQ: Queue[IO, PublishReturn],
@@ -83,7 +83,7 @@ class AmqpClientInMemory(
       noLocal: Boolean,
       exclusive: Boolean,
       args: Arguments
-  )(internals: AQMPInternals[IO]): IO[ConsumerTag] = {
+  )(internals: AMQPInternals[IO]): IO[ConsumerTag] = {
     val ifMissing =
       new java.io.IOException(s"Queue ${queueName.value} does not exist!")
 

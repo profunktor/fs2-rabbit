@@ -21,7 +21,7 @@ import cats.effect.{Effect, Sync}
 import cats.effect.syntax.effect._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
-import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, AQMPInternals}
+import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, AMQPInternals}
 import com.github.gvolpe.fs2rabbit.arguments._
 import com.github.gvolpe.fs2rabbit.config.declaration.{DeclarationExchangeConfig, DeclarationQueueConfig}
 import com.github.gvolpe.fs2rabbit.config.deletion
@@ -34,7 +34,7 @@ class AmqpClientEffect[F[_]: Effect] extends AMQPClient[F] {
 
   private[fs2rabbit] def defaultConsumer[A](
       channel: Channel,
-      internals: AQMPInternals[F]
+      internals: AMQPInternals[F]
   ): F[Consumer] = Applicative[F].pure {
     new DefaultConsumer(channel) {
 
@@ -102,7 +102,7 @@ class AmqpClientEffect[F[_]: Effect] extends AMQPClient[F] {
       noLocal: Boolean,
       exclusive: Boolean,
       args: Arguments
-  )(internals: AQMPInternals[F]): F[ConsumerTag] =
+  )(internals: AMQPInternals[F]): F[ConsumerTag] =
     for {
       dc <- defaultConsumer(channel, internals)
       rs <- Sync[F].delay(

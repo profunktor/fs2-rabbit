@@ -20,7 +20,7 @@ import cats.effect.IO
 import cats.implicits._
 import cats.effect.concurrent.{Deferred, Ref}
 import com.github.gvolpe.fs2rabbit.{EffectAssertion, RTS, TestWorld}
-import com.github.gvolpe.fs2rabbit.algebra.AQMPInternals
+import com.github.gvolpe.fs2rabbit.algebra.AMQPInternals
 import com.github.gvolpe.fs2rabbit.config.declaration._
 import com.github.gvolpe.fs2rabbit.config.deletion.{DeletionExchangeConfig, DeletionQueueConfig}
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
@@ -73,7 +73,7 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
         publishingQ    <- Queue.bounded[IO, Either[Throwable, AmqpEnvelope[Array[Byte]]]](500)
         listenerQ      <- Queue.bounded[IO, PublishReturn](500)
         ackerQ         <- Queue.bounded[IO, AckResult](500)
-        queueRef       <- Ref.of[IO, AQMPInternals[IO]](AQMPInternals(None))
+        queueRef       <- Ref.of[IO, AMQPInternals[IO]](AMQPInternals(None))
         queues         <- Ref.of[IO, Set[QueueName]](Set.empty)
         consumers      <- Ref.of[IO, Set[ConsumerTag]](Set.empty)
         exchanges      <- Ref.of[IO, Set[ExchangeName]](Set.empty)

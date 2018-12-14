@@ -21,7 +21,7 @@
 package com.github.gvolpe.fs2rabbit
 
 import cats.effect.{ContextShift, IO}
-import com.github.gvolpe.fs2rabbit.algebra.AQMPInternals
+import com.github.gvolpe.fs2rabbit.algebra.AMQPInternals
 import cats.effect.concurrent.Ref
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
 import fs2.concurrent.Queue
@@ -51,7 +51,7 @@ object EffectAssertion {
 
 object RTS {
   def rabbitRTS(
-      ref: Ref[IO, AQMPInternals[IO]],
+      ref: Ref[IO, AMQPInternals[IO]],
       publishingQ: Queue[IO, Either[Throwable, AmqpEnvelope[Array[Byte]]]]
   ): IO[Unit] =
     ref.get.flatMap { internals =>
@@ -61,7 +61,7 @@ object RTS {
         for {
           //_ <- publishingQ.tryDequeue1.flatMap(_.map(internalQ.enqueue1).sequence)
           _ <- publishingQ.dequeue1.flatMap(internalQ.enqueue1)
-          _ <- ref.set(AQMPInternals(None))
+          _ <- ref.set(AMQPInternals(None))
           _ <- rabbitRTS(ref, publishingQ)
         } yield ()
       }

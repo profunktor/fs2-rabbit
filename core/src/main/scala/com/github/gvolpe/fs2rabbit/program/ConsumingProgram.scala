@@ -18,7 +18,7 @@ package com.github.gvolpe.fs2rabbit.program
 
 import cats.effect.{Bracket, Resource}
 import cats.implicits._
-import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, AQMPInternals, Consuming, InternalQueue}
+import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, AMQPInternals, Consuming, InternalQueue}
 import com.github.gvolpe.fs2rabbit.arguments.Arguments
 import com.github.gvolpe.fs2rabbit.effects.EnvelopeDecoder
 import com.github.gvolpe.fs2rabbit.model._
@@ -38,7 +38,7 @@ class ConsumingProgram[F[_]: Bracket[?[_], Throwable]](AMQP: AMQPClient[F], IQ: 
   )(implicit decoder: EnvelopeDecoder[F, A]): F[F[AmqpEnvelope[A]]] =
     for {
       internalQ <- IQ.create
-      internals = AQMPInternals[F](Some(internalQ))
+      internals = AMQPInternals[F](Some(internalQ))
       _         <- AMQP.basicQos(channel, basicQos)
       consumeF  = AMQP.basicConsume(channel, queueName, autoAck, consumerTag, noLocal, exclusive, args)(internals)
       resource  = Resource.make(consumeF)(tag => AMQP.basicCancel(channel, tag))
