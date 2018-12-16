@@ -16,33 +16,40 @@
 
 package com.github.gvolpe.fs2rabbit.program
 
+import cats.Monad
 import com.github.gvolpe.fs2rabbit.algebra.{AckConsuming, Acking, Consuming}
 import com.github.gvolpe.fs2rabbit.effects.EnvelopeDecoder
 import com.github.gvolpe.fs2rabbit.model._
 import com.rabbitmq.client.Channel
 import fs2.Stream
+import cats.syntax.functor._
 
-class AckConsumingProgram[F[_]](A: Acking[F], C: Consuming[Stream[F, ?], F]) extends AckConsuming[Stream[F, ?], F] {
+class AckConsumingProgram[F[_]](A: Acking[F], C: Consuming[Stream[F, ?], F])(implicit F: Monad[F])
+    extends AckConsuming[Stream[F, ?], F] {
 
   override def createAckerConsumer[A](
       channel: Channel,
       queueName: QueueName,
       basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
       consumerArgs: Option[ConsumerArgs] = None
-  )(implicit decoder: EnvelopeDecoder[F, A]): Stream[F, (AckResult => F[Unit], Stream[F, AmqpEnvelope[A]])] = {
-    val consumer = consumerArgs.fold(C.createConsumer(queueName, channel, basicQos)) { args =>
-      C.createConsumer[A](
-        queueName = queueName,
-        channel = channel,
-        basicQos = basicQos,
-        noLocal = args.noLocal,
-        exclusive = args.exclusive,
-        consumerTag = args.consumerTag,
-        args = args.args
-      )
+  )(implicit decoder: EnvelopeDecoder[F, A]): Stream[F, (AckResult => F[Unit], Stream[F, AmqpEnvelope[A]])] =
+    Stream.eval {
+      A.createAcker(channel).map { acker =>
+        val consumer = consumerArgs.fold(C.createConsumer(queueName, channel, basicQos, acker = Some(acker))) { args =>
+          C.createConsumer[A](
+            queueName = queueName,
+            channel = channel,
+            basicQos = basicQos,
+            noLocal = args.noLocal,
+            exclusive = args.exclusive,
+            consumerTag = args.consumerTag,
+            args = args.args,
+            acker = Some(acker)
+          )
+        }
+        (acker, consumer)
+      }
     }
-    Stream.eval(A.createAcker(channel)).map((_, consumer))
-  }
 
   override def createAutoAckConsumer[A](
       channel: Channel,
@@ -51,16 +58,16 @@ class AckConsumingProgram[F[_]](A: Acking[F], C: Consuming[Stream[F, ?], F]) ext
       consumerArgs: Option[ConsumerArgs] = None
   )(implicit decoder: EnvelopeDecoder[F, A]): Stream[F, Stream[F, AmqpEnvelope[A]]] =
     Stream(
-      consumerArgs.fold(C.createConsumer(queueName, channel, basicQos, autoAck = true)) { args =>
+      consumerArgs.fold(C.createConsumer(queueName, channel, basicQos, acker = None)) { args =>
         C.createConsumer[A](
           queueName = queueName,
           channel = channel,
           basicQos = basicQos,
-          autoAck = true,
           noLocal = args.noLocal,
           exclusive = args.exclusive,
           consumerTag = args.consumerTag,
-          args = args.args
+          args = args.args,
+          acker = None
         )
       }
     )
