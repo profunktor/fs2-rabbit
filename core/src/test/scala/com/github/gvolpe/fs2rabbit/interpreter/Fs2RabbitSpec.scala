@@ -222,29 +222,32 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
     (interpreter, world) =>
       import interpreter._
       createConnectionChannel use { implicit channel =>
-        for {
-          testQ             <- Queue.bounded[IO, AmqpEnvelope[String]](100)
-          _                 <- declareExchange(exchangeName, ExchangeType.Topic)
-          _                 <- declareQueue(DeclarationQueueConfig.default(queueName))
-          _                 <- bindQueue(queueName, exchangeName, routingKey, QueueBindingArgs(Map.empty))
-          publisher         <- createPublisher[String](exchangeName, routingKey)
-          _                 <- publisher("acker-test")
-          ackerConsumer     <- createAckerConsumer(queueName)
-          (acker, consumer) = ackerConsumer
-          _                 <- consumer.flatMap(testQ.enqueue1)
-          ack               = Ack(DeliveryTag(1))
-          _                 <- acker(ack)
-          result            <- testQ.dequeue1
-          ackResult         <- world.ackerQ.tryDequeue1
-        } yield {
-          result should be(
-            AmqpEnvelope(DeliveryTag(1),
-                         "acker-test",
-                         AmqpProperties.empty.copy(contentEncoding = Some("UTF-8")),
-                         exchangeName,
-                         routingKey,
-                         false))
-          ackResult should be(Some(Ack(DeliveryTag(1))))
+        val setup = for {
+          _ <- declareExchange(exchangeName, ExchangeType.Topic)
+          _ <- declareQueue(DeclarationQueueConfig.default(queueName))
+          _ <- bindQueue(queueName, exchangeName, routingKey, QueueBindingArgs(Map.empty))
+        } yield ()
+        setup >> createAckerConsumer(queueName).use {
+          case (acker, consumer) =>
+            for {
+              testQ     <- Queue.bounded[IO, AmqpEnvelope[String]](100)
+              publisher <- createPublisher[String](exchangeName, routingKey)
+              _         <- publisher("acker-test")
+              _         <- consumer.flatMap(testQ.enqueue1)
+              ack       = Ack(DeliveryTag(1))
+              _         <- acker(ack)
+              result    <- testQ.dequeue1
+              ackResult <- world.ackerQ.tryDequeue1
+            } yield {
+              result should be(
+                AmqpEnvelope(DeliveryTag(1),
+                             "acker-test",
+                             AmqpProperties.empty.copy(contentEncoding = Some("UTF-8")),
+                             exchangeName,
+                             routingKey,
+                             false))
+              ackResult should be(Some(Ack(DeliveryTag(1))))
+            }
         }
       }
   }
@@ -253,53 +256,30 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
     TestFs2Rabbit(config)) { (interpreter, world) =>
     import interpreter._
     createConnectionChannel use { implicit channel =>
-      for {
-        _                 <- declareExchange(exchangeName, ExchangeType.Topic)
-        _                 <- declareQueue(DeclarationQueueConfig.default(queueName))
-        _                 <- bindQueue(queueName, exchangeName, routingKey, QueueBindingArgs(Map.empty))
-        publisher         <- createPublisher[String](exchangeName, routingKey)
-        _                 <- publisher("NAck-test")
-        ackerConsumer     <- createAckerConsumer(queueName)
-        (acker, consumer) = ackerConsumer
-        result            <- consumer
-        nack              = NAck(DeliveryTag(1))
-        _                 <- acker(nack)
-        ackResult         <- world.ackerQ.tryDequeue1
-      } yield {
-        result should be(
-          AmqpEnvelope(DeliveryTag(1),
-                       "NAck-test",
-                       AmqpProperties(contentEncoding = Some("UTF-8")),
-                       exchangeName,
-                       routingKey,
-                       false))
-        ackResult should be(Some(NAck(DeliveryTag(1))))
-      }
-    }
-  }
-
-  it should "create a publisher, an auto-ack consumer, publish a message, consume and acknowledge it" in EffectAssertion(
-    TestFs2Rabbit(config)) { (interpreter, world) =>
-    import interpreter._
-    createConnectionChannel use { implicit channel =>
-      for {
-        _         <- declareExchange(exchangeName, ExchangeType.Topic)
-        _         <- declareQueue(DeclarationQueueConfig.default(queueName))
-        _         <- bindQueue(queueName, exchangeName, routingKey)
-        publisher <- createPublisher[String](exchangeName, routingKey)
-        consumer  <- createAutoAckConsumer(queueName)
-        _         <- publisher("test")
-        result    <- consumer
-        ackResult <- world.ackerQ.tryDequeue1
-      } yield {
-        result should be(
-          AmqpEnvelope(DeliveryTag(1),
-                       "test",
-                       AmqpProperties(contentEncoding = Some("UTF-8")),
-                       exchangeName,
-                       routingKey,
-                       false))
-        ackResult shouldBe defined
+      val setup = for {
+        _ <- declareExchange(exchangeName, ExchangeType.Topic)
+        _ <- declareQueue(DeclarationQueueConfig.default(queueName))
+        _ <- bindQueue(queueName, exchangeName, routingKey, QueueBindingArgs(Map.empty))
+      } yield ()
+      setup >> createAckerConsumer(queueName).use {
+        case (acker, consumer) =>
+          for {
+            publisher <- createPublisher[String](exchangeName, routingKey)
+            _         <- publisher("NAck-test")
+            result    <- consumer
+            nack      = NAck(DeliveryTag(1))
+            _         <- acker(nack)
+            ackResult <- world.ackerQ.tryDequeue1
+          } yield {
+            result should be(
+              AmqpEnvelope(DeliveryTag(1),
+                           "NAck-test",
+                           AmqpProperties(contentEncoding = Some("UTF-8")),
+                           exchangeName,
+                           routingKey,
+                           false))
+            ackResult should be(Some(NAck(DeliveryTag(1))))
+          }
       }
     }
   }
@@ -307,69 +287,67 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
   it should "create an exclusive auto-ack consumer with specific BasicQos" in EffectAssertion(TestFs2Rabbit(config)) {
     (interpreter, world) =>
       import interpreter._
+      val consumerArgs =
+        ConsumerArgs(consumerTag = ConsumerTag("XclusiveConsumer"), noLocal = false, exclusive = true, args = Map.empty)
       createConnectionChannel use { implicit channel =>
-        for {
-          _         <- declareExchange(exchangeName, ExchangeType.Topic)
-          _         <- declareQueue(DeclarationQueueConfig.default(queueName))
-          _         <- bindQueue(queueName, exchangeName, routingKey)
-          publisher <- createPublisher[String](exchangeName, routingKey)
-          consumerArgs = ConsumerArgs(consumerTag = ConsumerTag("XclusiveConsumer"),
-                                      noLocal = false,
-                                      exclusive = true,
-                                      args = Map.empty)
-          consumer <- createAutoAckConsumer(queueName,
-                                            BasicQos(prefetchSize = 0, prefetchCount = 10),
-                                            Some(consumerArgs))
-          _         <- publisher("test")
-          result    <- consumer
-          ackResult <- world.ackerQ.tryDequeue1
-        } yield {
-          result should be(
-            AmqpEnvelope(DeliveryTag(1),
-                         "test",
-                         AmqpProperties(contentEncoding = Some("UTF-8")),
-                         exchangeName,
-                         routingKey,
-                         false))
-          ackResult shouldBe defined
-        }
+        val setup = for {
+          _ <- declareExchange(exchangeName, ExchangeType.Topic)
+          _ <- declareQueue(DeclarationQueueConfig.default(queueName))
+          _ <- bindQueue(queueName, exchangeName, routingKey, QueueBindingArgs(Map.empty))
+        } yield ()
+        setup >> createAutoAckConsumer(queueName, BasicQos(prefetchSize = 0, prefetchCount = 10), Some(consumerArgs))
+          .use { consumer =>
+            for {
+              publisher <- createPublisher[String](exchangeName, routingKey)
+              _         <- publisher("test")
+              result    <- consumer
+            } yield {
+              result should be(
+                AmqpEnvelope(DeliveryTag(1),
+                             "test",
+                             AmqpProperties(contentEncoding = Some("UTF-8")),
+                             exchangeName,
+                             routingKey,
+                             false))
+            }
+          }
       }
   }
 
   it should "create an exclusive acker consumer with specific BasicQos" in EffectAssertion(TestFs2Rabbit(config)) {
     (interpreter, world) =>
       import interpreter._
+      val consumerArgs =
+        ConsumerArgs(consumerTag = ConsumerTag("XclusiveConsumer"), noLocal = false, exclusive = true, args = Map.empty)
       createConnectionChannel use { implicit channel =>
-        for {
-          testQ     <- Queue.bounded[IO, AmqpEnvelope[String]](100)
-          _         <- declareExchange(exchangeName, ExchangeType.Topic)
-          _         <- declareQueue(DeclarationQueueConfig.default(queueName))
-          _         <- bindQueue(queueName, exchangeName, routingKey)
-          publisher <- createPublisher[String](exchangeName, routingKey)
-          consumerArgs = ConsumerArgs(consumerTag = ConsumerTag("XclusiveConsumer"),
-                                      noLocal = false,
-                                      exclusive = true,
-                                      args = Map.empty)
-          ackerConsumer <- createAckerConsumer(queueName,
-                                               BasicQos(prefetchSize = 0, prefetchCount = 10),
-                                               Some(consumerArgs))
-          (acker, consumer) = ackerConsumer
-          _                 <- publisher("test")
-          ack               = Ack(DeliveryTag(1))
-          _                 <- consumer.flatMap(testQ.enqueue1)
-          _                 <- acker(ack)
-          result            <- testQ.dequeue1
-          ackResult         <- world.ackerQ.tryDequeue1
-        } yield {
-          result should be(
-            AmqpEnvelope(DeliveryTag(1),
-                         "test",
-                         AmqpProperties(contentEncoding = Some("UTF-8")),
-                         exchangeName,
-                         routingKey,
-                         false))
-          ackResult should be(Some(Ack(DeliveryTag(1))))
-        }
+        val setup = for {
+          _ <- declareExchange(exchangeName, ExchangeType.Topic)
+          _ <- declareQueue(DeclarationQueueConfig.default(queueName))
+          _ <- bindQueue(queueName, exchangeName, routingKey, QueueBindingArgs(Map.empty))
+        } yield ()
+        setup >> createAckerConsumer(queueName, BasicQos(prefetchSize = 0, prefetchCount = 10), Some(consumerArgs))
+          .use {
+            case (acker, consumer) =>
+              for {
+                testQ     <- Queue.bounded[IO, AmqpEnvelope[String]](100)
+                publisher <- createPublisher[String](exchangeName, routingKey)
+                _         <- publisher("test")
+                ack       = Ack(DeliveryTag(1))
+                _         <- consumer.flatMap(testQ.enqueue1)
+                _         <- acker(ack)
+                result    <- testQ.dequeue1
+                ackResult <- world.ackerQ.tryDequeue1
+              } yield {
+                result should be(
+                  AmqpEnvelope(DeliveryTag(1),
+                               "test",
+                               AmqpProperties(contentEncoding = Some("UTF-8")),
+                               exchangeName,
+                               routingKey,
+                               false))
+                ackResult should be(Some(Ack(DeliveryTag(1))))
+              }
+          }
       }
   }
 
@@ -391,15 +369,15 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
   it should "try to delete a queue twice (only first time should be okay)" in EffectAssertion(TestFs2Rabbit(config)) {
     (interpreter, world) =>
       import interpreter._
+
       val QtoDelete = QueueName("deleteMe")
       createConnectionChannel use { implicit channel =>
         for {
-          _        <- declareExchange(exchangeName, ExchangeType.Direct)
-          _        <- declareQueue(DeclarationQueueConfig.default(queueName))
-          _        <- deleteQueue(DeletionQueueConfig.default(QtoDelete))
-          _        <- deleteQueueNoWait(DeletionQueueConfig.default(QtoDelete))
-          consumer <- createAutoAckConsumer(QtoDelete)
-          either   <- consumer.attempt
+          _      <- declareExchange(exchangeName, ExchangeType.Direct)
+          _      <- declareQueue(DeclarationQueueConfig.default(queueName))
+          _      <- deleteQueue(DeletionQueueConfig.default(QtoDelete))
+          _      <- deleteQueueNoWait(DeletionQueueConfig.default(QtoDelete))
+          either <- createAutoAckConsumer(QtoDelete).use(IO.pure).attempt
         } yield {
           either shouldBe a[Left[_, _]]
           either.left.get shouldBe a[java.io.IOException]
@@ -471,23 +449,26 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
     TestFs2Rabbit(config)) { (interpreter, world) =>
     import interpreter._
     createConnectionChannel use { implicit channel =>
-      for {
-        _         <- declareExchange(exchangeName, ExchangeType.Topic)
-        _         <- declareQueue(DeclarationQueueConfig.default(queueName))
-        _         <- bindQueue(queueName, exchangeName, routingKey)
-        publisher <- createRoutingPublisher[String](exchangeName)
-        consumer  <- createAutoAckConsumer(queueName)
-        msg       = "test"
-        _         <- publisher(routingKey)(msg)
-        result    <- consumer
-      } yield {
-        result should be(
-          AmqpEnvelope(DeliveryTag(1),
-                       "test",
-                       AmqpProperties(contentEncoding = Some("UTF-8")),
-                       exchangeName,
-                       routingKey,
-                       false))
+      val setup = for {
+        _ <- declareExchange(exchangeName, ExchangeType.Topic)
+        _ <- declareQueue(DeclarationQueueConfig.default(queueName))
+        _ <- bindQueue(queueName, exchangeName, routingKey, QueueBindingArgs(Map.empty))
+      } yield ()
+      setup >> createAutoAckConsumer(queueName).use { consumer =>
+        for {
+          publisher <- createRoutingPublisher[String](exchangeName)
+          msg       = "test"
+          _         <- publisher(routingKey)(msg)
+          result    <- consumer
+        } yield {
+          result should be(
+            AmqpEnvelope(DeliveryTag(1),
+                         "test",
+                         AmqpProperties(contentEncoding = Some("UTF-8")),
+                         exchangeName,
+                         routingKey,
+                         false))
+        }
       }
     }
   }
@@ -497,39 +478,38 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
     val destinationExchangeName = ExchangeName("destinationExchange")
 
     import interpreter._
+    val consumerArgs =
+      ConsumerArgs(consumerTag = ConsumerTag("XclusiveConsumer"), noLocal = false, exclusive = true, args = Map.empty)
     createConnectionChannel use { implicit channel =>
-      for {
-        testQ     <- Queue.bounded[IO, AmqpEnvelope[String]](100)
-        ackerQ    <- Queue.bounded[IO, AckResult](100)
-        _         <- declareExchange(sourceExchangeName, ExchangeType.Direct)
-        _         <- declareExchange(destinationExchangeName, ExchangeType.Direct)
-        _         <- declareQueue(DeclarationQueueConfig.default(queueName))
-        _         <- bindQueue(queueName, destinationExchangeName, routingKey)
-        _         <- bindExchange(destinationExchangeName, sourceExchangeName, routingKey, ExchangeBindingArgs(Map.empty))
-        publisher <- createPublisher[String](sourceExchangeName, routingKey)
-        consumerArgs = ConsumerArgs(consumerTag = ConsumerTag("XclusiveConsumer"),
-                                    noLocal = false,
-                                    exclusive = true,
-                                    args = Map.empty)
-        ackerConsumer <- createAckerConsumer(queueName,
-                                             BasicQos(prefetchSize = 0, prefetchCount = 10),
-                                             Some(consumerArgs))
-        (acker, consumer) = ackerConsumer
-        _                 <- publisher("test")
-        _                 <- consumer.flatMap(testQ.enqueue1)
-        ack               = Ack(DeliveryTag(1))
-        _                 <- ackerQ.enqueue1(ack) *> acker(ack)
-        result            <- testQ.dequeue1
-        ackResult         <- ackerQ.dequeue1
-      } yield {
-        result should be(
-          AmqpEnvelope(DeliveryTag(1),
-                       "test",
-                       AmqpProperties(contentEncoding = Some("UTF-8")),
-                       sourceExchangeName,
-                       routingKey,
-                       false))
-        ackResult should be(Ack(DeliveryTag(1)))
+      val setup = for {
+        _ <- declareExchange(sourceExchangeName, ExchangeType.Direct)
+        _ <- declareExchange(destinationExchangeName, ExchangeType.Direct)
+        _ <- declareQueue(DeclarationQueueConfig.default(queueName))
+        _ <- bindQueue(queueName, destinationExchangeName, routingKey)
+        _ <- bindExchange(destinationExchangeName, sourceExchangeName, routingKey, ExchangeBindingArgs(Map.empty))
+      } yield ()
+      setup >> createAckerConsumer(queueName, BasicQos(prefetchSize = 0, prefetchCount = 10), Some(consumerArgs)).use {
+        case (acker, consumer) =>
+          for {
+            testQ     <- Queue.bounded[IO, AmqpEnvelope[String]](100)
+            ackerQ    <- Queue.bounded[IO, AckResult](100)
+            publisher <- createPublisher[String](sourceExchangeName, routingKey)
+            _         <- publisher("test")
+            _         <- consumer.flatMap(testQ.enqueue1)
+            ack       = Ack(DeliveryTag(1))
+            _         <- ackerQ.enqueue1(ack) *> acker(ack)
+            result    <- testQ.dequeue1
+            ackResult <- ackerQ.dequeue1
+          } yield {
+            result should be(
+              AmqpEnvelope(DeliveryTag(1),
+                           "test",
+                           AmqpProperties(contentEncoding = Some("UTF-8")),
+                           sourceExchangeName,
+                           routingKey,
+                           false))
+            ackResult should be(Ack(DeliveryTag(1)))
+          }
       }
     }
   }
@@ -552,52 +532,61 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
     TestFs2Rabbit(nackConfig)) { (interpreter, world) =>
     import interpreter._
     createConnectionChannel use { implicit channel =>
-      for {
-        ackerQ            <- Queue.bounded[IO, AckResult](100)
-        _                 <- declareExchange(exchangeName, ExchangeType.Topic)
-        _                 <- declareQueue(DeclarationQueueConfig.default(queueName))
-        _                 <- bindQueue(queueName, exchangeName, routingKey, QueueBindingArgs(Map.empty))
-        publisher         <- createPublisher[String](exchangeName, routingKey)
-        _                 <- publisher("NAck-test")
-        ackerConsumer     <- createAckerConsumer(queueName)
-        (acker, consumer) = ackerConsumer
-        result            <- consumer
-        nack              = NAck(DeliveryTag(1))
-        _                 <- ackerQ.enqueue1(nack) *> acker(nack)
-        _                 <- consumer // Message will be re-queued
-        ackResult         <- ackerQ.dequeue1
-      } yield {
-        result shouldBe an[AmqpEnvelope[String]]
-        ackResult should be(NAck(DeliveryTag(1)))
+      val setup = for {
+        _ <- declareExchange(exchangeName, ExchangeType.Topic)
+        _ <- declareQueue(DeclarationQueueConfig.default(queueName))
+        _ <- bindQueue(queueName, exchangeName, routingKey, QueueBindingArgs(Map.empty))
+      } yield ()
+      setup >> createAckerConsumer(queueName).use {
+        case (acker, consumer) =>
+          for {
+            ackerQ    <- Queue.bounded[IO, AckResult](100)
+            publisher <- createPublisher[String](exchangeName, routingKey)
+            _         <- publisher("NAck-test")
+            result    <- consumer
+            nack      = NAck(DeliveryTag(1))
+            _         <- ackerQ.enqueue1(nack) *> acker(nack)
+            _         <- consumer // Message will be re-queued
+            ackResult <- ackerQ.dequeue1
+          } yield {
+            result shouldBe an[AmqpEnvelope[String]]
+            ackResult should be(NAck(DeliveryTag(1)))
+          }
       }
     }
   }
+
   it should "create a publisher, two auto-ack consumers with different routing keys and assert the routing is correct" in EffectAssertion(
     TestFs2Rabbit(config)) { (interpreter, world) =>
     import interpreter._
+    val diffQ = QueueName("diffQ")
+
     createConnectionChannel use { implicit channel =>
-      val diffQ = QueueName("diffQ")
-      for {
-        _         <- declareExchange(exchangeName, ExchangeType.Topic)
-        publisher <- createPublisher[String](exchangeName, routingKey)
-        _         <- declareQueue(DeclarationQueueConfig.default(queueName))
-        _         <- bindQueue(queueName, exchangeName, routingKey)
-        _         <- declareQueue(DeclarationQueueConfig.default(diffQ))
-        _         <- bindQueue(queueName, exchangeName, RoutingKey("diffRK"))
-        c1        <- createAutoAckConsumer(queueName)
-        c2        <- createAutoAckConsumer(diffQ)
-        _         <- publisher("test")
-        result    <- c1
-        rs2       <- c2.timeoutTo(1.second, IO.pure(None))
-      } yield {
-        result should be(
-          AmqpEnvelope(DeliveryTag(1),
-                       "test",
-                       AmqpProperties(contentEncoding = Some("UTF-8")),
-                       exchangeName,
-                       routingKey,
-                       false))
-        rs2 should be(None)
+      val setup = for {
+        _ <- declareExchange(exchangeName, ExchangeType.Topic)
+        _ <- declareQueue(DeclarationQueueConfig.default(queueName))
+        _ <- bindQueue(queueName, exchangeName, routingKey)
+        _ <- declareQueue(DeclarationQueueConfig.default(diffQ))
+        _ <- bindQueue(queueName, exchangeName, RoutingKey("diffRK"))
+      } yield ()
+      setup >> createAutoAckConsumer(queueName).use { c1 =>
+        createAutoAckConsumer(diffQ).use { c2 =>
+          for {
+            publisher <- createPublisher[String](exchangeName, routingKey)
+            _         <- publisher("test")
+            result    <- c1
+            rs2       <- c2.timeoutTo(1.second, IO.pure(None))
+          } yield {
+            result should be(
+              AmqpEnvelope(DeliveryTag(1),
+                           "test",
+                           AmqpProperties(contentEncoding = Some("UTF-8")),
+                           exchangeName,
+                           routingKey,
+                           false))
+            rs2 should be(None)
+          }
+        }
       }
     }
   }
@@ -611,21 +600,24 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
     val flag = PublishingFlag(mandatory = true)
 
     createConnectionChannel use { implicit channel =>
-      for {
-        _         <- declareExchange(exchangeName, ExchangeType.Topic)
-        _         <- declareQueue(DeclarationQueueConfig.default(queueName))
-        _         <- bindQueue(queueName, exchangeName, routingKey)
-        promise   <- Deferred[IO, PublishReturn]
-        publisher <- createPublisherWithListener(exchangeName, RoutingKey("diff-rk"), flag, listener(promise))
-        consumer  <- createAutoAckConsumer(queueName)
-        _         <- publisher("test")
-        callback  <- promise.get.map(_.some).timeoutTo(500.millis, IO.pure(none[PublishReturn]))
-        result    <- consumer.timeoutTo(500.millis, None.pure[IO])
-      } yield {
-        result should be(None)
-        callback.value.body.value should equal("test".getBytes(UTF_8))
-        callback.value.routingKey should be(RoutingKey("diff-rk"))
-        callback.value.replyText should be(ReplyText("test"))
+      val setup = for {
+        _ <- declareExchange(exchangeName, ExchangeType.Topic)
+        _ <- declareQueue(DeclarationQueueConfig.default(queueName))
+        _ <- bindQueue(queueName, exchangeName, routingKey, QueueBindingArgs(Map.empty))
+      } yield ()
+      setup >> createAutoAckConsumer(queueName).use { consumer =>
+        for {
+          promise   <- Deferred[IO, PublishReturn]
+          publisher <- createPublisherWithListener(exchangeName, RoutingKey("diff-rk"), flag, listener(promise))
+          _         <- publisher("test")
+          callback  <- promise.get.map(_.some).timeoutTo(500.millis, IO.pure(none[PublishReturn]))
+          result    <- consumer.timeoutTo(500.millis, None.pure[IO])
+        } yield {
+          result should be(None)
+          callback.value.body.value should equal("test".getBytes(UTF_8))
+          callback.value.routingKey should be(RoutingKey("diff-rk"))
+          callback.value.replyText should be(ReplyText("test"))
+        }
       }
     }
   }
@@ -637,22 +629,25 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
     val flag = PublishingFlag(mandatory = true)
 
     createConnectionChannel use { implicit channel =>
-      for {
-        _         <- declareExchange(exchangeName, ExchangeType.Topic)
-        _         <- declareQueue(DeclarationQueueConfig.default(queueName))
-        _         <- bindQueue(queueName, exchangeName, routingKey)
-        promise   <- Deferred[IO, PublishReturn]
-        publisher <- createRoutingPublisherWithListener[String](exchangeName, flag, listener(promise))
-        consumer  <- createAutoAckConsumer(queueName)
-        msg       = "test"
-        _         <- publisher(RoutingKey("diff-rk"))(msg)
-        callback  <- promise.get.map(_.some).timeoutTo(500.millis, IO.pure(none[PublishReturn]))
-        result    <- consumer.timeoutTo(500.millis, IO.pure(None))
-      } yield {
-        result should be(None)
-        callback.value.body.value should equal("test".getBytes(UTF_8))
-        callback.value.routingKey should be(RoutingKey("diff-rk"))
-        callback.value.replyText should be(ReplyText("test"))
+      val setup = for {
+        _ <- declareExchange(exchangeName, ExchangeType.Topic)
+        _ <- declareQueue(DeclarationQueueConfig.default(queueName))
+        _ <- bindQueue(queueName, exchangeName, routingKey, QueueBindingArgs(Map.empty))
+      } yield ()
+      setup >> createAutoAckConsumer(queueName).use { consumer =>
+        for {
+          promise   <- Deferred[IO, PublishReturn]
+          publisher <- createRoutingPublisherWithListener[String](exchangeName, flag, listener(promise))
+          msg       = "test"
+          _         <- publisher(RoutingKey("diff-rk"))(msg)
+          callback  <- promise.get.map(_.some).timeoutTo(500.millis, IO.pure(none[PublishReturn]))
+          result    <- consumer.timeoutTo(500.millis, IO.pure(None))
+        } yield {
+          result should be(None)
+          callback.value.body.value should equal("test".getBytes(UTF_8))
+          callback.value.routingKey should be(RoutingKey("diff-rk"))
+          callback.value.replyText should be(ReplyText("test"))
+        }
       }
     }
   }
@@ -663,26 +658,29 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
     val flag = PublishingFlag(mandatory = true)
 
     createConnectionChannel use { implicit channel =>
-      for {
-        _         <- declareExchange(exchangeName, ExchangeType.Topic)
-        _         <- declareQueue(DeclarationQueueConfig.default(queueName))
-        _         <- bindQueue(queueName, exchangeName, routingKey)
-        promise   <- Deferred[IO, PublishReturn]
-        publisher <- createRoutingPublisherWithListener[String](exchangeName, flag, listener(promise))
-        consumer  <- createAutoAckConsumer(queueName)
-        msg       = "test"
-        _         <- publisher(routingKey)(msg)
-        callback  <- promise.get.map(_.some).timeoutTo(500.millis, IO.pure(none[PublishReturn]))
-        result    <- consumer.timeoutTo(500.millis, IO.pure(None))
-      } yield {
-        callback should be(None)
-        result should be(
-          AmqpEnvelope(DeliveryTag(1),
-                       "test",
-                       AmqpProperties(contentEncoding = Some("UTF-8")),
-                       exchangeName,
-                       routingKey,
-                       false))
+      val setup = for {
+        _ <- declareExchange(exchangeName, ExchangeType.Topic)
+        _ <- declareQueue(DeclarationQueueConfig.default(queueName))
+        _ <- bindQueue(queueName, exchangeName, routingKey, QueueBindingArgs(Map.empty))
+      } yield ()
+      setup >> createAutoAckConsumer(queueName).use { consumer =>
+        for {
+          promise   <- Deferred[IO, PublishReturn]
+          publisher <- createRoutingPublisherWithListener[String](exchangeName, flag, listener(promise))
+          msg       = "test"
+          _         <- publisher(routingKey)(msg)
+          callback  <- promise.get.map(_.some).timeoutTo(500.millis, IO.pure(none[PublishReturn]))
+          result    <- consumer.timeoutTo(500.millis, IO.pure(None))
+        } yield {
+          callback should be(None)
+          result should be(
+            AmqpEnvelope(DeliveryTag(1),
+                         "test",
+                         AmqpProperties(contentEncoding = Some("UTF-8")),
+                         exchangeName,
+                         routingKey,
+                         false))
+        }
       }
     }
   }

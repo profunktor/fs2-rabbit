@@ -96,7 +96,6 @@ class AmqpClientInMemory(
       _ <- IO.fromEither(q.find(_.value == queueName.value).toRight(ifMissing))
       _ <- ref.set(internals)
       _ <- consumers.update(_ + tag)
-      _ <- if (autoAck) ackerQ.enqueue1(Ack(DeliveryTag(42))) else IO.unit
     } yield tag
   }
 

@@ -45,12 +45,15 @@ class ConsumingProgram[F[_]: Bracket[?[_], Throwable]](AMQP: AMQPClient[F], IQ: 
     } yield (consumerTag, internalQ)
     Resource
       .make(setup) {
-        case (tag, queue) =>
+        case (tag, _) =>
           AMQP.basicCancel(channel, tag)
       }
       .map {
         case (_, queue) =>
-          queue.dequeue1.rethrow.flatMap(env => decoder(env).map(a => env.copy(payload = a)))
+          for {
+            env        <- queue.dequeue1.rethrow
+            decodedEnv <- decoder(env).map(a => env.copy(payload = a))
+          } yield decodedEnv
       }
   }
 }

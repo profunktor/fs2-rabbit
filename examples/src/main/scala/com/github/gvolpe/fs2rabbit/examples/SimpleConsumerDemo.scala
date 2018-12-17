@@ -28,14 +28,14 @@ class SimpleConsumerDemo[F[_]: Concurrent](implicit R: Fs2Rabbit[F]) {
   private val routingKey   = RoutingKey("testRK")
 
   val program: F[Unit] = R.createConnectionChannel use { implicit channel =>
-    R.createAutoAckConsumer[String](queueName) use { consume =>
-      for {
-        _ <- R.declareQueue(DeclarationQueueConfig.default(queueName))
-        _ <- R.declareExchange(exchangeName, ExchangeType.Topic)
-        _ <- R.bindQueue(queueName, exchangeName, routingKey)
-        p <- new SimpleConsumerProgram[F](consume).run
-      } yield p
-    }
+    for {
+      _ <- R.declareQueue(DeclarationQueueConfig.default(queueName))
+      _ <- R.declareExchange(exchangeName, ExchangeType.Topic)
+      _ <- R.bindQueue(queueName, exchangeName, routingKey)
+      p <- R.createAutoAckConsumer[String](queueName) use { consume =>
+            new SimpleConsumerProgram[F](consume).run
+          }
+    } yield p
   }
 }
 

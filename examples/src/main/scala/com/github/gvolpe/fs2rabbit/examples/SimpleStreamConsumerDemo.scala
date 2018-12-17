@@ -29,14 +29,17 @@ class SimpleStreamConsumerDemo[F[_]: Concurrent](implicit R: Fs2Rabbit[F]) {
   private val routingKey   = RoutingKey("testRK")
 
   val program: Stream[F, Unit] = Stream.resource(R.createConnectionChannel).flatMap { implicit channel =>
-    Stream.resource(R.createAutoAckConsumer[String](queueName)).flatMap { consume =>
-      val setup = for {
-        _ <- R.declareQueue(DeclarationQueueConfig.default(queueName))
-        _ <- R.declareExchange(exchangeName, ExchangeType.Topic)
-        _ <- R.bindQueue(queueName, exchangeName, routingKey)
-      } yield ()
-      Stream.eval(setup).flatMap(_ => new SimpleStreamConsumerProgram[F](consume).run)
-    }
+    val setup = for {
+      _ <- R.declareQueue(DeclarationQueueConfig.default(queueName))
+      _ <- R.declareExchange(exchangeName, ExchangeType.Topic)
+      _ <- R.bindQueue(queueName, exchangeName, routingKey)
+    } yield ()
+
+    for {
+      _       <- Stream.eval(setup)
+      consume <- Stream.resource(R.createAutoAckConsumer[String](queueName))
+      p       <- new SimpleStreamConsumerProgram[F](consume).run
+    } yield p
   }
 }
 

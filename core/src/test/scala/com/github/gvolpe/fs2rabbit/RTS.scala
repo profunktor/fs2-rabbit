@@ -59,9 +59,9 @@ object RTS {
         rabbitRTS(ref, publishingQ)
       ) { internalQ =>
         for {
-          //_ <- publishingQ.tryDequeue1.flatMap(_.map(internalQ.enqueue1).sequence)
-          _ <- publishingQ.dequeue1.flatMap(internalQ.enqueue1)
-          _ <- ref.set(AMQPInternals(None))
+          msg <- publishingQ.dequeue1
+          _   <- internalQ.enqueue1(msg)
+          //_   <- ref.set(AMQPInternals(None))
           _ <- rabbitRTS(ref, publishingQ)
         } yield ()
       }
