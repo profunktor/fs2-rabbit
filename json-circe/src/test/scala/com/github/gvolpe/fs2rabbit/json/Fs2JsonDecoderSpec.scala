@@ -16,15 +16,11 @@
 
 package com.github.gvolpe.fs2rabbit.json
 
-import cats.effect.IO
 import cats.syntax.functor._
 import com.github.gvolpe.fs2rabbit.model.{AmqpEnvelope, AmqpProperties, DeliveryTag, ExchangeName, RoutingKey}
-import fs2._
 import io.circe._
 import org.scalatest.prop.PropertyChecks
 import org.scalatest.{FlatSpecLike, Matchers}
-
-import scala.concurrent.duration._
 
 class Fs2JsonDecoderSpec extends Fs2JsonDecoderFixture with FlatSpecLike with Matchers {
 
@@ -38,15 +34,7 @@ class Fs2JsonDecoderSpec extends Fs2JsonDecoderFixture with FlatSpecLike with Ma
                                   ExchangeName("test"),
                                   RoutingKey("test.route"),
                                   false)
-
-      val test = for {
-        parsed         <- Stream(envelope).covary[IO] through decoder
-        (validated, _) = parsed
-      } yield {
-        validated should be(expected)
-      }
-
-      test.compile.drain.unsafeRunTimed(2.seconds)
+      decoder(envelope) match { case (validated, _) => validated should be(expected) }
     }
   }
 
@@ -58,15 +46,8 @@ class Fs2JsonDecoderSpec extends Fs2JsonDecoderFixture with FlatSpecLike with Ma
                                 ExchangeName("test"),
                                 RoutingKey("test.route"),
                                 false)
-
-    val test = for {
-      parsed         <- Stream(envelope).covary[IO] through fs2JsonDecoder.jsonDecode[Person]
-      (validated, _) = parsed
-    } yield {
-      validated shouldBe a[Left[_, Person]]
-    }
-
-    test.compile.drain.unsafeRunTimed(2.seconds)
+    val decoder = fs2JsonDecoder.jsonDecode[Person]
+    decoder(envelope) match { case (validated, _) => validated shouldBe a[Left[_, Person]] }
   }
 
 }
@@ -83,7 +64,7 @@ trait Fs2JsonDecoderFixture extends PropertyChecks {
   import io.circe.generic.auto._
   import Message._
 
-  val fs2JsonDecoder = new Fs2JsonDecoder[IO]
+  val fs2JsonDecoder = new Fs2JsonDecoder
   import fs2JsonDecoder.jsonDecode
 
   case class Address(number: Int, streetName: String)

@@ -26,8 +26,8 @@ object SimpleStreamConsumer extends IOApp {
   private val config: Fs2RabbitConfig = Fs2RabbitConfig(
     virtualHost = "/",
     host = "127.0.0.1",
-    username = Some("user"),
-    password = Some("password"),
+    username = Some("guest"),
+    password = Some("guest"),
     port = 5672,
     ssl = false,
     connectionTimeout = 3,

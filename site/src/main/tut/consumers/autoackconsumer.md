@@ -19,10 +19,9 @@ def doSomething(consumer: IO[AmqpEnvelope[String]]): IO[Unit] = IO.unit
 
 def program(implicit R: Fs2Rabbit[IO]) =
   R.createConnectionChannel use { implicit channel =>
-    for {
-      c <- R.createAutoAckConsumer[String](queueName)	    // IO[AmqpEnvelope[String]]
-      _ <- doSomething(c)
-    } yield ()
+    R.createAutoAckConsumer[String](queueName) use ( consumer =>
+      doSomething(consumer)
+    )
   }
 ```
 

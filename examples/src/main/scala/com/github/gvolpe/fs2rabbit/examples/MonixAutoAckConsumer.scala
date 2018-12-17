@@ -16,12 +16,14 @@
 
 package com.github.gvolpe.fs2rabbit.examples
 
-import cats.effect.{ExitCode, IO, IOApp}
-import cats.implicits._
-import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
+import cats.effect.ExitCode
+import cats.syntax.functor._
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
+import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
+import com.github.gvolpe.fs2rabbit.resiliency.ResilientStream
+import monix.eval.{Task, TaskApp}
 
-object SimpleConsumer extends IOApp {
+object MonixAutoAckConsumer extends TaskApp {
 
   private val config: Fs2RabbitConfig = Fs2RabbitConfig(
     virtualHost = "/",
@@ -35,10 +37,11 @@ object SimpleConsumer extends IOApp {
     internalQueueSize = Some(500)
   )
 
-  override def run(args: List[String]): IO[ExitCode] =
-    Fs2Rabbit[IO](config).flatMap { implicit fs2rabbit =>
-      val demo = new SimpleConsumerDemo[IO]
-      demo.program.as(ExitCode.Success)
+  override def run(args: List[String]): Task[ExitCode] =
+    Fs2Rabbit[Task](config).flatMap { implicit fs2Rabbit =>
+      ResilientStream
+        .run(new AutoAckConsumerDemo[Task].program)
+        .as(ExitCode.Success)
     }
 
 }
