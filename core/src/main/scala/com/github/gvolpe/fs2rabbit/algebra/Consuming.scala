@@ -21,7 +21,7 @@ import com.github.gvolpe.fs2rabbit.effects.EnvelopeDecoder
 import com.github.gvolpe.fs2rabbit.model.{AmqpEnvelope, BasicQos, ConsumerTag, QueueName}
 import com.rabbitmq.client.Channel
 
-trait Consuming[F[_]] {
+trait Consuming[F[_], R[_]] {
 
   def createConsumer[A](
       queueName: QueueName,
@@ -32,6 +32,6 @@ trait Consuming[F[_]] {
       exclusive: Boolean = false,
       consumerTag: ConsumerTag = ConsumerTag(""),
       args: Arguments = Map.empty
-  )(implicit decoder: EnvelopeDecoder[F, A]): F[F[AmqpEnvelope[A]]]
+  )(implicit decoder: EnvelopeDecoder[F, A]): R[F[AmqpEnvelope[A]]]
 
 }

@@ -24,7 +24,8 @@ import com.github.gvolpe.fs2rabbit.effects.EnvelopeDecoder
 import com.github.gvolpe.fs2rabbit.model._
 import com.rabbitmq.client.Channel
 
-class ConsumingProgram[F[_]: Bracket[?[_], Throwable]](AMQP: AMQPClient[F], IQ: InternalQueue[F]) extends Consuming[F] {
+class ConsumingProgram[F[_]: Bracket[?[_], Throwable]](AMQP: AMQPClient[F], IQ: InternalQueue[F])
+    extends Consuming[F, Resource[F, ?]] {
 
   override def createConsumer[A](
       queueName: QueueName,
@@ -35,12 +36,21 @@ class ConsumingProgram[F[_]: Bracket[?[_], Throwable]](AMQP: AMQPClient[F], IQ: 
       exclusive: Boolean = false,
       consumerTag: ConsumerTag = ConsumerTag(""),
       args: Arguments = Map.empty
-  )(implicit decoder: EnvelopeDecoder[F, A]): F[F[AmqpEnvelope[A]]] =
-    for {
-      internalQ <- IQ.create
-      internals = AMQPInternals[F](Some(internalQ))
-      _         <- AMQP.basicQos(channel, basicQos)
-      consumeF  = AMQP.basicConsume(channel, queueName, autoAck, consumerTag, noLocal, exclusive, args)(internals)
-      resource  = Resource.make(consumeF)(tag => AMQP.basicCancel(channel, tag))
-    } yield resource.use(_ => internalQ.dequeue1.rethrow.flatMap(env => decoder(env).map(a => env.copy(payload = a))))
+  )(implicit decoder: EnvelopeDecoder[F, A]): Resource[F, F[AmqpEnvelope[A]]] = {
+    val setup = for {
+      internalQ   <- IQ.create
+      internals   = AMQPInternals[F](Some(internalQ))
+      _           <- AMQP.basicQos(channel, basicQos)
+      consumerTag <- AMQP.basicConsume(channel, queueName, autoAck, consumerTag, noLocal, exclusive, args)(internals)
+    } yield (consumerTag, internalQ)
+    Resource
+      .make(setup) {
+        case (tag, queue) =>
+          AMQP.basicCancel(channel, tag)
+      }
+      .map {
+        case (_, queue) =>
+          queue.dequeue1.rethrow.flatMap(env => decoder(env).map(a => env.copy(payload = a)))
+      }
+  }
 }
