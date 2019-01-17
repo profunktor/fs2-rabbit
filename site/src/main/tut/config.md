@@ -9,19 +9,26 @@ number: 1
 The main `RabbitMQ` configuration should be defined as `Fs2RabbitConfig`. You choose how to get the information, either from an `application.conf` file, from the environment or provided by an external system. A popular option that fits well the tech stack is [Pure Config](https://pureconfig.github.io/).
 
 ```tut:book:silent
-import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
+import cats.data.NonEmptyList
+import com.github.gvolpe.fs2rabbit.config.{Fs2RabbitConfig, Fs2RabbitNodeConfig}
 
 val config = Fs2RabbitConfig(
   virtualHost = "/",
-  host = "127.0.0.1",
+  nodes = NonEmptyList.one(
+    Fs2RabbitNodeConfig(
+      host = "127.0.0.1",
+      port = 5672
+    )
+  ),
   username = Some("guest"),
   password = Some("guest"),
-  port = 5672,
   ssl = false,
   connectionTimeout = 3,
   requeueOnNack = false,
-  internalQueueSize = Some(500)
+  internalQueueSize = Some(500),
+  automaticRecovery = true
 )
 ```
 
 The `internalQueueSize` indicates the size of the fs2's bounded queue used internally to communicate with the AMQP Java driver.
+The `automaticRecovery` indicates whether the AMQP Java driver should try to [recover broken connections](https://www.rabbitmq.com/api-guide.html#recovery).

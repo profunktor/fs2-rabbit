@@ -16,14 +16,46 @@
 
 package com.github.gvolpe.fs2rabbit.config
 
-case class Fs2RabbitConfig(
+import cats.data.NonEmptyList
+
+case class Fs2RabbitNodeConfig(
     host: String,
-    port: Int,
+    port: Int
+)
+
+case class Fs2RabbitConfig(
+    nodes: NonEmptyList[Fs2RabbitNodeConfig],
     virtualHost: String,
     connectionTimeout: Int,
     ssl: Boolean,
     username: Option[String],
     password: Option[String],
     requeueOnNack: Boolean,
-    internalQueueSize: Option[Int]
+    internalQueueSize: Option[Int],
+    automaticRecovery: Boolean
 )
+
+object Fs2RabbitConfig {
+  def apply(
+      host: String,
+      port: Int,
+      virtualHost: String,
+      connectionTimeout: Int,
+      ssl: Boolean,
+      username: Option[String],
+      password: Option[String],
+      requeueOnNack: Boolean,
+      internalQueueSize: Option[Int],
+      automaticRecovery: Boolean = true
+  ): Fs2RabbitConfig = Fs2RabbitConfig(
+    nodes = NonEmptyList.one(Fs2RabbitNodeConfig(host, port)),
+    virtualHost = virtualHost,
+    connectionTimeout = connectionTimeout,
+    ssl = ssl,
+    username = username,
+    password = password,
+    requeueOnNack = requeueOnNack,
+    internalQueueSize = internalQueueSize,
+    automaticRecovery = automaticRecovery
+  )
+}
