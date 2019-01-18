@@ -16,8 +16,9 @@
 
 package com.github.gvolpe.fs2rabbit.algebra
 
+import cats.effect.Resource
 import com.github.gvolpe.fs2rabbit.model.AMQPChannel
 
 trait Connection[F[_]] {
-  def createConnectionChannel: F[AMQPChannel]
+  def createConnectionChannel: Resource[F, AMQPChannel]
 }

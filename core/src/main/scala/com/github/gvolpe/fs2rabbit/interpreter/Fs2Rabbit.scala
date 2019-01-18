@@ -17,7 +17,7 @@
 package com.github.gvolpe.fs2rabbit.interpreter
 
 import javax.net.ssl.SSLContext
-import cats.effect.{Concurrent, ConcurrentEffect}
+import cats.effect.{Concurrent, ConcurrentEffect, Resource}
 import cats.syntax.functor._
 import com.github.gvolpe.fs2rabbit.algebra._
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
@@ -34,21 +34,21 @@ object Fs2Rabbit {
       config: Fs2RabbitConfig,
       sslContext: Option[SSLContext] = None
   ): F[Fs2Rabbit[F]] =
-    ConnectionStream.mkConnectionFactory[F](config, sslContext).map {
+    ConnectionBuilder.mkConnectionFactory[F](config, sslContext).map {
       case (factory, addresses) =>
-        val amqpClient = new AMQPClientStream[F]
-        val connStream = new ConnectionStream[F](factory, addresses)
-        val internalQ  = new LiveInternalQueue[F](config.internalQueueSize.getOrElse(500))
-        val acker      = new AckingProgram[F](config, amqpClient)
-        val consumer   = new ConsumingProgram[F](amqpClient, internalQ)
-        new Fs2Rabbit[F](config, connStream, amqpClient, acker, consumer)
+        val amqpClient  = new AMQPClientStream[F]
+        val connBuilder = new ConnectionBuilder[F](factory, addresses)
+        val internalQ   = new LiveInternalQueue[F](config.internalQueueSize.getOrElse(500))
+        val acker       = new AckingProgram[F](config, amqpClient)
+        val consumer    = new ConsumingProgram[F](amqpClient, internalQ)
+        new Fs2Rabbit[F](config, connBuilder, amqpClient, acker, consumer)
     }
 }
 // $COVERAGE-ON$
 
 class Fs2Rabbit[F[_]: Concurrent] private[fs2rabbit] (
     config: Fs2RabbitConfig,
-    connectionStream: Connection[Stream[F, ?]],
+    connectionBuilder: Connection[F],
     amqpClient: AMQPClient[Stream[F, ?], F],
     acker: Acking[F],
     consumer: Consuming[Stream[F, ?], F]
@@ -60,7 +60,9 @@ class Fs2Rabbit[F[_]: Concurrent] private[fs2rabbit] (
   private[fs2rabbit] val publishingProgram: Publishing[Stream[F, ?], F] =
     new PublishingProgram[F](amqpClient)
 
-  def createConnectionChannel: Stream[F, AMQPChannel] = connectionStream.createConnectionChannel
+  def createConnectionChannelResource: Resource[F, AMQPChannel] = connectionBuilder.createConnectionChannel
+
+  def createConnectionChannel: Stream[F, AMQPChannel] = Stream.resource(connectionBuilder.createConnectionChannel)
 
   def createAckerConsumer[A](
       queueName: QueueName,

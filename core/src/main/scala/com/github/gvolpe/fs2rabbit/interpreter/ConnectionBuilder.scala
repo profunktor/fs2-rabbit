@@ -16,49 +16,37 @@
 
 package com.github.gvolpe.fs2rabbit.interpreter
 
-import javax.net.ssl.SSLContext
 import cats.data.NonEmptyList
-import cats.effect.Sync
+import cats.effect.{Resource, Sync}
 import cats.syntax.apply._
-import cats.syntax.flatMap._
 import cats.syntax.functor._
 import com.github.gvolpe.fs2rabbit.algebra.Connection
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
-import com.github.gvolpe.fs2rabbit.model.{AMQPChannel, RabbitChannel}
 import com.github.gvolpe.fs2rabbit.effects.Log
-import com.rabbitmq.client.{Address, ConnectionFactory, Connection => RabbitMQConnection}
-import fs2.Stream
+import com.github.gvolpe.fs2rabbit.model.{AMQPChannel, RabbitChannel}
+import com.rabbitmq.client.{Address, ConnectionFactory}
+import javax.net.ssl.SSLContext
+
 import scala.collection.JavaConverters._
 
-class ConnectionStream[F[_]](
+class ConnectionBuilder[F[_]](
     factory: ConnectionFactory,
     addresses: NonEmptyList[Address]
 )(implicit F: Sync[F], L: Log[F])
-    extends Connection[Stream[F, ?]] {
+    extends Connection[F] {
 
-  private[fs2rabbit] val acquireConnection: F[(RabbitMQConnection, AMQPChannel)] =
+  override def createConnectionChannel: Resource[F, AMQPChannel] =
     for {
-      conn    <- F.delay(factory.newConnection(addresses.toList.asJava))
-      channel <- F.delay(conn.createChannel)
-    } yield (conn, RabbitChannel(channel))
-
-  /**
-    * Creates a connection and a channel in a safe way using Stream.bracket.
-    * In case of failure, the resources will be cleaned up properly.
-    **/
-  override def createConnectionChannel: Stream[F, AMQPChannel] =
-    Stream
-      .bracket(acquireConnection) {
-        case (conn, RabbitChannel(channel)) =>
-          L.info(s"Releasing connection: $conn previously acquired.") *>
-            F.delay { if (channel.isOpen) channel.close() } *> F.delay { if (conn.isOpen) conn.close() }
-        case (_, _) => F.raiseError[Unit](new Exception("Unreachable"))
-      }
-      .map { case (_, channel) => channel }
+      conn <- Resource.make(F.delay(factory.newConnection(addresses.toList.asJava))) { c =>
+               L.info(s"Releasing connection: $c previously acquired.") *> F.delay { if (c.isOpen) c.close() }
+             }
+      channel <- Resource.fromAutoCloseable(F.delay(conn.createChannel))
+      _       <- Resource.liftF(L.info(s"Acquired connection: $conn"))
+    } yield RabbitChannel(channel)
 
 }
 
-object ConnectionStream {
+object ConnectionBuilder {
 
   private[fs2rabbit] def mkConnectionFactory[F[_]: Sync](
       config: Fs2RabbitConfig,
