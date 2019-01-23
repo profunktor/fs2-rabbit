@@ -33,13 +33,14 @@ object Fs2Rabbit {
       config: Fs2RabbitConfig,
       sslContext: Option[SSLContext] = None
   ): F[Fs2Rabbit[F]] =
-    ConnectionEffect.mkConnectionFactory[F](config, sslContext).map { case (factory, addresses) =>
-      val amqpClient = new AmqpClientEffect[F]
-      val conn       = new ConnectionEffect[F](factory, addresses)
-      val internalQ  = new LiveInternalQueue[F](config.internalQueueSize.getOrElse(500))
-      val acker      = new AckingProgram[F](config, amqpClient)
-      val consumer   = new ConsumingProgram[F](amqpClient, internalQ)
-      new Fs2Rabbit[F](config, conn, amqpClient, acker, consumer)
+    ConnectionEffect.mkConnectionFactory[F](config, sslContext).map {
+      case (factory, addresses) =>
+        val amqpClient = new AmqpClientEffect[F]
+        val conn       = new ConnectionEffect[F](factory, addresses)
+        val internalQ  = new LiveInternalQueue[F](config.internalQueueSize.getOrElse(500))
+        val acker      = new AckingProgram[F](config, amqpClient)
+        val consumer   = new ConsumingProgram[F](amqpClient, internalQ)
+        new Fs2Rabbit[F](config, conn, amqpClient, acker, consumer)
     }
 }
 // $COVERAGE-ON$

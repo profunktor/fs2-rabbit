@@ -29,7 +29,8 @@ import com.github.gvolpe.fs2rabbit.effects.Log
 import com.rabbitmq.client.{Address, ConnectionFactory, Connection => RabbitMQConnection}
 import scala.collection.JavaConverters._
 
-class ConnectionEffect[F[_]](factory: ConnectionFactory, addresses: NonEmptyList[Address])(implicit F: Sync[F], L: Log[F])
+class ConnectionEffect[F[_]](factory: ConnectionFactory, addresses: NonEmptyList[Address])(implicit F: Sync[F],
+                                                                                           L: Log[F])
     extends Connection[Resource[F, ?]] {
 
   private[fs2rabbit] val acquireConnection: F[(RabbitMQConnection, AMQPChannel)] =
