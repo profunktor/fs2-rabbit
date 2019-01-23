@@ -17,7 +17,7 @@
 package com.github.gvolpe.fs2rabbit.interpreter
 
 import javax.net.ssl.SSLContext
-
+import cats.data.NonEmptyList
 import cats.effect.{Resource, Sync}
 import cats.syntax.apply._
 import cats.syntax.flatMap._
@@ -26,14 +26,15 @@ import com.github.gvolpe.fs2rabbit.algebra.Connection
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 import com.github.gvolpe.fs2rabbit.model.{AMQPChannel, RabbitChannel}
 import com.github.gvolpe.fs2rabbit.effects.Log
-import com.rabbitmq.client.{ConnectionFactory, Connection => RabbitMQConnection}
+import com.rabbitmq.client.{Address, ConnectionFactory, Connection => RabbitMQConnection}
+import scala.collection.JavaConverters._
 
-class ConnectionEffect[F[_]](factory: ConnectionFactory)(implicit F: Sync[F], L: Log[F])
+class ConnectionEffect[F[_]](factory: ConnectionFactory, addresses: NonEmptyList[Address])(implicit F: Sync[F], L: Log[F])
     extends Connection[Resource[F, ?]] {
 
   private[fs2rabbit] val acquireConnection: F[(RabbitMQConnection, AMQPChannel)] =
     for {
-      conn    <- F.delay(factory.newConnection)
+      conn    <- F.delay(factory.newConnection(addresses.toList.asJava))
       channel <- F.delay(conn.createChannel)
       _       <- L.info(s"Acquired connection: $conn")
     } yield (conn, RabbitChannel(channel))
@@ -60,19 +61,22 @@ object ConnectionEffect {
   private[fs2rabbit] def mkConnectionFactory[F[_]: Sync](
       config: Fs2RabbitConfig,
       sslContext: Option[SSLContext]
-  ): F[ConnectionFactory] =
+  ): F[(ConnectionFactory, NonEmptyList[Address])] =
     Sync[F].delay {
-      val factory = new ConnectionFactory()
-      factory.setHost(config.host)
-      factory.setPort(config.port)
+      val factory   = new ConnectionFactory()
+      val firstNode = config.nodes.head
+      factory.setHost(firstNode.host)
+      factory.setPort(firstNode.port)
       factory.setVirtualHost(config.virtualHost)
       factory.setConnectionTimeout(config.connectionTimeout)
+      factory.setAutomaticRecoveryEnabled(config.automaticRecovery)
       if (config.ssl) {
         sslContext.fold(factory.useSslProtocol())(factory.useSslProtocol)
       }
       config.username.foreach(factory.setUsername)
       config.password.foreach(factory.setPassword)
-      factory
+      val addresses = config.nodes.map(node => new Address(node.host, node.port))
+      (factory, addresses)
     }
 
 }
