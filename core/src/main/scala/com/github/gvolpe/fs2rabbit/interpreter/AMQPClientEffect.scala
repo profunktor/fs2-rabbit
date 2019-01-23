@@ -113,9 +113,10 @@ class AmqpClientEffect[F[_]: Effect] extends AMQPClient[F] {
   override def basicCancel(
       channel: Channel,
       consumerTag: ConsumerTag
-  ): F[Unit] = Sync[F].delay {
-    channel.basicCancel(consumerTag.value)
-  }
+  ): F[Unit] =
+    Sync[F].delay {
+      channel.basicCancel(consumerTag.value)
+    }
 
   override def basicPublish(
       channel: Channel,

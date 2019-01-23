@@ -26,6 +26,7 @@ import com.github.gvolpe.fs2rabbit.config.deletion.{DeletionExchangeConfig, Dele
 import com.github.gvolpe.fs2rabbit.effects.{EnvelopeDecoder, MessageEncoder}
 import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.program._
+import fs2.Stream
 
 // $COVERAGE-OFF$
 object Fs2Rabbit {
@@ -50,10 +51,10 @@ class Fs2Rabbit[F[_]: Concurrent] private[fs2rabbit] (
     connection: Connection[Resource[F, ?]],
     amqpClient: AMQPClient[F],
     acker: Acking[F],
-    consumer: Consuming[F, Resource[F, ?]]
+    consumer: Consuming[F, Stream[F, ?]]
 ) {
 
-  private[fs2rabbit] val consumingProgram: AckConsuming[F, Resource[F, ?]] =
+  private[fs2rabbit] val consumingProgram: AckConsuming[F, Stream[F, ?]] =
     new AckConsumingProgram[F](acker, consumer)
 
   private[fs2rabbit] val publishingProgram: Publishing[F] =
@@ -66,14 +67,14 @@ class Fs2Rabbit[F[_]: Concurrent] private[fs2rabbit] (
       basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
       consumerArgs: Option[ConsumerArgs] = None
   )(implicit channel: AMQPChannel,
-    decoder: EnvelopeDecoder[F, A]): Resource[F, (AckResult => F[Unit], F[AmqpEnvelope[A]])] =
+    decoder: EnvelopeDecoder[F, A]): F[(AckResult => F[Unit], Stream[F, AmqpEnvelope[A]])] =
     consumingProgram.createAckerConsumer(channel.value, queueName, basicQos, consumerArgs)
 
   def createAutoAckConsumer[A](
       queueName: QueueName,
       basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
       consumerArgs: Option[ConsumerArgs] = None
-  )(implicit channel: AMQPChannel, decoder: EnvelopeDecoder[F, A]): Resource[F, F[AmqpEnvelope[A]]] =
+  )(implicit channel: AMQPChannel, decoder: EnvelopeDecoder[F, A]): Stream[F, AmqpEnvelope[A]] =
     consumingProgram.createAutoAckConsumer(channel.value, queueName, basicQos, consumerArgs)
 
   def createPublisher[A](exchangeName: ExchangeName, routingKey: RoutingKey)(

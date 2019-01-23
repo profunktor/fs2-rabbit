@@ -16,16 +16,17 @@
 
 package com.github.gvolpe.fs2rabbit.program
 
-import cats.effect.{Bracket, Resource}
+import cats.effect.Bracket
 import cats.implicits._
 import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, AMQPInternals, Consuming, InternalQueue}
 import com.github.gvolpe.fs2rabbit.arguments.Arguments
 import com.github.gvolpe.fs2rabbit.effects.EnvelopeDecoder
 import com.github.gvolpe.fs2rabbit.model._
 import com.rabbitmq.client.Channel
+import fs2.Stream
 
 class ConsumingProgram[F[_]: Bracket[?[_], Throwable]](AMQP: AMQPClient[F], IQ: InternalQueue[F])
-    extends Consuming[F, Resource[F, ?]] {
+    extends Consuming[F, Stream[F, ?]] {
 
   override def createConsumer[A](
       queueName: QueueName,
@@ -36,24 +37,23 @@ class ConsumingProgram[F[_]: Bracket[?[_], Throwable]](AMQP: AMQPClient[F], IQ: 
       exclusive: Boolean = false,
       consumerTag: ConsumerTag = ConsumerTag(""),
       args: Arguments = Map.empty
-  )(implicit decoder: EnvelopeDecoder[F, A]): Resource[F, F[AmqpEnvelope[A]]] = {
+  )(implicit decoder: EnvelopeDecoder[F, A]): Stream[F, AmqpEnvelope[A]] = {
+
     val setup = for {
       internalQ   <- IQ.create
       internals   = AMQPInternals[F](Some(internalQ))
       _           <- AMQP.basicQos(channel, basicQos)
       consumerTag <- AMQP.basicConsume(channel, queueName, autoAck, consumerTag, noLocal, exclusive, args)(internals)
     } yield (consumerTag, internalQ)
-    Resource
-      .make(setup) {
-        case (tag, _) =>
-          AMQP.basicCancel(channel, tag)
-      }
-      .map {
-        case (_, queue) =>
-          for {
-            env        <- queue.dequeue1.rethrow
-            decodedEnv <- decoder(env).map(a => env.copy(payload = a))
-          } yield decodedEnv
-      }
+
+    for {
+      (tag, queue) <- Stream.bracket(setup) {
+                       case (tag, _) =>
+                         AMQP.basicCancel(channel, tag)
+                     }
+      env <- Stream.repeatEval(
+              queue.dequeue1.rethrow.flatMap(env => decoder(env).map(a => env.copy(payload = a)))
+            )
+    } yield env
   }
 }

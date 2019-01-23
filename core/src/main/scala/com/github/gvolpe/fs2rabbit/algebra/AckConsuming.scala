@@ -27,13 +27,13 @@ trait AckConsuming[F[_], R[_]] {
       queueName: QueueName,
       basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
       consumerArgs: Option[ConsumerArgs] = None
-  )(implicit decoder: EnvelopeDecoder[F, A]): R[(AckResult => F[Unit], F[AmqpEnvelope[A]])]
+  )(implicit decoder: EnvelopeDecoder[F, A]): F[(AckResult => F[Unit], R[AmqpEnvelope[A]])]
 
   def createAutoAckConsumer[A](
       channel: Channel,
       queueName: QueueName,
       basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
       consumerArgs: Option[ConsumerArgs] = None
-  )(implicit decoder: EnvelopeDecoder[F, A]): R[F[AmqpEnvelope[A]]]
+  )(implicit decoder: EnvelopeDecoder[F, A]): R[AmqpEnvelope[A]]
 
 }

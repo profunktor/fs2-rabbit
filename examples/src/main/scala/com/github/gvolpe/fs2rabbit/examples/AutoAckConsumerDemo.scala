@@ -41,19 +41,18 @@ class AutoAckConsumerDemo[F[_]: Concurrent](implicit R: Fs2Rabbit[F]) {
     putStrLn(s"Consumed: $amqpMsg").as(Ack(amqpMsg.deliveryTag))
   }
 
-  val program: Stream[F, Unit] = Stream.resource(R.createConnectionChannel).flatMap { implicit channel =>
-    val setup = for {
-      _ <- R.declareQueue(DeclarationQueueConfig.default(queueName))
-      _ <- R.declareExchange(exchangeName, ExchangeType.Topic)
-      _ <- R.bindQueue(queueName, exchangeName, routingKey)
-    } yield ()
-
-    for {
-      _         <- Stream.eval(setup)
-      publisher <- Stream.eval(R.createPublisher[AmqpMessage[String]](exchangeName, routingKey))
-      consumer  <- Stream.resource(R.createAutoAckConsumer[String](queueName))
-      _         <- new AutoAckFlow[F, String](Stream.repeatEval(consumer), logPipe, publisher).flow
-    } yield ()
+  val program: F[Unit] = {
+    R.createConnectionChannel use { implicit channel =>
+      for {
+        _         <- R.declareQueue(DeclarationQueueConfig.default(queueName))
+        _         <- R.declareExchange(exchangeName, ExchangeType.Topic)
+        _         <- R.bindQueue(queueName, exchangeName, routingKey)
+        publisher <- R.createPublisher[AmqpMessage[String]](exchangeName, routingKey)
+        consumer  = R.createAutoAckConsumer[String](queueName)
+        s         = new AutoAckFlow[F, String](consumer, logPipe, publisher).flow
+        _         <- s.compile.drain
+      } yield ()
+    }
   }
 }
 

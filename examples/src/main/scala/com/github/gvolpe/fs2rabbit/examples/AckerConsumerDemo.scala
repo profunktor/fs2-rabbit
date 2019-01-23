@@ -46,23 +46,19 @@ class AckerConsumerDemo[F[_]: Concurrent: Timer](implicit R: Fs2Rabbit[F]) {
   // Run when there's no consumer for the routing key specified by the publisher and the flag mandatory is true
   val publishingListener: PublishReturn => F[Unit] = pr => putStrLn(s"Publish listener: $pr")
 
-  val program: Stream[F, Unit] = Stream.resource(R.createConnectionChannel) flatMap { implicit channel =>
-    val setup = for {
+  val program: F[Unit] = R.createConnectionChannel use { implicit channel =>
+    for {
       _ <- R.declareQueue(DeclarationQueueConfig.default(queueName))
       _ <- R.declareExchange(exchangeName, ExchangeType.Topic)
       _ <- R.bindQueue(queueName, exchangeName, routingKey)
+      publisher <- R.createPublisherWithListener[AmqpMessage[String]](exchangeName,
+                                                                      routingKey,
+                                                                      publishingFlag,
+                                                                      publishingListener)
+      (acker, consumer) <- R.createAckerConsumer[String](queueName)
+      result            = new Flow[F, String](consumer, acker, logPipe, publisher).flow
+      _                 <- result.compile.drain
     } yield ()
-
-    for {
-      _ <- Stream.eval(setup)
-      publisher <- Stream.eval(
-                    R.createPublisherWithListener[AmqpMessage[String]](exchangeName,
-                                                                       routingKey,
-                                                                       publishingFlag,
-                                                                       publishingListener))
-      (acker, consumer) <- Stream.resource(R.createAckerConsumer[String](queueName))
-      result            <- new Flow[F, String](Stream.repeatEval(consumer), acker, logPipe, publisher).flow
-    } yield result
   }
 }
 
