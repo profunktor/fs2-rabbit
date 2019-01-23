@@ -10,18 +10,18 @@ An `AutoAckConsumer` acknowledges every consumed message automatically, so all y
 
 ```tut:book:silent
 import cats.effect.IO
+import cats.implicits._
 import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
+import fs2.Stream
 
 val queueName = QueueName("daQ")
 
-def doSomething(consumer: IO[AmqpEnvelope[String]]): IO[Unit] = IO.unit
+val doSomething: Stream[IO, AmqpEnvelope[String]] => IO[Unit] = consumer => IO.unit
 
 def program(implicit R: Fs2Rabbit[IO]) =
   R.createConnectionChannel use { implicit channel =>
-    R.createAutoAckConsumer[String](queueName) use ( consumer =>
-      doSomething(consumer)
-    )
+    doSomething(R.createAutoAckConsumer[String](queueName))
   }
 ```
 

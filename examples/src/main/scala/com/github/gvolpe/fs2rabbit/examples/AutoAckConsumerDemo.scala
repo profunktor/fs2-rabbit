@@ -19,7 +19,7 @@ package com.github.gvolpe.fs2rabbit.examples
 import java.nio.charset.StandardCharsets.UTF_8
 
 import cats.data.Kleisli
-import cats.effect.Concurrent
+import cats.effect.{Concurrent, Sync}
 import cats.implicits._
 import com.github.gvolpe.fs2rabbit.config.declaration.DeclarationQueueConfig
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
@@ -80,7 +80,7 @@ class AutoAckFlow[F[_]: Concurrent, A](
     Stream(
       Stream(simpleMessage).covary[F] evalMap publisher,
       Stream(classMessage).covary[F] through jsonPipe evalMap publisher,
-      consumer through logger to (_.evalMap(putStrLn(_)))
+      consumer through logger evalMap (ack => Sync[F].delay(println(ack)))
     ).parJoin(3)
 
 }
