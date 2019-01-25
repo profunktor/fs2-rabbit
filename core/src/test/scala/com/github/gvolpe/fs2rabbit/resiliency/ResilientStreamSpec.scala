@@ -19,6 +19,7 @@ package com.github.gvolpe.fs2rabbit.resiliency
 import cats.effect.IO
 import cats.effect.concurrent.Ref
 import cats.syntax.apply._
+import com.github.gvolpe.fs2rabbit.IOAssertion
 import com.github.gvolpe.fs2rabbit.effects.Log
 import fs2._
 import org.scalatest.{FlatSpecLike, Matchers}
@@ -31,10 +32,6 @@ class ResilientStreamSpec extends FlatSpecLike with Matchers {
   implicit val timer = IO.timer(ExecutionContext.global)
 
   private val sink: Sink[IO, Int] = _.evalMap(n => IO(println(n)))
-
-  object IOAssertion {
-    def apply[A](ioa: IO[A]): A = ioa.unsafeRunSync()
-  }
 
   implicit val logger: Log[IO] = new Log[IO] {
     override def info(value: String): IO[Unit]     = IO(println(value))
