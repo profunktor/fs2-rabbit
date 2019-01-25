@@ -3,11 +3,11 @@ import sbt._
 object Dependencies {
 
   object Versions {
-    val catsEffect = "1.1.0"
+    val catsEffect = "1.2.0"
     val fs2        = "1.0.2"
     val circe      = "0.11.1"
-    val amqpClient = "5.5.2"
-    val logback    = "1.1.3"
+    val amqpClient = "5.6.0"
+    val logback    = "1.2.3"
     val monix      = "3.0.0-RC2-c84f485"
 
     val kindProjector    = "0.9.9"
