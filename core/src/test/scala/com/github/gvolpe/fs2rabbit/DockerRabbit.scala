@@ -73,24 +73,26 @@ object DockerRabbit {
         dockerImage
 
     val thread = new Thread(
-      () => {
-        removeCmd.!
-        val result = runCmd.!!.trim
+      new Runnable {
+        def run(): Unit = {
+          removeCmd.!
+          val result = runCmd.!!.trim
 
-        var observer: Option[Process] = None
+          var observer: Option[Process] = None
 
-        val onMessage: String => Unit = str => {
-          if (str.contains("Server startup complete")) {
-            observer.foreach(_.destroy())
-            dockerId.put(result)
+          val onMessage: String => Unit = str => {
+            if (str.contains("Server startup complete")) {
+              observer.foreach(_.destroy())
+              dockerId.put(result)
+            }
           }
+
+          val logger = ProcessLogger(onMessage, _ => ())
+
+          println(s"Awaiting Docker startup ($dockerImage @ 127.0.0.1:$port)")
+          val observeCmd = s"docker logs -f $result"
+          observer = Some(Process(observeCmd).run(logger))
         }
-
-        val logger = ProcessLogger(onMessage, _ => ())
-
-        println(s"Awaiting Docker startup ($dockerImage @ 127.0.0.1:$port)")
-        val observeCmd = s"docker logs -f $result"
-        observer = Some(Process(observeCmd).run(logger))
       },
       s"Docker $dockerImage startup observer"
     )
