@@ -67,9 +67,9 @@ class Fs2RabbitSpec extends FlatSpecLike with Matchers {
     )
 
   /**
- * Runtime Test Suite that makes sure the internal queues are connected when publishing and consuming in order to
- * simulate a running RabbitMQ server. It should run concurrently with every single test.
- * */
+    * Runtime Test Suite that makes sure the internal queues are connected when publishing and consuming in order to
+    * simulate a running RabbitMQ server. It should run concurrently with every single test.
+    * */
   def rabbitRTS(
       ref: Ref[IO, AMQPInternals[IO]],
       publishingQ: Queue[IO, Either[Throwable, AmqpEnvelope[Array[Byte]]]]
