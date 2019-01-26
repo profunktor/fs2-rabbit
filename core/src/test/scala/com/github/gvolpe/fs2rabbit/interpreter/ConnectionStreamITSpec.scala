@@ -19,14 +19,14 @@ package com.github.gvolpe.fs2rabbit.interpreter
 import cats.effect.IO
 import cats.syntax.functor._
 import com.github.gvolpe.fs2rabbit.model.AMQPChannel
-import com.github.gvolpe.fs2rabbit.{DockerRabbit, IOAssertion, Integration}
+import com.github.gvolpe.fs2rabbit.{DockerRabbit, IOAssertion}
 import org.scalatest.{Matchers, OptionValues, WordSpec}
 
 class ConnectionStreamITSpec extends WordSpec with Matchers with DockerRabbit with OptionValues {
 
   "ConnectionStream" should {
 
-    "create and close connection using cats.effect.Resource" taggedAs Integration in IOAssertion {
+    "create and close connection using cats.effect.Resource" in IOAssertion {
       def openAssertion(channel: AMQPChannel) =
         IO.delay {
           assert(channel.value.isOpen, "Channel should be open")
