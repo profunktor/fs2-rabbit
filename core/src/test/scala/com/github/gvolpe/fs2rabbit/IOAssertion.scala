@@ -21,6 +21,6 @@ import cats.syntax.functor._
 
 object IOAssertion {
 
-  def apply[A](flow: IO[A]): Unit = flow.void.unsafeRunSync()
+  def apply[A](ioa: IO[A]): Unit = ioa.void.unsafeRunSync()
 
 }
