@@ -31,7 +31,7 @@ class ResilientStreamSpec extends FlatSpecLike with Matchers {
 
   implicit val timer = IO.timer(ExecutionContext.global)
 
-  private val sink: Sink[IO, Int] = _.evalMap(n => IO(println(n)))
+  private val sink: Pipe[IO, Int, Unit] = _.evalMap(n => IO(println(n)))
 
   implicit val logger: Log[IO] = new Log[IO] {
     override def info(value: String): IO[Unit]     = IO(println(value))
@@ -39,12 +39,12 @@ class ResilientStreamSpec extends FlatSpecLike with Matchers {
   }
 
   it should "run a stream until it's finished" in IOAssertion {
-    val program = Stream(1, 2, 3).covary[IO] to sink
+    val program = Stream(1, 2, 3).covary[IO].through(sink)
     ResilientStream.run(program)
   }
 
   it should "run a stream and recover in case of failure" in IOAssertion {
-    val errorProgram = Stream.raiseError[IO](new Exception("on purpose")) to sink
+    val errorProgram = Stream.raiseError[IO](new Exception("on purpose")).through(sink)
 
     def p(ref: Ref[IO, Int]): Stream[IO, Unit] =
       errorProgram.handleErrorWith { t =>
