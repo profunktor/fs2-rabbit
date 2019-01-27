@@ -75,9 +75,9 @@ class AutoAckFlow[F[_]: Concurrent, A](
 
   val flow: Stream[F, Unit] =
     Stream(
-      Stream(simpleMessage).covary[F] evalMap publisher,
-      Stream(classMessage).covary[F] through jsonEncode[Person] evalMap publisher,
-      consumer through logger to (_.evalMap(putStrLn(_)))
+      Stream(simpleMessage).covary[F].evalMap(publisher),
+      Stream(classMessage).covary[F].through(jsonEncode[Person]).evalMap(publisher),
+      consumer.through(logger).through(_.evalMap(putStrLn(_)))
     ).parJoin(3)
 
 }

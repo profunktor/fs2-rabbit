@@ -53,10 +53,12 @@ class AckerConsumerDemo[F[_]: Concurrent: Timer](implicit R: Fs2Rabbit[F]) {
       _                 <- R.declareExchange(exchangeName, ExchangeType.Topic)
       _                 <- R.bindQueue(queueName, exchangeName, routingKey)
       (acker, consumer) <- R.createAckerConsumer[String](queueName)
-      publisher <- R.createPublisherWithListener[AmqpMessage[String]](exchangeName,
-                                                                      routingKey,
-                                                                      publishingFlag,
-                                                                      publishingListener)
+      publisher <- R.createPublisherWithListener[AmqpMessage[String]](
+                    exchangeName,
+                    routingKey,
+                    publishingFlag,
+                    publishingListener
+                  )
       result <- new Flow[F, String](consumer, acker, logPipe, publisher).flow
     } yield result
   }
