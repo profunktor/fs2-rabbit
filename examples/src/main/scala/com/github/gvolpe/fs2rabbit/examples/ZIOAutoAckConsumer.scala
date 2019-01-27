@@ -16,16 +16,18 @@
 
 package com.github.gvolpe.fs2rabbit.examples
 
-import cats.syntax.functor._
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
 import com.github.gvolpe.fs2rabbit.resiliency.ResilientStream
 
-import scalaz.zio.App
+import scalaz.zio.{App, Clock, IO}
 import scalaz.zio.interop.Task
 import scalaz.zio.interop.catz._
 
 object ZIOAutoAckConsumer extends App {
+
+  implicit val clock = Clock.Live
+  implicit val timer = ioTimer[Throwable]
 
   private val config: Fs2RabbitConfig = Fs2RabbitConfig(
     virtualHost = "/",
@@ -39,11 +41,13 @@ object ZIOAutoAckConsumer extends App {
     internalQueueSize = Some(500)
   )
 
-  override def run(args: List[String]): Task[ExitStatus] =
-    Fs2Rabbit[Task](config).flatMap { implicit fs2Rabbit =>
-      ResilientStream
-        .run(new AutoAckConsumerDemo[Task].program)
-        .as(ExitStatus.ExitNow(0))
-    }
+  override def run(args: List[String]): IO[Nothing, ExitStatus] =
+    Fs2Rabbit[Task](config)
+      .flatMap { implicit fs2Rabbit =>
+        ResilientStream
+          .run(new AutoAckConsumerDemo[Task].program)
+      }
+      .run
+      .map(_ => ExitStatus.ExitNow(1))
 
 }

@@ -101,7 +101,7 @@ val JsonDependencies: Seq[ModuleID] = Seq(
 
 val ExamplesDependencies: Seq[ModuleID] = Seq(
   Libraries.monix,
-  Libraries.zio,
+  Libraries.zioCore,
   Libraries.zioCats,
   Libraries.logback % "runtime"
 )
