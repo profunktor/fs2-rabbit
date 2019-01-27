@@ -58,7 +58,12 @@ class AMQPClientInMemory(
       requeue: Boolean
   ): IO[Unit] = {
     // Imitating the RabbitMQ behavior
-    val envelope = AmqpEnvelope(DeliveryTag(1), "requeued msg".getBytes(UTF_8), AmqpProperties.empty)
+    val envelope = AmqpEnvelope(DeliveryTag(1),
+                                "requeued msg".getBytes(UTF_8),
+                                AmqpProperties.empty,
+                                ExchangeName("test"),
+                                RoutingKey("test.route"),
+                                false)
     for {
       _ <- ackerQ.enqueue1(NAck(tag))
       _ <- if (config.requeueOnNack) publishingQ.enqueue1(Right(envelope))
@@ -114,7 +119,7 @@ class AMQPClientInMemory(
       routingKey: model.RoutingKey,
       msg: model.AmqpMessage[Array[Byte]]
   ): IO[Unit] = {
-    val envelope = AmqpEnvelope(DeliveryTag(1), msg.payload, msg.properties)
+    val envelope = AmqpEnvelope(DeliveryTag(1), msg.payload, msg.properties, exchangeName, routingKey, false)
     publishingQ.enqueue1(Right(envelope))
   }
 

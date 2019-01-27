@@ -155,7 +155,12 @@ object model {
     }
   }
 
-  case class AmqpEnvelope[A](deliveryTag: DeliveryTag, payload: A, properties: AmqpProperties)
+  case class AmqpEnvelope[A](deliveryTag: DeliveryTag,
+                             payload: A,
+                             properties: AmqpProperties,
+                             exchangeName: ExchangeName,
+                             routingKey: RoutingKey,
+                             redelivered: Boolean)
   case class AmqpMessage[A](payload: A, properties: AmqpProperties)
 
   object AmqpEnvelope {

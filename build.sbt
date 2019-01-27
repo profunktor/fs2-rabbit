@@ -44,14 +44,7 @@ lazy val commonScalacOptions = Seq(
 
 
 lazy val warnUnusedImport = Seq(
-  scalacOptions ++= {
-    CrossVersion.partialVersion(scalaVersion.value) match {
-      case Some((2, 10)) =>
-        Seq()
-      case Some((2, n)) if n >= 11 =>
-        Seq("-Ywarn-unused-import")
-    }
-  },
+  scalacOptions += "-Ywarn-unused-import",
   scalacOptions in (Compile, console) ~= { _.filterNot(Seq("-Xlint", "-Ywarn-unused-import").contains) },
   scalacOptions in (Test, console) := (scalacOptions in (Compile, console)).value
 )
