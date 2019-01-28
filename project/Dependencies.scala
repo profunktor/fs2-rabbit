@@ -43,8 +43,8 @@ object Dependencies {
     lazy val circeParser  = circe("circe-parser")
 
     // Scala test libraries
-    lazy val scalaTest  = "org.scalatest"  %% "scalatest"  % Versions.scalaTest  % "test"
-    lazy val scalaCheck = "org.scalacheck" %% "scalacheck" % Versions.scalaCheck % "test"
+    lazy val scalaTest  = "org.scalatest"  %% "scalatest"  % Versions.scalaTest
+    lazy val scalaCheck = "org.scalacheck" %% "scalacheck" % Versions.scalaCheck
   }
 
 }
