@@ -31,7 +31,7 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.util.Random
 
-class Fs2RabbitITSpec extends FlatSpec with Matchers with DockerRabbit with EitherValues {
+class Fs2RabbitSpec extends FlatSpec with Matchers with DockerRabbit with EitherValues {
 
   private implicit val timer: Timer[IO] = IO.timer(ExecutionContext.global)
 

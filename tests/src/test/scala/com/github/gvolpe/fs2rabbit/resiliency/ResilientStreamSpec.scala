@@ -16,7 +16,7 @@
 
 package com.github.gvolpe.fs2rabbit.resiliency
 
-import cats.effect.IO
+import cats.effect.{IO, Timer}
 import cats.effect.concurrent.Ref
 import cats.syntax.apply._
 import com.github.gvolpe.fs2rabbit.IOAssertion
@@ -29,7 +29,7 @@ import scala.concurrent.duration._
 
 class ResilientStreamSpec extends FlatSpecLike with Matchers {
 
-  implicit val timer = IO.timer(ExecutionContext.global)
+  private implicit val timer: Timer[IO] = IO.timer(ExecutionContext.global)
 
   private val sink: Pipe[IO, Int, Unit] = _.evalMap(n => IO(println(n)))
 
