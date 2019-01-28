@@ -18,11 +18,13 @@ package com.github.gvolpe.fs2rabbit.interpreter
 
 import cats.effect.IO
 import cats.syntax.functor._
+import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 import com.github.gvolpe.fs2rabbit.model.AMQPChannel
-import com.github.gvolpe.fs2rabbit.{DockerRabbit, IOAssertion}
-import org.scalatest.{FlatSpec, Matchers}
+import com.github.gvolpe.fs2rabbit.{BaseSpec, IOAssertion}
 
-class ConnectionStreamSpec extends FlatSpec with Matchers with DockerRabbit {
+trait ConnectionStreamSpec { self: BaseSpec =>
+
+  def config: Fs2RabbitConfig
 
   "ConnectionStream" should "create and close connection using bracket" in IOAssertion {
     def openAssertion(channel: AMQPChannel) =
@@ -32,7 +34,7 @@ class ConnectionStreamSpec extends FlatSpec with Matchers with DockerRabbit {
       }.void
 
     for {
-      rabbit     <- Fs2Rabbit[IO](rabbitConfig)
+      rabbit     <- Fs2Rabbit[IO](config)
       connection <- rabbit.createConnectionChannel.evalTap(openAssertion).compile.lastOrError
     } yield {
       assert(!connection.value.isOpen, "Channel should be closed")
