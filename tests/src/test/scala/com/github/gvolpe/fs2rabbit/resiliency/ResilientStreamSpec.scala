@@ -16,27 +16,17 @@
 
 package com.github.gvolpe.fs2rabbit.resiliency
 
-import cats.effect.{IO, Timer}
+import cats.effect.IO
 import cats.effect.concurrent.Ref
 import cats.syntax.apply._
-import com.github.gvolpe.fs2rabbit.IOAssertion
-import com.github.gvolpe.fs2rabbit.effects.Log
+import com.github.gvolpe.fs2rabbit.{BaseSpec, IOAssertion}
 import fs2._
-import org.scalatest.{FlatSpecLike, Matchers}
 
-import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
-class ResilientStreamSpec extends FlatSpecLike with Matchers {
+class ResilientStreamSpec extends BaseSpec {
 
-  private implicit val timer: Timer[IO] = IO.timer(ExecutionContext.global)
-
-  private val sink: Pipe[IO, Int, Unit] = _.evalMap(n => IO(println(n)))
-
-  implicit val logger: Log[IO] = new Log[IO] {
-    override def info(value: String): IO[Unit]     = IO(println(value))
-    override def error(error: Throwable): IO[Unit] = IO(println(error.getMessage))
-  }
+  private val sink: Pipe[IO, Int, Unit] = _.evalMap(putStrLn)
 
   it should "run a stream until it's finished" in IOAssertion {
     val program = Stream(1, 2, 3).covary[IO].through(sink)

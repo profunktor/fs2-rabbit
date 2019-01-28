@@ -14,11 +14,15 @@
  * limitations under the License.
  */
 
-package com.github.gvolpe.fs2rabbit
+package com.github.gvolpe.fs2rabbit.interpreter
 
-import cats.effect.IO
-import cats.syntax.functor._
+import cats.effect.{ContextShift, IO}
+import com.github.gvolpe.fs2rabbit.{BaseSpec, DockerRabbit}
+import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 
-object IOAssertion {
-  def apply[A](ioa: IO[A]): Unit = ioa.void.unsafeRunSync()
+import scala.concurrent.ExecutionContext
+
+class RabbitSuite extends BaseSpec with DockerRabbit with Fs2RabbitSpec with ConnectionStreamSpec {
+  override implicit val cs: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
+  override val config: Fs2RabbitConfig       = rabbitConfig
 }

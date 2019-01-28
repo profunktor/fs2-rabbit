@@ -38,7 +38,7 @@ trait DockerRabbit extends BeforeAndAfterAll { self: Suite =>
 
   private var dockerInstanceId: Option[String] = None
 
-  implicit val cts: ContextShift[IO] = IO.contextShift(ExecutionContext.Implicits.global)
+  implicit val cs: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
 
   override protected def beforeAll(): Unit = {
     super.beforeAll()
@@ -53,7 +53,7 @@ trait DockerRabbit extends BeforeAndAfterAll { self: Suite =>
     dockerInstanceId.foreach(stopDocker)
   }
 
-  protected lazy val rabbitConfig = Fs2RabbitConfig(
+  lazy val rabbitConfig = Fs2RabbitConfig(
     host = "localhost",
     port = rabbitPort,
     virtualHost = rabbitVirtualHost,
