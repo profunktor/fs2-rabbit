@@ -28,7 +28,7 @@ trait DockerRabbit extends BeforeAndAfterAll { self: Suite =>
   import DockerRabbit._
 
   // override this if the Docker container has to be started before invocation
-  // when developing tests, this likely shall be false, so there is no additional overhead starting Redis
+  // when developing tests, this likely shall be false, so there is no additional overhead starting Rabbit
   protected lazy val startContainers: Boolean = true
 
   protected lazy val rabbitPort: Int           = 15672
@@ -74,7 +74,7 @@ object DockerRabbit {
 
   /** asserts that docker is available on host os **/
   def assertDockerAvailable(): Unit = {
-    val r = Process("docker -v").!!
+    val r = "docker -v".!!
     println(s"Verifying docker is available: $r")
   }
 
@@ -107,7 +107,7 @@ object DockerRabbit {
 
           println(s"Awaiting Docker startup ($dockerImage @ 127.0.0.1:$port)")
           val observeCmd = s"docker logs -f $result"
-          observer = Some(Process(observeCmd).run(logger))
+          observer = Some(observeCmd.run(logger))
         }
       },
       s"Docker $dockerImage startup observer"

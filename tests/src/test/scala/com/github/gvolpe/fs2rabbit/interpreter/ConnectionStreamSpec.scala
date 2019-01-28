@@ -24,7 +24,7 @@ import org.scalatest.{FlatSpec, Matchers}
 
 class ConnectionStreamSpec extends FlatSpec with Matchers with DockerRabbit {
 
-  "ConnectionStream" should "create and close connection using cats.effect.Resource" in IOAssertion {
+  "ConnectionStream" should "create and close connection using bracket" in IOAssertion {
     def openAssertion(channel: AMQPChannel) =
       IO.delay {
         assert(channel.value.isOpen, "Channel should be open")
