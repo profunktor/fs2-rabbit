@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2019 Fs2 Rabbit
+ * Copyright 2017-2019 Gabriel Volpe
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,6 +48,6 @@ object ZIOAutoAckConsumer extends App {
           .run(new AutoAckConsumerDemo[Task].program)
       }
       .run
-      .map(_ => ExitStatus.ExitNow(1))
+      .map(_ => ExitStatus.ExitNow(0))
 
 }
