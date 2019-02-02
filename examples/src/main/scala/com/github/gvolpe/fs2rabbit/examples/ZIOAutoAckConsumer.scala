@@ -27,7 +27,6 @@ import scalaz.zio.interop.catz._
 object ZIOAutoAckConsumer extends App {
 
   implicit val clock = Clock.Live
-  implicit val timer = ioTimer[Throwable]
 
   private val config: Fs2RabbitConfig = Fs2RabbitConfig(
     virtualHost = "/",
