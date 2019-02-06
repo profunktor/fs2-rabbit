@@ -52,7 +52,7 @@ trait Fs2RabbitSpec { self: BaseSpec =>
 
     createConnectionChannel.flatMap { implicit channel =>
       for {
-        q         <- declareQueue
+        q <- declareQueue
       } yield {
         q.value should not be empty
       }
