@@ -112,6 +112,8 @@ object model {
       userId: Option[String] = None,
       appId: Option[String] = None,
       expiration: Option[String] = None,
+      replyTo: Option[String] = None,
+      clusterId: Option[String] = None,
       headers: Map[String, AmqpHeaderVal] = Map.empty
   )
 
@@ -130,6 +132,8 @@ object model {
         userId = Option(basicProps.getUserId),
         appId = Option(basicProps.getAppId),
         expiration = Option(basicProps.getExpiration),
+        replyTo = Option(basicProps.getReplyTo),
+        clusterId = Option(basicProps.getClusterId),
         headers = Option(basicProps.getHeaders)
           .fold(Map.empty[String, Object])(_.asScala.toMap)
           .map {
@@ -150,6 +154,8 @@ object model {
           .appId(props.appId.orNull)
           .userId(props.userId.orNull)
           .expiration(props.expiration.orNull)
+          .replyTo(props.replyTo.orNull)
+          .clusterId(props.clusterId.orNull)
           .headers(props.headers.mapValues[AnyRef](_.impure).asJava)
           .build()
     }
