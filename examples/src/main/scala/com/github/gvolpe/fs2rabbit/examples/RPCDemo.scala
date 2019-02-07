@@ -105,11 +105,8 @@ class RPCServer[F[_]: Sync](rpcQueue: QueueName)(implicit R: Fs2Rabbit[F], chann
     Kleisli[F, AmqpMessage[String], AmqpMessage[Array[Byte]]](s => s.copy(payload = s.payload.getBytes(UTF_8)).pure[F])
 
   def serve: Stream[F, Unit] =
-    for {
-      _        <- R.declareQueue(DeclarationQueueConfig.default(rpcQueue))
-      consumer <- R.createAutoAckConsumer(rpcQueue)
-      _        <- consumer.flatMap(handler)
-    } yield ()
+    R.declareQueue(DeclarationQueueConfig.default(rpcQueue)) >>
+      R.createAutoAckConsumer(rpcQueue).flatten.flatMap(handler).drain
 
   private def handler(e: AmqpEnvelope[String]): Stream[F, Unit] = {
     val correlationId = e.properties.correlationId
