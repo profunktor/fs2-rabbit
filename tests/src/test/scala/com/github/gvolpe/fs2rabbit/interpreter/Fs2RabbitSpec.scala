@@ -47,6 +47,18 @@ trait Fs2RabbitSpec { self: BaseSpec =>
     }
   }
 
+  it should "create a connection and a random queue" in withRabbit { interpreter =>
+    import interpreter._
+
+    createConnectionChannel.flatMap { implicit channel =>
+      for {
+        q <- declareQueue
+      } yield {
+        q.value should not be empty
+      }
+    }
+  }
+
   it should "create a connection and a queue with options enabled" in withRabbit { interpreter =>
     import interpreter._
 

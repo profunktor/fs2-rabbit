@@ -51,6 +51,7 @@ trait Declaration[F[_]] {
   def declareExchange(channel: Channel, exchangeConfig: DeclarationExchangeConfig): F[Unit]
   def declareExchangeNoWait(value: Channel, exchangeConfig: DeclarationExchangeConfig): F[Unit]
   def declareExchangePassive(channel: Channel, exchangeName: ExchangeName): F[Unit]
+  def declareQueue(channel: Channel): F[QueueName]
   def declareQueue(channel: Channel, queueConfig: DeclarationQueueConfig): F[Unit]
   def declareQueueNoWait(channel: Channel, queueConfig: DeclarationQueueConfig): F[Unit]
   def declareQueuePassive(channel: Channel, queueName: QueueName): F[Unit]

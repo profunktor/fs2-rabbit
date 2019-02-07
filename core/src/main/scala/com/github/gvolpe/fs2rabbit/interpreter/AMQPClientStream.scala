@@ -294,6 +294,10 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
     channel.exchangeDeclarePassive(exchangeName.value)
   }
 
+  override def declareQueue(channel: Channel): Stream[F, QueueName] = SE.evalF {
+    QueueName(channel.queueDeclare().getQueue)
+  }
+
   override def declareQueue(
       channel: Channel,
       config: DeclarationQueueConfig
