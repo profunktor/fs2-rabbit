@@ -2,22 +2,29 @@
 
 <p>The main <code class="highlighter-rouge">RabbitMQ</code> configuration should be defined as <code class="highlighter-rouge">Fs2RabbitConfig</code>. You choose how to get the information, either from an <code class="highlighter-rouge">application.conf</code> file, from the environment or provided by an external system. A popular option that fits well the tech stack is <a href="https://pureconfig.github.io/">Pure Config</a>.</p>
 
-<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="nn">com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig</span>
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="nn">cats.data.NonEmptyList</span>
+<span class="k">import</span> <span class="nn">com.github.gvolpe.fs2rabbit.config.</span><span class="o">{</span><span class="nc">Fs2RabbitConfig</span><span class="o">,</span> <span class="nc">Fs2RabbitNodeConfig</span><span class="o">}</span>
 
 <span class="k">val</span> <span class="n">config</span> <span class="k">=</span> <span class="nc">Fs2RabbitConfig</span><span class="o">(</span>
   <span class="n">virtualHost</span> <span class="k">=</span> <span class="s">"/"</span><span class="o">,</span>
-  <span class="n">host</span> <span class="k">=</span> <span class="s">"127.0.0.1"</span><span class="o">,</span>
+  <span class="n">nodes</span> <span class="k">=</span> <span class="nc">NonEmptyList</span><span class="o">.</span><span class="n">one</span><span class="o">(</span>
+    <span class="nc">Fs2RabbitNodeConfig</span><span class="o">(</span>
+      <span class="n">host</span> <span class="k">=</span> <span class="s">"127.0.0.1"</span><span class="o">,</span>
+      <span class="n">port</span> <span class="k">=</span> <span class="mi">5672</span>
+    <span class="o">)</span>
+  <span class="o">),</span>
   <span class="n">username</span> <span class="k">=</span> <span class="nc">Some</span><span class="o">(</span><span class="s">"guest"</span><span class="o">),</span>
   <span class="n">password</span> <span class="k">=</span> <span class="nc">Some</span><span class="o">(</span><span class="s">"guest"</span><span class="o">),</span>
-  <span class="n">port</span> <span class="k">=</span> <span class="mi">5672</span><span class="o">,</span>
   <span class="n">ssl</span> <span class="k">=</span> <span class="kc">false</span><span class="o">,</span>
   <span class="n">connectionTimeout</span> <span class="k">=</span> <span class="mi">3</span><span class="o">,</span>
   <span class="n">requeueOnNack</span> <span class="k">=</span> <span class="kc">false</span><span class="o">,</span>
-  <span class="n">internalQueueSize</span> <span class="k">=</span> <span class="nc">Some</span><span class="o">(</span><span class="mi">500</span><span class="o">)</span>
+  <span class="n">internalQueueSize</span> <span class="k">=</span> <span class="nc">Some</span><span class="o">(</span><span class="mi">500</span><span class="o">),</span>
+  <span class="n">automaticRecovery</span> <span class="k">=</span> <span class="kc">true</span>
 <span class="o">)</span>
 </code></pre></div></div>
 
-<p>The <code class="highlighter-rouge">internalQueueSize</code> indicates the size of the fs2’s bounded queue used internally to communicate with the AMQP Java driver.</p>
+<p>The <code class="highlighter-rouge">internalQueueSize</code> indicates the size of the fs2’s bounded queue used internally to communicate with the AMQP Java driver.
+The <code class="highlighter-rouge">automaticRecovery</code> indicates whether the AMQP Java driver should try to <a href="https://www.rabbitmq.com/api-guide.html#recovery">recover broken connections</a>.</p>
 </section></div></div></div></div><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script><script src="/fs2-rabbit/highlight/highlight.pack.js"></script><script>hljs.configure({languages:['scala','java','bash']});
 hljs.initHighlighting();
               </script><script>((window.gitter = {}).chat = {}).options = {
