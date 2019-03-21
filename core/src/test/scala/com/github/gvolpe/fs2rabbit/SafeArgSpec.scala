@@ -17,8 +17,8 @@
 package com.github.gvolpe.fs2rabbit
 
 import org.scalacheck.Gen
-import org.scalatest.prop.PropertyChecks
 import org.scalatest.{Assertion, FunSuite}
+import org.scalatestplus.scalacheck.{ScalaCheckPropertyChecks => PropertyChecks}
 
 class SafeArgSpec extends FunSuite with PropertyChecks {
 
