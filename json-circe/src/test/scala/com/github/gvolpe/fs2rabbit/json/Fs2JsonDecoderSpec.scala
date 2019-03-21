@@ -21,8 +21,8 @@ import cats.syntax.functor._
 import com.github.gvolpe.fs2rabbit.model.{AmqpEnvelope, AmqpProperties, DeliveryTag, ExchangeName, RoutingKey}
 import fs2._
 import io.circe._
-import org.scalatest.prop.PropertyChecks
 import org.scalatest.{FlatSpecLike, Matchers}
+import org.scalatestplus.scalacheck.{ScalaCheckPropertyChecks => PropertyChecks}
 
 import scala.concurrent.duration._
 

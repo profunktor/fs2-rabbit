@@ -22,7 +22,7 @@ import org.scalacheck._
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalatest.{FlatSpecLike, Matchers}
 import com.rabbitmq.client.AMQP
-import org.scalatest.prop.PropertyChecks
+import org.scalatestplus.scalacheck.{ScalaCheckPropertyChecks => PropertyChecks}
 
 class AmqpPropertiesSpec extends FlatSpecLike with Matchers with AmqpPropertiesArbitraries {
 
