@@ -11,7 +11,7 @@ object Dependencies {
     val monix      = "3.0.0-RC2"
     val zio        = "0.6.3"
 
-    val kindProjector    = "0.9.9"
+    val kindProjector    = "0.9.10"
     val betterMonadicFor = "0.3.0-M4"
 
     val scalaTest  = "3.0.7"
