@@ -18,7 +18,6 @@ package com.github.gvolpe.fs2rabbit.algebra
 
 import com.github.gvolpe.fs2rabbit.model.AMQPChannel
 
-// TODO: Find a better name - I've called it this to avoid clash with the rabbit class called Channel
 trait Channeller[F[_]] {
   def createChannel: F[AMQPChannel]
 }
