@@ -16,10 +16,8 @@
 
 package com.github.gvolpe.fs2rabbit.algebra
 
-import com.github.gvolpe.fs2rabbit.model.{AMQPChannel, AMQPConnection}
+import com.github.gvolpe.fs2rabbit.model.AMQPChannel
 
-trait Connection[F[_]] {
-  def createConnection: F[AMQPConnection]
-
-  def createConnectionChannel: F[AMQPChannel]
+trait Channeller[F[_]] {
+  def createChannel: F[AMQPChannel]
 }
