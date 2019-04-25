@@ -16,7 +16,6 @@
 
 package com.github.gvolpe.fs2rabbit.interpreter
 
-import javax.net.ssl.SSLContext
 import cats.effect.{Concurrent, ConcurrentEffect}
 import cats.syntax.functor._
 import com.github.gvolpe.fs2rabbit.algebra._
@@ -27,6 +26,7 @@ import com.github.gvolpe.fs2rabbit.effects.{EnvelopeDecoder, MessageEncoder}
 import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.program._
 import fs2.Stream
+import javax.net.ssl.SSLContext
 
 // $COVERAGE-OFF$
 object Fs2Rabbit {
@@ -59,6 +59,8 @@ class Fs2Rabbit[F[_]: Concurrent] private[fs2rabbit] (
 
   private[fs2rabbit] val publishingProgram: Publishing[Stream[F, ?], F] =
     new PublishingProgram[F](amqpClient)
+
+  def createConnection: Stream[F, AMQPConnection] = connectionStream.createConnection
 
   def createConnectionChannel: Stream[F, AMQPChannel] = connectionStream.createConnectionChannel
 

@@ -26,7 +26,7 @@ import com.github.gvolpe.fs2rabbit.arguments.Arguments
 import com.github.gvolpe.fs2rabbit.effects.{EnvelopeDecoder, MessageEncoder}
 import com.github.gvolpe.fs2rabbit.model.AmqpHeaderVal._
 import com.rabbitmq.client.impl.LongStringHelper
-import com.rabbitmq.client.{AMQP, Channel, LongString}
+import com.rabbitmq.client.{AMQP, Channel, Connection, LongString}
 import fs2.Stream
 
 import scala.collection.JavaConverters._
@@ -39,6 +39,11 @@ object model {
     def value: Channel
   }
   case class RabbitChannel(value: Channel) extends AMQPChannel
+
+  trait AMQPConnection {
+    def value: Connection
+  }
+  case class RabbitConnection(value: Connection) extends AMQPConnection
 
   case class ExchangeName(value: String) extends AnyVal
   case class QueueName(value: String)    extends AnyVal

@@ -16,7 +16,6 @@
 
 package com.github.gvolpe.fs2rabbit.interpreter
 
-import javax.net.ssl.SSLContext
 import cats.data.NonEmptyList
 import cats.effect.Sync
 import cats.syntax.apply._
@@ -24,10 +23,12 @@ import cats.syntax.flatMap._
 import cats.syntax.functor._
 import com.github.gvolpe.fs2rabbit.algebra.Connection
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
-import com.github.gvolpe.fs2rabbit.model.{AMQPChannel, RabbitChannel}
 import com.github.gvolpe.fs2rabbit.effects.Log
+import com.github.gvolpe.fs2rabbit.model.{AMQPChannel, AMQPConnection, RabbitChannel, RabbitConnection}
 import com.rabbitmq.client.{Address, ConnectionFactory, Connection => RabbitMQConnection}
 import fs2.Stream
+import javax.net.ssl.SSLContext
+
 import scala.collection.JavaConverters._
 
 class ConnectionStream[F[_]](
@@ -36,11 +37,24 @@ class ConnectionStream[F[_]](
 )(implicit F: Sync[F], L: Log[F])
     extends Connection[Stream[F, ?]] {
 
-  private[fs2rabbit] val acquireConnection: F[(RabbitMQConnection, AMQPChannel)] =
+  private[fs2rabbit] val acquireConnectionChannel: F[(RabbitMQConnection, AMQPChannel)] =
     for {
       conn    <- F.delay(factory.newConnection(addresses.toList.asJava))
       channel <- F.delay(conn.createChannel)
     } yield (conn, RabbitChannel(channel))
+
+  private[fs2rabbit] val acquireConnection: F[AMQPConnection] =
+    for {
+      conn <- F.delay(factory.newConnection(addresses.toList.asJava))
+    } yield RabbitConnection(conn)
+
+  override def createConnection: Stream[F, AMQPConnection] =
+    Stream
+      .bracket(acquireConnection) {
+        case RabbitConnection(conn) =>
+          L.info(s"Releasing connection: $conn previously acquired.") *>
+            F.delay { if (conn.isOpen) conn.close() }
+      }
 
   /**
     * Creates a connection and a channel in a safe way using Stream.bracket.
@@ -48,7 +62,7 @@ class ConnectionStream[F[_]](
     **/
   override def createConnectionChannel: Stream[F, AMQPChannel] =
     Stream
-      .bracket(acquireConnection) {
+      .bracket(acquireConnectionChannel) {
         case (conn, RabbitChannel(channel)) =>
           L.info(s"Releasing connection: $conn previously acquired.") *>
             F.delay { if (channel.isOpen) channel.close() } *> F.delay { if (conn.isOpen) conn.close() }
