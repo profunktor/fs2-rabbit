@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2019 Fs2 Rabbit
+ * Copyright 2017-2019 Gabriel Volpe
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,6 +51,7 @@ trait Declaration[F[_]] {
   def declareExchange(channel: Channel, exchangeConfig: DeclarationExchangeConfig): F[Unit]
   def declareExchangeNoWait(value: Channel, exchangeConfig: DeclarationExchangeConfig): F[Unit]
   def declareExchangePassive(channel: Channel, exchangeName: ExchangeName): F[Unit]
+  def declareQueue(channel: Channel): F[QueueName]
   def declareQueue(channel: Channel, queueConfig: DeclarationQueueConfig): F[Unit]
   def declareQueueNoWait(channel: Channel, queueConfig: DeclarationQueueConfig): F[Unit]
   def declareQueuePassive(channel: Channel, queueName: QueueName): F[Unit]

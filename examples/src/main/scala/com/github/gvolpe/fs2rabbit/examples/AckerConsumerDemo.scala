@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2019 Fs2 Rabbit
+ * Copyright 2017-2019 Gabriel Volpe
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,6 +34,7 @@ class AckerConsumerDemo[F[_]: Concurrent: Timer](implicit R: Fs2Rabbit[F]) {
   private val queueName    = QueueName("testQ")
   private val exchangeName = ExchangeName("testEX")
   private val routingKey   = RoutingKey("testRK")
+
   implicit val stringMessageEncoder =
     Kleisli[F, AmqpMessage[String], AmqpMessage[Array[Byte]]](s => s.copy(payload = s.payload.getBytes(UTF_8)).pure[F])
 
@@ -46,18 +47,20 @@ class AckerConsumerDemo[F[_]: Concurrent: Timer](implicit R: Fs2Rabbit[F]) {
   // Run when there's no consumer for the routing key specified by the publisher and the flag mandatory is true
   val publishingListener: PublishReturn => F[Unit] = pr => putStrLn(s"Publish listener: $pr")
 
-  val program: F[Unit] = R.createConnectionChannel use { implicit channel =>
+  val program: F[Unit] = R.createConnectionChannel.use { implicit channel =>
     for {
-      _ <- R.declareQueue(DeclarationQueueConfig.default(queueName))
-      _ <- R.declareExchange(exchangeName, ExchangeType.Topic)
-      _ <- R.bindQueue(queueName, exchangeName, routingKey)
-      publisher <- R.createPublisherWithListener[AmqpMessage[String]](exchangeName,
-                                                                      routingKey,
-                                                                      publishingFlag,
-                                                                      publishingListener)
+      _                 <- R.declareQueue(DeclarationQueueConfig.default(queueName))
+      _                 <- R.declareExchange(exchangeName, ExchangeType.Topic)
+      _                 <- R.bindQueue(queueName, exchangeName, routingKey)
       (acker, consumer) <- R.createAckerConsumer[String](queueName)
-      result            = new Flow[F, String](consumer, acker, logPipe, publisher).flow
-      _                 <- result.compile.drain
+      publisher <- R.createPublisherWithListener[AmqpMessage[String]](
+                    exchangeName,
+                    routingKey,
+                    publishingFlag,
+                    publishingListener
+                  )
+      result = new Flow[F, String](consumer, acker, logPipe, publisher).flow
+      _      <- result.compile.drain
     } yield ()
   }
 }

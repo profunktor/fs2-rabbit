@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2019 Fs2 Rabbit
+ * Copyright 2017-2019 Gabriel Volpe
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,10 @@
 
 package com.github.gvolpe.fs2rabbit.algebra
 
-import com.github.gvolpe.fs2rabbit.model.AMQPChannel
+import com.github.gvolpe.fs2rabbit.model.{AMQPChannel, AMQPConnection}
 
 trait Connection[F[_]] {
+  def createConnection: F[AMQPConnection]
+
   def createConnectionChannel: F[AMQPChannel]
 }

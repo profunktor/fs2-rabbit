@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2019 Fs2 Rabbit
+ * Copyright 2017-2019 Gabriel Volpe
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -305,6 +305,11 @@ class AmqpClientEffect[F[_]: Effect] extends AMQPClient[F] {
     Sync[F].delay {
       channel.exchangeDeclarePassive(exchangeName.value)
     }.void
+
+  override def declareQueue(channel: Channel): F[QueueName] =
+    Sync[F].delay {
+      QueueName(channel.queueDeclare().getQueue)
+    }
 
   override def declareQueue(
       channel: Channel,

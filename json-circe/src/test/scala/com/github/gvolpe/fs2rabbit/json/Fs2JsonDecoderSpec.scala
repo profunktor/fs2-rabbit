@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2019 Fs2 Rabbit
+ * Copyright 2017-2019 Gabriel Volpe
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,8 +19,8 @@ package com.github.gvolpe.fs2rabbit.json
 import cats.syntax.functor._
 import com.github.gvolpe.fs2rabbit.model.{AmqpEnvelope, AmqpProperties, DeliveryTag, ExchangeName, RoutingKey}
 import io.circe._
-import org.scalatest.prop.PropertyChecks
 import org.scalatest.{FlatSpecLike, Matchers}
+import org.scalatestplus.scalacheck.{ScalaCheckPropertyChecks => PropertyChecks}
 
 class Fs2JsonDecoderSpec extends Fs2JsonDecoderFixture with FlatSpecLike with Matchers {
 

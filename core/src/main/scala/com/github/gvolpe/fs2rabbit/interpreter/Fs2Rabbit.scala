@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2019 Fs2 Rabbit
+ * Copyright 2017-2019 Gabriel Volpe
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@
 
 package com.github.gvolpe.fs2rabbit.interpreter
 
-import javax.net.ssl.SSLContext
 import cats.effect.{Concurrent, ConcurrentEffect, Resource}
 import cats.syntax.functor._
 import com.github.gvolpe.fs2rabbit.algebra._
@@ -27,6 +26,7 @@ import com.github.gvolpe.fs2rabbit.effects.{EnvelopeDecoder, MessageEncoder}
 import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.program._
 import fs2.Stream
+import javax.net.ssl.SSLContext
 
 // $COVERAGE-OFF$
 object Fs2Rabbit {
@@ -61,6 +61,8 @@ class Fs2Rabbit[F[_]: Concurrent] private[fs2rabbit] (
     new PublishingProgram[F](amqpClient)
 
   def createConnectionChannel: Resource[F, AMQPChannel] = connection.createConnectionChannel
+
+  def createConnection: Resource[F, AMQPConnection] = connection.createConnection
 
   def createAckerConsumer[A](
       queueName: QueueName,
@@ -166,6 +168,9 @@ class Fs2Rabbit[F[_]: Concurrent] private[fs2rabbit] (
 
   def declareExchangePassive(exchangeName: ExchangeName)(implicit channel: AMQPChannel): F[Unit] =
     amqpClient.declareExchangePassive(channel.value, exchangeName)
+
+  def declareQueue(implicit channel: AMQPChannel): F[QueueName] =
+    amqpClient.declareQueue(channel.value)
 
   def declareQueue(queueConfig: DeclarationQueueConfig)(implicit channel: AMQPChannel): F[Unit] =
     amqpClient.declareQueue(channel.value, queueConfig)

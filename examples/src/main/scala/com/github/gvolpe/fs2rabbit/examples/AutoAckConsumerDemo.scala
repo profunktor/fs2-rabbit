@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2019 Fs2 Rabbit
+ * Copyright 2017-2019 Gabriel Volpe
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ package com.github.gvolpe.fs2rabbit.examples
 import java.nio.charset.StandardCharsets.UTF_8
 
 import cats.data.Kleisli
-import cats.effect.{Concurrent, Sync}
+import cats.effect.Concurrent
 import cats.implicits._
 import com.github.gvolpe.fs2rabbit.config.declaration.DeclarationQueueConfig
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
@@ -28,6 +28,7 @@ import com.github.gvolpe.fs2rabbit.model.AckResult.Ack
 import com.github.gvolpe.fs2rabbit.model.AmqpHeaderVal.{LongVal, StringVal}
 import com.github.gvolpe.fs2rabbit.model._
 import fs2.{Pipe, Pure, Stream}
+import io.circe.Encoder
 
 class AutoAckConsumerDemo[F[_]: Concurrent](implicit R: Fs2Rabbit[F]) {
 
@@ -67,10 +68,12 @@ class AutoAckFlow[F[_]: Concurrent, A](
   case class Address(number: Int, streetName: String)
   case class Person(id: Long, name: String, address: Address)
 
-  private val jsonEncoder = new Fs2JsonEncoder
-  import jsonEncoder.jsonEncode
+  private def jsonEncoder = new Fs2JsonEncoder
 
-  val jsonPipe: Pipe[Pure, AmqpMessage[Person], AmqpMessage[String]] = _.map(jsonEncode[Person])
+  def encoderPipe[T: Encoder]: Pipe[F, AmqpMessage[T], AmqpMessage[String]] =
+    _.map(jsonEncoder.jsonEncode[T])
+
+  val jsonPipe: Pipe[Pure, AmqpMessage[Person], AmqpMessage[String]] = _.map(jsonEncoder.jsonEncode[Person])
 
   val simpleMessage =
     AmqpMessage("Hey!", AmqpProperties(headers = Map("demoId" -> LongVal(123), "app" -> StringVal("fs2RabbitDemo"))))
@@ -78,9 +81,9 @@ class AutoAckFlow[F[_]: Concurrent, A](
 
   val flow: Stream[F, Unit] =
     Stream(
-      Stream(simpleMessage).covary[F] evalMap publisher,
-      Stream(classMessage).covary[F] through jsonPipe evalMap publisher,
-      consumer through logger evalMap (ack => Sync[F].delay(println(ack)))
+      Stream(simpleMessage).covary[F].evalMap(publisher),
+      Stream(classMessage).covary[F].through(encoderPipe[Person]).evalMap(publisher),
+      consumer.through(logger).through(_.evalMap(putStrLn(_)))
     ).parJoin(3)
 
 }

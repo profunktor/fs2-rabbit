@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2019 Fs2 Rabbit
+ * Copyright 2017-2019 Gabriel Volpe
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ import com.github.gvolpe.fs2rabbit.arguments.Arguments
 import com.github.gvolpe.fs2rabbit.effects.{EnvelopeDecoder, MessageEncoder}
 import com.github.gvolpe.fs2rabbit.model.AmqpHeaderVal._
 import com.rabbitmq.client.impl.LongStringHelper
-import com.rabbitmq.client.{AMQP, Channel, LongString}
+import com.rabbitmq.client.{AMQP, Channel, Connection, LongString}
 import fs2.Stream
 
 import scala.collection.JavaConverters._
@@ -39,6 +39,11 @@ object model {
     def value: Channel
   }
   case class RabbitChannel(value: Channel) extends AMQPChannel
+
+  trait AMQPConnection {
+    def value: Connection
+  }
+  case class RabbitConnection(value: Connection) extends AMQPConnection
 
   case class ExchangeName(value: String) extends AnyVal
   case class QueueName(value: String)    extends AnyVal
@@ -112,6 +117,8 @@ object model {
       userId: Option[String] = None,
       appId: Option[String] = None,
       expiration: Option[String] = None,
+      replyTo: Option[String] = None,
+      clusterId: Option[String] = None,
       headers: Map[String, AmqpHeaderVal] = Map.empty
   )
 
@@ -130,6 +137,8 @@ object model {
         userId = Option(basicProps.getUserId),
         appId = Option(basicProps.getAppId),
         expiration = Option(basicProps.getExpiration),
+        replyTo = Option(basicProps.getReplyTo),
+        clusterId = Option(basicProps.getClusterId),
         headers = Option(basicProps.getHeaders)
           .fold(Map.empty[String, Object])(_.asScala.toMap)
           .map {
@@ -150,6 +159,8 @@ object model {
           .appId(props.appId.orNull)
           .userId(props.userId.orNull)
           .expiration(props.expiration.orNull)
+          .replyTo(props.replyTo.orNull)
+          .clusterId(props.clusterId.orNull)
           .headers(props.headers.mapValues[AnyRef](_.impure).asJava)
           .build()
     }

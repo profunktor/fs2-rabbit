@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2019 Fs2 Rabbit
+ * Copyright 2017-2019 Gabriel Volpe
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,11 +22,11 @@ import org.scalacheck._
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalatest.{FlatSpecLike, Matchers}
 import com.rabbitmq.client.AMQP
-import org.scalatest.prop.PropertyChecks
+import org.scalatestplus.scalacheck.{ScalaCheckPropertyChecks => PropertyChecks}
 
 class AmqpPropertiesSpec extends FlatSpecLike with Matchers with AmqpPropertiesArbitraries {
 
-  forAll { (amqpProperties: AmqpProperties) =>
+  forAll { amqpProperties: AmqpProperties =>
     it should s"convert from and to Java AMQP.BasicProperties for $amqpProperties" in {
       val basicProps = amqpProperties.asBasicProps
       AmqpProperties.from(basicProps) should be(amqpProperties)
@@ -35,7 +35,19 @@ class AmqpPropertiesSpec extends FlatSpecLike with Matchers with AmqpPropertiesA
 
   it should "create an empty amqp properties" in {
     AmqpProperties.empty should be(
-      AmqpProperties(None, None, None, None, None, None, None, None, None, None, Map.empty[String, AmqpHeaderVal]))
+      AmqpProperties(None,
+                     None,
+                     None,
+                     None,
+                     None,
+                     None,
+                     None,
+                     None,
+                     None,
+                     None,
+                     None,
+                     None,
+                     Map.empty[String, AmqpHeaderVal]))
   }
 
   it should "handle null values in Java AMQP.BasicProperties" in {
@@ -80,19 +92,25 @@ trait AmqpPropertiesArbitraries extends PropertyChecks {
       userId          <- Gen.option(Gen.alphaNumStr)
       appId           <- Gen.option(Gen.alphaNumStr)
       expiration      <- Gen.option(Gen.alphaNumStr)
+      replyTo         <- Gen.option(Gen.alphaNumStr)
+      clusterId       <- Gen.option(Gen.alphaNumStr)
       headers         <- Gen.mapOf[String, AmqpHeaderVal](headersGen)
     } yield
-      AmqpProperties(contentType,
-                     contentEncoding,
-                     priority,
-                     deliveryMode.map(DeliveryMode.from),
-                     correlationId,
-                     messageId,
-                     messageType,
-                     userId,
-                     appId,
-                     expiration,
-                     headers)
+      AmqpProperties(
+        contentType,
+        contentEncoding,
+        priority,
+        deliveryMode.map(DeliveryMode.from),
+        correlationId,
+        messageId,
+        messageType,
+        userId,
+        appId,
+        expiration,
+        replyTo,
+        clusterId,
+        headers
+      )
   }
 
 }
