@@ -246,12 +246,12 @@ trait Fs2RabbitSpec { self: BaseSpec =>
         _          <- declareQueue(DeclarationQueueConfig.default(q))
         _          <- bindQueue(q, x, rk)
         publisher  <- createPublisher[String](x, rk)
+        _          <- publisher("test")
         _ <- createAutoAckConsumer(q)
-              .evalTap(_ => publisher("test"))
+              .take(1)
               .evalMap { msg =>
                 IO(msg shouldBe expectedDelivery(msg.deliveryTag, x, rk, "test"))
               }
-              .take(1)
               .compile
               .drain
       } yield emptyAssertion
@@ -270,12 +270,12 @@ trait Fs2RabbitSpec { self: BaseSpec =>
         _            <- bindQueue(q, x, rk)
         publisher    <- createPublisher[String](x, rk)
         consumerArgs = ConsumerArgs(consumerTag = ct, noLocal = false, exclusive = true, args = Map.empty)
+        _            <- publisher("test")
         _ <- createAutoAckConsumer(q, BasicQos(prefetchSize = 0, prefetchCount = 10), Some(consumerArgs))
-              .evalTap(_ => publisher("test"))
+              .take(1)
               .evalMap { msg =>
                 IO(msg shouldBe expectedDelivery(msg.deliveryTag, x, rk, "test"))
               }
-              .take(1)
               .compile
               .drain
       } yield emptyAssertion
@@ -333,16 +333,16 @@ trait Fs2RabbitSpec { self: BaseSpec =>
         _         <- declareQueue(DeclarationQueueConfig.default(q))
         _         <- deleteQueue(DeletionQueueConfig.default(q))
         _         <- deleteQueueNoWait(DeletionQueueConfig.default(q))
-        consumer <- createAutoAckConsumer(q).attempt
-                     .take(1)
-                     .evalMap { either =>
-                       IO {
-                         either shouldBe a[Left[_, _]]
-                         either.left.value shouldBe a[java.io.IOException]
-                       }
-                     }
-                     .compile
-                     .drain
+        _ <- createAutoAckConsumer(q).attempt
+              .take(1)
+              .evalMap { either =>
+                IO {
+                  either shouldBe a[Left[_, _]]
+                  either.left.value shouldBe a[java.io.IOException]
+                }
+              }
+              .compile
+              .drain
       } yield emptyAssertion
     }
   }
@@ -474,15 +474,18 @@ trait Fs2RabbitSpec { self: BaseSpec =>
           _          <- bindQueue(q, x, rk)
           _          <- declareQueue(DeclarationQueueConfig.default(diffQ))
           _          <- bindQueue(q, x, RoutingKey("diffRK"))
+          _          <- publisher("test")
           _ <- createAutoAckConsumer(q)
+                .take(1)
                 .evalMap { msg =>
-                  IO(msg shouldBe expectedDelivery(msg.deliveryTag, x, rk, "test")) *>
-                    publisher("test") *>
-                    createAutoAckConsumer(diffQ).compile.last
-                      .timeout(1.second)
-                      .attempt
-                      .map(_ shouldBe a[Left[_, _]])
-                      .as(msg shouldBe expectedDelivery(msg.deliveryTag, x, rk, "test"))
+                  createAutoAckConsumer(diffQ)
+                    .take(1)
+                    .compile
+                    .last
+                    .timeout(1.second)
+                    .attempt
+                    .map(_ shouldBe a[Left[_, _]])
+                    .as(msg shouldBe expectedDelivery(msg.deliveryTag, x, rk, "test"))
                 }
                 .compile
                 .drain
@@ -526,11 +529,11 @@ trait Fs2RabbitSpec { self: BaseSpec =>
           _          <- declareQueue(DeclarationQueueConfig.default(q))
           _          <- bindQueue(q, x, rk)
           publisher  <- createRoutingPublisher[String](x)
+          _          <- publisher(rk).apply("test")
           _ <- createAutoAckConsumer(q)
                 .take(1)
                 .evalMap { msg =>
-                  publisher(rk).apply("test") *>
-                    IO(msg shouldBe expectedDelivery(msg.deliveryTag, x, rk, "test"))
+                  IO(msg shouldBe expectedDelivery(msg.deliveryTag, x, rk, "test"))
                 }
                 .compile
                 .drain
@@ -574,7 +577,7 @@ trait Fs2RabbitSpec { self: BaseSpec =>
           _   <- declareQueue(DeclarationQueueConfig.default(q))
           _   <- declareExchange(x, ExchangeType.Topic)
           _   <- bindQueue(q, x, rk)
-          msg <- createAutoAckConsumer[String](q).compile.last
+          msg <- createAutoAckConsumer[String](q).take(1).compile.last
         } yield msg
       }
 
