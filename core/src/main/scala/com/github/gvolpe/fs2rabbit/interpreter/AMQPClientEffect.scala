@@ -27,12 +27,10 @@ import com.github.gvolpe.fs2rabbit.config.declaration.{DeclarationExchangeConfig
 import com.github.gvolpe.fs2rabbit.config.deletion
 import com.github.gvolpe.fs2rabbit.config.deletion.DeletionQueueConfig
 import com.github.gvolpe.fs2rabbit.effects.BoolValue.syntax._
-import com.github.gvolpe.fs2rabbit.effects.StreamEval
 import com.github.gvolpe.fs2rabbit.model._
 import com.rabbitmq.client._
-import fs2.Stream
 
-class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPClient[Stream[F, ?], F] {
+class AmqpClientEffect[F[_]: Effect] extends AMQPClient[F] {
 
   private[fs2rabbit] def defaultConsumer[A](
       channel: Channel,
@@ -91,9 +89,10 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
   override def basicQos(
       channel: Channel,
       basicQos: BasicQos
-  ): Stream[F, Unit] = SE.evalDiscard {
-    channel.basicQos(basicQos.prefetchSize, basicQos.prefetchCount, basicQos.global)
-  }
+  ): F[Unit] =
+    Sync[F].delay {
+      channel.basicQos(basicQos.prefetchSize, basicQos.prefetchCount, basicQos.global)
+    }.void
 
   override def basicConsume[A](
       channel: Channel,
@@ -114,9 +113,10 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
   override def basicCancel(
       channel: Channel,
       consumerTag: ConsumerTag
-  ): F[Unit] = Sync[F].delay {
-    channel.basicCancel(consumerTag.value)
-  }
+  ): F[Unit] =
+    Sync[F].delay {
+      channel.basicCancel(consumerTag.value)
+    }
 
   override def basicPublish(
       channel: Channel,
@@ -151,54 +151,57 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
   override def addPublishingListener(
       channel: Channel,
       listener: PublishReturn => F[Unit]
-  ): Stream[F, Unit] = SE.evalDiscard {
-    val returnListener = new ReturnListener {
-      override def handleReturn(
-          replyCode: Int,
-          replyText: String,
-          exchange: String,
-          routingKey: String,
-          properties: AMQP.BasicProperties,
-          body: Array[Byte]
-      ): Unit = {
-        val publishReturn =
-          PublishReturn(
-            ReplyCode(replyCode),
-            ReplyText(replyText),
-            ExchangeName(exchange),
-            RoutingKey(routingKey),
-            AmqpProperties.from(properties),
-            AmqpBody(body)
-          )
+  ): F[Unit] =
+    Sync[F].delay {
+      val returnListener = new ReturnListener {
+        override def handleReturn(
+            replyCode: Int,
+            replyText: String,
+            exchange: String,
+            routingKey: String,
+            properties: AMQP.BasicProperties,
+            body: Array[Byte]
+        ): Unit = {
+          val publishReturn =
+            PublishReturn(
+              ReplyCode(replyCode),
+              ReplyText(replyText),
+              ExchangeName(exchange),
+              RoutingKey(routingKey),
+              AmqpProperties.from(properties),
+              AmqpBody(body)
+            )
 
-        listener(publishReturn).toIO.unsafeRunAsync(_ => ())
+          listener(publishReturn).toIO.unsafeRunAsync(_ => ())
+        }
       }
-    }
 
-    channel.addReturnListener(returnListener)
-  }
+      channel.addReturnListener(returnListener)
+    }.void
 
-  override def clearPublishingListeners(channel: Channel): Stream[F, Unit] = SE.evalDiscard {
-    channel.clearReturnListeners()
-  }
+  override def clearPublishingListeners(channel: Channel): F[Unit] =
+    Sync[F].delay {
+      channel.clearReturnListeners()
+    }.void
 
   override def bindQueue(
       channel: Channel,
       queueName: QueueName,
       exchangeName: ExchangeName,
       routingKey: RoutingKey
-  ): Stream[F, Unit] = SE.evalDiscard {
-    channel.queueBind(queueName.value, exchangeName.value, routingKey.value)
-  }
+  ): F[Unit] =
+    Sync[F].delay {
+      channel.queueBind(queueName.value, exchangeName.value, routingKey.value)
+    }.void
 
   override def bindQueue(channel: Channel,
                          queueName: QueueName,
                          exchangeName: ExchangeName,
                          routingKey: RoutingKey,
-                         args: QueueBindingArgs): Stream[F, Unit] =
-    SE.evalDiscard {
+                         args: QueueBindingArgs): F[Unit] =
+    Sync[F].delay {
       channel.queueBind(queueName.value, exchangeName.value, routingKey.value, args.value)
-    }
+    }.void
 
   override def bindQueueNoWait(
       channel: Channel,
@@ -206,18 +209,20 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
       exchangeName: ExchangeName,
       routingKey: RoutingKey,
       args: QueueBindingArgs
-  ): Stream[F, Unit] = SE.evalDiscard {
-    channel.queueBindNoWait(queueName.value, exchangeName.value, routingKey.value, args.value)
-  }
+  ): F[Unit] =
+    Sync[F].delay {
+      channel.queueBindNoWait(queueName.value, exchangeName.value, routingKey.value, args.value)
+    }.void
 
   override def unbindQueue(
       channel: Channel,
       queueName: QueueName,
       exchangeName: ExchangeName,
       routingKey: RoutingKey
-  ): Stream[F, Unit] = SE.evalDiscard {
-    unbindQueue(channel, queueName, exchangeName, routingKey, QueueUnbindArgs(Map.empty))
-  }
+  ): F[Unit] =
+    Sync[F].delay {
+      unbindQueue(channel, queueName, exchangeName, routingKey, QueueUnbindArgs(Map.empty))
+    }.void
 
   override def unbindQueue(
       channel: Channel,
@@ -225,9 +230,10 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
       exchangeName: ExchangeName,
       routingKey: RoutingKey,
       args: QueueUnbindArgs
-  ): Stream[F, Unit] = SE.evalDiscard {
-    channel.queueUnbind(queueName.value, exchangeName.value, routingKey.value, args.value)
-  }
+  ): F[Unit] =
+    Sync[F].delay {
+      channel.queueUnbind(queueName.value, exchangeName.value, routingKey.value, args.value)
+    }.void
 
   override def bindExchange(
       channel: Channel,
@@ -235,9 +241,10 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
       source: ExchangeName,
       routingKey: RoutingKey,
       args: ExchangeBindingArgs
-  ): Stream[F, Unit] = SE.evalDiscard {
-    channel.exchangeBind(destination.value, source.value, routingKey.value, args.value)
-  }
+  ): F[Unit] =
+    Sync[F].delay {
+      channel.exchangeBind(destination.value, source.value, routingKey.value, args.value)
+    }.void
 
   override def bindExchangeNoWait(
       channel: Channel,
@@ -245,9 +252,10 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
       source: ExchangeName,
       routingKey: RoutingKey,
       args: ExchangeBindingArgs
-  ): Stream[F, Unit] = SE.evalDiscard {
-    channel.exchangeBindNoWait(destination.value, source.value, routingKey.value, args.value)
-  }
+  ): F[Unit] =
+    Sync[F].delay {
+      channel.exchangeBindNoWait(destination.value, source.value, routingKey.value, args.value)
+    }.void
 
   override def unbindExchange(
       channel: Channel,
@@ -255,108 +263,120 @@ class AMQPClientStream[F[_]: Effect](implicit SE: StreamEval[F]) extends AMQPCli
       source: ExchangeName,
       routingKey: RoutingKey,
       args: ExchangeUnbindArgs
-  ): Stream[F, Unit] = SE.evalDiscard {
-    channel.exchangeUnbind(destination.value, source.value, routingKey.value, args.value)
-  }
+  ): F[Unit] =
+    Sync[F].delay {
+      channel.exchangeUnbind(destination.value, source.value, routingKey.value, args.value)
+    }.void
 
   override def declareExchange(
       channel: Channel,
       config: DeclarationExchangeConfig
-  ): Stream[F, Unit] = SE.evalDiscard {
-    channel.exchangeDeclare(
-      config.exchangeName.value,
-      config.exchangeType.toString.toLowerCase,
-      config.durable.isTrue,
-      config.autoDelete.isTrue,
-      config.internal.isTrue,
-      config.arguments
-    )
-  }
+  ): F[Unit] =
+    Sync[F].delay {
+      channel.exchangeDeclare(
+        config.exchangeName.value,
+        config.exchangeType.toString.toLowerCase,
+        config.durable.isTrue,
+        config.autoDelete.isTrue,
+        config.internal.isTrue,
+        config.arguments
+      )
+    }.void
 
   override def declareExchangeNoWait(
       channel: Channel,
       config: DeclarationExchangeConfig
-  ): Stream[F, Unit] = SE.evalDiscard {
-    channel.exchangeDeclareNoWait(
-      config.exchangeName.value,
-      config.exchangeType.toString.toLowerCase,
-      config.durable.isTrue,
-      config.autoDelete.isTrue,
-      config.internal.isTrue,
-      config.arguments
-    )
-  }
+  ): F[Unit] =
+    Sync[F].delay {
+      channel.exchangeDeclareNoWait(
+        config.exchangeName.value,
+        config.exchangeType.toString.toLowerCase,
+        config.durable.isTrue,
+        config.autoDelete.isTrue,
+        config.internal.isTrue,
+        config.arguments
+      )
+    }.void
 
   override def declareExchangePassive(
       channel: Channel,
       exchangeName: ExchangeName
-  ): Stream[F, Unit] = SE.evalDiscard {
-    channel.exchangeDeclarePassive(exchangeName.value)
-  }
+  ): F[Unit] =
+    Sync[F].delay {
+      channel.exchangeDeclarePassive(exchangeName.value)
+    }.void
 
-  override def declareQueue(channel: Channel): Stream[F, QueueName] = SE.evalF {
-    QueueName(channel.queueDeclare().getQueue)
-  }
+  override def declareQueue(channel: Channel): F[QueueName] =
+    Sync[F].delay {
+      QueueName(channel.queueDeclare().getQueue)
+    }
 
   override def declareQueue(
       channel: Channel,
       config: DeclarationQueueConfig
-  ): Stream[F, Unit] = SE.evalDiscard {
-    channel.queueDeclare(
-      config.queueName.value,
-      config.durable.isTrue,
-      config.exclusive.isTrue,
-      config.autoDelete.isTrue,
-      config.arguments
-    )
-  }
+  ): F[Unit] =
+    Sync[F].delay {
+      channel.queueDeclare(
+        config.queueName.value,
+        config.durable.isTrue,
+        config.exclusive.isTrue,
+        config.autoDelete.isTrue,
+        config.arguments
+      )
+    }.void
 
   override def declareQueueNoWait(
       channel: Channel,
       config: DeclarationQueueConfig
-  ): Stream[F, Unit] = SE.evalDiscard {
-    channel.queueDeclareNoWait(
-      config.queueName.value,
-      config.durable.isTrue,
-      config.exclusive.isTrue,
-      config.autoDelete.isTrue,
-      config.arguments
-    )
-  }
+  ): F[Unit] =
+    Sync[F].delay {
+      channel.queueDeclareNoWait(
+        config.queueName.value,
+        config.durable.isTrue,
+        config.exclusive.isTrue,
+        config.autoDelete.isTrue,
+        config.arguments
+      )
+    }.void
 
   override def declareQueuePassive(
       channel: Channel,
       queueName: QueueName
-  ): Stream[F, Unit] = SE.evalDiscard {
-    channel.queueDeclarePassive(queueName.value)
-  }
+  ): F[Unit] =
+    Sync[F].delay {
+      channel.queueDeclarePassive(queueName.value)
+    }.void
 
   override def deleteQueue(
       channel: Channel,
       config: DeletionQueueConfig
-  ): Stream[F, Unit] = SE.evalDiscard {
-    channel.queueDelete(config.queueName.value, config.ifUnused.isTrue, config.ifEmpty.isTrue)
-  }
+  ): F[Unit] =
+    Sync[F].delay {
+      channel.queueDelete(config.queueName.value, config.ifUnused.isTrue, config.ifEmpty.isTrue)
+    }.void
 
   override def deleteQueueNoWait(
       channel: Channel,
       config: DeletionQueueConfig
-  ): Stream[F, Unit] = SE.evalDiscard {
-    channel.queueDeleteNoWait(config.queueName.value, config.ifUnused.isTrue, config.ifEmpty.isTrue)
-  }
+  ): F[Unit] =
+    Sync[F].delay {
+      channel.queueDeleteNoWait(config.queueName.value, config.ifUnused.isTrue, config.ifEmpty.isTrue)
+    }.void
 
   override def deleteExchange(
       channel: Channel,
       config: deletion.DeletionExchangeConfig
-  ): Stream[F, Unit] = SE.evalDiscard {
-    channel.exchangeDelete(config.exchangeName.value, config.ifUnused.isTrue)
-  }
+  ): F[Unit] =
+    Sync[F].delay {
+      channel.exchangeDelete(config.exchangeName.value, config.ifUnused.isTrue)
+    }.void
 
   override def deleteExchangeNoWait(
       channel: Channel,
       config: deletion.DeletionExchangeConfig
-  ): Stream[F, Unit] = SE.evalDiscard {
-    channel.exchangeDeleteNoWait(config.exchangeName.value, config.ifUnused.isTrue)
-  }
+  ): F[Unit] =
+    Sync[F].delay {
+      channel.exchangeDeleteNoWait(config.exchangeName.value, config.ifUnused.isTrue)
+    }.void
 
 }

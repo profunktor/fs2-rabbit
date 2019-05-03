@@ -16,10 +16,8 @@
 
 package com.github.gvolpe.fs2rabbit.program
 
-import cats.MonadError
-import cats.syntax.flatMap._
-import cats.syntax.functor._
-import cats.syntax.monadError._
+import cats.effect.Bracket
+import cats.implicits._
 import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, AMQPInternals, Consuming, InternalQueue}
 import com.github.gvolpe.fs2rabbit.arguments.Arguments
 import com.github.gvolpe.fs2rabbit.effects.EnvelopeDecoder
@@ -27,8 +25,8 @@ import com.github.gvolpe.fs2rabbit.model._
 import com.rabbitmq.client.Channel
 import fs2.Stream
 
-class ConsumingProgram[F[_]: MonadError[?[_], Throwable]](AMQP: AMQPClient[Stream[F, ?], F], IQ: InternalQueue[F])
-    extends Consuming[Stream[F, ?], F] {
+class ConsumingProgram[F[_]: Bracket[?[_], Throwable]](AMQP: AMQPClient[F], IQ: InternalQueue[F])
+    extends Consuming[F, Stream[F, ?]] {
 
   override def createConsumer[A](
       queueName: QueueName,
@@ -39,14 +37,26 @@ class ConsumingProgram[F[_]: MonadError[?[_], Throwable]](AMQP: AMQPClient[Strea
       exclusive: Boolean = false,
       consumerTag: ConsumerTag = ConsumerTag(""),
       args: Arguments = Map.empty
-  )(implicit decoder: EnvelopeDecoder[F, A]): Stream[F, AmqpEnvelope[A]] =
-    for {
-      internalQ <- Stream.eval(IQ.create)
-      internals = AMQPInternals[F](Some(internalQ))
-      _         <- AMQP.basicQos(channel, basicQos)
-      consumeF  = AMQP.basicConsume(channel, queueName, autoAck, consumerTag, noLocal, exclusive, args)(internals)
-      _         <- Stream.bracket(consumeF)(tag => AMQP.basicCancel(channel, tag))
-      consumer <- Stream.repeatEval(
-                   internalQ.dequeue1.rethrow.flatMap(env => decoder(env).map(a => env.copy(payload = a))))
-    } yield consumer
+  )(implicit decoder: EnvelopeDecoder[F, A]): F[Stream[F, AmqpEnvelope[A]]] = {
+
+    val setup = for {
+      internalQ   <- IQ.create
+      internals   = AMQPInternals[F](Some(internalQ))
+      _           <- AMQP.basicQos(channel, basicQos)
+      consumerTag <- AMQP.basicConsume(channel, queueName, autoAck, consumerTag, noLocal, exclusive, args)(internals)
+    } yield (consumerTag, internalQ)
+
+    Stream
+      .bracket(setup) {
+        case (tag, _) =>
+          AMQP.basicCancel(channel, tag)
+      }
+      .flatMap {
+        case (tag, queue) =>
+          Stream.repeatEval(
+            queue.dequeue1.rethrow.flatMap(env => decoder(env).map(a => env.copy(payload = a)))
+          )
+      }
+      .pure[F]
+  }
 }

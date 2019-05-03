@@ -21,8 +21,7 @@ import java.util.UUID
 
 import cats.data.{Kleisli, NonEmptyList}
 import cats.effect._
-import cats.syntax.applicative._
-import cats.syntax.functor._
+import cats.implicits._
 import com.github.gvolpe.fs2rabbit.config.declaration.DeclarationQueueConfig
 import com.github.gvolpe.fs2rabbit.config.{Fs2RabbitConfig, Fs2RabbitNodeConfig}
 import com.github.gvolpe.fs2rabbit.effects.MessageEncoder
@@ -55,13 +54,13 @@ object RPCDemo extends IOApp {
       runServer[IO](queue).concurrently(runClient[IO](queue)).compile.drain.as(ExitCode.Success)
     }
 
-  def runServer[F[_]: Sync](rpcQueue: QueueName)(implicit R: Fs2Rabbit[F]): Stream[F, Unit] =
-    R.createConnectionChannel.flatMap { implicit channel =>
+  def runServer[F[_]: Sync: LiftIO](rpcQueue: QueueName)(implicit R: Fs2Rabbit[F]): Stream[F, Unit] =
+    Stream.resource(R.createConnectionChannel).flatMap { implicit channel =>
       new RPCServer[F](rpcQueue).serve
     }
 
   def runClient[F[_]: Concurrent](rpcQueue: QueueName)(implicit R: Fs2Rabbit[F]): Stream[F, Unit] =
-    R.createConnectionChannel.flatMap { implicit channel =>
+    Stream.resource(R.createConnectionChannel).flatMap { implicit channel =>
       val client = new RPCClient[F](rpcQueue)
 
       Stream(
@@ -84,12 +83,12 @@ class RPCClient[F[_]: Sync](rpcQueue: QueueName)(implicit R: Fs2Rabbit[F], chann
     val correlationId = UUID.randomUUID().toString
 
     for {
-      queue     <- R.declareQueue
-      publisher <- R.createPublisher[AmqpMessage[String]](EmptyExchange, RoutingKey(rpcQueue.value))
+      queue     <- Stream.eval(R.declareQueue)
+      publisher <- Stream.eval(R.createPublisher[AmqpMessage[String]](EmptyExchange, RoutingKey(rpcQueue.value)))
       _         <- Stream.eval(putStrLn(s"[Client] Message $body. ReplyTo queue $queue. Correlation $correlationId"))
       message   = AmqpMessage(body, AmqpProperties(replyTo = Some(queue.value), correlationId = Some(correlationId)))
       _         <- Stream.eval(publisher(message))
-      consumer  <- R.createAutoAckConsumer(queue)
+      consumer  <- Stream.eval(R.createAutoAckConsumer(queue))
       response  <- consumer.filter(_.properties.correlationId.contains(correlationId)).take(1)
       _         <- Stream.eval(putStrLn(s"[Client] Request $body. Received response [${response.payload}]"))
     } yield response
@@ -97,7 +96,7 @@ class RPCClient[F[_]: Sync](rpcQueue: QueueName)(implicit R: Fs2Rabbit[F], chann
 
 }
 
-class RPCServer[F[_]: Sync](rpcQueue: QueueName)(implicit R: Fs2Rabbit[F], channel: AMQPChannel) {
+class RPCServer[F[_]: Sync: LiftIO](rpcQueue: QueueName)(implicit R: Fs2Rabbit[F], channel: AMQPChannel) {
 
   private val EmptyExchange = ExchangeName("")
 
@@ -105,19 +104,23 @@ class RPCServer[F[_]: Sync](rpcQueue: QueueName)(implicit R: Fs2Rabbit[F], chann
     Kleisli[F, AmqpMessage[String], AmqpMessage[Array[Byte]]](s => s.copy(payload = s.payload.getBytes(UTF_8)).pure[F])
 
   def serve: Stream[F, Unit] =
-    R.declareQueue(DeclarationQueueConfig.default(rpcQueue)) >>
-      R.createAutoAckConsumer(rpcQueue).flatten.flatMap(handler).drain
+    Stream
+      .eval(
+        R.declareQueue(DeclarationQueueConfig.default(rpcQueue)) *>
+          R.createAutoAckConsumer(rpcQueue)
+      )
+      .flatMap(_.evalMap(handler))
 
-  private def handler(e: AmqpEnvelope[String]): Stream[F, Unit] = {
+  private def handler(e: AmqpEnvelope[String]): F[Unit] = {
     val correlationId = e.properties.correlationId
     val replyTo       = e.properties.replyTo.toRight(new IllegalArgumentException("ReplyTo parameter is missing"))
 
     for {
-      rk        <- Stream.fromEither[F](replyTo)
-      _         <- Stream.eval(putStrLn(s"[Server] Received message [${e.payload}]. ReplyTo $rk. CorrelationId $correlationId"))
+      rk        <- IO.fromEither(replyTo).to[F]
+      _         <- putStrLn(s"[Server] Received message [${e.payload}]. ReplyTo $rk. CorrelationId $correlationId")
       publisher <- R.createPublisher[AmqpMessage[String]](EmptyExchange, RoutingKey(rk))
       response  = AmqpMessage(s"Response for ${e.payload}", AmqpProperties(correlationId = correlationId))
-      _         <- Stream.eval(publisher(response))
+      _         <- publisher(response)
     } yield ()
 
   }

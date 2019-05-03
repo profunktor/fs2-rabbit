@@ -20,17 +20,18 @@ import java.nio.charset.StandardCharsets.UTF_8
 
 import cats.data.Kleisli
 import cats.effect.Concurrent
-import cats.syntax.applicative._
-import cats.syntax.functor._
+import cats.implicits._
 import com.github.gvolpe.fs2rabbit.config.declaration.DeclarationQueueConfig
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
 import com.github.gvolpe.fs2rabbit.json.Fs2JsonEncoder
 import com.github.gvolpe.fs2rabbit.model.AckResult.Ack
 import com.github.gvolpe.fs2rabbit.model.AmqpHeaderVal.{LongVal, StringVal}
 import com.github.gvolpe.fs2rabbit.model._
-import fs2.{Pipe, Stream}
+import fs2.{Pipe, Pure, Stream}
+import io.circe.Encoder
 
-class AutoAckConsumerDemo[F[_]: Concurrent](implicit R: Fs2Rabbit[F]) {
+class AutoAckConsumerDemo[F[_]: Concurrent: Fs2Rabbit] {
+  private val R: Fs2Rabbit[F] = implicitly
 
   private val queueName    = QueueName("testQ")
   private val exchangeName = ExchangeName("testEX")
@@ -42,17 +43,18 @@ class AutoAckConsumerDemo[F[_]: Concurrent](implicit R: Fs2Rabbit[F]) {
     putStrLn(s"Consumed: $amqpMsg").as(Ack(amqpMsg.deliveryTag))
   }
 
-  val program: Stream[F, Unit] = R.createConnectionChannel.flatMap { implicit channel =>
-    for {
-      _         <- R.declareQueue(DeclarationQueueConfig.default(queueName))
-      _         <- R.declareExchange(exchangeName, ExchangeType.Topic)
-      _         <- R.bindQueue(queueName, exchangeName, routingKey)
-      consumer  <- R.createAutoAckConsumer[String](queueName)
-      publisher <- R.createPublisher[AmqpMessage[String]](exchangeName, routingKey)
-      result    <- new AutoAckFlow[F, String](consumer, logPipe, publisher).flow
-    } yield result
+  val program: F[Unit] = {
+    R.createConnectionChannel use { implicit channel =>
+      for {
+        _         <- R.declareQueue(DeclarationQueueConfig.default(queueName))
+        _         <- R.declareExchange(exchangeName, ExchangeType.Topic)
+        _         <- R.bindQueue(queueName, exchangeName, routingKey)
+        publisher <- R.createPublisher[AmqpMessage[String]](exchangeName, routingKey)
+        consumer  <- R.createAutoAckConsumer[String](queueName)
+        _         <- new AutoAckFlow[F, String](consumer, logPipe, publisher).flow.compile.drain
+      } yield ()
+    }
   }
-
 }
 
 class AutoAckFlow[F[_]: Concurrent, A](
@@ -66,8 +68,12 @@ class AutoAckFlow[F[_]: Concurrent, A](
   case class Address(number: Int, streetName: String)
   case class Person(id: Long, name: String, address: Address)
 
-  private val jsonEncoder = new Fs2JsonEncoder[F]
-  import jsonEncoder.jsonEncode
+  private def jsonEncoder = new Fs2JsonEncoder
+
+  def encoderPipe[T: Encoder]: Pipe[F, AmqpMessage[T], AmqpMessage[String]] =
+    _.map(jsonEncoder.jsonEncode[T])
+
+  val jsonPipe: Pipe[Pure, AmqpMessage[Person], AmqpMessage[String]] = _.map(jsonEncoder.jsonEncode[Person])
 
   val simpleMessage =
     AmqpMessage("Hey!", AmqpProperties(headers = Map("demoId" -> LongVal(123), "app" -> StringVal("fs2RabbitDemo"))))
@@ -76,7 +82,7 @@ class AutoAckFlow[F[_]: Concurrent, A](
   val flow: Stream[F, Unit] =
     Stream(
       Stream(simpleMessage).covary[F].evalMap(publisher),
-      Stream(classMessage).covary[F].through(jsonEncode[Person]).evalMap(publisher),
+      Stream(classMessage).covary[F].through(encoderPipe[Person]).evalMap(publisher),
       consumer.through(logger).through(_.evalMap(putStrLn(_)))
     ).parJoin(3)
 

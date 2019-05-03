@@ -18,17 +18,15 @@ package com.github.gvolpe.fs2rabbit.examples
 
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
+
+import scalaz.zio._
+import scalaz.zio.interop.catz._
+import scalaz.zio.interop.catz.implicits._
 import com.github.gvolpe.fs2rabbit.resiliency.ResilientStream
 
-import scalaz.zio.{App, Clock, IO}
-import scalaz.zio.interop.Task
-import scalaz.zio.interop.catz._
+object ZIOAutoAckConsumer extends CatsApp {
 
-object ZIOAutoAckConsumer extends App {
-
-  implicit val clock = Clock.Live
-
-  private val config: Fs2RabbitConfig = Fs2RabbitConfig(
+  val config = Fs2RabbitConfig(
     virtualHost = "/",
     host = "127.0.0.1",
     username = Some("guest"),
@@ -40,13 +38,12 @@ object ZIOAutoAckConsumer extends App {
     internalQueueSize = Some(500)
   )
 
-  override def run(args: List[String]): IO[Nothing, ExitStatus] =
+  override def run(args: List[String]): UIO[Int] =
     Fs2Rabbit[Task](config)
       .flatMap { implicit fs2Rabbit =>
-        ResilientStream
-          .run(new AutoAckConsumerDemo[Task].program)
+        ResilientStream.runF(new AutoAckConsumerDemo[Task].program)
       }
       .run
-      .map(_ => ExitStatus.ExitNow(0))
+      .map(_ => 0)
 
 }

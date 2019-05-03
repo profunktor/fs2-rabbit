@@ -6,7 +6,7 @@ number: 2
 
 # Fs2 Rabbit Interpreter
 
-It is the main interpreter that will be interacting with `RabbitMQ`, a.k.a. the client. All it needs are a `Fs2RabbitConfig`, an optional `SSLContext` and an implicit instance of `ConcurrentEffect[F]`. Its creation is effectful so it is wrapped in `F`.
+`Fs2Rabbit` is the main interpreter that will be interacting with `RabbitMQ`, a.k.a. the client. All it needs are a `Fs2RabbitConfig`, an optional `SSLContext` and an implicit instance of `ConcurrentEffect[F]`. Its creation is effectful so it is wrapped in `F`.
 
 ```tut:book:silent
 import cats.effect._
@@ -29,10 +29,9 @@ import cats.effect.{ExitCode, IOApp}
 import cats.syntax.functor._
 import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
-import fs2._
 
 object Program {
-  def foo[F[_]](implicit R: Fs2Rabbit[F]): Stream[F, Unit] = ???
+  def foo[F[_]](implicit R: Fs2Rabbit[F]): F[Unit] = ???
 }
 
 class Demo extends IOApp {
@@ -51,7 +50,7 @@ class Demo extends IOApp {
 
   override def run(args: List[String]): IO[ExitCode] =
     Fs2Rabbit[IO](config).flatMap { implicit fs2Rabbit =>
-      Program.foo[IO].compile.drain.as(ExitCode.Success)
+      Program.foo[IO].as(ExitCode.Success)
     }
 
 }

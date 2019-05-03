@@ -17,8 +17,6 @@
 package com.github.gvolpe.fs2rabbit.json
 
 import com.github.gvolpe.fs2rabbit.model.AmqpMessage
-import com.github.gvolpe.fs2rabbit.effects.StreamEval
-import fs2.Pipe
 import io.circe.Encoder
 import io.circe.Printer
 import io.circe.syntax._
@@ -30,7 +28,7 @@ import io.circe.syntax._
   * @param printer The `io.circe.Printer` to be used to convert to JSON - overwrite if you need different
   *                output formatting, for example, to omit null values.
   * */
-class Fs2JsonEncoder[F[_]](printer: Printer = Printer.noSpaces)(implicit SE: StreamEval[F]) {
+class Fs2JsonEncoder(printer: Printer = Printer.noSpaces) {
 
   /**
     * It tries to encode a given case class encapsulated in an `AmqpMessage` into a
@@ -42,15 +40,11 @@ class Fs2JsonEncoder[F[_]](printer: Printer = Printer.noSpaces)(implicit SE: Str
     * import fs2._
     *
     * val payload = Person("Sherlock", Address(212, "Baker St"))
-    * val p = Stream(AmqpMessage(payload, AmqpProperties.empty)).covary[IO] through jsonEncode[IO, Person]
-    *
-    * p.run.unsafeRunSync
+    * jsonEncode[Person](AmqpMessage(payload, AmqpProperties.empty))
     * }}}
     *
     * The result will be an `AmqpMessage` of type `String`
     * */
-  def jsonEncode[A: Encoder]: Pipe[F, AmqpMessage[A], AmqpMessage[String]] = _.flatMap { amqpMsg =>
-    SE.evalF[String](amqpMsg.payload.asJson.pretty(printer)).map(AmqpMessage(_, amqpMsg.properties))
-  }
-
+  def jsonEncode[A: Encoder]: AmqpMessage[A] => AmqpMessage[String] =
+    amqpMsg => AmqpMessage[String](amqpMsg.payload.asJson.pretty(printer), amqpMsg.properties)
 }

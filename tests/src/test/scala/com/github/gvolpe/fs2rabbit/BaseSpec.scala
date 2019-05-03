@@ -18,11 +18,10 @@ package com.github.gvolpe.fs2rabbit
 
 import cats.effect.{ContextShift, IO, Timer}
 import com.github.gvolpe.fs2rabbit.effects.Log
-import org.scalatest.{EitherValues, FlatSpecLike, Matchers}
-
+import org.scalatest.{AsyncFlatSpecLike, EitherValues, Matchers}
 import scala.concurrent.ExecutionContext
 
-trait BaseSpec extends FlatSpecLike with Matchers with EitherValues {
+trait BaseSpec extends AsyncFlatSpecLike with Matchers with EitherValues {
   def putStrLn[A](a: A): IO[Unit] = IO(println(a))
 
   implicit val timer: Timer[IO]     = IO.timer(ExecutionContext.global)

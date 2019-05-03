@@ -31,10 +31,10 @@ trait DockerRabbit extends BeforeAndAfterAll { self: Suite =>
   // when developing tests, this likely shall be false, so there is no additional overhead starting Rabbit
   protected lazy val startContainers: Boolean = true
 
-  protected lazy val rabbitPort: Int           = 15672
-  protected lazy val rabbitUser: String        = "admin"
-  protected lazy val rabbitPassword: String    = "admin"
-  protected lazy val rabbitVirtualHost: String = "test"
+  protected lazy val rabbitPort: Int           = 5672
+  protected lazy val rabbitUser: String        = "guest"
+  protected lazy val rabbitPassword: String    = "guest"
+  protected lazy val rabbitVirtualHost: String = "/"
 
   private var dockerInstanceId: Option[String] = None
 
@@ -78,14 +78,14 @@ object DockerRabbit {
     println(s"Verifying docker is available: $r")
   }
 
-  def startDocker(port: Int, admin: String, password: String, virtualHost: String): String = {
+  def startDocker(port: Int, user: String, password: String, virtualHost: String): String = {
     val dockerId = new SyncVar[String]()
 
     val removeCmd = s"docker rm -f $dockerContainerName"
 
     val runCmd =
       s"docker run --name $dockerContainerName -d -p $port:5672 " +
-        s"-e RABBITMQ_DEFAULT_USER=$admin -e RABBITMQ_DEFAULT_PASS=$password -e RABBITMQ_DEFAULT_VHOST=$virtualHost " +
+        s"-e RABBITMQ_DEFAULT_USER=$user -e RABBITMQ_DEFAULT_PASS=$password -e RABBITMQ_DEFAULT_VHOST=$virtualHost " +
         dockerImage
 
     val thread = new Thread(
@@ -100,6 +100,8 @@ object DockerRabbit {
             if (str.contains("Server startup complete")) {
               observer.foreach(_.destroy())
               dockerId.put(result)
+            } else {
+              println(str)
             }
           }
 

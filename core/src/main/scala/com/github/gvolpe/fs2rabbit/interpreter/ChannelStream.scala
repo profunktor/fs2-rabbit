@@ -31,9 +31,7 @@ class ChannelStream[F[_]](
     extends Channeller[Stream[F, ?]] {
 
   private val acquireChannel: F[AMQPChannel] =
-    for {
-      chan <- F.delay(connection.value.createChannel())
-    } yield RabbitChannel(chan)
+    F.delay(connection.value.createChannel()).map(RabbitChannel)
 
   override def createChannel: Stream[F, model.AMQPChannel] =
     Stream

@@ -22,7 +22,7 @@ import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 
 import scala.concurrent.ExecutionContext
 
-class RabbitSuite extends BaseSpec with DockerRabbit with Fs2RabbitSpec with ConnectionStreamSpec {
+class RabbitSuite extends BaseSpec with DockerRabbit with Fs2RabbitSpec {
   override implicit val cs: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
   override val config: Fs2RabbitConfig       = rabbitConfig
 }

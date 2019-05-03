@@ -20,12 +20,12 @@ import fs2._
 case class Address(number: Int, streetName: String)
 case class Person(id: Long, name: String, address: Address)
 
-object ioDecoder extends Fs2JsonDecoder[IO]
+object ioDecoder extends Fs2JsonDecoder
 
 def program(consumer: Stream[IO, AmqpEnvelope[String]], acker: AckResult => IO[Unit], errorSink: Sink[IO, Error], processorSink: Sink[IO, (Person, DeliveryTag)]) = {
   import ioDecoder._
 
-  (consumer through jsonDecode[Person]).flatMap {
+  (consumer map jsonDecode[Person]).flatMap {
     case (Left(error), tag) => (Stream.eval(IO(error)) to errorSink).map(_ => NAck(tag)) evalMap acker
     case (Right(msg), tag)  => Stream.eval(IO((msg, tag))) to processorSink
   }

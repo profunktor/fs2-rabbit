@@ -20,32 +20,32 @@ import com.github.gvolpe.fs2rabbit.effects.MessageEncoder
 import com.github.gvolpe.fs2rabbit.model._
 import com.rabbitmq.client.Channel
 
-trait Publishing[F[_], G[_]] {
+trait Publishing[F[_]] {
 
   def createPublisher[A](
       channel: Channel,
       exchangeName: ExchangeName,
       routingKey: RoutingKey
-  )(implicit encoder: MessageEncoder[G, A]): F[A => G[Unit]]
+  )(implicit encoder: MessageEncoder[F, A]): F[A => F[Unit]]
 
   def createPublisherWithListener[A](
       channel: Channel,
       exchangeName: ExchangeName,
       routingKey: RoutingKey,
       flags: PublishingFlag,
-      listener: PublishReturn => G[Unit]
-  )(implicit encoder: MessageEncoder[G, A]): F[A => G[Unit]]
+      listener: PublishReturn => F[Unit]
+  )(implicit encoder: MessageEncoder[F, A]): F[A => F[Unit]]
 
   def createRoutingPublisher[A](
       channel: Channel,
       exchangeName: ExchangeName
-  )(implicit encoder: MessageEncoder[G, A]): F[RoutingKey => A => G[Unit]]
+  )(implicit encoder: MessageEncoder[F, A]): F[RoutingKey => A => F[Unit]]
 
   def createRoutingPublisherWithListener[A](
       channel: Channel,
       exchangeName: ExchangeName,
       flags: PublishingFlag,
-      listener: PublishReturn => G[Unit]
-  )(implicit encoder: MessageEncoder[G, A]): F[RoutingKey => A => G[Unit]]
+      listener: PublishReturn => F[Unit]
+  )(implicit encoder: MessageEncoder[F, A]): F[RoutingKey => A => F[Unit]]
 
 }

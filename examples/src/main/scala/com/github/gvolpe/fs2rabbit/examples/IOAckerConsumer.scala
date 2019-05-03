@@ -45,7 +45,7 @@ object IOAckerConsumer extends IOApp {
   override def run(args: List[String]): IO[ExitCode] =
     Fs2Rabbit[IO](config).flatMap { implicit fs2Rabbit =>
       ResilientStream
-        .run(new AckerConsumerDemo[IO]().program)
+        .runF(new AckerConsumerDemo[IO]().program)
         .as(ExitCode.Success)
     }
 

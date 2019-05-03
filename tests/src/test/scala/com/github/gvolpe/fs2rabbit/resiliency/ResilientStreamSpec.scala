@@ -18,22 +18,25 @@ package com.github.gvolpe.fs2rabbit.resiliency
 
 import cats.effect.IO
 import cats.effect.concurrent.Ref
-import cats.syntax.apply._
-import com.github.gvolpe.fs2rabbit.{BaseSpec, IOAssertion}
+import cats.implicits._
+import com.github.gvolpe.fs2rabbit.BaseSpec
 import fs2._
 
 import scala.concurrent.duration._
+import org.scalatest.compatible.Assertion
 
 class ResilientStreamSpec extends BaseSpec {
 
   private val sink: Pipe[IO, Int, Unit] = _.evalMap(putStrLn)
 
-  it should "run a stream until it's finished" in IOAssertion {
+  val emptyAssertion: Assertion = true shouldBe true
+
+  it should "run a stream until it's finished" in {
     val program = Stream(1, 2, 3).covary[IO].through(sink)
-    ResilientStream.run(program)
+    ResilientStream.run(program).as(emptyAssertion).unsafeToFuture
   }
 
-  it should "run a stream and recover in case of failure" in IOAssertion {
+  it should "run a stream and recover in case of failure" in {
     val errorProgram = Stream.raiseError[IO](new Exception("on purpose")).through(sink)
 
     def p(ref: Ref[IO, Int]): Stream[IO, Unit] =
@@ -44,7 +47,7 @@ class ResilientStreamSpec extends BaseSpec {
         }
       }
 
-    Ref.of[IO, Int](2).flatMap(ref => ResilientStream.run(p(ref), 1.second))
+    Ref.of[IO, Int](2).flatMap(r => ResilientStream.run(p(r), 1.second)).as(emptyAssertion).unsafeToFuture
   }
 
 }

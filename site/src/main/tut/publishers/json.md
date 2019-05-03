@@ -18,13 +18,13 @@ import io.circe.generic.auto._
 case class Address(number: Int, streetName: String)
 case class Person(id: Long, name: String, address: Address)
 
-object ioEncoder extends Fs2JsonEncoder[IO]
+object ioEncoder extends Fs2JsonEncoder
 
 def program(publisher: AmqpMessage[String] => IO[Unit]) = {
   import ioEncoder._
 
   val message = AmqpMessage(Person(1L, "Sherlock", Address(212, "Baker St")), AmqpProperties.empty)
-  Stream(message).covary[IO] through jsonEncode[Person] evalMap publisher
+  Stream(message).covary[IO] map jsonEncode[Person] evalMap publisher
 }
 ```
 
