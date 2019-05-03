@@ -30,8 +30,8 @@ val msg = Stream("Hey!").covary[IO]
 def multipleConsumers(c1: Stream[IO, AmqpEnvelope[String]], c2: Stream[IO, AmqpEnvelope[String]], p: String => IO[Unit]) = {
   Stream(
     msg evalMap p,
-    c1 to (_.evalMap(m => IO(println(s"Consumer #1 >> $m")))),
-    c2 to (_.evalMap(m => IO(println(s"Consumer #2 >> $m"))))
+    c1.through(_.evalMap(m => IO(println(s"Consumer #1 >> $m")))),
+    c2.through(_.evalMap(m => IO(println(s"Consumer #2 >> $m"))))
   ).parJoin(3)
 }
 
@@ -42,11 +42,10 @@ def program(F: Fs2Rabbit[IO]) = F.createConnectionChannel use { implicit channel
       _  <- F.declareQueue(DeclarationQueueConfig.default(q2))
       _  <- F.bindQueue(q1, ex, rka)
       _  <- F.bindQueue(q2, ex, rkb)
-      c1  = F.createAutoAckConsumer[String](q1)
-      c2  = F.createAutoAckConsumer[String](q2)
+      c1 <- F.createAutoAckConsumer[String](q1)
+      c2 <- F.createAutoAckConsumer[String](q2)
       p  <- F.createPublisher[String](ex, rka)
-      _  <- multipleConsumers(c1, c2, p)
-              .compile.drain
+      _  <- multipleConsumers(c1, c2, p).compile.drain
     } yield ()
   }
 ```

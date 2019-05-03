@@ -35,12 +35,12 @@ val rk = RoutingKey("RKA")
 Here's our program `p1` creating a `Consumer` representing the first `Connection`:
 
 ```tut:book:silent
-def p1(implicit F: Fs2Rabbit[IO]) = F.createConnectionChannel use { implicit channel =>
+def p1(implicit F: Fs2Rabbit[IO]) = F.createConnectionChannel.use { implicit channel =>
   for {
     _  <- F.declareExchange(ex, ExchangeType.Topic)
     _  <- F.declareQueue(DeclarationQueueConfig.default(q1))
     _  <- F.bindQueue(q1, ex, rk)
-    c1  = F.createAutoAckConsumer[String](q1)
+    c1 <- F.createAutoAckConsumer[String](q1)
   } yield c1
 }
 ```
@@ -53,7 +53,7 @@ def p2(implicit F: Fs2Rabbit[IO]) = F.createConnectionChannel use { implicit cha
     _  <- F.declareExchange(ex, ExchangeType.Topic)
     _  <- F.declareQueue(DeclarationQueueConfig.default(q1))
     _  <- F.bindQueue(q1, ex, rk)
-    c2  = F.createAutoAckConsumer[String](q1)
+    c2 <- F.createAutoAckConsumer[String](q1)
   } yield c2
 }
 ```
@@ -79,7 +79,7 @@ def program(implicit F: Fs2Rabbit[IO]) =
     c1 <- p1
     c2 <- p2
     pb <- p3
-    _  <- (c1 through pipe evalMap pb).concurrently(c2 through pipe evalMap pb)
+    _  <- (c1.through(pipe).evalMap(pb)).concurrently(c2.through(pipe).evalMap(pb))
             .compile.drain
   } yield ()
 ```

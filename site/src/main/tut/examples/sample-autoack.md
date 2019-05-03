@@ -46,7 +46,7 @@ class AutoAckFlow[F[_]: Concurrent, A](
     Stream(
       Stream(simpleMessage).covary[F] evalMap publisher,
       Stream(classMessage).covary[F] through jsonPipe evalMap publisher,
-      consumer through logger evalMap (ack => Sync[F].delay(println(ack)))
+      consumer.through(logger).evalMap(ack => Sync[F].delay(println(ack)))
     ).parJoin(3)
 
 }
@@ -70,9 +70,8 @@ class AutoAckConsumerDemo[F[_]: Concurrent](implicit R: Fs2Rabbit[F]) {
         _         <- R.declareExchange(exchangeName, ExchangeType.Topic)
         _         <- R.bindQueue(queueName, exchangeName, routingKey)
         publisher <- R.createPublisher[AmqpMessage[String]](exchangeName, routingKey)
-        consumer  = R.createAutoAckConsumer[String](queueName)
-        s         = new AutoAckFlow[F, String](consumer, logPipe, publisher).flow
-        _         <- s.compile.drain
+        consumer  <- R.createAutoAckConsumer[String](queueName)
+        _         <- new AutoAckFlow[F, String](consumer, logPipe, publisher).flow.compile.drain
       } yield ()
     }
   }
