@@ -30,7 +30,8 @@ import com.github.gvolpe.fs2rabbit.model._
 import fs2.{Pipe, Pure, Stream}
 import io.circe.Encoder
 
-class AutoAckConsumerDemo[F[_]: Concurrent](implicit R: Fs2Rabbit[F]) {
+class AutoAckConsumerDemo[F[_]: Concurrent: Fs2Rabbit] {
+  private val R: Fs2Rabbit[F] = implicitly
 
   private val queueName    = QueueName("testQ")
   private val exchangeName = ExchangeName("testEX")
@@ -49,7 +50,7 @@ class AutoAckConsumerDemo[F[_]: Concurrent](implicit R: Fs2Rabbit[F]) {
         _         <- R.declareExchange(exchangeName, ExchangeType.Topic)
         _         <- R.bindQueue(queueName, exchangeName, routingKey)
         publisher <- R.createPublisher[AmqpMessage[String]](exchangeName, routingKey)
-        consumer  = R.createAutoAckConsumer[String](queueName)
+        consumer  <- R.createAutoAckConsumer[String](queueName)
         s         = new AutoAckFlow[F, String](consumer, logPipe, publisher).flow
         _         <- s.compile.drain
       } yield ()

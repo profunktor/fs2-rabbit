@@ -37,7 +37,7 @@ class ConsumingProgram[F[_]: Bracket[?[_], Throwable]](AMQP: AMQPClient[F], IQ: 
       exclusive: Boolean = false,
       consumerTag: ConsumerTag = ConsumerTag(""),
       args: Arguments = Map.empty
-  )(implicit decoder: EnvelopeDecoder[F, A]): Stream[F, AmqpEnvelope[A]] = {
+  )(implicit decoder: EnvelopeDecoder[F, A]): F[Stream[F, AmqpEnvelope[A]]] = {
 
     val setup = for {
       internalQ   <- IQ.create
@@ -46,14 +46,17 @@ class ConsumingProgram[F[_]: Bracket[?[_], Throwable]](AMQP: AMQPClient[F], IQ: 
       consumerTag <- AMQP.basicConsume(channel, queueName, autoAck, consumerTag, noLocal, exclusive, args)(internals)
     } yield (consumerTag, internalQ)
 
-    for {
-      (tag, queue) <- Stream.bracket(setup) {
-                       case (tag, _) =>
-                         AMQP.basicCancel(channel, tag)
-                     }
-      env <- Stream.repeatEval(
-              queue.dequeue1.rethrow.flatMap(env => decoder(env).map(a => env.copy(payload = a)))
-            )
-    } yield env
+    Stream
+      .bracket(setup) {
+        case (tag, _) =>
+          AMQP.basicCancel(channel, tag)
+      }
+      .flatMap {
+        case (tag, queue) =>
+          Stream.repeatEval(
+            queue.dequeue1.rethrow.flatMap(env => decoder(env).map(a => env.copy(payload = a)))
+          )
+      }
+      .pure[F]
   }
 }

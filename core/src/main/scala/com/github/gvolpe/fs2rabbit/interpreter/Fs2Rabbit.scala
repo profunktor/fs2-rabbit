@@ -76,7 +76,7 @@ class Fs2Rabbit[F[_]: Concurrent] private[fs2rabbit] (
       queueName: QueueName,
       basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
       consumerArgs: Option[ConsumerArgs] = None
-  )(implicit channel: AMQPChannel, decoder: EnvelopeDecoder[F, A]): Stream[F, AmqpEnvelope[A]] =
+  )(implicit channel: AMQPChannel, decoder: EnvelopeDecoder[F, A]): F[Stream[F, AmqpEnvelope[A]]] =
     consumingProgram.createAutoAckConsumer(channel.value, queueName, basicQos, consumerArgs)
 
   def createPublisher[A](exchangeName: ExchangeName, routingKey: RoutingKey)(

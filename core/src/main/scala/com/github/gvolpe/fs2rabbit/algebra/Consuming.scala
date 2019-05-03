@@ -32,6 +32,6 @@ trait Consuming[F[_], R[_]] {
       exclusive: Boolean = false,
       consumerTag: ConsumerTag = ConsumerTag(""),
       args: Arguments = Map.empty
-  )(implicit decoder: EnvelopeDecoder[F, A]): R[AmqpEnvelope[A]]
+  )(implicit decoder: EnvelopeDecoder[F, A]): F[R[AmqpEnvelope[A]]]
 
 }

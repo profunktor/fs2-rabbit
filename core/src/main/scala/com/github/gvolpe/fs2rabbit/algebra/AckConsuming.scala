@@ -34,6 +34,6 @@ trait AckConsuming[F[_], R[_]] {
       queueName: QueueName,
       basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
       consumerArgs: Option[ConsumerArgs] = None
-  )(implicit decoder: EnvelopeDecoder[F, A]): R[AmqpEnvelope[A]]
+  )(implicit decoder: EnvelopeDecoder[F, A]): F[R[AmqpEnvelope[A]]]
 
 }

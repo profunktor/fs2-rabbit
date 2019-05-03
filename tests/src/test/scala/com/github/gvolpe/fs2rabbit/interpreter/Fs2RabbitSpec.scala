@@ -247,7 +247,8 @@ trait Fs2RabbitSpec { self: BaseSpec =>
         _          <- bindQueue(q, x, rk)
         publisher  <- createPublisher[String](x, rk)
         _          <- publisher("test")
-        _ <- createAutoAckConsumer(q)
+        consumer   <- createAutoAckConsumer(q)
+        _ <- consumer
               .take(1)
               .evalMap { msg =>
                 IO(msg shouldBe expectedDelivery(msg.deliveryTag, x, rk, "test"))
@@ -271,7 +272,8 @@ trait Fs2RabbitSpec { self: BaseSpec =>
         publisher    <- createPublisher[String](x, rk)
         consumerArgs = ConsumerArgs(consumerTag = ct, noLocal = false, exclusive = true, args = Map.empty)
         _            <- publisher("test")
-        _ <- createAutoAckConsumer(q, BasicQos(prefetchSize = 0, prefetchCount = 10), Some(consumerArgs))
+        consumer     <- createAutoAckConsumer(q, BasicQos(prefetchSize = 0, prefetchCount = 10), Some(consumerArgs))
+        _ <- consumer
               .take(1)
               .evalMap { msg =>
                 IO(msg shouldBe expectedDelivery(msg.deliveryTag, x, rk, "test"))
@@ -333,7 +335,8 @@ trait Fs2RabbitSpec { self: BaseSpec =>
         _         <- declareQueue(DeclarationQueueConfig.default(q))
         _         <- deleteQueue(DeletionQueueConfig.default(q))
         _         <- deleteQueueNoWait(DeletionQueueConfig.default(q))
-        _ <- createAutoAckConsumer(q).attempt
+        consumer  <- createAutoAckConsumer(q)
+        _ <- consumer.attempt
               .take(1)
               .evalMap { either =>
                 IO {
@@ -450,7 +453,8 @@ trait Fs2RabbitSpec { self: BaseSpec =>
           (acker, consumer) <- Stream.eval(createAckerConsumer(q))
           result            <- Stream.eval(consumer.take(1).compile.lastOrError)
           _                 <- Stream.eval(acker(NAck(result.deliveryTag)))
-          result2           <- createAutoAckConsumer(q).take(1) // Message will be re-queued
+          consumer          <- Stream.eval(createAutoAckConsumer(q))
+          result2           <- consumer.take(1) // Message will be re-queued
         } yield {
           val expected = expectedDelivery(result.deliveryTag, x, rk, "NAck-test")
 
@@ -475,17 +479,19 @@ trait Fs2RabbitSpec { self: BaseSpec =>
           _          <- declareQueue(DeclarationQueueConfig.default(diffQ))
           _          <- bindQueue(q, x, RoutingKey("diffRK"))
           _          <- publisher("test")
-          _ <- createAutoAckConsumer(q)
+          consumer   <- createAutoAckConsumer(q)
+          _ <- consumer
                 .take(1)
                 .evalMap { msg =>
-                  createAutoAckConsumer(diffQ)
-                    .take(1)
-                    .compile
-                    .last
-                    .timeout(1.second)
-                    .attempt
-                    .map(_ shouldBe a[Left[_, _]])
-                    .as(msg shouldBe expectedDelivery(msg.deliveryTag, x, rk, "test"))
+                  createAutoAckConsumer(diffQ).flatMap { c2 =>
+                    c2.take(1)
+                      .compile
+                      .last
+                      .timeout(1.second)
+                      .attempt
+                      .map(_ shouldBe a[Left[_, _]])
+                      .as(msg shouldBe expectedDelivery(msg.deliveryTag, x, rk, "test"))
+                  }
                 }
                 .compile
                 .drain
@@ -509,7 +515,8 @@ trait Fs2RabbitSpec { self: BaseSpec =>
           publisher  <- Stream.eval(createPublisherWithListener(x, RoutingKey("diff-rk"), flag, listener(promise)))
           _          <- Stream.eval(publisher("test"))
           callback   <- Stream.eval(promise.get.map(_.some).timeoutTo(500.millis, IO.pure(none[PublishReturn]))).unNone
-          result     <- takeWithTimeOut(createAutoAckConsumer(q), 500.millis)
+          consumer   <- Stream.eval(createAutoAckConsumer(q))
+          result     <- takeWithTimeOut(consumer, 500.millis)
         } yield {
           result shouldBe None
           callback.body.value shouldEqual "test".getBytes("UTF-8")
@@ -530,7 +537,8 @@ trait Fs2RabbitSpec { self: BaseSpec =>
           _          <- bindQueue(q, x, rk)
           publisher  <- createRoutingPublisher[String](x)
           _          <- publisher(rk).apply("test")
-          _ <- createAutoAckConsumer(q)
+          consumer   <- createAutoAckConsumer(q)
+          _ <- consumer
                 .take(1)
                 .evalMap { msg =>
                   IO(msg shouldBe expectedDelivery(msg.deliveryTag, x, rk, "test"))
@@ -557,7 +565,8 @@ trait Fs2RabbitSpec { self: BaseSpec =>
           publisher  <- Stream.eval(createRoutingPublisherWithListener[String](x, flag, listener(promise)))
           _          <- Stream.eval(publisher(RoutingKey("diff-rk"))("test"))
           callback   <- Stream.eval(promise.get.map(_.some).timeoutTo(500.millis, IO.pure(none[PublishReturn]))).unNone
-          result     <- takeWithTimeOut(createAutoAckConsumer(q), 500.millis)
+          consumer   <- Stream.eval(createAutoAckConsumer(q))
+          result     <- takeWithTimeOut(consumer, 500.millis)
         } yield {
           result shouldBe None
           callback.body.value shouldEqual "test".getBytes("UTF-8")
@@ -574,10 +583,11 @@ trait Fs2RabbitSpec { self: BaseSpec =>
     def consumer(q: QueueName, x: ExchangeName, rk: RoutingKey): IO[Option[AmqpEnvelope[String]]] =
       createConnectionChannel.use { implicit channel =>
         for {
-          _   <- declareQueue(DeclarationQueueConfig.default(q))
-          _   <- declareExchange(x, ExchangeType.Topic)
-          _   <- bindQueue(q, x, rk)
-          msg <- createAutoAckConsumer[String](q).take(1).compile.last
+          _        <- declareQueue(DeclarationQueueConfig.default(q))
+          _        <- declareExchange(x, ExchangeType.Topic)
+          _        <- bindQueue(q, x, rk)
+          consumer <- createAutoAckConsumer(q)
+          msg      <- consumer.take(1).compile.last
         } yield msg
       }
 

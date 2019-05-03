@@ -21,6 +21,8 @@ import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
 
 import scalaz.zio._
 import scalaz.zio.interop.catz._
+import scalaz.zio.interop.catz.implicits._
+import com.github.gvolpe.fs2rabbit.resiliency.ResilientStream
 
 object ZIOAutoAckConsumer extends CatsApp {
 
@@ -39,7 +41,7 @@ object ZIOAutoAckConsumer extends CatsApp {
   override def run(args: List[String]): UIO[Int] =
     Fs2Rabbit[Task](config)
       .flatMap { implicit fs2Rabbit =>
-        new AutoAckConsumerDemo[Task].program
+        ResilientStream.runF(new AutoAckConsumerDemo[Task].program)
       }
       .run
       .map(_ => 0)
