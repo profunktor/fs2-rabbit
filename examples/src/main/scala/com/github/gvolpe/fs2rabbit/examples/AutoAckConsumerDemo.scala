@@ -51,8 +51,7 @@ class AutoAckConsumerDemo[F[_]: Concurrent: Fs2Rabbit] {
         _         <- R.bindQueue(queueName, exchangeName, routingKey)
         publisher <- R.createPublisher[AmqpMessage[String]](exchangeName, routingKey)
         consumer  <- R.createAutoAckConsumer[String](queueName)
-        s         = new AutoAckFlow[F, String](consumer, logPipe, publisher).flow
-        _         <- s.compile.drain
+        _         <- new AutoAckFlow[F, String](consumer, logPipe, publisher).flow.compile.drain
       } yield ()
     }
   }

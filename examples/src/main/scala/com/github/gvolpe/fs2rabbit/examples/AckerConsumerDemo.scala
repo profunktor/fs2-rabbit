@@ -60,8 +60,7 @@ class AckerConsumerDemo[F[_]: Concurrent: Fs2Rabbit: Timer] {
                     publishingFlag,
                     publishingListener
                   )
-      result = new Flow[F, String](consumer, acker, logPipe, publisher).flow
-      _      <- result.compile.drain
+      _ <- new Flow[F, String](consumer, acker, logPipe, publisher).flow.compile.drain
     } yield ()
   }
 }

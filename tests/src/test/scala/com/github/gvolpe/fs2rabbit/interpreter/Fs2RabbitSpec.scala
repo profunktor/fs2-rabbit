@@ -26,11 +26,10 @@ import com.github.gvolpe.fs2rabbit.model.AckResult.{Ack, NAck}
 import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.BaseSpec
 import fs2.Stream
-
+import org.scalatest.Assertion
 import scala.concurrent.duration._
 import scala.util.Random
 import scala.concurrent.Future
-import org.scalatest.Assertion
 
 trait Fs2RabbitSpec { self: BaseSpec =>
 

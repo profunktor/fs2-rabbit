@@ -16,7 +16,7 @@
 
 package com.github.gvolpe.fs2rabbit.program
 
-import cats.Monad
+import cats.{Applicative, Monad}
 import cats.implicits._
 import com.github.gvolpe.fs2rabbit.algebra.{AMQPClient, Publishing}
 import com.github.gvolpe.fs2rabbit.effects.MessageEncoder
@@ -30,7 +30,7 @@ class PublishingProgram[F[_]: Monad](AMQP: AMQPClient[F]) extends Publishing[F] 
       exchangeName: ExchangeName,
       routingKey: RoutingKey
   )(implicit encoder: MessageEncoder[F, A]): F[A => F[Unit]] =
-    createRoutingPublisher(channel, exchangeName).map(_(routingKey))
+    createRoutingPublisher(channel, exchangeName).map(_.apply(routingKey))
 
   override def createPublisherWithListener[A](
       channel: Channel,
@@ -39,13 +39,15 @@ class PublishingProgram[F[_]: Monad](AMQP: AMQPClient[F]) extends Publishing[F] 
       flag: PublishingFlag,
       listener: PublishReturn => F[Unit]
   )(implicit encoder: MessageEncoder[F, A]): F[A => F[Unit]] =
-    createRoutingPublisherWithListener(channel, exchangeName, flag, listener).map(_(routingKey))
+    createRoutingPublisherWithListener(channel, exchangeName, flag, listener).map(_.apply(routingKey))
 
   override def createRoutingPublisher[A](
       channel: Channel,
       exchangeName: ExchangeName
   )(implicit encoder: MessageEncoder[F, A]): F[RoutingKey => A => F[Unit]] =
-    Monad[F].pure(routingKey => encoder.flatMapF(msg => AMQP.basicPublish(channel, exchangeName, routingKey, msg)).run)
+    Applicative[F].pure(
+      routingKey => encoder.flatMapF(msg => AMQP.basicPublish(channel, exchangeName, routingKey, msg)).run
+    )
 
   override def createRoutingPublisherWithListener[A](
       channel: Channel,
@@ -53,8 +55,7 @@ class PublishingProgram[F[_]: Monad](AMQP: AMQPClient[F]) extends Publishing[F] 
       flag: PublishingFlag,
       listener: PublishReturn => F[Unit]
   )(implicit encoder: MessageEncoder[F, A]): F[RoutingKey => A => F[Unit]] =
-    for {
-      _ <- AMQP.addPublishingListener(channel, listener)
-    } yield routingKey =>
+    AMQP.addPublishingListener(channel, listener).as { routingKey =>
       encoder.flatMapF(msg => AMQP.basicPublishWithFlag(channel, exchangeName, routingKey, flag, msg)).run
+    }
 }
