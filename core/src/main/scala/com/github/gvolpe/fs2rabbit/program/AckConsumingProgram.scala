@@ -16,7 +16,7 @@
 
 package com.github.gvolpe.fs2rabbit.program
 
-import cats.Monad
+import cats.Apply
 import cats.implicits._
 import com.github.gvolpe.fs2rabbit.algebra.{AckConsuming, Acking, Consuming}
 import com.github.gvolpe.fs2rabbit.effects.EnvelopeDecoder
@@ -24,7 +24,7 @@ import com.github.gvolpe.fs2rabbit.model._
 import com.rabbitmq.client.Channel
 import fs2.Stream
 
-class AckConsumingProgram[F[_]: Monad](A: Acking[F], C: Consuming[F, Stream[F, ?]])
+class AckConsumingProgram[F[_]: Apply](A: Acking[F], C: Consuming[F, Stream[F, ?]])
     extends AckConsuming[F, Stream[F, ?]] {
 
   override def createAckerConsumer[A](

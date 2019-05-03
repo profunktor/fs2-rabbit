@@ -65,7 +65,7 @@ class ConnectionEffect[F[_]](factory: ConnectionFactory, addresses: NonEmptyList
         case (conn, RabbitChannel(channel)) =>
           L.info(s"Releasing connection: $conn previously acquired.") *>
             F.delay { if (channel.isOpen) channel.close() } *> F.delay { if (conn.isOpen) conn.close() }
-        case (_, _) => F.raiseError[Unit](new Exception("Unreachable"))
+        case _ => F.raiseError[Unit](new Exception("Unreachable"))
       }
       .map { case (_, channel) => channel }
 }
