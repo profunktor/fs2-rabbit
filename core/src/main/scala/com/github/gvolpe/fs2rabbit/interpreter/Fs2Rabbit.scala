@@ -41,13 +41,12 @@ object Fs2Rabbit {
         val internalQ  = new LiveInternalQueue[F](config.internalQueueSize.getOrElse(500))
         val acker      = new AckingProgram[F](config, amqpClient)
         val consumer   = new ConsumingProgram[F](amqpClient, internalQ)
-        new Fs2Rabbit[F](config, conn, amqpClient, acker, consumer)
+        new Fs2Rabbit[F](conn, amqpClient, acker, consumer)
     }
 }
 // $COVERAGE-ON$
 
 class Fs2Rabbit[F[_]: Concurrent] private[fs2rabbit] (
-    config: Fs2RabbitConfig,
     connection: Connection[Resource[F, ?]],
     amqpClient: AMQPClient[F],
     acker: Acking[F],

@@ -52,7 +52,7 @@ class ConsumingProgram[F[_]: Bracket[?[_], Throwable]](AMQP: AMQPClient[F], IQ: 
           AMQP.basicCancel(channel, tag)
       }
       .flatMap {
-        case (tag, queue) =>
+        case (_, queue) =>
           Stream.repeatEval(
             queue.dequeue1.rethrow.flatMap(env => decoder(env).map(a => env.copy(payload = a)))
           )

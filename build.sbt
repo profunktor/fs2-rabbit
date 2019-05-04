@@ -12,42 +12,9 @@ crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.8")
 sonatypeProfileName := "com.github.gvolpe"
 
 promptTheme := PromptTheme(List(
-  text("[SBT] ", fg(136)),
-  text(_ => "fs2-rabbit", fg(64)).padRight(" λ ")
+  text("[sbt] ", fg(105)),
+  text(_ => "fs2-rabbit", fg(15)).padRight(" λ ")
  ))
-
-lazy val commonScalacOptions = Seq(
-  "-deprecation",
-  "-encoding",
-  "UTF-8",
-  "-feature",
-  "-language:existentials",
-  "-language:higherKinds",
-  "-language:implicitConversions",
-  "-language:experimental.macros",
-  "-Ypartial-unification",
-  "-unchecked",
-  "-Xfatal-warnings",
-  "-Xlint",
-  "-Yno-adapted-args",
-  "-Ywarn-dead-code",
-  "-Ywarn-value-discard",
-  "-Xfuture",
-  "-Xlog-reflective-calls",
-  "-Ywarn-inaccessible",
-  "-Ypatmat-exhaust-depth",
-  "20",
-  "-Ydelambdafy:method",
-  "-Xmax-classfile-name",
-  "100"
-)
-
-
-lazy val warnUnusedImport = Seq(
-  scalacOptions += "-Ywarn-unused-import",
-  scalacOptions in (Compile, console) ~= { _.filterNot(Seq("-Xlint", "-Ywarn-unused-import").contains) },
-  scalacOptions in (Test, console) := (scalacOptions in (Compile, console)).value
-)
 
 val commonSettings = Seq(
   organizationName := "Fs2 Rabbit",
@@ -65,10 +32,7 @@ val commonSettings = Seq(
     Libraries.scalaCheck % "test"
   ),
   resolvers += "Apache public" at "https://repository.apache.org/content/groups/public/",
-  scalacOptions ++= commonScalacOptions,
   scalafmtOnCompile := true,
-  coverageExcludedPackages :=
-  "com\\.github\\.gvolpe\\.fs2rabbit\\.examples.*;com\\.github\\.gvolpe\\.fs2rabbit\\.effects.*;.*QueueName*;.*RoutingKey*;.*ExchangeName*;.*DeliveryTag*;.*AMQPClientStream*;.*ConnectionStream*;",
   publishTo := {
     val sonatype = "https://oss.sonatype.org/"
     if (isSnapshot.value)
@@ -87,7 +51,7 @@ val commonSettings = Seq(
           <url>http://github.com/gvolpe</url>
         </developer>
       </developers>
-) ++ warnUnusedImport
+)
 
 val CoreDependencies: Seq[ModuleID] = Seq(
   Libraries.logback % "test"
@@ -194,5 +158,5 @@ lazy val microsite = project.in(file("site"))
   .dependsOn(`fs2-rabbit`, `fs2-rabbit-circe`, `examples`)
 
 // CI build
-addCommandAlias("buildFs2Rabbit", ";clean;+coverage;+test;+coverageReport;+coverageAggregate;tut")
+addCommandAlias("buildFs2Rabbit", ";clean;+test;tut")
 
