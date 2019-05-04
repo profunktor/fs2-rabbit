@@ -18,12 +18,9 @@ val routingKey   = RoutingKey("testRK")
 
 def doSomething(publisher: String => IO[Unit]): IO[Unit] = IO.unit
 
-def program(implicit R: Fs2Rabbit[IO]) =
-  R.createConnectionChannel use { implicit channel =>
-    for {
-      p <- R.createPublisher[String](exchangeName, routingKey)	  // String => IO[Unit]
-      _ <- doSomething(p)
-    } yield ()
+def program(R: Fs2Rabbit[IO]) =
+  R.createConnectionChannel.use { implicit channel =>
+    R.createPublisher[String](exchangeName, routingKey).flatMap(doSomething)
   }
 ```
 
@@ -35,8 +32,6 @@ Once you have a `Publisher` you can start publishing messages by simpy calling i
 import cats.effect.Sync
 import com.github.gvolpe.fs2rabbit.model._
 
-def publishSimpleMessage[F[_]: Sync](publisher: String => F[Unit]): F[Unit] = {
-  val message = "Hello world!"
-  publisher(message)
-}
+def publishSimpleMessage[F[_]: Sync](publisher: String => F[Unit]): F[Unit] =
+  publisher("Hello world!")
 ```

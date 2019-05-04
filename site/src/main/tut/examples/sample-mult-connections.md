@@ -18,6 +18,7 @@ We will be consuming messages from `c1` and `c2`, and publishing the result to `
 
 ```tut:book:silent
 import cats.effect.IO
+import cats.implicits._
 import com.github.gvolpe.fs2rabbit.config.declaration.DeclarationQueueConfig
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
 import com.github.gvolpe.fs2rabbit.model._
@@ -35,38 +36,35 @@ val rk = RoutingKey("RKA")
 Here's our program `p1` creating a `Consumer` representing the first `Connection`:
 
 ```tut:book:silent
-def p1(implicit F: Fs2Rabbit[IO]) = F.createConnectionChannel.use { implicit channel =>
-  for {
-    _  <- F.declareExchange(ex, ExchangeType.Topic)
-    _  <- F.declareQueue(DeclarationQueueConfig.default(q1))
-    _  <- F.bindQueue(q1, ex, rk)
-    c1 <- F.createAutoAckConsumer[String](q1)
-  } yield c1
-}
+def p1(R: Fs2Rabbit[IO]) =
+  R.createConnectionChannel.use { implicit channel =>
+    R.declareExchange(ex, ExchangeType.Topic) *>
+    R.declareQueue(DeclarationQueueConfig.default(q1)) *>
+    R.bindQueue(q1, ex, rk) *>
+    R.createAutoAckConsumer[String](q1)
+  }
 ```
 
 Here's our program `p2` creating a `Consumer` representing the second `Connection`:
 
 ```tut:book:silent
-def p2(implicit F: Fs2Rabbit[IO]) = F.createConnectionChannel use { implicit channel =>
-  for {
-    _  <- F.declareExchange(ex, ExchangeType.Topic)
-    _  <- F.declareQueue(DeclarationQueueConfig.default(q1))
-    _  <- F.bindQueue(q1, ex, rk)
-    c2 <- F.createAutoAckConsumer[String](q1)
-  } yield c2
-}
+def p2(R: Fs2Rabbit[IO]) =
+  R.createConnectionChannel use { implicit channel =>
+    R.declareExchange(ex, ExchangeType.Topic) *>
+    R.declareQueue(DeclarationQueueConfig.default(q1)) *>
+    R.bindQueue(q1, ex, rk) *>
+    R.createAutoAckConsumer[String](q1)
+  }
 ```
 
 Here's our program `p3` creating a `Publisher` representing the third `Connection`:
 
 ```tut:book:silent
-def p3(implicit F: Fs2Rabbit[IO]) = F.createConnectionChannel use { implicit channel =>
-  for {
-    _  <- F.declareExchange(ex, ExchangeType.Topic)
-    pb <- F.createPublisher(ex, rk)
-  } yield pb
-}
+def p3(R: Fs2Rabbit[IO]) =
+  R.createConnectionChannel use { implicit channel =>
+    R.declareExchange(ex, ExchangeType.Topic) *>
+    R.createPublisher(ex, rk)
+  }
 ```
 
 And finally we compose all the three programs together:
@@ -74,12 +72,8 @@ And finally we compose all the three programs together:
 ```tut:book:silent
 val pipe: Pipe[IO, AmqpEnvelope[String], String] = _.map(_.payload)
 
-def program(implicit F: Fs2Rabbit[IO]) =
-  for {
-    c1 <- p1
-    c2 <- p2
-    pb <- p3
-    _  <- (c1.through(pipe).evalMap(pb)).concurrently(c2.through(pipe).evalMap(pb))
-            .compile.drain
-  } yield ()
+def program(c: Fs2Rabbit[IO]) =
+  (p1(c), p2(c), p3(c)).mapN { case (c1, c2, pb) =>
+    (c1.through(pipe).evalMap(pb)).concurrently(c2.through(pipe).evalMap(pb)).compile.drain
+  }
 ```

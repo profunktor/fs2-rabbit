@@ -24,7 +24,7 @@ def program(publisher: AmqpMessage[String] => IO[Unit]) = {
   import ioEncoder._
 
   val message = AmqpMessage(Person(1L, "Sherlock", Address(212, "Baker St")), AmqpProperties.empty)
-  Stream(message).covary[IO] map jsonEncode[Person] evalMap publisher
+  Stream(message).covary[IO].map(jsonEncode[Person]).evalMap(publisher)
 }
 ```
 

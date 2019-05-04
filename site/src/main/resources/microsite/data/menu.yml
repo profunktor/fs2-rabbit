@@ -8,8 +8,8 @@ options:
         url: config.html
         menu_section: guide
 
-      - title: Fs2 Rabbit Interpreter
-        url: interpreter.html
+      - title: Fs2 Rabbit Client
+        url: client.html
         menu_section: guide
 
       - title: Connection and Channel
