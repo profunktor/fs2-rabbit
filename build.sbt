@@ -32,6 +32,7 @@ val commonSettings = Seq(
     Libraries.scalaCheck % "test"
   ),
   resolvers += "Apache public" at "https://repository.apache.org/content/groups/public/",
+  scalacOptions ++= Seq("-Xmax-classfile-name", "100"),
   scalafmtOnCompile := true,
   publishTo := {
     val sonatype = "https://oss.sonatype.org/"
