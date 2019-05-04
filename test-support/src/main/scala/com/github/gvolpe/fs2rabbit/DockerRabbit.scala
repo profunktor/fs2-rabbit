@@ -29,7 +29,7 @@ trait DockerRabbit extends BeforeAndAfterAll { self: Suite =>
 
   // override this if the Docker container has to be started before invocation
   // when developing tests, this likely shall be false, so there is no additional overhead starting Rabbit
-  protected lazy val startContainers: Boolean = true
+  protected lazy val startContainers: Boolean = false
 
   protected lazy val rabbitPort: Int           = 5672
   protected lazy val rabbitUser: String        = "guest"
