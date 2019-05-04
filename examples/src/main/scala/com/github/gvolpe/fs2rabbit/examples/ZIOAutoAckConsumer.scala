@@ -40,8 +40,9 @@ object ZIOAutoAckConsumer extends CatsApp {
 
   override def run(args: List[String]): UIO[Int] =
     Fs2Rabbit[Task](config)
-      .flatMap { implicit fs2Rabbit =>
-        ResilientStream.runF(new AutoAckConsumerDemo[Task].program)
+      .flatMap { client =>
+        ResilientStream
+          .runF(new AutoAckConsumerDemo[Task](client).program)
       }
       .run
       .map(_ => 0)

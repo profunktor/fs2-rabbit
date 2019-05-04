@@ -30,9 +30,7 @@ import com.github.gvolpe.fs2rabbit.model._
 import fs2.{Pipe, Pure, Stream}
 import io.circe.Encoder
 
-class AutoAckConsumerDemo[F[_]: Concurrent: Fs2Rabbit] {
-  private val R: Fs2Rabbit[F] = implicitly
-
+class AutoAckConsumerDemo[F[_]: Concurrent](R: Fs2Rabbit[F]) {
   private val queueName    = QueueName("testQ")
   private val exchangeName = ExchangeName("testEX")
   private val routingKey   = RoutingKey("testRK")
