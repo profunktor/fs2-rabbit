@@ -38,7 +38,7 @@ Check the [official guide](https://gvolpe.github.io/fs2-rabbit/guide.html) for u
 
 ## Code of Conduct
 
-See the [Code of Conduct](CODE_OF_CONDUCT.md)
+See the [Code of Conduct](https://gvolpe.github.io/fs2-rabbit/CODE_OF_CONDUCT)
 
 ## LICENSE
 
