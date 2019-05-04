@@ -51,7 +51,7 @@ class AutoAckFlow[F[_]: Concurrent, A](
 
 }
 
-class AutoAckConsumerDemo[F[_]: Concurrent](implicit R: Fs2Rabbit[F]) {
+class AutoAckConsumerDemo[F[_]: Concurrent](R: Fs2Rabbit[F]) {
 
   private val queueName    = QueueName("testQ")
   private val exchangeName = ExchangeName("testEX")
@@ -109,9 +109,9 @@ object MonixAutoAckConsumer extends TaskApp {
   )
 
   override def run(args: List[String]): Task[ExitCode] =
-    Fs2Rabbit[Task](config).flatMap { implicit fs2Rabbit =>
+    Fs2Rabbit[Task](config).flatMap { client =>
       ResilientStream
-        .runF(new AutoAckConsumerDemo[Task].program)
+        .runF(new AutoAckConsumerDemo[Task](client).program)
         .as(ExitCode.Success)
     }
 

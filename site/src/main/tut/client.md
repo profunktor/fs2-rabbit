@@ -1,12 +1,12 @@
 ---
 layout: docs
-title:  "Fs2 Rabbit Interpreter"
+title:  "Fs2 Rabbit Client"
 number: 2
 ---
 
-# Fs2 Rabbit Interpreter
+# Fs2 Rabbit Client
 
-`Fs2Rabbit` is the main interpreter that will be interacting with `RabbitMQ`, a.k.a. the client. All it needs are a `Fs2RabbitConfig`, an optional `SSLContext` and an implicit instance of `ConcurrentEffect[F]`. Its creation is effectful so it is wrapped in `F`.
+`Fs2Rabbit` is the main client that wraps the communication  with `RabbitMQ`. All it needs are a `Fs2RabbitConfig`, an optional `SSLContext` and an instance of `ConcurrentEffect[F]`.
 
 ```tut:book:silent
 import cats.effect._
@@ -22,7 +22,7 @@ object Fs2Rabbit {
 }
 ```
 
-The recommended way to create the interpreter is to call `apply` and `flatMap` on it to make it available as an implicit. For example:
+Its creation is effectful so you need to `flatMap` and pass it as an argument. For example:
 
 ```tut:book:silent
 import cats.effect.{ExitCode, IOApp}
@@ -31,7 +31,7 @@ import com.github.gvolpe.fs2rabbit.model._
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
 
 object Program {
-  def foo[F[_]](implicit R: Fs2Rabbit[F]): F[Unit] = ???
+  def foo[F[_]](client: Fs2Rabbit[F]): F[Unit] = ???
 }
 
 class Demo extends IOApp {
@@ -49,8 +49,8 @@ class Demo extends IOApp {
   )
 
   override def run(args: List[String]): IO[ExitCode] =
-    Fs2Rabbit[IO](config).flatMap { implicit fs2Rabbit =>
-      Program.foo[IO].as(ExitCode.Success)
+    Fs2Rabbit[IO](config).flatMap { client =>
+      Program.foo[IO](client).as(ExitCode.Success)
     }
 
 }

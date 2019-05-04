@@ -35,12 +35,9 @@ val publishingListener: PublishReturn => IO[Unit] = pr => IO(println(s"Publish l
 
 def doSomething(publisher: String => IO[Unit]): IO[Unit] = IO.unit
 
-def program(implicit R: Fs2Rabbit[IO]) =
-  R.createConnectionChannel use { implicit channel =>
-    for {
-      p <- R.createPublisherWithListener[String](exchangeName, routingKey, publishingFlag, publishingListener)	  // String => IO[Unit]
-      _ <- doSomething(p)
-    } yield ()
+def program(R: Fs2Rabbit[IO]) =
+  R.createConnectionChannel.use { implicit channel =>
+    R.createPublisherWithListener[String](exchangeName, routingKey, publishingFlag, publishingListener).flatMap(doSomething)
   }
 ```
 

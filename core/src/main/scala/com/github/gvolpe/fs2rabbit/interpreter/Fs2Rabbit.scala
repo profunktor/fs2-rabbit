@@ -28,7 +28,6 @@ import com.github.gvolpe.fs2rabbit.program._
 import fs2.Stream
 import javax.net.ssl.SSLContext
 
-// $COVERAGE-OFF$
 object Fs2Rabbit {
   def apply[F[_]: ConcurrentEffect](
       config: Fs2RabbitConfig,
@@ -44,7 +43,6 @@ object Fs2Rabbit {
         new Fs2Rabbit[F](conn, amqpClient, acker, consumer)
     }
 }
-// $COVERAGE-ON$
 
 class Fs2Rabbit[F[_]: Concurrent] private[fs2rabbit] (
     connection: Connection[Resource[F, ?]],

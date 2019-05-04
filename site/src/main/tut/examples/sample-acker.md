@@ -52,7 +52,7 @@ class Flow[F[_]: Concurrent, A](
 
 }
 
-class AckerConsumerDemo[F[_]: Concurrent: Timer](implicit R: Fs2Rabbit[F]) {
+class AckerConsumerDemo[F[_]: Concurrent: Timer](R: Fs2Rabbit[F]) {
 
   private val queueName    = QueueName("testQ")
   private val exchangeName = ExchangeName("testEX")
@@ -117,9 +117,9 @@ object IOAckerConsumer extends IOApp {
   )
 
   override def run(args: List[String]): IO[ExitCode] =
-    Fs2Rabbit[IO](config).flatMap { implicit fs2Rabbit =>
+    Fs2Rabbit[IO](config).flatMap { client =>
       ResilientStream
-        .runF(new AckerConsumerDemo[IO]().program)
+        .runF(new AckerConsumerDemo[IO](client).program)
         .as(ExitCode.Success)
     }
 

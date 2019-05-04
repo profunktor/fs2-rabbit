@@ -15,18 +15,18 @@ If the `Exchange` already exists, but has different properties (type, internal, 
 
 ```tut:book:silent
 import cats.effect.IO
+import cats.implicits._
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
 import com.github.gvolpe.fs2rabbit.model._
 
 val x1 = ExchangeName("x1")
 val x2 = ExchangeName("x2")
 
-def exchanges(implicit F: Fs2Rabbit[IO]) = F.createConnectionChannel use { implicit channel =>
-  for {
-    _ <- F.declareExchange(x1, ExchangeType.Topic)
-    _ <- F.declareExchange(x2, ExchangeType.FanOut)
-  } yield ()
-}
+def exchanges(R: Fs2Rabbit[IO]) =
+  R.createConnectionChannel.use { implicit channel =>
+    R.declareExchange(x1, ExchangeType.Topic) *>
+    R.declareExchange(x2, ExchangeType.FanOut)
+  }
 ```
 
 An `Exchange` can be declared passively, meaning that the `Exchange` is required to exist, whatever its properties.
@@ -38,11 +38,10 @@ import com.github.gvolpe.fs2rabbit.model._
 
 val x = ExchangeName("x")
 
-def exchanges(implicit F: Fs2Rabbit[IO]) = F.createConnectionChannel use { implicit channel =>
-  for {
-    _ <- F.declareExchangePassive(x)
-  } yield ()
-}
+def exchanges(R: Fs2Rabbit[IO]) =
+  R.createConnectionChannel.use { implicit channel =>
+    R.declareExchangePassive(x)
+  }
 ```
 
 ### Binding Exchanges
@@ -50,8 +49,8 @@ def exchanges(implicit F: Fs2Rabbit[IO]) = F.createConnectionChannel use { impli
 Two exchanges can be bound together by providing a `RoutingKey` and some extra arguments with `ExchangeBindingArgs`.
 
 ```tut:book:silent
-def binding(F: Fs2Rabbit[IO])(implicit channel: AMQPChannel) =
-  F.bindExchange(x1, x2, RoutingKey("rk"), ExchangeBindingArgs(Map.empty))
+def binding(R: Fs2Rabbit[IO])(implicit channel: AMQPChannel) =
+  R.bindExchange(x1, x2, RoutingKey("rk"), ExchangeBindingArgs(Map.empty))
 ```
 
 Read more about `Exchanges` and `ExchangeType` [here](https://www.rabbitmq.com/tutorials/amqp-concepts.html#exchanges).

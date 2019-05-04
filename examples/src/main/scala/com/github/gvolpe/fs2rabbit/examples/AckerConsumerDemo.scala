@@ -29,9 +29,7 @@ import com.github.gvolpe.fs2rabbit.model.AmqpHeaderVal.{LongVal, StringVal}
 import com.github.gvolpe.fs2rabbit.model._
 import fs2.{Pipe, Pure, Stream}
 
-class AckerConsumerDemo[F[_]: Concurrent: Fs2Rabbit: Timer] {
-  private val R: Fs2Rabbit[F] = implicitly
-
+class AckerConsumerDemo[F[_]: Concurrent: Timer](R: Fs2Rabbit[F]) {
   private val queueName    = QueueName("testQ")
   private val exchangeName = ExchangeName("testEX")
   private val routingKey   = RoutingKey("testRK")

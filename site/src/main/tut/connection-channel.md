@@ -13,9 +13,9 @@ import cats.effect.{IO, Resource}
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
 import com.github.gvolpe.fs2rabbit.model.AMQPChannel
 
-def program(implicit R: Fs2Rabbit[IO]): IO[Unit] = {
+def program(R: Fs2Rabbit[IO]): IO[Unit] = {
   val connChannel: Resource[IO, AMQPChannel] = R.createConnectionChannel
-  connChannel use { implicit channel =>
+  connChannel.use { implicit channel =>
     // Here create consumers, publishers, etc
     IO.unit
   }
