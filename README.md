@@ -36,6 +36,10 @@ Check the [official guide](https://gvolpe.github.io/fs2-rabbit/guide.html) for u
 | [Philips Lighting](http://www.lighting.philips.com/main/home) | Internal microservices interaction. |
 | [Free2Move](https://free2move.com) | Microservice communication. |
 
+## Code of Conduct
+
+See the [Code of Conduct](CODE_OF_CONDUCT.md)
+
 ## LICENSE
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this project except in compliance with
