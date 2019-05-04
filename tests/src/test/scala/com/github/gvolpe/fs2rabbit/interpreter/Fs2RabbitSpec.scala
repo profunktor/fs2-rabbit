@@ -223,14 +223,14 @@ trait Fs2RabbitSpec { self: BaseSpec =>
         publisher         <- createPublisher[String](x, rk)
         _                 <- publisher("NAck-test")
         (acker, consumer) <- createAckerConsumer(q)
-        result <- consumer
-                   .take(1)
-                   .evalMap { msg =>
-                     IO(msg shouldBe expectedDelivery(msg.deliveryTag, x, rk, "NAck-test")) *>
-                       acker(NAck(msg.deliveryTag))
-                   }
-                   .compile
-                   .drain
+        _ <- consumer
+              .take(1)
+              .evalMap { msg =>
+                IO(msg shouldBe expectedDelivery(msg.deliveryTag, x, rk, "NAck-test")) *>
+                  acker(NAck(msg.deliveryTag))
+              }
+              .compile
+              .drain
       } yield emptyAssertion
     }
   }

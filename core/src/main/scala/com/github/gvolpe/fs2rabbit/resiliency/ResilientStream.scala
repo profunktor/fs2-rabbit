@@ -53,7 +53,7 @@ object ResilientStream {
   ): Stream[F, Unit] =
     program.handleErrorWith {
       case NonFatal(err) =>
-        Stream.eval(Log[F].error(err) *> Log[F].info(s"Restarting in ${retry * count}...")) >>
+        Stream.eval(Log[F].error(err) *> Log[F].info(s"Restarting in ${retry.toSeconds * count}...")) >>
           loop[F](Stream.sleep(retry) >> program, retry, count + 1)
     }
 
