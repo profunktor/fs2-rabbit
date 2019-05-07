@@ -11,8 +11,8 @@ These two are the primitive datatypes of the underlying `Java AMQP client`. What
 ```tut:book:silent
 import cats.effect.{IO, Resource}
 import cats.implicits._
-import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
-import com.github.gvolpe.fs2rabbit.model.{AMQPChannel, AMQPConnection}
+import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
+import dev.profunktor.fs2rabbit.model.{AMQPChannel, AMQPConnection}
 
 def program(R: Fs2Rabbit[IO]): IO[Unit] = {
   val connChannel: Resource[IO, AMQPChannel] = R.createConnectionChannel

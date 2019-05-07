@@ -5,11 +5,11 @@ import microsites.ExtraMdFileConfig
 
 name := """fs2-rabbit-root"""
 
-organization in ThisBuild := "com.github.gvolpe"
+organization in ThisBuild := "dev.profunktor"
 
 crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.8")
 
-sonatypeProfileName := "com.github.gvolpe"
+sonatypeProfileName := "dev.profunktor"
 
 promptTheme := PromptTheme(List(
   text("[sbt] ", fg(105)),
@@ -17,11 +17,11 @@ promptTheme := PromptTheme(List(
  ))
 
 val commonSettings = Seq(
-  organizationName := "Fs2 Rabbit",
+  organizationName := "ProfunKtor",
   startYear := Some(2017),
   licenses += ("Apache-2.0", new URL("https://www.apache.org/licenses/LICENSE-2.0.txt")),
-  homepage := Some(url("https://gvolpe.github.io/fs2-rabbit/")),
-  headerLicense := Some(HeaderLicense.ALv2("2017-2019", "Gabriel Volpe")),
+  homepage := Some(url("https://fs2-rabbit.profunktor.dev/")),
+  headerLicense := Some(HeaderLicense.ALv2("2017-2019", "ProfunKtor")),
   libraryDependencies ++= Seq(
     compilerPlugin(Libraries.kindProjector),
     compilerPlugin(Libraries.betterMonadicFor),
@@ -49,7 +49,7 @@ val commonSettings = Seq(
         <developer>
           <id>gvolpe</id>
           <name>Gabriel Volpe</name>
-          <url>http://github.com/gvolpe</url>
+          <url>https://github.com/gvolpe</url>
         </developer>
       </developers>
 )
@@ -122,10 +122,10 @@ lazy val microsite = project.in(file("site"))
   .settings(
     micrositeName := "Fs2 Rabbit",
     micrositeDescription := "RabbitMQ stream-based client",
-    micrositeAuthor := "Gabriel Volpe",
-    micrositeGithubOwner := "gvolpe",
+    micrositeAuthor := "ProfunKtor",
+    micrositeGithubOwner := "profunktor",
     micrositeGithubRepo := "fs2-rabbit",
-    micrositeBaseUrl := "/fs2-rabbit",
+    micrositeBaseUrl := "",
     micrositeExtraMdFiles := Map(
       file("README.md") -> ExtraMdFileConfig(
         "index.md",
@@ -149,7 +149,7 @@ lazy val microsite = project.in(file("site"))
       "white-color"       -> "#FFFFFF"
     ),
     micrositeGitterChannel := true,
-    micrositeGitterChannelUrl := "fs2-rabbit/fs2-rabbit",
+    micrositeGitterChannelUrl := "profunktor-dev/fs2-rabbit",
     micrositePushSiteWith := GitHub4s,
     micrositeGithubToken := sys.env.get("GITHUB_TOKEN"),
     fork in tut := true,

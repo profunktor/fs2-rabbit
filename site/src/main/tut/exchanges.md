@@ -16,8 +16,8 @@ If the `Exchange` already exists, but has different properties (type, internal, 
 ```tut:book:silent
 import cats.effect.IO
 import cats.implicits._
-import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
-import com.github.gvolpe.fs2rabbit.model._
+import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
+import dev.profunktor.fs2rabbit.model._
 
 val x1 = ExchangeName("x1")
 val x2 = ExchangeName("x2")
@@ -33,8 +33,8 @@ An `Exchange` can be declared passively, meaning that the `Exchange` is required
 
 ```tut:book:silent
 import cats.effect.IO
-import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
-import com.github.gvolpe.fs2rabbit.model._
+import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
+import dev.profunktor.fs2rabbit.model._
 
 val x = ExchangeName("x")
 

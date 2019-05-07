@@ -10,8 +10,8 @@ number: 2
 
 ```tut:book:silent
 import cats.effect._
-import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
-import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
+import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
+import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
 import javax.net.ssl.SSLContext
 
 object Fs2Rabbit {
@@ -27,8 +27,8 @@ Its creation is effectful so you need to `flatMap` and pass it as an argument. F
 ```tut:book:silent
 import cats.effect.{ExitCode, IOApp}
 import cats.syntax.functor._
-import com.github.gvolpe.fs2rabbit.model._
-import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
+import dev.profunktor.fs2rabbit.model._
+import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
 
 object Program {
   def foo[F[_]](client: Fs2Rabbit[F]): F[Unit] = ???

@@ -10,7 +10,7 @@ The main `RabbitMQ` configuration should be defined as `Fs2RabbitConfig`. You ch
 
 ```tut:book:silent
 import cats.data.NonEmptyList
-import com.github.gvolpe.fs2rabbit.config.{Fs2RabbitConfig, Fs2RabbitNodeConfig}
+import dev.profunktor.fs2rabbit.config.{Fs2RabbitConfig, Fs2RabbitNodeConfig}
 
 val config = Fs2RabbitConfig(
   virtualHost = "/",

@@ -1,30 +1,30 @@
 fs2-rabbit
 ==========
 
-[![CircleCI](https://circleci.com/gh/gvolpe/fs2-rabbit.svg?style=svg)](https://circleci.com/gh/gvolpe/fs2-rabbit)
-[![Gitter Chat](https://badges.gitter.im/fs2-rabbit/fs2-rabbit.svg)](https://gitter.im/fs2-rabbit/fs2-rabbit)
-[![Maven Central](https://img.shields.io/maven-central/v/com.github.gvolpe/fs2-rabbit_2.12.svg)](http://search.maven.org/#search%7Cga%7C1%7Cfs2-rabbit) <a href="https://typelevel.org/cats/"><img src="https://typelevel.org/cats/img/cats-badge.svg" height="40px" align="right" alt="Cats friendly" /></a>
+[![CircleCI](https://circleci.com/gh/profunktor/fs2-rabbit.svg?style=svg)](https://circleci.com/gh/profunktor/fs2-rabbit)
+[![Gitter Chat](https://badges.gitter.im/profunktor-dev/fs2-rabbit.svg)](https://gitter.im/profunktor-dev/fs2-rabbit)
+[![Maven Central](https://img.shields.io/maven-central/v/dev.profunktor/fs2-rabbit_2.12.svg)](http://search.maven.org/#search%7Cga%7C1%7Cfs2-rabbit) <a href="https://typelevel.org/cats/"><img src="https://typelevel.org/cats/img/cats-badge.svg" height="40px" align="right" alt="Cats friendly" /></a>
 
 
-Stream-based library for [RabbitMQ](https://www.rabbitmq.com/) built-in on top of [Fs2](https://github.com/functional-streams-for-scala/fs2) and the [RabbitMq Java Client](https://github.com/rabbitmq/rabbitmq-java-client).
+Stream-based library for [RabbitMQ](https://www.rabbitmq.com/) built-in on top of [Fs2](http://fs2.io/) and the [RabbitMq Java Client](https://github.com/rabbitmq/rabbitmq-java-client).
 
 ## Dependencies
 
 Add this to your build.sbt:
 
 ```scala
-libraryDependencies += "com.github.gvolpe" %% "fs2-rabbit" % Version
+libraryDependencies += "dev.profunktor" %% "fs2-rabbit" % Version
 ```
 
 And this one if you would like to have Json support:
 
 ```scala
-libraryDependencies += "com.github.gvolpe" %% "fs2-rabbit-circe" % Version
+libraryDependencies += "dev.profunktor" %% "fs2-rabbit-circe" % Version
 ```
 
 ## Usage Guide
 
-Check the [official guide](https://gvolpe.github.io/fs2-rabbit/guide.html) for updated compiling examples.
+Check the [official guide](https://fs2-rabbit.profunktor.dev/guide.html) for updated compiling examples.
 
 ## Adopters
 
@@ -47,7 +47,7 @@ Start a `RabbitMQ` instance using `docker` (recommended):
 
 ## Code of Conduct
 
-See the [Code of Conduct](https://gvolpe.github.io/fs2-rabbit/CODE_OF_CONDUCT)
+See the [Code of Conduct](https://fs2-rabbit.profunktor.dev/CODE_OF_CONDUCT)
 
 ## LICENSE
 

@@ -10,8 +10,8 @@ An `AckerConsumer` delegates the responsibility to acknowledge messages to the u
 
 ```tut:book:silent
 import cats.effect.IO
-import com.github.gvolpe.fs2rabbit.model._
-import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
+import dev.profunktor.fs2rabbit.model._
+import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
 import fs2.Stream
 
 val queueName = QueueName("daQ")

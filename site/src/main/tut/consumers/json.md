@@ -11,9 +11,9 @@ A stream-based `Json Decoder` that can be connected to a stream of `AmqpEnvelope
 ```tut:book:silent
 import cats.effect.IO
 import cats.implicits._
-import com.github.gvolpe.fs2rabbit.json.Fs2JsonDecoder
-import com.github.gvolpe.fs2rabbit.model.AckResult._
-import com.github.gvolpe.fs2rabbit.model._
+import dev.profunktor.fs2rabbit.json.Fs2JsonDecoder
+import dev.profunktor.fs2rabbit.model.AckResult._
+import dev.profunktor.fs2rabbit.model._
 import io.circe._
 import io.circe.generic.auto._
 import fs2._
