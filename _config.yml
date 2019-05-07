@@ -1,11 +1,11 @@
 name: Fs2 Rabbit
-baseurl: /fs2-rabbit
+baseurl: ''
 description: RabbitMQ stream-based client
 highlighter: rouge
 docs: true
 collections:
   tut:
     output: true
-version: 2.0.0-RC1
-org: Fs2 Rabbit
+version: 2.0.0-RC2
+org: ProfunKtor
 markdown: kramdown
