@@ -18,56 +18,45 @@ package com.github.gvolpe.fs2rabbit.interpreter
 
 import cats.data.NonEmptyList
 import cats.effect.{Resource, Sync}
-import cats.syntax.apply._
-import cats.syntax.flatMap._
-import cats.syntax.functor._
+import cats.implicits._
 import com.github.gvolpe.fs2rabbit.algebra.Connection
 import com.github.gvolpe.fs2rabbit.config.Fs2RabbitConfig
 import com.github.gvolpe.fs2rabbit.effects.Log
 import com.github.gvolpe.fs2rabbit.model.{AMQPChannel, AMQPConnection, RabbitChannel, RabbitConnection}
-import com.rabbitmq.client.{Address, ConnectionFactory, Connection => RabbitMQConnection}
+import com.rabbitmq.client.{Address, ConnectionFactory}
 import javax.net.ssl.SSLContext
 
 import scala.collection.JavaConverters._
 
-class ConnectionEffect[F[_]](factory: ConnectionFactory, addresses: NonEmptyList[Address])(
-    implicit F: Sync[F],
-    L: Log[F]
+class ConnectionEffect[F[_]: Log: Sync](
+    factory: ConnectionFactory,
+    addresses: NonEmptyList[Address]
 ) extends Connection[Resource[F, ?]] {
 
-  private[fs2rabbit] val acquireConnectionChannel: F[(RabbitMQConnection, AMQPChannel)] =
-    for {
-      conn    <- F.delay(factory.newConnection(addresses.toList.asJava))
-      channel <- F.delay(conn.createChannel)
-      _       <- L.info(s"Acquired connection: $conn")
-    } yield (conn, RabbitChannel(channel))
+  private[fs2rabbit] def acquireChannel(connection: AMQPConnection): F[AMQPChannel] =
+    Sync[F]
+      .delay(connection.value.createChannel)
+      .flatTap(c => Log[F].info(s"Acquired channel: $c"))
+      .map(RabbitChannel)
 
   private[fs2rabbit] val acquireConnection: F[AMQPConnection] =
-    for {
-      conn <- F.delay(factory.newConnection(addresses.toList.asJava))
-    } yield RabbitConnection(conn)
+    Sync[F]
+      .delay(factory.newConnection(addresses.toList.asJava))
+      .flatTap(c => Log[F].info(s"Acquired connection: $c"))
+      .map(RabbitConnection)
 
   override def createConnection: Resource[F, AMQPConnection] =
     Resource.make(acquireConnection) {
       case RabbitConnection(conn) =>
-        L.info(s"Releasing connection: $conn previously acquired.") *>
-          F.delay { if (conn.isOpen) conn.close() }
+        Log[F].info(s"Releasing connection: $conn previously acquired.") *>
+          Sync[F].delay { if (conn.isOpen) conn.close() }
     }
 
-  /**
-    * Creates a connection and a channel guaranteeing clean up.
-    **/
-  override def createConnectionChannel: Resource[F, AMQPChannel] =
-    Resource
-      .make(
-        acquireConnectionChannel
-      ) {
-        case (conn, RabbitChannel(channel)) =>
-          L.info(s"Releasing connection: $conn previously acquired.") *>
-            F.delay { if (channel.isOpen) channel.close() } *> F.delay { if (conn.isOpen) conn.close() }
-        case _ => F.raiseError[Unit](new Exception("Unreachable"))
-      }
-      .map { case (_, channel) => channel }
+  override def createChannel(connection: AMQPConnection): Resource[F, AMQPChannel] =
+    Resource.make(acquireChannel(connection)) {
+      case RabbitChannel(channel) =>
+        Sync[F].delay { if (channel.isOpen) channel.close() }
+    }
 }
 
 object ConnectionEffect {

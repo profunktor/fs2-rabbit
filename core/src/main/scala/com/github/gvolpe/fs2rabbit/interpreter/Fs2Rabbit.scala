@@ -57,9 +57,12 @@ class Fs2Rabbit[F[_]: Concurrent] private[fs2rabbit] (
   private[fs2rabbit] val publishingProgram: Publishing[F] =
     new PublishingProgram[F](amqpClient)
 
-  def createConnectionChannel: Resource[F, AMQPChannel] = connection.createConnectionChannel
+  def createChannel(conn: AMQPConnection): Resource[F, AMQPChannel] = connection.createChannel(conn)
 
   def createConnection: Resource[F, AMQPConnection] = connection.createConnection
+
+  def createConnectionChannel: Resource[F, AMQPChannel] =
+    createConnection.flatMap(createChannel)
 
   def createAckerConsumer[A](
       queueName: QueueName,

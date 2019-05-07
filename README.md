@@ -36,6 +36,15 @@ Check the [official guide](https://gvolpe.github.io/fs2-rabbit/guide.html) for u
 | [Philips Lighting](http://www.lighting.philips.com/main/home) | Internal microservices interaction. |
 | [Free2Move](https://free2move.com) | Microservice communication. |
 
+## Running tests locally
+
+Start a `RabbitMQ` instance using `docker` (recommended):
+
+```bash
+> docker run -p 5672:5672 rabbitmq:alpine
+> sbt +test
+```
+
 ## Code of Conduct
 
 See the [Code of Conduct](https://gvolpe.github.io/fs2-rabbit/CODE_OF_CONDUCT)
