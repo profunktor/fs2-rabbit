@@ -15,9 +15,9 @@ Declaring a `Queue` will either create a new one or, in case a queue of that nam
 ```tut:book:silent
 import cats.effect.IO
 import cats.implicits._
-import com.github.gvolpe.fs2rabbit.config.declaration._
-import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
-import com.github.gvolpe.fs2rabbit.model._
+import dev.profunktor.fs2rabbit.config.declaration._
+import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
+import dev.profunktor.fs2rabbit.model._
 
 val q1 = QueueName("q1")
 val q2 = QueueName("q2")

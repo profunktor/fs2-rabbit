@@ -10,8 +10,8 @@ A `Publisher` is simply created by specifying an `ExchangeName` and a `RoutingKe
 
 ```tut:book:silent
 import cats.effect.IO
-import com.github.gvolpe.fs2rabbit.model._
-import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
+import dev.profunktor.fs2rabbit.model._
+import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
 
 val exchangeName = ExchangeName("testEX")
 val routingKey   = RoutingKey("testRK")
@@ -30,7 +30,7 @@ Once you have a `Publisher` you can start publishing messages by simpy calling i
 
 ```tut:book:silent
 import cats.effect.Sync
-import com.github.gvolpe.fs2rabbit.model._
+import dev.profunktor.fs2rabbit.model._
 
 def publishSimpleMessage[F[_]: Sync](publisher: String => F[Unit]): F[Unit] =
   publisher("Hello world!")

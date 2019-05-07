@@ -9,11 +9,11 @@ number: 6
 There are two types of consumer: `AutoAck` and `AckerConsumer`. Each of them are parameterized on the effect type (eg. `IO`) and the data type they consume (the payload).
 
 ```tut:invisible
-import com.github.gvolpe.fs2rabbit.model._
+import dev.profunktor.fs2rabbit.model._
 import cats.data.Kleisli
 import cats.implicits._
 import cats._
-import com.github.gvolpe.fs2rabbit.effects.EnvelopeDecoder
+import dev.profunktor.fs2rabbit.effects.EnvelopeDecoder
 ```
 
 # `EnvelopeDecoder`

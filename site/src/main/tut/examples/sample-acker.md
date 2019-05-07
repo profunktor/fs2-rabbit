@@ -14,12 +14,12 @@ import java.nio.charset.StandardCharsets.UTF_8
 import cats.data.Kleisli
 import cats.effect.{Concurrent, Timer, Sync}
 import cats.implicits._
-import com.github.gvolpe.fs2rabbit.config.declaration.DeclarationQueueConfig
-import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
-import com.github.gvolpe.fs2rabbit.json.Fs2JsonEncoder
-import com.github.gvolpe.fs2rabbit.model.AckResult.Ack
-import com.github.gvolpe.fs2rabbit.model.AmqpHeaderVal.{LongVal, StringVal}
-import com.github.gvolpe.fs2rabbit.model._
+import dev.profunktor.fs2rabbit.config.declaration.DeclarationQueueConfig
+import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
+import dev.profunktor.fs2rabbit.json.Fs2JsonEncoder
+import dev.profunktor.fs2rabbit.model.AckResult.Ack
+import dev.profunktor.fs2rabbit.model.AmqpHeaderVal.{LongVal, StringVal}
+import dev.profunktor.fs2rabbit.model._
 import fs2.{Pipe, Pure, Stream}
 
 class Flow[F[_]: Concurrent, A](
@@ -93,9 +93,9 @@ At the edge of out program we define our effect, `cats.effect.IO` in this case, 
 import cats.data.NonEmptyList
 import cats.effect.{ExitCode, IO, IOApp}
 import cats.syntax.functor._
-import com.github.gvolpe.fs2rabbit.config.{Fs2RabbitConfig, Fs2RabbitNodeConfig}
-import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
-import com.github.gvolpe.fs2rabbit.resiliency.ResilientStream
+import dev.profunktor.fs2rabbit.config.{Fs2RabbitConfig, Fs2RabbitNodeConfig}
+import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
+import dev.profunktor.fs2rabbit.resiliency.ResilientStream
 
 object IOAckerConsumer extends IOApp {
 

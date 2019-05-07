@@ -19,9 +19,9 @@ We will be consuming messages from `c1` and `c2`, and publishing the result to `
 ```tut:book:silent
 import cats.effect.IO
 import cats.implicits._
-import com.github.gvolpe.fs2rabbit.config.declaration.DeclarationQueueConfig
-import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
-import com.github.gvolpe.fs2rabbit.model._
+import dev.profunktor.fs2rabbit.config.declaration.DeclarationQueueConfig
+import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
+import dev.profunktor.fs2rabbit.model._
 import fs2._
 
 import scala.concurrent.ExecutionContext

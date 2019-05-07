@@ -22,8 +22,8 @@ It is simply created by specifying `ExchangeName`, `RoutingKey`, `PublishingFlag
 
 ```tut:book:silent
 import cats.effect.IO
-import com.github.gvolpe.fs2rabbit.model._
-import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
+import dev.profunktor.fs2rabbit.model._
+import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
 
 val exchangeName = ExchangeName("testEX")
 val routingKey   = RoutingKey("testRK")
@@ -47,7 +47,7 @@ Once you have a `Publisher` you can start publishing messages by calling it:
 
 ```tut:book:silent
 import cats.effect.Sync
-import com.github.gvolpe.fs2rabbit.model._
+import dev.profunktor.fs2rabbit.model._
 
 def publishSimpleMessage[F[_]: Sync](publisher: String => F[Unit]): F[Unit] = {
   val message = "Hello world!"

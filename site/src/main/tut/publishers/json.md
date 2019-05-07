@@ -10,8 +10,8 @@ A stream-based `Json Encoder` that can be connected to a `Publisher` is provided
 
 ```tut:book:silent
 import cats.effect.IO
-import com.github.gvolpe.fs2rabbit.json.Fs2JsonEncoder
-import com.github.gvolpe.fs2rabbit.model._
+import dev.profunktor.fs2rabbit.json.Fs2JsonEncoder
+import dev.profunktor.fs2rabbit.model._
 import fs2.Stream
 import io.circe.generic.auto._
 
