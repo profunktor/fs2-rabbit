@@ -22,6 +22,9 @@ And this one if you would like to have Json support:
 libraryDependencies += "dev.profunktor" %% "fs2-rabbit-circe" % Version
 ```
 
+Note: previous artifacts `<= 2.0.0-RC1` were published using the `com.github.gvolpe` group id (see [migration
+guide](https://github.com/profunktor/fs2-rabbit/wiki/Migration-guide-(Vim)))
+
 ## Usage Guide
 
 Check the [official guide](https://fs2-rabbit.profunktor.dev/guide.html) for updated compiling examples.
