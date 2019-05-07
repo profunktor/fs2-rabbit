@@ -20,6 +20,5 @@ import com.github.gvolpe.fs2rabbit.model.{AMQPChannel, AMQPConnection}
 
 trait Connection[F[_]] {
   def createConnection: F[AMQPConnection]
-
-  def createConnectionChannel: F[AMQPChannel]
+  def createChannel(connection: AMQPConnection): F[AMQPChannel]
 }

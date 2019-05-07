@@ -10,8 +10,9 @@ These two are the primitive datatypes of the underlying `Java AMQP client`. What
 
 ```tut:book:silent
 import cats.effect.{IO, Resource}
+import cats.implicits._
 import com.github.gvolpe.fs2rabbit.interpreter.Fs2Rabbit
-import com.github.gvolpe.fs2rabbit.model.AMQPChannel
+import com.github.gvolpe.fs2rabbit.model.{AMQPChannel, AMQPConnection}
 
 def program(R: Fs2Rabbit[IO]): IO[Unit] = {
   val connChannel: Resource[IO, AMQPChannel] = R.createConnectionChannel
@@ -20,4 +21,27 @@ def program(R: Fs2Rabbit[IO]): IO[Unit] = {
     IO.unit
   }
 }
+```
+
+# Multiple channels per connection
+
+Creating a `Connection` is expensive so you might want to reuse it and create multiple `Channel`s from it. There are two primitive operations that allow you to do this:
+
+- `createConnection: Resource[F, AMQPConnection]`
+- `createChannel(conn: AMQPConnection): Resource[F, AMQPChannel]`
+
+The operation `createConnectionChannel` is a convenient function defined in terms of these two primitives.
+
+```tut:book:silent
+def foo(R: Fs2Rabbit[IO])(implicit channel: AMQPChannel): IO[Unit] = IO.unit
+
+def multChannels(R: Fs2Rabbit[IO]): IO[Unit] =
+  R.createConnection.use { conn =>
+    R.createChannel(conn).use { implicit channel =>
+      foo(R)
+    } *>
+    R.createChannel(conn).use { implicit channel =>
+      foo(R)
+    }
+  }
 ```
