@@ -9,6 +9,8 @@ organization in ThisBuild := "dev.profunktor"
 
 crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.8")
 
+scalaVersion in ThisBuild := "2.12.8" // needed for metals
+
 sonatypeProfileName := "dev.profunktor"
 
 promptTheme := PromptTheme(List(
@@ -22,7 +24,6 @@ val commonSettings = Seq(
   licenses += ("Apache-2.0", new URL("https://www.apache.org/licenses/LICENSE-2.0.txt")),
   homepage := Some(url("https://fs2-rabbit.profunktor.dev/")),
   headerLicense := Some(HeaderLicense.ALv2("2017-2019", "ProfunKtor")),
-  scalaVersion in ThisBuild := "2.12.8",
   libraryDependencies ++= Seq(
     compilerPlugin(Libraries.kindProjector),
     compilerPlugin(Libraries.betterMonadicFor),
