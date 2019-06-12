@@ -9,7 +9,8 @@ organization in ThisBuild := "dev.profunktor"
 
 crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.8")
 
-scalaVersion in ThisBuild := "2.12.8" // needed for metals
+// makes `tut` fail :( -> https://github.com/tpolecat/tut/issues/255
+//scalaVersion in ThisBuild := "2.12.8" // needed for metals
 
 sonatypeProfileName := "dev.profunktor"
 
