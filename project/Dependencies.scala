@@ -4,7 +4,7 @@ object Dependencies {
 
   object Versions {
     val catsEffect = "1.3.1"
-    val fs2        = "1.0.4"
+    val fs2        = "1.0.5"
     val circe      = "0.11.1"
     val amqpClient = "5.7.1"
     val logback    = "1.2.3"
