@@ -17,8 +17,7 @@
 package dev.profunktor.fs2rabbit
 
 import scala.annotation.implicitNotFound
-import scala.language.implicitConversions
-import scala.jdk.CollectionConverters._
+import dev.profunktor.fs2rabbit.javaConversion._
 
 object arguments {
 

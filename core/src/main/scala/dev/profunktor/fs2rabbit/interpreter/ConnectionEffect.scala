@@ -19,19 +19,18 @@ package dev.profunktor.fs2rabbit.interpreter
 import cats.data.NonEmptyList
 import cats.effect.{Resource, Sync}
 import cats.implicits._
+import com.rabbitmq.client.{Address, ConnectionFactory}
 import dev.profunktor.fs2rabbit.algebra.Connection
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
 import dev.profunktor.fs2rabbit.effects.Log
+import dev.profunktor.fs2rabbit.javaConversion._
 import dev.profunktor.fs2rabbit.model.{AMQPChannel, AMQPConnection, RabbitChannel, RabbitConnection}
-import com.rabbitmq.client.{Address, ConnectionFactory}
 import javax.net.ssl.SSLContext
 
-import scala.jdk.CollectionConverters._
-
 class ConnectionEffect[F[_]: Log: Sync](
-                                         factory: ConnectionFactory,
-                                         addresses: NonEmptyList[Address]
-                                       ) extends Connection[Resource[F, ?]] {
+    factory: ConnectionFactory,
+    addresses: NonEmptyList[Address]
+) extends Connection[Resource[F, ?]] {
 
   private[fs2rabbit] def acquireChannel(connection: AMQPConnection): F[AMQPChannel] =
     Sync[F]
@@ -62,9 +61,9 @@ class ConnectionEffect[F[_]: Log: Sync](
 object ConnectionEffect {
 
   private[fs2rabbit] def mkConnectionFactory[F[_]: Sync](
-                                                          config: Fs2RabbitConfig,
-                                                          sslContext: Option[SSLContext]
-                                                        ): F[(ConnectionFactory, NonEmptyList[Address])] =
+      config: Fs2RabbitConfig,
+      sslContext: Option[SSLContext]
+  ): F[(ConnectionFactory, NonEmptyList[Address])] =
     Sync[F].delay {
       val factory   = new ConnectionFactory()
       val firstNode = config.nodes.head
