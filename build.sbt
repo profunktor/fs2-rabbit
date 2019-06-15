@@ -74,12 +74,12 @@ val JsonDependencies: Seq[ModuleID] = Seq(
   Libraries.circeParser
 )
 
-val ExamplesDependencies: Seq[ModuleID] = Seq(
-  /*Libraries.monix,*/
-  /*Libraries.zioCore,*/
-  /*Libraries.zioCats,*/
-  Libraries.logback % "runtime"
-)
+def ExamplesDependencies(scalaVersionStr: String): Seq[ModuleID] = Seq(
+  Libraries.monix(scalaVersionStr),
+  Libraries.zioCore(scalaVersionStr),
+  Libraries.zioCats(scalaVersionStr),
+  Some(Libraries.logback % "runtime")
+).collect{case Some(x) => x}
 
 lazy val noPublish = Seq(
   publish := {},
@@ -120,7 +120,7 @@ lazy val tests = project.in(file("tests"))
 
 lazy val examples = project.in(file("examples"))
   .settings(commonSettings: _*)
-  .settings(libraryDependencies ++= ExamplesDependencies)
+  .settings(libraryDependencies ++= ExamplesDependencies(scalaVersion.value))
   .settings(noPublish)
   .enablePlugins(AutomateHeaderPlugin)
   .dependsOn(`fs2-rabbit`, `fs2-rabbit-circe`)
