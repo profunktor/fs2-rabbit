@@ -160,6 +160,8 @@ object model {
           .expiration(props.expiration.orNull)
           .replyTo(props.replyTo.orNull)
           .clusterId(props.clusterId.orNull)
+          // Note we don't use mapValues here to maintain compatibility between
+          // Scala 2.12 and 2.13
           .headers(props.headers.map { case (key, value) => (key, value.impure) }.asJava)
           .build()
     }

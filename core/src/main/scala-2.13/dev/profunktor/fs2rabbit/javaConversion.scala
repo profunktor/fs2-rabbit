@@ -18,4 +18,8 @@ package dev.profunktor.fs2rabbit
 
 import scala.collection.convert.{AsJavaExtensions, AsScalaExtensions}
 
+// This exists purely for compatibility between Scala 2.13 and 2.12 since the
+// Java conversions have been moved into a different package between the two,
+// allowing us to have a single, consistent import everywhere else in this
+// codebase across both 2.13 and 2.12.
 object javaConversion extends AsJavaExtensions with AsScalaExtensions
