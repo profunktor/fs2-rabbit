@@ -16,35 +16,37 @@
 
 package dev.profunktor.fs2rabbit.examples
 
-import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
-import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
+//import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
+//import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
 
-import scalaz.zio._
-import scalaz.zio.interop.catz._
-import scalaz.zio.interop.catz.implicits._
-import dev.profunktor.fs2rabbit.resiliency.ResilientStream
+//import scalaz.zio._
+//import scalaz.zio.interop.catz._
+//import scalaz.zio.interop.catz.implicits._
+//import dev.profunktor.fs2rabbit.resiliency.ResilientStream
 
-object ZIOAutoAckConsumer extends CatsApp {
+object ZIOAutoAckConsumer {}
 
-  val config = Fs2RabbitConfig(
-    virtualHost = "/",
-    host = "127.0.0.1",
-    username = Some("guest"),
-    password = Some("guest"),
-    port = 5672,
-    ssl = false,
-    connectionTimeout = 3,
-    requeueOnNack = false,
-    internalQueueSize = Some(500)
-  )
+//object ZIOAutoAckConsumer extends CatsApp {
 
-  override def run(args: List[String]): UIO[Int] =
-    Fs2Rabbit[Task](config)
-      .flatMap { client =>
-        ResilientStream
-          .runF(new AutoAckConsumerDemo[Task](client).program)
-      }
-      .run
-      .map(_ => 0)
+//val config = Fs2RabbitConfig(
+//virtualHost = "/",
+//host = "127.0.0.1",
+//username = Some("guest"),
+//password = Some("guest"),
+//port = 5672,
+//ssl = false,
+//connectionTimeout = 3,
+//requeueOnNack = false,
+//internalQueueSize = Some(500)
+//)
 
-}
+//override def run(args: List[String]): UIO[Int] =
+//Fs2Rabbit[Task](config)
+//.flatMap { client =>
+//ResilientStream
+//.runF(new AutoAckConsumerDemo[Task](client).program)
+//}
+//.run
+//.map(_ => 0)
+
+//}

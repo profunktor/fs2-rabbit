@@ -7,7 +7,7 @@ name := """fs2-rabbit-root"""
 
 organization in ThisBuild := "dev.profunktor"
 
-crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.8")
+crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.8", "2.13.0")
 
 // makes `tut` fail :( -> https://github.com/tpolecat/tut/issues/255
 //scalaVersion in ThisBuild := "2.12.8" // needed for metals
@@ -18,6 +18,13 @@ promptTheme := PromptTheme(List(
   text("[sbt] ", fg(105)),
   text(_ => "fs2-rabbit", fg(15)).padRight(" λ ")
  ))
+
+def crossScalacOptions(scalaVersionStr: String) = CrossVersion.partialVersion(scalaVersionStr) match {
+  case Some((2, 13)) => Seq()
+  case Some((2, 12)) => Seq("-Xmax-classfile-name", "100")
+  case Some((2, 11)) => Seq("-Xmax-classfile-name", "100")
+  case _ => Seq()
+}
 
 val commonSettings = Seq(
   organizationName := "ProfunKtor",
@@ -35,7 +42,7 @@ val commonSettings = Seq(
     Libraries.scalaCheck % "test"
   ),
   resolvers += "Apache public" at "https://repository.apache.org/content/groups/public/",
-  scalacOptions ++= Seq("-Xmax-classfile-name", "100"),
+  scalacOptions ++= crossScalacOptions(scalaVersion.value),
   scalafmtOnCompile := true,
   publishTo := {
     val sonatype = "https://oss.sonatype.org/"
@@ -68,9 +75,9 @@ val JsonDependencies: Seq[ModuleID] = Seq(
 )
 
 val ExamplesDependencies: Seq[ModuleID] = Seq(
-  Libraries.monix,
-  Libraries.zioCore,
-  Libraries.zioCats,
+  /*Libraries.monix,*/
+  /*Libraries.zioCore,*/
+  /*Libraries.zioCats,*/
   Libraries.logback % "runtime"
 )
 
