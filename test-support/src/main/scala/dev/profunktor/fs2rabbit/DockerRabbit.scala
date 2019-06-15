@@ -20,7 +20,7 @@ import cats.effect.{ContextShift, IO}
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
 import org.scalatest.{BeforeAndAfterAll, Suite}
 
-import scala.concurrent.{ExecutionContext, SyncVar}
+import scala.concurrent.ExecutionContext
 import scala.sys.process._
 
 trait DockerRabbit extends BeforeAndAfterAll { self: Suite =>
