@@ -19,9 +19,6 @@ package dev.profunktor.fs2rabbit
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets.UTF_8
 
-import java.nio.charset.Charset
-import java.nio.charset.StandardCharsets.UTF_8
-
 import cats.{Applicative, ApplicativeError}
 import cats.data.Kleisli
 import cats.implicits._
