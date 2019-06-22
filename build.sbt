@@ -3,11 +3,11 @@ import com.scalapenos.sbt.prompt._
 import Dependencies._
 import microsites.ExtraMdFileConfig
 
-name := """fs2-rabbit-root"""
+name := "fs2-rabbit-root"
 
 organization in ThisBuild := "dev.profunktor"
 
-crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.8")
+crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.8", "2.13.0")
 
 // makes `tut` fail :( -> https://github.com/tpolecat/tut/issues/255
 //scalaVersion in ThisBuild := "2.12.8" // needed for metals
@@ -35,7 +35,7 @@ val commonSettings = Seq(
     Libraries.scalaCheck % "test"
   ),
   resolvers += "Apache public" at "https://repository.apache.org/content/groups/public/",
-  scalacOptions ++= Seq("-Xmax-classfile-name", "100"),
+//  scalacOptions ++= Seq("-Xmax-classfile-name", "100"),
   scalafmtOnCompile := true,
   publishTo := {
     val sonatype = "https://oss.sonatype.org/"
@@ -78,7 +78,8 @@ lazy val noPublish = Seq(
   publish := {},
   publishLocal := {},
   publishArtifact := false,
-  skip in publish := true
+  skip in publish := true,
+  crossScalaVersions := Seq("2.12.8")
 )
 
 lazy val `fs2-rabbit-root` = project.in(file("."))
@@ -156,6 +157,7 @@ lazy val microsite = project.in(file("site"))
     micrositePushSiteWith := GitHub4s,
     micrositeGithubToken := sys.env.get("GITHUB_TOKEN"),
     fork in tut := true,
+    scalaVersion := "2.12.8",
     scalacOptions in Tut --= Seq(
       "-Xfatal-warnings",
       "-Ywarn-unused-import",
