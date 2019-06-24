@@ -32,22 +32,6 @@ object Dependencies {
     override val circe      = "0.12.0-M3"
   }
 
-  object Versions {
-    val catsEffect = "2.0.0-M4"
-    val fs2        = "1.1.0-M1"
-    val circe      = "0.12.0-M3"
-    val amqpClient = "5.7.1"
-    val logback    = "1.2.3"
-    val monix      = "3.0.0-RC2"
-    val zio        = "1.0-RC5"
-
-    val kindProjector    = "0.10.3"
-    val betterMonadicFor = "0.3.0"
-
-    val scalaTest  = "3.0.8"
-    val scalaCheck = "1.14.0"
-  }
-
   sealed abstract class Library[V <: Version](val version: V) {
     def circe(artifact: String): ModuleID = "io.circe" %% artifact % version.circe
 
@@ -60,7 +44,7 @@ object Dependencies {
     lazy val betterMonadicFor = "com.olegpy"    %% "better-monadic-for" % version.betterMonadicFor
 
     // Examples
-    lazy val logback = "ch.qos.logback" % "logback-classic" % Versions.logback
+    lazy val logback = "ch.qos.logback" % "logback-classic" % version.logback
 
     // Json libraries
     lazy val circeCore    = circe("circe-core")
