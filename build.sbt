@@ -19,12 +19,7 @@ promptTheme := PromptTheme(List(
   text(_ => "fs2-rabbit", fg(15)).padRight(" λ ")
  ))
 
-def crossScalacOptions(scalaVersionStr: String) = CrossVersion.partialVersion(scalaVersionStr) match {
-  case Some((2, 13)) => Seq()
-  case Some((2, 12)) => Seq("-Xmax-classfile-name", "100")
-  case Some((2, 11)) => Seq("-Xmax-classfile-name", "100")
-  case _ => Seq()
-}
+
 
 // We use String as our input type because `scalaVersion.value` cannot be called
 // in a lot of places in a build.sbt file where it would be convenient to do so
@@ -57,7 +52,6 @@ val commonSettings = Seq(
     )
   },
   resolvers += "Apache public" at "https://repository.apache.org/content/groups/public/",
-  scalacOptions ++= crossScalacOptions(scalaVersion.value),
   scalafmtOnCompile := true,
   publishTo := {
     val sonatype = "https://oss.sonatype.org/"
@@ -97,16 +91,16 @@ def JsonDependencies(scalaVersionStr: String): Seq[ModuleID] = {
 
 def ExamplesDependencies(scalaVersionStr: String): Seq[ModuleID] = {
   determineLibrary(scalaVersionStr) match {
-    case library: Scala213Libraries.type => List(library.logback % "runtime")
+    case library: Scala213Libraries.type => Seq(library.logback % "runtime")
     case library: Scala212Libraries.type =>
-      List(
+      Seq(
         library.logback % "runtime",
         library.monix,
         library.zioCore,
         library.zioCats
       )
     case library: Scala211Libraries.type =>
-      List(
+      Seq(
         library.logback % "runtime",
         library.monix,
         library.zioCore,
