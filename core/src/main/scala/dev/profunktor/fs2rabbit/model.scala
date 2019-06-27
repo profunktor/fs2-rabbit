@@ -18,19 +18,26 @@ package dev.profunktor.fs2rabbit
 
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets.UTF_8
+import java.time.Instant
+import java.time.temporal.ChronoUnit
 import java.util.Date
 
-import cats.{Applicative, ApplicativeError}
 import cats.data.Kleisli
 import cats.implicits._
+import cats.{Applicative, ApplicativeError}
+import com.rabbitmq.client.{AMQP, Channel, Connection, LongString}
 import dev.profunktor.fs2rabbit.arguments.Arguments
 import dev.profunktor.fs2rabbit.effects.{EnvelopeDecoder, MessageEncoder}
-import dev.profunktor.fs2rabbit.model.AmqpHeaderVal._
 import dev.profunktor.fs2rabbit.javaConversion._
-import com.rabbitmq.client.{AMQP, Channel, Connection, LongString}
+import dev.profunktor.fs2rabbit.model.AmqpHeaderVal._
 import fs2.Stream
+import scodec.bits.ByteVector
 
 object model {
+
+  sealed trait AMQPTableReadError
+  final case class UnrecognizedFieldValueJavaType(rawObject: AnyRef) extends AMQPTableReadError
+  final case class TableKeyLengthIsTooLong(key: String)              extends AMQPTableReadError
 
   type StreamAckerConsumer[F[_], A] = (AckResult => F[Unit], Stream[F, AmqpEnvelope[A]])
 
@@ -81,6 +88,48 @@ object model {
     final case class NAck(deliveryTag: DeliveryTag) extends AckResult
   }
 
+  /**
+    * A string whose UTF-8 encoded representation is 255 bytes or less.
+    *
+    * Parts of the AMQP spec call for the use of such strings.
+    */
+  sealed abstract case class ShortString(str: String)
+  object ShortString {
+    val MaxByteLength = 255
+
+    def of(str: String): Option[ShortString] =
+      if (str.getBytes("utf-8").length <= MaxByteLength) {
+        Some(new ShortString(str) {})
+      } else {
+        None
+      }
+
+    def unsafeOf(str: String): ShortString = new ShortString(str) {}
+  }
+
+  /**
+    * This hierarchy is meant to reflect the output of
+    * [[com.rabbitmq.client.impl.ValueReader.readFieldValue]] in a type-safe
+    * way.
+    *
+    * Note that we don't include LongString here because of some ambiguity in
+    * how RabbitMQ's Java client deals with it. While it will happily write out
+    * LongStrings and Strings separately, when reading it will always interpret
+    * a String as a LongString and so will never return a normal String.
+    * This means that if we included separate LongStringVal and StringVals we
+    * could have encode-decode round-trip differences (taking a String sending
+    * it off to RabbitMQ and reading it back will result in a LongString).
+    * We therefore collapse both LongStrings and Strings into a single StringVal
+    * backed by an ordinary String.
+    *
+    * Note that this type hierarchy is NOT exactly identical to the AMQP 0-9-1
+    * spec. This is partially because RabbitMQ does not exactly follow the spec
+    * itself (see https://www.rabbitmq.com/amqp-0-9-1-errata.html#section_3)
+    * and also because the underlying Java client chooses to try to map the
+    * RabbitMQ types into Java primitive types when possible, collapsing a lot
+    * of the signed and unsigned types because Java does not have the signed
+    * and unsigned equivalents.
+    */
   sealed trait AmqpHeaderVal extends Product with Serializable {
 
     /**
@@ -89,43 +138,81 @@ object model {
       * [[com.rabbitmq.client.impl.ValueWriter]].
       */
     def impure: AnyRef = this match {
-      case BigDecimalVal(v) => v.bigDecimal
-      case DateVal(v)       => v
-      case TableVal(v)      => v.asJava
-      case ByteVal(v)       => Byte.box(v)
-      case DoubleVal(v)     => Double.box(v)
-      case FloatVal(v)      => Float.box(v)
-      case ShortVal(v)      => Short.box(v)
-      case ByteArrayVal(v)  => v
-      case BooleanVal(v)    => Boolean.box(v)
-      case IntVal(v)        => Int.box(v)
-      case LongVal(v)       => Long.box(v)
-      case StringVal(v)     => v
-      case LongStringVal(v) => v
-      case ArrayVal(v)      => v.asJava
-      case NullVal          => null
+      case DecimalVal(v)   => v.bigDecimal
+      case TimestampVal(v) => Date.from(v)
+      case TableVal(v)     => v.map { case (key, value) => key.str -> value.impure }.asJava
+      case ByteVal(v)      => Byte.box(v)
+      case DoubleVal(v)    => Double.box(v)
+      case FloatVal(v)     => Float.box(v)
+      case ShortVal(v)     => Short.box(v)
+      case ByteArrayVal(v) => v.toArray
+      case BooleanVal(v)   => Boolean.box(v)
+      case IntVal(v)       => Int.box(v)
+      case LongVal(v)      => Long.box(v)
+      case StringVal(v)    => v
+      case ArrayVal(v)     => v.map(_.impure).asJava
+      case NullVal         => null
     }
   }
 
   object AmqpHeaderVal {
-    // This hierarchy is meant to reflect the output of
-    // [[com.rabbitmq.client.impl.ValueReader.readFieldValue]] in a type-safe
-    // way.
-    final case class BigDecimalVal(value: BigDecimal)            extends AmqpHeaderVal
-    final case class DateVal(value: Date)                        extends AmqpHeaderVal
-    final case class TableVal(value: Map[String, AmqpHeaderVal]) extends AmqpHeaderVal
-    final case class ByteVal(value: Byte)                        extends AmqpHeaderVal
-    final case class DoubleVal(value: Double)                    extends AmqpHeaderVal
-    final case class FloatVal(value: Float)                      extends AmqpHeaderVal
-    final case class ShortVal(value: Short)                      extends AmqpHeaderVal
-    final case class ByteArrayVal(value: Array[Byte])            extends AmqpHeaderVal
-    final case class BooleanVal(value: Boolean)                  extends AmqpHeaderVal
-    final case class IntVal(value: Int)                          extends AmqpHeaderVal
-    final case class LongVal(value: Long)                        extends AmqpHeaderVal
-    final case class StringVal(value: String)                    extends AmqpHeaderVal
-    final case class LongStringVal(value: LongString)            extends AmqpHeaderVal
-    final case class ArrayVal(v: Vector[AmqpHeaderVal])          extends AmqpHeaderVal
-    case object NullVal                                          extends AmqpHeaderVal
+
+    /**
+      * A type for AMQP timestamps.
+      *
+      * Note that this is only accurate to the second (as supported by the AMQP
+      * spec and the underlying RabbitMQ implementation).
+      */
+    sealed abstract case class TimestampVal private (instantWithOneSecondAccuracy: Instant) extends AmqpHeaderVal
+    object TimestampVal {
+      def fromInstant(instant: Instant): TimestampVal =
+        new TimestampVal(instant.truncatedTo(ChronoUnit.SECONDS)) {}
+
+      def fromDate(date: Date): TimestampVal = fromInstant(date.toInstant)
+    }
+
+    /**
+      * A type for precise decimal values. Note that while it is backed by a
+      * [[BigDecimal]] (just like the underlying Java library), there is a limit
+      * on the size and precision of the decimal: its representation cannot
+      * exceed 4 bytes due to the AMQP spec.
+      */
+    sealed abstract case class DecimalVal private (value: BigDecimal) extends AmqpHeaderVal
+    object DecimalVal {
+      val MaxRepresentationSize: Int = 32
+
+      /**
+        * If the representation is too large you'll get None.
+        */
+      def fromBigDecimal(bigDecimal: BigDecimal): Option[DecimalVal] = {
+        val representationTooLarge = bigDecimal.bigDecimal.unscaledValue.bitLength > MaxRepresentationSize
+        if (representationTooLarge) {
+          None
+        } else {
+          Some(new DecimalVal(bigDecimal) {})
+        }
+      }
+
+      /**
+        * Only use if you're certain that the BigDecimal's representation is
+        * smaller than [[MaxRepresentationSize]].
+        */
+      def unsafeFromBigDecimal(bigDecimal: BigDecimal): DecimalVal =
+        new DecimalVal(bigDecimal) {}
+    }
+
+    final case class TableVal(value: Map[ShortString, AmqpHeaderVal]) extends AmqpHeaderVal
+    final case class ByteVal(value: Byte)                             extends AmqpHeaderVal
+    final case class DoubleVal(value: Double)                         extends AmqpHeaderVal
+    final case class FloatVal(value: Float)                           extends AmqpHeaderVal
+    final case class ShortVal(value: Short)                           extends AmqpHeaderVal
+    final case class ByteArrayVal(value: ByteVector)                  extends AmqpHeaderVal
+    final case class BooleanVal(value: Boolean)                       extends AmqpHeaderVal
+    final case class IntVal(value: Int)                               extends AmqpHeaderVal
+    final case class LongVal(value: Long)                             extends AmqpHeaderVal
+    final case class StringVal(value: String)                         extends AmqpHeaderVal
+    final case class ArrayVal(v: Vector[AmqpHeaderVal])               extends AmqpHeaderVal
+    case object NullVal                                               extends AmqpHeaderVal
 
     /**
       * This method is meant purely to translate the output of
@@ -134,24 +221,34 @@ object model {
       * [[com.rabbitmq.client.impl.ValueReader.readFieldValue]] does not output.
       */
     def unsafeFrom(value: AnyRef): AmqpHeaderVal = value match {
-      case bd: java.math.BigDecimal => BigDecimalVal(bd)
-      case d: java.util.Date        => DateVal(d)
+      // It's safe to call unsafeFromBigDecimal here because if the value came
+      // from readFieldValue, we're assured that the check on BigDecimal
+      // representation size must have already occurred because ValueReader will
+      // only read a maximum of 4 bytes before bailing out.
+      case bd: java.math.BigDecimal => DecimalVal.unsafeFromBigDecimal(bd)
+      case d: java.util.Date        => TimestampVal.fromDate(d)
       // Looking at com.rabbitmq.client.impl.ValueReader.readFieldValue reveals
       // that java.util.Maps must always be created by
       // com.rabbitmq.client.impl.ValueReader.readTable, whose Maps must always
       // be of this type, even if at runtime type erasure removes the inner types.
       // This makes us safe from ClassCastExceptions down the road.
-      case t: java.util.Map[String @unchecked, AmqpHeaderVal @unchecked] => TableVal(t.asScala.toMap)
-      case byte: java.lang.Byte                                          => ByteVal(byte)
-      case double: java.lang.Double                                      => DoubleVal(double)
-      case float: java.lang.Float                                        => FloatVal(float)
-      case short: java.lang.Short                                        => ShortVal(short)
-      case byteArray: Array[Byte]                                        => ByteArrayVal(byteArray)
-      case b: java.lang.Boolean                                          => BooleanVal(b)
-      case i: java.lang.Integer                                          => IntVal(i)
-      case l: java.lang.Long                                             => LongVal(l)
-      case s: java.lang.String                                           => StringVal(s)
-      case ls: LongString                                                => LongStringVal(ls)
+      case t: java.util.Map[String @unchecked, AnyRef @unchecked] =>
+        // ShortString.unsafeOf is safe to use here for a rather subtle reason.
+        // Even though ValueReader.readShortstr doesn't perform any explicit
+        // validation that a short string is 255 chars or less, it only reads
+        // one byte to determine how large of a byte array to allocate for the
+        // string which means the length cannot possibly exceed 255.
+        TableVal(t.asScala.toMap.map { case (key, v) => ShortString.unsafeOf(key) -> unsafeFrom(v) })
+      case byte: java.lang.Byte     => ByteVal(byte)
+      case double: java.lang.Double => DoubleVal(double)
+      case float: java.lang.Float   => FloatVal(float)
+      case short: java.lang.Short   => ShortVal(short)
+      case byteArray: Array[Byte]   => ByteArrayVal(ByteVector(byteArray))
+      case b: java.lang.Boolean     => BooleanVal(b)
+      case i: java.lang.Integer     => IntVal(i)
+      case l: java.lang.Long        => LongVal(l)
+      case s: java.lang.String      => StringVal(s)
+      case ls: LongString           => StringVal(ls.toString)
       // Looking at com.rabbitmq.client.impl.ValueReader.readFieldValue reveals
       // that java.util.Lists must always be created by
       // com.rabbitmq.client.impl.ValueReader.readArray, whose values must are
@@ -160,8 +257,8 @@ object model {
       // that the inner type can never be anything other than the types
       // represented by AmqpHeaderVal
       // This makes us safe from ClassCastExceptions down the road.
-      case a: java.util.List[AmqpHeaderVal @unchecked] => ArrayVal(a.asScala.toVector)
-      case null                                        => NullVal
+      case a: java.util.List[AnyRef @unchecked] => ArrayVal(a.asScala.toVector.map(unsafeFrom))
+      case null                                 => NullVal
     }
   }
 

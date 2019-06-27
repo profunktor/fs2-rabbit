@@ -19,13 +19,15 @@ package dev.profunktor.fs2rabbit
 import java.util.Date
 
 import com.rabbitmq.client.AMQP
-import com.rabbitmq.client.impl.LongStringHelper
 import dev.profunktor.fs2rabbit.model.AmqpHeaderVal._
-import dev.profunktor.fs2rabbit.model.{AmqpHeaderVal, AmqpProperties, DeliveryMode}
+import dev.profunktor.fs2rabbit.model.{AmqpHeaderVal, AmqpProperties, DeliveryMode, ShortString}
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck._
 import org.scalatest.{FlatSpecLike, Matchers}
 import org.scalatestplus.scalacheck.{ScalaCheckPropertyChecks => PropertyChecks}
+import scodec.bits.ByteVector
+
+import scala.math.BigDecimal.RoundingMode
 
 class AmqpPropertiesSpec extends FlatSpecLike with Matchers with AmqpPropertiesArbitraries {
 
@@ -62,19 +64,28 @@ class AmqpPropertiesSpec extends FlatSpecLike with Matchers with AmqpPropertiesA
 
 trait AmqpPropertiesArbitraries extends PropertyChecks {
 
-  implicit val bigDecimalVal: Arbitrary[BigDecimalVal] = Arbitrary[BigDecimalVal] {
-    arbitrary[BigDecimal].map(x => BigDecimalVal(x))
+  implicit val bigDecimalVal: Arbitrary[DecimalVal] = Arbitrary[DecimalVal] {
+    arbitrary[BigDecimal].map { x =>
+      val upperLimit        = BigDecimal(Short.MaxValue)
+      val clippedBigDecimal = (x % upperLimit).setScale(2, RoundingMode.CEILING)
+      DecimalVal.unsafeFromBigDecimal(clippedBigDecimal)
+    }
   }
 
-  implicit val dateVal: Arbitrary[DateVal] = Arbitrary[DateVal] {
-    arbitrary[Date].map(DateVal.apply)
+  implicit val dateVal: Arbitrary[TimestampVal] = Arbitrary[TimestampVal] {
+    arbitrary[Date].map(TimestampVal.fromDate)
+  }
+
+  private def modTruncateString(str: String): ShortString = {
+    val newLength = str.length % (ShortString.MaxByteLength + 1)
+    ShortString.unsafeOf(str.substring(newLength))
   }
 
   def tableVal(maxDepth: Int): Arbitrary[TableVal] = Arbitrary {
     for {
       keys             <- arbitrary[List[String]]
-      keysWithValueGen = keys.map(key => amqpHeaderVal(maxDepth).arbitrary.map(key -> _))
-      keyValues        <- Gen.sequence[List[(String, AmqpHeaderVal)], (String, AmqpHeaderVal)](keysWithValueGen)
+      keysWithValueGen = keys.map(key => amqpHeaderVal(maxDepth).arbitrary.map(modTruncateString(key) -> _))
+      keyValues        <- Gen.sequence[List[(ShortString, AmqpHeaderVal)], (ShortString, AmqpHeaderVal)](keysWithValueGen)
     } yield TableVal(keyValues.toMap)
   }
 
@@ -95,7 +106,7 @@ trait AmqpPropertiesArbitraries extends PropertyChecks {
   }
 
   implicit val byteArrayVal: Arbitrary[ByteArrayVal] = Arbitrary {
-    arbitrary[Array[Byte]].map(ByteArrayVal.apply)
+    arbitrary[Array[Byte]].map(xs => ByteArrayVal(ByteVector(xs)))
   }
 
   implicit val booleanVal: Arbitrary[BooleanVal] = Arbitrary {
@@ -112,10 +123,6 @@ trait AmqpPropertiesArbitraries extends PropertyChecks {
 
   implicit val stringVal: Arbitrary[StringVal] = Arbitrary[StringVal] {
     Gen.alphaStr.flatMap(x => StringVal(x))
-  }
-
-  implicit val longStringVal: Arbitrary[LongStringVal] = Arbitrary {
-    arbitrary[String].map(str => LongStringVal(LongStringHelper.asLongString(str)))
   }
 
   def arrayVal(maxDepth: Int): Arbitrary[ArrayVal] = Arbitrary {
@@ -145,7 +152,6 @@ trait AmqpPropertiesArbitraries extends PropertyChecks {
       intVal.arbitrary,
       longVal.arbitrary,
       stringVal.arbitrary,
-      longStringVal.arbitrary,
       nullVal.arbitrary
     )
 
