@@ -129,17 +129,17 @@ object model {
     * of the signed and unsigned types because Java does not have the signed
     * and unsigned equivalents.
     */
-  sealed trait AmqpHeaderVal extends Product with Serializable {
+  sealed trait AmqpFieldValue extends Product with Serializable {
 
     /**
-      * The opposite of [[AmqpHeaderVal.unsafeFrom]]. Turns an [[AmqpHeaderVal]]
+      * The opposite of [[AmqpFieldValue.unsafeFromValueReader]]. Turns an [[AmqpFieldValue]]
       * into something that can be processed by
       * [[com.rabbitmq.client.impl.ValueWriter]].
       */
     def toValueWriterCompatibleJava: AnyRef
   }
 
-  object AmqpHeaderVal {
+  object AmqpFieldValue {
 
     /**
       * A type for AMQP timestamps.
@@ -147,7 +147,7 @@ object model {
       * Note that this is only accurate to the second (as supported by the AMQP
       * spec and the underlying RabbitMQ implementation).
       */
-    sealed abstract case class TimestampVal private (instantWithOneSecondAccuracy: Instant) extends AmqpHeaderVal {
+    sealed abstract case class TimestampVal private (instantWithOneSecondAccuracy: Instant) extends AmqpFieldValue {
       override def toValueWriterCompatibleJava: Date = Date.from(instantWithOneSecondAccuracy)
     }
     object TimestampVal {
@@ -163,7 +163,7 @@ object model {
       * on the size and precision of the decimal: its representation cannot
       * exceed 4 bytes due to the AMQP spec.
       */
-    sealed abstract case class DecimalVal private (value: BigDecimal) extends AmqpHeaderVal {
+    sealed abstract case class DecimalVal private (value: BigDecimal) extends AmqpFieldValue {
       override def toValueWriterCompatibleJava: java.math.BigDecimal = value.bigDecimal
     }
     object DecimalVal {
@@ -189,41 +189,41 @@ object model {
         new DecimalVal(bigDecimal) {}
     }
 
-    final case class TableVal(value: Map[ShortString, AmqpHeaderVal]) extends AmqpHeaderVal {
+    final case class TableVal(value: Map[ShortString, AmqpFieldValue]) extends AmqpFieldValue {
       override def toValueWriterCompatibleJava: java.util.Map[String, AnyRef] =
         value.map { case (key, v) => key.str -> v.toValueWriterCompatibleJava }.asJava
     }
-    final case class ByteVal(value: Byte) extends AmqpHeaderVal {
+    final case class ByteVal(value: Byte) extends AmqpFieldValue {
       override def toValueWriterCompatibleJava: java.lang.Byte = Byte.box(value)
     }
-    final case class DoubleVal(value: Double) extends AmqpHeaderVal {
+    final case class DoubleVal(value: Double) extends AmqpFieldValue {
       override def toValueWriterCompatibleJava: java.lang.Double = Double.box(value)
     }
-    final case class FloatVal(value: Float) extends AmqpHeaderVal {
+    final case class FloatVal(value: Float) extends AmqpFieldValue {
       override def toValueWriterCompatibleJava: java.lang.Float = Float.box(value)
     }
-    final case class ShortVal(value: Short) extends AmqpHeaderVal {
+    final case class ShortVal(value: Short) extends AmqpFieldValue {
       override def toValueWriterCompatibleJava: java.lang.Short = Short.box(value)
     }
-    final case class ByteArrayVal(value: ByteVector) extends AmqpHeaderVal {
+    final case class ByteArrayVal(value: ByteVector) extends AmqpFieldValue {
       override def toValueWriterCompatibleJava: Array[Byte] = value.toArray
     }
-    final case class BooleanVal(value: Boolean) extends AmqpHeaderVal {
+    final case class BooleanVal(value: Boolean) extends AmqpFieldValue {
       override def toValueWriterCompatibleJava: java.lang.Boolean = Boolean.box(value)
     }
-    final case class IntVal(value: Int) extends AmqpHeaderVal {
+    final case class IntVal(value: Int) extends AmqpFieldValue {
       override def toValueWriterCompatibleJava: java.lang.Integer = Int.box(value)
     }
-    final case class LongVal(value: Long) extends AmqpHeaderVal {
+    final case class LongVal(value: Long) extends AmqpFieldValue {
       override def toValueWriterCompatibleJava: java.lang.Long = Long.box(value)
     }
-    final case class StringVal(value: String) extends AmqpHeaderVal {
+    final case class StringVal(value: String) extends AmqpFieldValue {
       override def toValueWriterCompatibleJava: String = value
     }
-    final case class ArrayVal(v: Vector[AmqpHeaderVal]) extends AmqpHeaderVal {
+    final case class ArrayVal(v: Vector[AmqpFieldValue]) extends AmqpFieldValue {
       override def toValueWriterCompatibleJava: java.util.List[AnyRef] = v.map(_.toValueWriterCompatibleJava).asJava
     }
-    case object NullVal extends AmqpHeaderVal {
+    case object NullVal extends AmqpFieldValue {
       override def toValueWriterCompatibleJava: Null = null
     }
 
@@ -233,7 +233,7 @@ object model {
       * NOT total and will blow up if you pass it a class which
       * [[com.rabbitmq.client.impl.ValueReader.readFieldValue]] does not output.
       */
-    def unsafeFrom(value: AnyRef): AmqpHeaderVal = value match {
+    def unsafeFromValueReader(value: AnyRef): AmqpFieldValue = value match {
       // It's safe to call unsafeFromBigDecimal here because if the value came
       // from readFieldValue, we're assured that the check on BigDecimal
       // representation size must have already occurred because ValueReader will
@@ -251,7 +251,7 @@ object model {
         // validation that a short string is 255 chars or less, it only reads
         // one byte to determine how large of a byte array to allocate for the
         // string which means the length cannot possibly exceed 255.
-        TableVal(t.asScala.toMap.map { case (key, v) => ShortString.unsafeOf(key) -> unsafeFrom(v) })
+        TableVal(t.asScala.toMap.map { case (key, v) => ShortString.unsafeOf(key) -> unsafeFromValueReader(v) })
       case byte: java.lang.Byte     => ByteVal(byte)
       case double: java.lang.Double => DoubleVal(double)
       case float: java.lang.Float   => FloatVal(float)
@@ -270,7 +270,7 @@ object model {
       // that the inner type can never be anything other than the types
       // represented by AmqpHeaderVal
       // This makes us safe from ClassCastExceptions down the road.
-      case a: java.util.List[AnyRef @unchecked] => ArrayVal(a.asScala.toVector.map(unsafeFrom))
+      case a: java.util.List[AnyRef @unchecked] => ArrayVal(a.asScala.toVector.map(unsafeFromValueReader))
       case null                                 => NullVal
     }
   }
@@ -288,7 +288,7 @@ object model {
       expiration: Option[String] = None,
       replyTo: Option[String] = None,
       clusterId: Option[String] = None,
-      headers: Map[String, AmqpHeaderVal] = Map.empty
+      headers: Map[String, AmqpFieldValue] = Map.empty
   )
 
   object AmqpProperties {
@@ -311,7 +311,7 @@ object model {
         headers = Option(basicProps.getHeaders)
           .fold(Map.empty[String, Object])(_.asScala.toMap)
           .map {
-            case (k, v) => k -> AmqpHeaderVal.unsafeFrom(v)
+            case (k, v) => k -> AmqpFieldValue.unsafeFromValueReader(v)
           }
       )
 

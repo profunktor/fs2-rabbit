@@ -19,8 +19,8 @@ package dev.profunktor.fs2rabbit
 import java.util.Date
 
 import com.rabbitmq.client.AMQP
-import dev.profunktor.fs2rabbit.model.AmqpHeaderVal._
-import dev.profunktor.fs2rabbit.model.{AmqpHeaderVal, AmqpProperties, DeliveryMode, ShortString}
+import dev.profunktor.fs2rabbit.model.AmqpFieldValue._
+import dev.profunktor.fs2rabbit.model.{AmqpFieldValue, AmqpProperties, DeliveryMode, ShortString}
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck._
 import org.scalatest.{FlatSpecLike, Matchers}
@@ -52,7 +52,7 @@ class AmqpPropertiesSpec extends FlatSpecLike with Matchers with AmqpPropertiesA
                      None,
                      None,
                      None,
-                     Map.empty[String, AmqpHeaderVal]))
+                     Map.empty[String, AmqpFieldValue]))
   }
 
   it should "handle null values in Java AMQP.BasicProperties" in {
@@ -85,7 +85,7 @@ trait AmqpPropertiesArbitraries extends PropertyChecks {
     for {
       keys             <- arbitrary[List[String]]
       keysWithValueGen = keys.map(key => amqpHeaderVal(maxDepth).arbitrary.map(modTruncateString(key) -> _))
-      keyValues        <- Gen.sequence[List[(ShortString, AmqpHeaderVal)], (ShortString, AmqpHeaderVal)](keysWithValueGen)
+      keyValues        <- Gen.sequence[List[(ShortString, AmqpFieldValue)], (ShortString, AmqpFieldValue)](keysWithValueGen)
     } yield TableVal(keyValues.toMap)
   }
 
@@ -126,20 +126,20 @@ trait AmqpPropertiesArbitraries extends PropertyChecks {
   }
 
   def arrayVal(maxDepth: Int): Arbitrary[ArrayVal] = Arbitrary {
-    implicit val implicitAmqpHeaderVal: Arbitrary[AmqpHeaderVal] = amqpHeaderVal(maxDepth)
-    arbitrary[Vector[AmqpHeaderVal]].map(ArrayVal.apply)
+    implicit val implicitAmqpHeaderVal: Arbitrary[AmqpFieldValue] = amqpHeaderVal(maxDepth)
+    arbitrary[Vector[AmqpFieldValue]].map(ArrayVal.apply)
   }
 
   implicit val nullVal: Arbitrary[NullVal.type] = Arbitrary {
     Gen.const(NullVal)
   }
 
-  implicit val implicitAmqpHeaderVal: Arbitrary[AmqpHeaderVal] = Arbitrary {
+  implicit val implicitAmqpHeaderVal: Arbitrary[AmqpFieldValue] = Arbitrary {
     // Cap it at 2 so that we don't have Stack Overflows/long test times
     amqpHeaderVal(2).arbitrary
   }
 
-  def amqpHeaderVal(maxDepth: Int): Arbitrary[AmqpHeaderVal] = Arbitrary[AmqpHeaderVal] {
+  def amqpHeaderVal(maxDepth: Int): Arbitrary[AmqpFieldValue] = Arbitrary[AmqpFieldValue] {
     val nonRecursiveGenerators = List(
       bigDecimalVal.arbitrary,
       dateVal.arbitrary,
@@ -166,9 +166,9 @@ trait AmqpPropertiesArbitraries extends PropertyChecks {
     }
   }
 
-  private val headersGen: Gen[(String, AmqpHeaderVal)] = for {
+  private val headersGen: Gen[(String, AmqpFieldValue)] = for {
     key   <- Gen.alphaStr
-    value <- arbitrary[AmqpHeaderVal]
+    value <- arbitrary[AmqpFieldValue]
   } yield (key, value)
 
   implicit val amqpProperties: Arbitrary[AmqpProperties] = Arbitrary[AmqpProperties] {
@@ -185,7 +185,7 @@ trait AmqpPropertiesArbitraries extends PropertyChecks {
       expiration      <- Gen.option(Gen.alphaNumStr)
       replyTo         <- Gen.option(Gen.alphaNumStr)
       clusterId       <- Gen.option(Gen.alphaNumStr)
-      headers         <- Gen.mapOf[String, AmqpHeaderVal](headersGen)
+      headers         <- Gen.mapOf[String, AmqpFieldValue](headersGen)
     } yield
       AmqpProperties(
         contentType,

@@ -19,13 +19,13 @@ package dev.profunktor.fs2rabbit
 import java.io.{DataInputStream, DataOutputStream, InputStream, OutputStream}
 import java.time.Instant
 import com.rabbitmq.client.impl.{ValueReader, ValueWriter}
-import dev.profunktor.fs2rabbit.model.{AmqpHeaderVal, ShortString}
+import dev.profunktor.fs2rabbit.model.{AmqpFieldValue, ShortString}
 
 import scala.math.BigDecimal.RoundingMode
-import dev.profunktor.fs2rabbit.model.AmqpHeaderVal._
+import dev.profunktor.fs2rabbit.model.AmqpFieldValue._
 import org.scalatest.{Assertion, FlatSpecLike, Matchers}
 
-class AmqpHeaderValSpec extends FlatSpecLike with Matchers with AmqpPropertiesArbitraries {
+class AmqpFieldValueSpec extends FlatSpecLike with Matchers with AmqpPropertiesArbitraries {
 
   it should "convert from and to Java primitive header values" in {
     val intVal    = IntVal(1)
@@ -33,22 +33,22 @@ class AmqpHeaderValSpec extends FlatSpecLike with Matchers with AmqpPropertiesAr
     val stringVal = StringVal("hey")
     val arrayVal  = ArrayVal(Vector(IntVal(3), IntVal(2), IntVal(1)))
 
-    AmqpHeaderVal.unsafeFrom(intVal.toValueWriterCompatibleJava) should be(intVal)
-    AmqpHeaderVal.unsafeFrom(longVal.toValueWriterCompatibleJava) should be(longVal)
-    AmqpHeaderVal.unsafeFrom(stringVal.toValueWriterCompatibleJava) should be(stringVal)
-    AmqpHeaderVal.unsafeFrom("fs2") should be(StringVal("fs2"))
-    AmqpHeaderVal.unsafeFrom(arrayVal.toValueWriterCompatibleJava) should be(arrayVal)
+    AmqpFieldValue.unsafeFromValueReader(intVal.toValueWriterCompatibleJava) should be(intVal)
+    AmqpFieldValue.unsafeFromValueReader(longVal.toValueWriterCompatibleJava) should be(longVal)
+    AmqpFieldValue.unsafeFromValueReader(stringVal.toValueWriterCompatibleJava) should be(stringVal)
+    AmqpFieldValue.unsafeFromValueReader("fs2") should be(StringVal("fs2"))
+    AmqpFieldValue.unsafeFromValueReader(arrayVal.toValueWriterCompatibleJava) should be(arrayVal)
   }
   it should "preserve the same value after a round-trip through impure and from" in {
-    forAll { amqpHeaderVal: AmqpHeaderVal =>
-      AmqpHeaderVal.unsafeFrom(amqpHeaderVal.toValueWriterCompatibleJava) == amqpHeaderVal
+    forAll { amqpHeaderVal: AmqpFieldValue =>
+      AmqpFieldValue.unsafeFromValueReader(amqpHeaderVal.toValueWriterCompatibleJava) == amqpHeaderVal
     }
   }
 
   // We need to wrap things in a dummy table because the method that would be
   // great to test with ValueReader, readFieldValue, is private, and so we
   // have to call the next best thing, readTable.
-  private def wrapInDummyTable(value: AmqpHeaderVal): TableVal =
+  private def wrapInDummyTable(value: AmqpFieldValue): TableVal =
     TableVal(Map(ShortString.unsafeOf("dummyKey") -> value))
 
   private def createWriterFromQueue(outputResults: collection.mutable.Queue[Byte]): ValueWriter =
@@ -82,7 +82,7 @@ class AmqpHeaderValSpec extends FlatSpecLike with Matchers with AmqpPropertiesAr
     new ValueReader(new DataInputStream(inputStream))
   }
 
-  private def assertThatValueIsPreservedThroughJavaWriteAndRead(amqpHeaderVal: AmqpHeaderVal): Assertion = {
+  private def assertThatValueIsPreservedThroughJavaWriteAndRead(amqpHeaderVal: AmqpFieldValue): Assertion = {
     val outputResultsAsTable = collection.mutable.Queue.empty[Byte]
     val tableWriter          = createWriterFromQueue(outputResultsAsTable)
     val clippedAmqpHeaderVal = amqpHeaderVal match {
@@ -98,7 +98,7 @@ class AmqpHeaderValSpec extends FlatSpecLike with Matchers with AmqpPropertiesAr
 
     val reader    = createReaderFromQueue(outputResultsAsTable)
     val readValue = reader.readTable()
-    AmqpHeaderVal.unsafeFrom(readValue) should be(wrapInDummyTable(amqpHeaderVal))
+    AmqpFieldValue.unsafeFromValueReader(readValue) should be(wrapInDummyTable(amqpHeaderVal))
   }
 
   it should "preserve the same values after a round-trip through the Java ValueReader and ValueWriter" in {
