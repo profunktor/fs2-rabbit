@@ -26,7 +26,6 @@ import cats.implicits._
 import dev.profunktor.fs2rabbit.arguments.Arguments
 import dev.profunktor.fs2rabbit.effects.{EnvelopeDecoder, MessageEncoder}
 import dev.profunktor.fs2rabbit.model.AmqpHeaderVal._
-import com.rabbitmq.client.impl.LongStringHelper
 import com.rabbitmq.client.{AMQP, Channel, Connection, LongString}
 import fs2.Stream
 
@@ -89,7 +88,7 @@ object model {
       * The opposite of [[AmqpHeaderVal.from]]. Turns an [[AmqpHeaderVal]] into something that can be processed by [[com.rabbitmq.client.impl.ValueWriter]]
       */
     def impure: AnyRef = this match {
-      case BigDecimalVal(v) => v
+      case BigDecimalVal(v) => v.bigDecimal
       case DateVal(v)       => v
       case TableVal(v)      => v.asJava
       case ByteVal(v)       => Byte.box(v)
@@ -100,7 +99,7 @@ object model {
       case BooleanVal(v)    => Boolean.box(v)
       case IntVal(v)        => Int.box(v)
       case LongVal(v)       => Long.box(v)
-      case StringVal(v)     => LongStringHelper.asLongString(v)
+      case StringVal(v)     => v
       case LongStringVal(v) => v
       case ArrayVal(v)      => v.asJava
       case NullVal          => null
@@ -147,6 +146,7 @@ object model {
       // Looking at com.rabbitmq.client.impl.ValueReader.readFieldValue reveals that java.util.Lists must always be created by com.rabbitmq.client.impl.ValueReader.readArray, whose values must are then recursively created by com.rabbitmq.client.impl.ValueReader.readFieldValue, which indicates that the inner type can never be anything other than the types represented by AmqpHeaderVal
       // This makes us safe from ClassCastExceptions down the road.
       case a: java.util.List[AmqpHeaderVal @unchecked] => ArrayVal(a.asScala.toVector)
+      case null                                        => NullVal
     }
   }
 

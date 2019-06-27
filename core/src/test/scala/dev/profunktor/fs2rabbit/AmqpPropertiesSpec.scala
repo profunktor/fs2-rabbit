@@ -16,18 +16,21 @@
 
 package dev.profunktor.fs2rabbit
 
+import java.util.Date
+
+import com.rabbitmq.client.AMQP
+import com.rabbitmq.client.impl.LongStringHelper
 import dev.profunktor.fs2rabbit.model.AmqpHeaderVal._
 import dev.profunktor.fs2rabbit.model.{AmqpHeaderVal, AmqpProperties, DeliveryMode}
-import org.scalacheck._
 import org.scalacheck.Arbitrary.arbitrary
+import org.scalacheck._
 import org.scalatest.{FlatSpecLike, Matchers}
-import com.rabbitmq.client.AMQP
 import org.scalatestplus.scalacheck.{ScalaCheckPropertyChecks => PropertyChecks}
 
 class AmqpPropertiesSpec extends FlatSpecLike with Matchers with AmqpPropertiesArbitraries {
 
-  forAll { amqpProperties: AmqpProperties =>
-    it should s"convert from and to Java AMQP.BasicProperties for $amqpProperties" in {
+  it should s"convert from and to Java AMQP.BasicProperties" in {
+    forAll { amqpProperties: AmqpProperties =>
       val basicProps = amqpProperties.asBasicProps
       AmqpProperties.from(basicProps) should be(amqpProperties)
     }
@@ -59,6 +62,47 @@ class AmqpPropertiesSpec extends FlatSpecLike with Matchers with AmqpPropertiesA
 
 trait AmqpPropertiesArbitraries extends PropertyChecks {
 
+  implicit val bigDecimalVal: Arbitrary[BigDecimalVal] = Arbitrary[BigDecimalVal] {
+    // Write it out explicitly because BigDecimal has conflicting instances
+    arbitrary[BigDecimal].map(x => BigDecimalVal(x))
+  }
+
+  implicit val dateVal: Arbitrary[DateVal] = Arbitrary[DateVal] {
+    arbitrary[Date].map(DateVal.apply)
+  }
+
+  def tableVal(maxDepth: Int): Arbitrary[TableVal] = Arbitrary {
+    for {
+      keys             <- arbitrary[List[String]]
+      keysWithValueGen = keys.map(key => amqpHeaderVal(maxDepth).arbitrary.map(key -> _))
+      keyValues        <- Gen.sequence[List[(String, AmqpHeaderVal)], (String, AmqpHeaderVal)](keysWithValueGen)
+    } yield TableVal(keyValues.toMap)
+  }
+
+  implicit val byteVal: Arbitrary[ByteVal] = Arbitrary {
+    arbitrary[Byte].map(ByteVal.apply)
+  }
+
+  implicit val doubleVal: Arbitrary[DoubleVal] = Arbitrary {
+    arbitrary[Double].map(DoubleVal.apply)
+  }
+
+  implicit val floatVal: Arbitrary[FloatVal] = Arbitrary {
+    arbitrary[Float].map(FloatVal.apply)
+  }
+
+  implicit val shortVal: Arbitrary[ShortVal] = Arbitrary {
+    arbitrary[Short].map(ShortVal.apply)
+  }
+
+  implicit val byteArrayVal: Arbitrary[ByteArrayVal] = Arbitrary {
+    arbitrary[Array[Byte]].map(ByteArrayVal.apply)
+  }
+
+  implicit val booleanVal: Arbitrary[BooleanVal] = Arbitrary {
+    arbitrary[Boolean].map(BooleanVal.apply)
+  }
+
   implicit val intVal: Arbitrary[IntVal] = Arbitrary[IntVal] {
     Gen.posNum[Int].flatMap(x => IntVal(x))
   }
@@ -71,8 +115,49 @@ trait AmqpPropertiesArbitraries extends PropertyChecks {
     Gen.alphaStr.flatMap(x => StringVal(x))
   }
 
-  implicit val amqpHeaderVal: Arbitrary[AmqpHeaderVal] = Arbitrary[AmqpHeaderVal] {
-    Gen.oneOf(arbitrary[IntVal], arbitrary[LongVal], arbitrary[StringVal])
+  implicit val longStringVal: Arbitrary[LongStringVal] = Arbitrary {
+    arbitrary[String].map(str => LongStringVal(LongStringHelper.asLongString(str)))
+  }
+
+  def arrayVal(maxDepth: Int): Arbitrary[ArrayVal] = Arbitrary {
+    implicit val implicitAmqpHeaderVal: Arbitrary[AmqpHeaderVal] = amqpHeaderVal(maxDepth)
+    arbitrary[Vector[AmqpHeaderVal]].map(ArrayVal.apply)
+  }
+
+  implicit val nullVal: Arbitrary[NullVal.type] = Arbitrary {
+    Gen.const(NullVal)
+  }
+
+  implicit val implicitAmqpHeaderVal: Arbitrary[AmqpHeaderVal] = Arbitrary {
+    amqpHeaderVal(2).arbitrary
+  }
+
+  def amqpHeaderVal(maxDepth: Int): Arbitrary[AmqpHeaderVal] = Arbitrary[AmqpHeaderVal] {
+    val nonRecursiveGenerators = List(
+      bigDecimalVal.arbitrary,
+      dateVal.arbitrary,
+      byteVal.arbitrary,
+      doubleVal.arbitrary,
+      floatVal.arbitrary,
+      shortVal.arbitrary,
+      byteArrayVal.arbitrary,
+      booleanVal.arbitrary,
+      intVal.arbitrary,
+      longVal.arbitrary,
+      stringVal.arbitrary,
+      longStringVal.arbitrary,
+      nullVal.arbitrary
+    )
+
+    if (maxDepth <= 0) {
+      // This is because Gen.oneOf is overloaded and we need to access its three-argument version
+      Gen.oneOf(nonRecursiveGenerators(0), nonRecursiveGenerators(1), nonRecursiveGenerators.drop(2): _*)
+    } else {
+      val allGenerators = tableVal(maxDepth - 1).arbitrary :: arrayVal(maxDepth - 1).arbitrary :: nonRecursiveGenerators
+      Gen.lzy(
+        Gen.oneOf(allGenerators(0), allGenerators(1), allGenerators.drop(2): _*)
+      )
+    }
   }
 
   private val headersGen: Gen[(String, AmqpHeaderVal)] = for {

@@ -20,7 +20,7 @@ import dev.profunktor.fs2rabbit.model.AmqpHeaderVal
 import dev.profunktor.fs2rabbit.model.AmqpHeaderVal._
 import org.scalatest.{FlatSpecLike, Matchers}
 
-class AmqpHeaderValSpec extends FlatSpecLike with Matchers {
+class AmqpHeaderValSpec extends FlatSpecLike with Matchers with AmqpPropertiesArbitraries {
 
   it should "convert from and to Java primitive header values" in {
     val intVal    = IntVal(1)
@@ -33,6 +33,11 @@ class AmqpHeaderValSpec extends FlatSpecLike with Matchers {
     AmqpHeaderVal.from(stringVal.impure) should be(stringVal)
     AmqpHeaderVal.from("fs2") should be(StringVal("fs2"))
     AmqpHeaderVal.from(arrayVal.impure) should be(ArrayVal(Vector(IntVal(3), IntVal(2), IntVal(1))))
+  }
+  it should "have impure and from be opposites of each other" in {
+    forAll { amqpHeaderVal: AmqpHeaderVal =>
+      AmqpHeaderVal.from(amqpHeaderVal.impure) == amqpHeaderVal
+    }
   }
 
 }
