@@ -33,15 +33,15 @@ class AmqpHeaderValSpec extends FlatSpecLike with Matchers with AmqpPropertiesAr
     val stringVal = StringVal("hey")
     val arrayVal  = ArrayVal(Vector(IntVal(3), IntVal(2), IntVal(1)))
 
-    AmqpHeaderVal.unsafeFrom(intVal.impure) should be(intVal)
-    AmqpHeaderVal.unsafeFrom(longVal.impure) should be(longVal)
-    AmqpHeaderVal.unsafeFrom(stringVal.impure) should be(stringVal)
+    AmqpHeaderVal.unsafeFrom(intVal.toValueWriterCompatibleJava) should be(intVal)
+    AmqpHeaderVal.unsafeFrom(longVal.toValueWriterCompatibleJava) should be(longVal)
+    AmqpHeaderVal.unsafeFrom(stringVal.toValueWriterCompatibleJava) should be(stringVal)
     AmqpHeaderVal.unsafeFrom("fs2") should be(StringVal("fs2"))
-    AmqpHeaderVal.unsafeFrom(arrayVal.impure) should be(arrayVal)
+    AmqpHeaderVal.unsafeFrom(arrayVal.toValueWriterCompatibleJava) should be(arrayVal)
   }
   it should "preserve the same value after a round-trip through impure and from" in {
     forAll { amqpHeaderVal: AmqpHeaderVal =>
-      AmqpHeaderVal.unsafeFrom(amqpHeaderVal.impure) == amqpHeaderVal
+      AmqpHeaderVal.unsafeFrom(amqpHeaderVal.toValueWriterCompatibleJava) == amqpHeaderVal
     }
   }
 
@@ -94,7 +94,7 @@ class AmqpHeaderValSpec extends FlatSpecLike with Matchers with AmqpPropertiesAr
 
       case notBigDecimal => notBigDecimal
     }
-    tableWriter.writeTable(wrapInDummyTable(clippedAmqpHeaderVal).impure)
+    tableWriter.writeTable(wrapInDummyTable(clippedAmqpHeaderVal).toValueWriterCompatibleJava)
 
     val reader    = createReaderFromQueue(outputResultsAsTable)
     val readValue = reader.readTable()

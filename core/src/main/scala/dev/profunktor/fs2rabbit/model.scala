@@ -136,7 +136,7 @@ object model {
       * into something that can be processed by
       * [[com.rabbitmq.client.impl.ValueWriter]].
       */
-    def impure: AnyRef
+    def toValueWriterCompatibleJava: AnyRef
   }
 
   object AmqpHeaderVal {
@@ -148,7 +148,7 @@ object model {
       * spec and the underlying RabbitMQ implementation).
       */
     sealed abstract case class TimestampVal private (instantWithOneSecondAccuracy: Instant) extends AmqpHeaderVal {
-      override def impure: Date = Date.from(instantWithOneSecondAccuracy)
+      override def toValueWriterCompatibleJava: Date = Date.from(instantWithOneSecondAccuracy)
     }
     object TimestampVal {
       def fromInstant(instant: Instant): TimestampVal =
@@ -164,7 +164,7 @@ object model {
       * exceed 4 bytes due to the AMQP spec.
       */
     sealed abstract case class DecimalVal private (value: BigDecimal) extends AmqpHeaderVal {
-      override def impure: java.math.BigDecimal = value.bigDecimal
+      override def toValueWriterCompatibleJava: java.math.BigDecimal = value.bigDecimal
     }
     object DecimalVal {
       val MaxRepresentationSize: Int = 32
@@ -190,41 +190,41 @@ object model {
     }
 
     final case class TableVal(value: Map[ShortString, AmqpHeaderVal]) extends AmqpHeaderVal {
-      override def impure: java.util.Map[String, AnyRef] =
-        value.map { case (key, v) => key.str -> v.impure }.asJava
+      override def toValueWriterCompatibleJava: java.util.Map[String, AnyRef] =
+        value.map { case (key, v) => key.str -> v.toValueWriterCompatibleJava }.asJava
     }
     final case class ByteVal(value: Byte) extends AmqpHeaderVal {
-      override def impure: java.lang.Byte = Byte.box(value)
+      override def toValueWriterCompatibleJava: java.lang.Byte = Byte.box(value)
     }
     final case class DoubleVal(value: Double) extends AmqpHeaderVal {
-      override def impure: java.lang.Double = Double.box(value)
+      override def toValueWriterCompatibleJava: java.lang.Double = Double.box(value)
     }
     final case class FloatVal(value: Float) extends AmqpHeaderVal {
-      override def impure: java.lang.Float = Float.box(value)
+      override def toValueWriterCompatibleJava: java.lang.Float = Float.box(value)
     }
     final case class ShortVal(value: Short) extends AmqpHeaderVal {
-      override def impure: java.lang.Short = Short.box(value)
+      override def toValueWriterCompatibleJava: java.lang.Short = Short.box(value)
     }
     final case class ByteArrayVal(value: ByteVector) extends AmqpHeaderVal {
-      override def impure: Array[Byte] = value.toArray
+      override def toValueWriterCompatibleJava: Array[Byte] = value.toArray
     }
     final case class BooleanVal(value: Boolean) extends AmqpHeaderVal {
-      override def impure: java.lang.Boolean = Boolean.box(value)
+      override def toValueWriterCompatibleJava: java.lang.Boolean = Boolean.box(value)
     }
     final case class IntVal(value: Int) extends AmqpHeaderVal {
-      override def impure: java.lang.Integer = Int.box(value)
+      override def toValueWriterCompatibleJava: java.lang.Integer = Int.box(value)
     }
     final case class LongVal(value: Long) extends AmqpHeaderVal {
-      override def impure: java.lang.Long = Long.box(value)
+      override def toValueWriterCompatibleJava: java.lang.Long = Long.box(value)
     }
     final case class StringVal(value: String) extends AmqpHeaderVal {
-      override def impure: String = value
+      override def toValueWriterCompatibleJava: String = value
     }
     final case class ArrayVal(v: Vector[AmqpHeaderVal]) extends AmqpHeaderVal {
-      override def impure: java.util.List[AnyRef] = v.map(_.impure).asJava
+      override def toValueWriterCompatibleJava: java.util.List[AnyRef] = v.map(_.toValueWriterCompatibleJava).asJava
     }
     case object NullVal extends AmqpHeaderVal {
-      override def impure: Null = null
+      override def toValueWriterCompatibleJava: Null = null
     }
 
     /**
@@ -332,7 +332,7 @@ object model {
           .clusterId(props.clusterId.orNull)
           // Note we don't use mapValues here to maintain compatibility between
           // Scala 2.12 and 2.13
-          .headers(props.headers.map { case (key, value) => (key, value.impure) }.asJava)
+          .headers(props.headers.map { case (key, value) => (key, value.toValueWriterCompatibleJava) }.asJava)
           .build()
     }
   }
