@@ -132,7 +132,7 @@ object model {
   sealed trait AmqpFieldValue extends Product with Serializable {
 
     /**
-      * The opposite of [[AmqpFieldValue.unsafeFromValueReader]]. Turns an [[AmqpFieldValue]]
+      * The opposite of [[AmqpFieldValue.unsafeFromValueReaderOutput]]. Turns an [[AmqpFieldValue]]
       * into something that can be processed by
       * [[com.rabbitmq.client.impl.ValueWriter]].
       */
@@ -233,7 +233,7 @@ object model {
       * NOT total and will blow up if you pass it a class which
       * [[com.rabbitmq.client.impl.ValueReader.readFieldValue]] does not output.
       */
-    def unsafeFromValueReader(value: AnyRef): AmqpFieldValue = value match {
+    def unsafeFromValueReaderOutput(value: AnyRef): AmqpFieldValue = value match {
       // It's safe to call unsafeFromBigDecimal here because if the value came
       // from readFieldValue, we're assured that the check on BigDecimal
       // representation size must have already occurred because ValueReader will
@@ -251,7 +251,7 @@ object model {
         // validation that a short string is 255 chars or less, it only reads
         // one byte to determine how large of a byte array to allocate for the
         // string which means the length cannot possibly exceed 255.
-        TableVal(t.asScala.toMap.map { case (key, v) => ShortString.unsafeOf(key) -> unsafeFromValueReader(v) })
+        TableVal(t.asScala.toMap.map { case (key, v) => ShortString.unsafeOf(key) -> unsafeFromValueReaderOutput(v) })
       case byte: java.lang.Byte     => ByteVal(byte)
       case double: java.lang.Double => DoubleVal(double)
       case float: java.lang.Float   => FloatVal(float)
@@ -270,7 +270,7 @@ object model {
       // that the inner type can never be anything other than the types
       // represented by AmqpHeaderVal
       // This makes us safe from ClassCastExceptions down the road.
-      case a: java.util.List[AnyRef @unchecked] => ArrayVal(a.asScala.toVector.map(unsafeFromValueReader))
+      case a: java.util.List[AnyRef @unchecked] => ArrayVal(a.asScala.toVector.map(unsafeFromValueReaderOutput))
       case null                                 => NullVal
     }
   }
@@ -311,7 +311,7 @@ object model {
         headers = Option(basicProps.getHeaders)
           .fold(Map.empty[String, Object])(_.asScala.toMap)
           .map {
-            case (k, v) => k -> AmqpFieldValue.unsafeFromValueReader(v)
+            case (k, v) => k -> AmqpFieldValue.unsafeFromValueReaderOutput(v)
           }
       )
 

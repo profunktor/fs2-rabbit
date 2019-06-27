@@ -33,15 +33,15 @@ class AmqpFieldValueSpec extends FlatSpecLike with Matchers with AmqpPropertiesA
     val stringVal = StringVal("hey")
     val arrayVal  = ArrayVal(Vector(IntVal(3), IntVal(2), IntVal(1)))
 
-    AmqpFieldValue.unsafeFromValueReader(intVal.toValueWriterCompatibleJava) should be(intVal)
-    AmqpFieldValue.unsafeFromValueReader(longVal.toValueWriterCompatibleJava) should be(longVal)
-    AmqpFieldValue.unsafeFromValueReader(stringVal.toValueWriterCompatibleJava) should be(stringVal)
-    AmqpFieldValue.unsafeFromValueReader("fs2") should be(StringVal("fs2"))
-    AmqpFieldValue.unsafeFromValueReader(arrayVal.toValueWriterCompatibleJava) should be(arrayVal)
+    AmqpFieldValue.unsafeFromValueReaderOutput(intVal.toValueWriterCompatibleJava) should be(intVal)
+    AmqpFieldValue.unsafeFromValueReaderOutput(longVal.toValueWriterCompatibleJava) should be(longVal)
+    AmqpFieldValue.unsafeFromValueReaderOutput(stringVal.toValueWriterCompatibleJava) should be(stringVal)
+    AmqpFieldValue.unsafeFromValueReaderOutput("fs2") should be(StringVal("fs2"))
+    AmqpFieldValue.unsafeFromValueReaderOutput(arrayVal.toValueWriterCompatibleJava) should be(arrayVal)
   }
   it should "preserve the same value after a round-trip through impure and from" in {
     forAll { amqpHeaderVal: AmqpFieldValue =>
-      AmqpFieldValue.unsafeFromValueReader(amqpHeaderVal.toValueWriterCompatibleJava) == amqpHeaderVal
+      AmqpFieldValue.unsafeFromValueReaderOutput(amqpHeaderVal.toValueWriterCompatibleJava) == amqpHeaderVal
     }
   }
 
@@ -98,7 +98,7 @@ class AmqpFieldValueSpec extends FlatSpecLike with Matchers with AmqpPropertiesA
 
     val reader    = createReaderFromQueue(outputResultsAsTable)
     val readValue = reader.readTable()
-    AmqpFieldValue.unsafeFromValueReader(readValue) should be(wrapInDummyTable(amqpHeaderVal))
+    AmqpFieldValue.unsafeFromValueReaderOutput(readValue) should be(wrapInDummyTable(amqpHeaderVal))
   }
 
   it should "preserve the same values after a round-trip through the Java ValueReader and ValueWriter" in {
