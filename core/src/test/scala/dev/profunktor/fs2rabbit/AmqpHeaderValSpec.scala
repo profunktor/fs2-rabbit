@@ -94,10 +94,7 @@ class AmqpHeaderValSpec extends FlatSpecLike with Matchers with AmqpPropertiesAr
 
       case notBigDecimal => notBigDecimal
     }
-    tableWriter.writeTable(
-      wrapInDummyTable(clippedAmqpHeaderVal).impure
-        .asInstanceOf[java.util.Map[String, AnyRef]]
-    )
+    tableWriter.writeTable(wrapInDummyTable(clippedAmqpHeaderVal).impure)
 
     val reader    = createReaderFromQueue(outputResultsAsTable)
     val readValue = reader.readTable()

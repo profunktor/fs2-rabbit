@@ -29,7 +29,6 @@ import com.rabbitmq.client.{AMQP, Channel, Connection, LongString}
 import dev.profunktor.fs2rabbit.arguments.Arguments
 import dev.profunktor.fs2rabbit.effects.{EnvelopeDecoder, MessageEncoder}
 import dev.profunktor.fs2rabbit.javaConversion._
-import dev.profunktor.fs2rabbit.model.AmqpHeaderVal._
 import fs2.Stream
 import scodec.bits.ByteVector
 
@@ -137,22 +136,7 @@ object model {
       * into something that can be processed by
       * [[com.rabbitmq.client.impl.ValueWriter]].
       */
-    def impure: AnyRef = this match {
-      case DecimalVal(v)   => v.bigDecimal
-      case TimestampVal(v) => Date.from(v)
-      case TableVal(v)     => v.map { case (key, value) => key.str -> value.impure }.asJava
-      case ByteVal(v)      => Byte.box(v)
-      case DoubleVal(v)    => Double.box(v)
-      case FloatVal(v)     => Float.box(v)
-      case ShortVal(v)     => Short.box(v)
-      case ByteArrayVal(v) => v.toArray
-      case BooleanVal(v)   => Boolean.box(v)
-      case IntVal(v)       => Int.box(v)
-      case LongVal(v)      => Long.box(v)
-      case StringVal(v)    => v
-      case ArrayVal(v)     => v.map(_.impure).asJava
-      case NullVal         => null
-    }
+    def impure: AnyRef
   }
 
   object AmqpHeaderVal {
@@ -163,7 +147,9 @@ object model {
       * Note that this is only accurate to the second (as supported by the AMQP
       * spec and the underlying RabbitMQ implementation).
       */
-    sealed abstract case class TimestampVal private (instantWithOneSecondAccuracy: Instant) extends AmqpHeaderVal
+    sealed abstract case class TimestampVal private (instantWithOneSecondAccuracy: Instant) extends AmqpHeaderVal {
+      override def impure: Date = Date.from(instantWithOneSecondAccuracy)
+    }
     object TimestampVal {
       def fromInstant(instant: Instant): TimestampVal =
         new TimestampVal(instant.truncatedTo(ChronoUnit.SECONDS)) {}
@@ -177,7 +163,9 @@ object model {
       * on the size and precision of the decimal: its representation cannot
       * exceed 4 bytes due to the AMQP spec.
       */
-    sealed abstract case class DecimalVal private (value: BigDecimal) extends AmqpHeaderVal
+    sealed abstract case class DecimalVal private (value: BigDecimal) extends AmqpHeaderVal {
+      override def impure: java.math.BigDecimal = value.bigDecimal
+    }
     object DecimalVal {
       val MaxRepresentationSize: Int = 32
 
@@ -201,18 +189,43 @@ object model {
         new DecimalVal(bigDecimal) {}
     }
 
-    final case class TableVal(value: Map[ShortString, AmqpHeaderVal]) extends AmqpHeaderVal
-    final case class ByteVal(value: Byte)                             extends AmqpHeaderVal
-    final case class DoubleVal(value: Double)                         extends AmqpHeaderVal
-    final case class FloatVal(value: Float)                           extends AmqpHeaderVal
-    final case class ShortVal(value: Short)                           extends AmqpHeaderVal
-    final case class ByteArrayVal(value: ByteVector)                  extends AmqpHeaderVal
-    final case class BooleanVal(value: Boolean)                       extends AmqpHeaderVal
-    final case class IntVal(value: Int)                               extends AmqpHeaderVal
-    final case class LongVal(value: Long)                             extends AmqpHeaderVal
-    final case class StringVal(value: String)                         extends AmqpHeaderVal
-    final case class ArrayVal(v: Vector[AmqpHeaderVal])               extends AmqpHeaderVal
-    case object NullVal                                               extends AmqpHeaderVal
+    final case class TableVal(value: Map[ShortString, AmqpHeaderVal]) extends AmqpHeaderVal {
+      override def impure: java.util.Map[String, AnyRef] =
+        value.map { case (key, v) => key.str -> v.impure }.asJava
+    }
+    final case class ByteVal(value: Byte) extends AmqpHeaderVal {
+      override def impure: java.lang.Byte = Byte.box(value)
+    }
+    final case class DoubleVal(value: Double) extends AmqpHeaderVal {
+      override def impure: java.lang.Double = Double.box(value)
+    }
+    final case class FloatVal(value: Float) extends AmqpHeaderVal {
+      override def impure: java.lang.Float = Float.box(value)
+    }
+    final case class ShortVal(value: Short) extends AmqpHeaderVal {
+      override def impure: java.lang.Short = Short.box(value)
+    }
+    final case class ByteArrayVal(value: ByteVector) extends AmqpHeaderVal {
+      override def impure: Array[Byte] = value.toArray
+    }
+    final case class BooleanVal(value: Boolean) extends AmqpHeaderVal {
+      override def impure: java.lang.Boolean = Boolean.box(value)
+    }
+    final case class IntVal(value: Int) extends AmqpHeaderVal {
+      override def impure: java.lang.Integer = Int.box(value)
+    }
+    final case class LongVal(value: Long) extends AmqpHeaderVal {
+      override def impure: java.lang.Long = Long.box(value)
+    }
+    final case class StringVal(value: String) extends AmqpHeaderVal {
+      override def impure: String = value
+    }
+    final case class ArrayVal(v: Vector[AmqpHeaderVal]) extends AmqpHeaderVal {
+      override def impure: java.util.List[AnyRef] = v.map(_.impure).asJava
+    }
+    case object NullVal extends AmqpHeaderVal {
+      override def impure: Null = null
+    }
 
     /**
       * This method is meant purely to translate the output of
