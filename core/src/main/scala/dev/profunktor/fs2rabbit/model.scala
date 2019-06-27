@@ -107,13 +107,6 @@ object model {
     }
   }
 
-  sealed trait AmqpFieldType
-  object AmqpFieldType {
-    final case class BooleanVal()
-    final case class Signed8BitIntVal()
-    final case class Unsigned8BitIntVal()
-  }
-
   object AmqpHeaderVal {
     // This hierarchy is meant to reflect the output of [[com.rabbitmq.client.impl.ValueReader.readFieldValue]]
     final case class BigDecimalVal(value: BigDecimal)            extends AmqpHeaderVal
