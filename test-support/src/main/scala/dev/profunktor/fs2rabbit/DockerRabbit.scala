@@ -20,7 +20,7 @@ import cats.effect.{ContextShift, IO}
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
 import org.scalatest.{BeforeAndAfterAll, Suite}
 
-import scala.concurrent.{ExecutionContext, SyncVar}
+import scala.concurrent.ExecutionContext
 import scala.sys.process._
 
 trait DockerRabbit extends BeforeAndAfterAll { self: Suite =>
@@ -79,7 +79,7 @@ object DockerRabbit {
   }
 
   def startDocker(port: Int, user: String, password: String, virtualHost: String): String = {
-    val dockerId = new SyncVar[String]()
+    val dockerId = new java.util.concurrent.LinkedBlockingQueue[String](1)
 
     val removeCmd = s"docker rm -f $dockerContainerName"
 
@@ -115,7 +115,7 @@ object DockerRabbit {
       s"Docker $dockerImage startup observer"
     )
     thread.start()
-    val id = dockerId.get
+    val id = dockerId.peek
     println(s"Docker ($dockerImage @ 127.0.0.1:$port) started successfully as $id ")
     id
   }

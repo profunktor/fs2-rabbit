@@ -54,8 +54,8 @@ object EnvelopeDecoder {
   def longHeader[F[_]: ApplicativeError[?[_], Throwable]](name: String): EnvelopeDecoder[F, Long] =
     headerPF[F, Long](name) { case LongVal(a) => a }
 
-  def arrayHeader[F[_]: ApplicativeError[?[_], Throwable]](name: String): EnvelopeDecoder[F, Seq[Any]] =
-    headerPF[F, Seq[Any]](name) { case ArrayVal(a) => a }
+  def arrayHeader[F[_]: ApplicativeError[?[_], Throwable]](name: String): EnvelopeDecoder[F, collection.Seq[Any]] =
+    headerPF[F, collection.Seq[Any]](name) { case ArrayVal(a) => a }
 
   def optStringHeader[F[_]: ApplicativeError[?[_], Throwable]](name: String): EnvelopeDecoder[F, Option[String]] =
     optHeaderPF[F, String](name) { case StringVal(a) => a }
@@ -66,8 +66,9 @@ object EnvelopeDecoder {
   def optLongHeader[F[_]: ApplicativeError[?[_], Throwable]](name: String): EnvelopeDecoder[F, Option[Long]] =
     optHeaderPF[F, Long](name) { case LongVal(a) => a }
 
-  def optArrayHeader[F[_]: ApplicativeError[?[_], Throwable]](name: String): EnvelopeDecoder[F, Option[Seq[Any]]] =
-    optHeaderPF[F, Seq[Any]](name) { case ArrayVal(a) => a }
+  def optArrayHeader[F[_]: ApplicativeError[?[_], Throwable]](
+      name: String): EnvelopeDecoder[F, Option[collection.Seq[Any]]] =
+    optHeaderPF[F, collection.Seq[Any]](name) { case ArrayVal(a) => a }
 
   private def headerPF[F[_], A](name: String)(pf: PartialFunction[AmqpHeaderVal, A])(
       implicit F: ApplicativeError[F, Throwable]): EnvelopeDecoder[F, A] =

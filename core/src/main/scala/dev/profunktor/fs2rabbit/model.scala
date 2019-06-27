@@ -25,11 +25,10 @@ import cats.implicits._
 import dev.profunktor.fs2rabbit.arguments.Arguments
 import dev.profunktor.fs2rabbit.effects.{EnvelopeDecoder, MessageEncoder}
 import dev.profunktor.fs2rabbit.model.AmqpHeaderVal._
+import dev.profunktor.fs2rabbit.javaConversion._
 import com.rabbitmq.client.impl.LongStringHelper
 import com.rabbitmq.client.{AMQP, Channel, Connection, LongString}
 import fs2.Stream
-
-import scala.collection.JavaConverters._
 
 object model {
 
@@ -92,10 +91,10 @@ object model {
   }
 
   object AmqpHeaderVal {
-    final case class IntVal(value: Int)       extends AmqpHeaderVal
-    final case class LongVal(value: Long)     extends AmqpHeaderVal
-    final case class StringVal(value: String) extends AmqpHeaderVal
-    final case class ArrayVal(v: Seq[Any])    extends AmqpHeaderVal
+    final case class IntVal(value: Int)               extends AmqpHeaderVal
+    final case class LongVal(value: Long)             extends AmqpHeaderVal
+    final case class StringVal(value: String)         extends AmqpHeaderVal
+    final case class ArrayVal(v: collection.Seq[Any]) extends AmqpHeaderVal
 
     def from(value: AnyRef): AmqpHeaderVal = value match {
       case ls: LongString       => StringVal(new String(ls.getBytes, "UTF-8"))
@@ -161,7 +160,9 @@ object model {
           .expiration(props.expiration.orNull)
           .replyTo(props.replyTo.orNull)
           .clusterId(props.clusterId.orNull)
-          .headers(props.headers.mapValues[AnyRef](_.impure).asJava)
+          // Note we don't use mapValues here to maintain compatibility between
+          // Scala 2.12 and 2.13
+          .headers(props.headers.map { case (key, value) => (key, value.impure) }.asJava)
           .build()
     }
   }
