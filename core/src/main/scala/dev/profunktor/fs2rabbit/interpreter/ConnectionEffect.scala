@@ -19,14 +19,13 @@ package dev.profunktor.fs2rabbit.interpreter
 import cats.data.NonEmptyList
 import cats.effect.{Resource, Sync}
 import cats.implicits._
+import com.rabbitmq.client.{Address, ConnectionFactory}
 import dev.profunktor.fs2rabbit.algebra.Connection
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
 import dev.profunktor.fs2rabbit.effects.Log
+import dev.profunktor.fs2rabbit.javaConversion._
 import dev.profunktor.fs2rabbit.model.{AMQPChannel, AMQPConnection, RabbitChannel, RabbitConnection}
-import com.rabbitmq.client.{Address, ConnectionFactory}
 import javax.net.ssl.SSLContext
-
-import scala.collection.JavaConverters._
 
 class ConnectionEffect[F[_]: Log: Sync](
     factory: ConnectionFactory,

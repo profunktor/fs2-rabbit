@@ -17,8 +17,7 @@
 package dev.profunktor.fs2rabbit
 
 import scala.annotation.implicitNotFound
-import scala.language.implicitConversions
-import scala.collection.JavaConverters._
+import dev.profunktor.fs2rabbit.javaConversion._
 
 object arguments {
 
@@ -57,8 +56,6 @@ object arguments {
         type JavaType = J
         def toJavaType(a: A) = f(a)
       }
-
-    import scala.collection.JavaConverters._
 
     implicit val stringInstance: SafeArgument[String]         = instance(identity)
     implicit val bigDecimalInstance: SafeArgument[BigDecimal] = instance(_.bigDecimal)

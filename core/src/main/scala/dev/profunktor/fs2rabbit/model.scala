@@ -26,10 +26,9 @@ import cats.implicits._
 import dev.profunktor.fs2rabbit.arguments.Arguments
 import dev.profunktor.fs2rabbit.effects.{EnvelopeDecoder, MessageEncoder}
 import dev.profunktor.fs2rabbit.model.AmqpHeaderVal._
+import dev.profunktor.fs2rabbit.javaConversion._
 import com.rabbitmq.client.{AMQP, Channel, Connection, LongString}
 import fs2.Stream
-
-import scala.collection.JavaConverters._
 
 object model {
 

@@ -19,9 +19,9 @@ package dev.profunktor.fs2rabbit.examples
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
 import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
 
-import scalaz.zio._
-import scalaz.zio.interop.catz._
-import scalaz.zio.interop.catz.implicits._
+import zio._
+import zio.interop.catz._
+import zio.interop.catz.implicits._
 import dev.profunktor.fs2rabbit.resiliency.ResilientStream
 
 object ZIOAutoAckConsumer extends CatsApp {
