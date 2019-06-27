@@ -63,7 +63,6 @@ class AmqpPropertiesSpec extends FlatSpecLike with Matchers with AmqpPropertiesA
 trait AmqpPropertiesArbitraries extends PropertyChecks {
 
   implicit val bigDecimalVal: Arbitrary[BigDecimalVal] = Arbitrary[BigDecimalVal] {
-    // Write it out explicitly because BigDecimal has conflicting instances
     arbitrary[BigDecimal].map(x => BigDecimalVal(x))
   }
 
@@ -129,6 +128,7 @@ trait AmqpPropertiesArbitraries extends PropertyChecks {
   }
 
   implicit val implicitAmqpHeaderVal: Arbitrary[AmqpHeaderVal] = Arbitrary {
+    // Cap it at 2 so that we don't have Stack Overflows/long test times
     amqpHeaderVal(2).arbitrary
   }
 

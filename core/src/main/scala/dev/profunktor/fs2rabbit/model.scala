@@ -84,7 +84,9 @@ object model {
   sealed trait AmqpHeaderVal extends Product with Serializable {
 
     /**
-      * The opposite of [[AmqpHeaderVal.from]]. Turns an [[AmqpHeaderVal]] into something that can be processed by [[com.rabbitmq.client.impl.ValueWriter]]
+      * The opposite of [[AmqpHeaderVal.unsafeFrom]]. Turns an [[AmqpHeaderVal]]
+      * into something that can be processed by
+      * [[com.rabbitmq.client.impl.ValueWriter]].
       */
     def impure: AnyRef = this match {
       case BigDecimalVal(v) => v.bigDecimal
@@ -106,7 +108,9 @@ object model {
   }
 
   object AmqpHeaderVal {
-    // This hierarchy is meant to reflect the output of [[com.rabbitmq.client.impl.ValueReader.readFieldValue]]
+    // This hierarchy is meant to reflect the output of
+    // [[com.rabbitmq.client.impl.ValueReader.readFieldValue]] in a type-safe
+    // way.
     final case class BigDecimalVal(value: BigDecimal)            extends AmqpHeaderVal
     final case class DateVal(value: Date)                        extends AmqpHeaderVal
     final case class TableVal(value: Map[String, AmqpHeaderVal]) extends AmqpHeaderVal
@@ -124,12 +128,18 @@ object model {
     case object NullVal                                          extends AmqpHeaderVal
 
     /**
-      * This method is meant purely to translate the output of [[com.rabbitmq.client.impl.ValueReader.readFieldValue]]. As such
+      * This method is meant purely to translate the output of
+      * [[com.rabbitmq.client.impl.ValueReader.readFieldValue]]. As such it is
+      * NOT total and will blow up if you pass it a class which
+      * [[com.rabbitmq.client.impl.ValueReader.readFieldValue]] does not output.
       */
-    def from(value: AnyRef): AmqpHeaderVal = value match {
+    def unsafeFrom(value: AnyRef): AmqpHeaderVal = value match {
       case bd: java.math.BigDecimal => BigDecimalVal(bd)
       case d: java.util.Date        => DateVal(d)
-      // Looking at com.rabbitmq.client.impl.ValueReader.readFieldValue reveals that java.util.Maps must always be created by com.rabbitmq.client.impl.ValueReader.readTable, whose Maps must always be of this type, even if at runtime type erasure removes the inner types.
+      // Looking at com.rabbitmq.client.impl.ValueReader.readFieldValue reveals
+      // that java.util.Maps must always be created by
+      // com.rabbitmq.client.impl.ValueReader.readTable, whose Maps must always
+      // be of this type, even if at runtime type erasure removes the inner types.
       // This makes us safe from ClassCastExceptions down the road.
       case t: java.util.Map[String @unchecked, AmqpHeaderVal @unchecked] => TableVal(t.asScala.toMap)
       case byte: java.lang.Byte                                          => ByteVal(byte)
@@ -142,7 +152,13 @@ object model {
       case l: java.lang.Long                                             => LongVal(l)
       case s: java.lang.String                                           => StringVal(s)
       case ls: LongString                                                => LongStringVal(ls)
-      // Looking at com.rabbitmq.client.impl.ValueReader.readFieldValue reveals that java.util.Lists must always be created by com.rabbitmq.client.impl.ValueReader.readArray, whose values must are then recursively created by com.rabbitmq.client.impl.ValueReader.readFieldValue, which indicates that the inner type can never be anything other than the types represented by AmqpHeaderVal
+      // Looking at com.rabbitmq.client.impl.ValueReader.readFieldValue reveals
+      // that java.util.Lists must always be created by
+      // com.rabbitmq.client.impl.ValueReader.readArray, whose values must are
+      // then recursively created by
+      // com.rabbitmq.client.impl.ValueReader.readFieldValue, which indicates
+      // that the inner type can never be anything other than the types
+      // represented by AmqpHeaderVal
       // This makes us safe from ClassCastExceptions down the road.
       case a: java.util.List[AmqpHeaderVal @unchecked] => ArrayVal(a.asScala.toVector)
       case null                                        => NullVal
@@ -185,7 +201,7 @@ object model {
         headers = Option(basicProps.getHeaders)
           .fold(Map.empty[String, Object])(_.asScala.toMap)
           .map {
-            case (k, v) => k -> AmqpHeaderVal.from(v)
+            case (k, v) => k -> AmqpHeaderVal.unsafeFrom(v)
           }
       )
 

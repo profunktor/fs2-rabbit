@@ -28,15 +28,15 @@ class AmqpHeaderValSpec extends FlatSpecLike with Matchers with AmqpPropertiesAr
     val stringVal = StringVal("hey")
     val arrayVal  = ArrayVal(Vector(IntVal(3), IntVal(2), IntVal(1)))
 
-    AmqpHeaderVal.from(intVal.impure) should be(intVal)
-    AmqpHeaderVal.from(longVal.impure) should be(longVal)
-    AmqpHeaderVal.from(stringVal.impure) should be(stringVal)
-    AmqpHeaderVal.from("fs2") should be(StringVal("fs2"))
-    AmqpHeaderVal.from(arrayVal.impure) should be(ArrayVal(Vector(IntVal(3), IntVal(2), IntVal(1))))
+    AmqpHeaderVal.unsafeFrom(intVal.impure) should be(intVal)
+    AmqpHeaderVal.unsafeFrom(longVal.impure) should be(longVal)
+    AmqpHeaderVal.unsafeFrom(stringVal.impure) should be(stringVal)
+    AmqpHeaderVal.unsafeFrom("fs2") should be(StringVal("fs2"))
+    AmqpHeaderVal.unsafeFrom(arrayVal.impure) should be(ArrayVal(Vector(IntVal(3), IntVal(2), IntVal(1))))
   }
   it should "have impure and from be opposites of each other" in {
     forAll { amqpHeaderVal: AmqpHeaderVal =>
-      AmqpHeaderVal.from(amqpHeaderVal.impure) == amqpHeaderVal
+      AmqpHeaderVal.unsafeFrom(amqpHeaderVal.impure) == amqpHeaderVal
     }
   }
 
