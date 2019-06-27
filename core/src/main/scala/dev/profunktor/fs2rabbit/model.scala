@@ -18,6 +18,7 @@ package dev.profunktor.fs2rabbit
 
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets.UTF_8
+import java.util.Date
 
 import cats.{Applicative, ApplicativeError}
 import cats.data.Kleisli
@@ -83,26 +84,76 @@ object model {
   }
 
   sealed trait AmqpHeaderVal extends Product with Serializable {
+
+    /**
+      * The opposite of [[AmqpHeaderVal.from]]. Turns an [[AmqpHeaderVal]] into something that can be processed by [[com.rabbitmq.client.impl.ValueWriter]]
+      */
     def impure: AnyRef = this match {
-      case StringVal(v) => LongStringHelper.asLongString(v)
-      case IntVal(v)    => Int.box(v)
-      case LongVal(v)   => Long.box(v)
-      case ArrayVal(v)  => v.asJava
+      case BigDecimalVal(v) => v
+      case DateVal(v)       => v
+      case TableVal(v)      => v.asJava
+      case ByteVal(v)       => Byte.box(v)
+      case DoubleVal(v)     => Double.box(v)
+      case FloatVal(v)      => Float.box(v)
+      case ShortVal(v)      => Short.box(v)
+      case ByteArrayVal(v)  => v
+      case BooleanVal(v)    => Boolean.box(v)
+      case IntVal(v)        => Int.box(v)
+      case LongVal(v)       => Long.box(v)
+      case StringVal(v)     => LongStringHelper.asLongString(v)
+      case LongStringVal(v) => v
+      case ArrayVal(v)      => v.asJava
+      case NullVal          => null
     }
   }
 
-  object AmqpHeaderVal {
-    final case class IntVal(value: Int)       extends AmqpHeaderVal
-    final case class LongVal(value: Long)     extends AmqpHeaderVal
-    final case class StringVal(value: String) extends AmqpHeaderVal
-    final case class ArrayVal(v: Seq[Any])    extends AmqpHeaderVal
+  sealed trait AmqpFieldType
+  object AmqpFieldType {
+    final case class BooleanVal()
+    final case class Signed8BitIntVal()
+    final case class Unsigned8BitIntVal()
+  }
 
+  object AmqpHeaderVal {
+    // This hierarchy is meant to reflect the output of [[com.rabbitmq.client.impl.ValueReader.readFieldValue]]
+    final case class BigDecimalVal(value: BigDecimal)            extends AmqpHeaderVal
+    final case class DateVal(value: Date)                        extends AmqpHeaderVal
+    final case class TableVal(value: Map[String, AmqpHeaderVal]) extends AmqpHeaderVal
+    final case class ByteVal(value: Byte)                        extends AmqpHeaderVal
+    final case class DoubleVal(value: Double)                    extends AmqpHeaderVal
+    final case class FloatVal(value: Float)                      extends AmqpHeaderVal
+    final case class ShortVal(value: Short)                      extends AmqpHeaderVal
+    final case class ByteArrayVal(value: Array[Byte])            extends AmqpHeaderVal
+    final case class BooleanVal(value: Boolean)                  extends AmqpHeaderVal
+    final case class IntVal(value: Int)                          extends AmqpHeaderVal
+    final case class LongVal(value: Long)                        extends AmqpHeaderVal
+    final case class StringVal(value: String)                    extends AmqpHeaderVal
+    final case class LongStringVal(value: LongString)            extends AmqpHeaderVal
+    final case class ArrayVal(v: Vector[AmqpHeaderVal])          extends AmqpHeaderVal
+    case object NullVal                                          extends AmqpHeaderVal
+
+    /**
+      * This method is meant purely to translate the output of [[com.rabbitmq.client.impl.ValueReader.readFieldValue]]. As such
+      */
     def from(value: AnyRef): AmqpHeaderVal = value match {
-      case ls: LongString       => StringVal(new String(ls.getBytes, "UTF-8"))
-      case s: String            => StringVal(s)
-      case l: java.lang.Long    => LongVal(l)
-      case i: java.lang.Integer => IntVal(i)
-      case a: java.util.List[_] => ArrayVal(a.asScala)
+      case bd: java.math.BigDecimal => BigDecimalVal(bd)
+      case d: java.util.Date        => DateVal(d)
+      // Looking at com.rabbitmq.client.impl.ValueReader.readFieldValue reveals that java.util.Maps must always be created by com.rabbitmq.client.impl.ValueReader.readTable, whose Maps must always be of this type, even if at runtime type erasure removes the inner types.
+      // This makes us safe from ClassCastExceptions down the road.
+      case t: java.util.Map[String @unchecked, AmqpHeaderVal @unchecked] => TableVal(t.asScala.toMap)
+      case byte: java.lang.Byte                                          => ByteVal(byte)
+      case double: java.lang.Double                                      => DoubleVal(double)
+      case float: java.lang.Float                                        => FloatVal(float)
+      case short: java.lang.Short                                        => ShortVal(short)
+      case byteArray: Array[Byte]                                        => ByteArrayVal(byteArray)
+      case b: java.lang.Boolean                                          => BooleanVal(b)
+      case i: java.lang.Integer                                          => IntVal(i)
+      case l: java.lang.Long                                             => LongVal(l)
+      case s: java.lang.String                                           => StringVal(s)
+      case ls: LongString                                                => LongStringVal(ls)
+      // Looking at com.rabbitmq.client.impl.ValueReader.readFieldValue reveals that java.util.Lists must always be created by com.rabbitmq.client.impl.ValueReader.readArray, whose values must are then recursively created by com.rabbitmq.client.impl.ValueReader.readFieldValue, which indicates that the inner type can never be anything other than the types represented by AmqpHeaderVal
+      // This makes us safe from ClassCastExceptions down the road.
+      case a: java.util.List[AmqpHeaderVal @unchecked] => ArrayVal(a.asScala.toVector)
     }
   }
 
@@ -161,7 +212,9 @@ object model {
           .expiration(props.expiration.orNull)
           .replyTo(props.replyTo.orNull)
           .clusterId(props.clusterId.orNull)
-          .headers(props.headers.mapValues[AnyRef](_.impure).asJava)
+          // Note we don't use mapValues here to maintain compatibility between
+          // Scala 2.12 and 2.13
+          .headers(props.headers.map { case (key, value) => (key, value.impure) }.asJava)
           .build()
     }
   }
