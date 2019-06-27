@@ -32,7 +32,7 @@ object Dependencies {
     override val circe      = "0.12.0-M3"
   }
 
-  sealed abstract class Library[V <: Version](val version: V) {
+  sealed abstract class VersionSpecificDeps[V <: Version](val version: V) {
     def circe(artifact: String): ModuleID = "io.circe" %% artifact % version.circe
 
     lazy val amqpClient = "com.rabbitmq"  % "amqp-client"  % version.amqpClient
@@ -58,7 +58,7 @@ object Dependencies {
     lazy val scalacOptions: Seq[String] = Seq.empty
   }
 
-  case object Scala211Libraries extends Library(Scala211Versions) {
+  case object Scala211Dependencies extends VersionSpecificDeps(Scala211Versions) {
     def zio(artifact: String): ModuleID = "dev.zio" %% artifact % version.zio
 
     // Example Libraries
@@ -69,7 +69,7 @@ object Dependencies {
     override lazy val scalacOptions: Seq[String] = Seq("-Xmax-classfile-name", "100")
   }
 
-  case object Scala212Libraries extends Library(Scala212Versions) {
+  case object Scala212Dependencies extends VersionSpecificDeps(Scala212Versions) {
     def zio(artifact: String): ModuleID = "dev.zio" %% artifact % version.zio
 
     // Example Libraries
@@ -80,6 +80,6 @@ object Dependencies {
     override lazy val scalacOptions: Seq[String] = Seq("-Xmax-classfile-name", "100")
   }
 
-  case object Scala213Libraries extends Library(Scala213Versions)
+  case object Scala213Dependencies extends VersionSpecificDeps(Scala213Versions)
 
 }

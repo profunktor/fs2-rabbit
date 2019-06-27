@@ -25,12 +25,12 @@ promptTheme := PromptTheme(List(
 // in a lot of places in a build.sbt file where it would be convenient to do so
 // and so we have to thread it through at the last moment instead and
 // scalaVersion.value is a String.
-def determineLibrary(scalaVersionStr: String) = CrossVersion.partialVersion(scalaVersionStr) match {
-  case Some((2, 13)) => Scala213Libraries
-  case Some((2, 12)) => Scala212Libraries
-  case Some((2, 11)) => Scala211Libraries
+def determineVersionSpecificDeps(scalaVersionStr: String) = CrossVersion.partialVersion(scalaVersionStr) match {
+  case Some((2, 13)) => Scala213Dependencies
+  case Some((2, 12)) => Scala212Dependencies
+  case Some((2, 11)) => Scala211Dependencies
   // Fallback to 2.12 libraries as they're currently the most well-supported
-  case _ => Scala212Libraries
+  case _ => Scala212Dependencies
 }
 
 val commonSettings = Seq(
@@ -39,9 +39,9 @@ val commonSettings = Seq(
   licenses += ("Apache-2.0", new URL("https://www.apache.org/licenses/LICENSE-2.0.txt")),
   homepage := Some(url("https://fs2-rabbit.profunktor.dev/")),
   headerLicense := Some(HeaderLicense.ALv2("2017-2019", "ProfunKtor")),
-  scalacOptions ++= determineLibrary(scalaVersion.value).scalacOptions,
+  scalacOptions ++= determineVersionSpecificDeps(scalaVersion.value).scalacOptions,
   libraryDependencies ++= {
-    val library = determineLibrary(scalaVersion.value)
+    val library = determineVersionSpecificDeps(scalaVersion.value)
     Seq(
       compilerPlugin(library.kindProjector),
       compilerPlugin(library.betterMonadicFor),
@@ -75,14 +75,14 @@ val commonSettings = Seq(
 )
 
 def CoreDependencies(scalaVersionStr: String): Seq[ModuleID] = {
-  val library = determineLibrary(scalaVersionStr)
+  val library = determineVersionSpecificDeps(scalaVersionStr)
   Seq(
     library.logback % "test"
   )
 }
 
 def JsonDependencies(scalaVersionStr: String): Seq[ModuleID] = {
-  val library = determineLibrary(scalaVersionStr)
+  val library = determineVersionSpecificDeps(scalaVersionStr)
   Seq(
     library.circeCore,
     library.circeGeneric,
@@ -91,16 +91,16 @@ def JsonDependencies(scalaVersionStr: String): Seq[ModuleID] = {
 }
 
 def ExamplesDependencies(scalaVersionStr: String): Seq[ModuleID] = {
-  determineLibrary(scalaVersionStr) match {
-    case library: Scala213Libraries.type => Seq(library.logback % "runtime")
-    case library: Scala212Libraries.type =>
+  determineVersionSpecificDeps(scalaVersionStr) match {
+    case library: Scala213Dependencies.type => Seq(library.logback % "runtime")
+    case library: Scala212Dependencies.type =>
       Seq(
         library.logback % "runtime",
         library.monix,
         library.zioCore,
         library.zioCats
       )
-    case library: Scala211Libraries.type =>
+    case library: Scala211Dependencies.type =>
       Seq(
         library.logback % "runtime",
         library.monix,
@@ -136,7 +136,7 @@ lazy val `fs2-rabbit-circe` = project.in(file("json-circe"))
 
 lazy val `fs2-rabbit-test-support` = project.in(file("test-support"))
   .settings(commonSettings: _*)
-  .settings(libraryDependencies += determineLibrary(scalaVersion.value).scalaTest)
+  .settings(libraryDependencies += determineVersionSpecificDeps(scalaVersion.value).scalaTest)
   .enablePlugins(AutomateHeaderPlugin)
   .dependsOn(`fs2-rabbit`)
 
