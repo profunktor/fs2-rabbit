@@ -54,6 +54,8 @@ object Dependencies {
     // Scala test libraries
     lazy val scalaTest  = "org.scalatest"  %% "scalatest"  % version.scalaTest
     lazy val scalaCheck = "org.scalacheck" %% "scalacheck" % version.scalaCheck
+
+    lazy val scalacOptions: Seq[String] = Seq.empty
   }
 
   case object Scala211Libraries extends Library(Scala211Versions) {
@@ -63,6 +65,8 @@ object Dependencies {
     lazy val monix = "io.monix" %% "monix" % version.monix
     lazy val zioCore = zio("zio")
     lazy val zioCats = zio("zio-interop-cats")
+
+    override lazy val scalacOptions: Seq[String] = Seq("-Xmax-classfile-name", "100")
   }
 
   case object Scala212Libraries extends Library(Scala212Versions) {
@@ -72,6 +76,8 @@ object Dependencies {
     lazy val monix = "io.monix" %% "monix" % version.monix
     lazy val zioCore = zio("zio")
     lazy val zioCats = zio("zio-interop-cats")
+
+    override lazy val scalacOptions: Seq[String] = Seq("-Xmax-classfile-name", "100")
   }
 
   case object Scala213Libraries extends Library(Scala213Versions)
