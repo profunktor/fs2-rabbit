@@ -60,11 +60,14 @@ class AmqpClientEffect[F[_]: Effect] extends AMQPClient[F] {
           // This is the main point of wrapping this whole thing in a Try; it
           // is very unlikely any of the other parts will go wrong, unsafeFrom
           // might though (if it does it's a bug that needs to be fixed!), but
-          // we don't want a bug in the usage of unsafeFrom to bring down our
-          // entire queue
-          val props       = AmqpProperties.unsafeFrom(properties)
+          // we don't want a bug in unsafeFrom to bring down our entire queue
+          val props = AmqpProperties.unsafeFrom(properties)
           AmqpEnvelope(DeliveryTag(tag), body, props, exchange, routingKey, redelivered)
-        }.toEither
+        } match {
+          // toEither is not supported by Scala 2.11
+          case scala.util.Success(amqpEnvelope) => Right(amqpEnvelope)
+          case scala.util.Failure(err)          => Left(err)
+        }
 
         internals.queue
           .fold(Applicative[F].pure(())) { internalQ =>

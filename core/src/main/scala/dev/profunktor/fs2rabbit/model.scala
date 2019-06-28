@@ -34,7 +34,6 @@ import scodec.bits.ByteVector
 
 object model {
 
-
   type StreamAckerConsumer[F[_], A] = (AckResult => F[Unit], Stream[F, AmqpEnvelope[A]])
 
   trait AMQPChannel {
