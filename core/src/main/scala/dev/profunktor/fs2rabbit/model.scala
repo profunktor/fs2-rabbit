@@ -246,7 +246,8 @@ object model {
       // It's safe to call unsafeFromBigDecimal here because if the value came
       // from readFieldValue, we're assured that the check on BigDecimal
       // representation size must have already occurred because ValueReader will
-      // only read a maximum of 4 bytes before bailing out.
+      // only read a maximum of 4 bytes before bailing out (similarly it will
+      // read no more than the first 8 bits to determine scale).
       case bd: java.math.BigDecimal => DecimalVal.unsafeFromBigDecimal(bd)
       case d: java.util.Date        => TimestampVal.fromDate(d)
       // Looking at com.rabbitmq.client.impl.ValueReader.readFieldValue reveals
