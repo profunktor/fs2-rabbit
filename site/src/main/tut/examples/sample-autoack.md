@@ -18,7 +18,7 @@ import dev.profunktor.fs2rabbit.config.declaration.DeclarationQueueConfig
 import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
 import dev.profunktor.fs2rabbit.json.Fs2JsonEncoder
 import dev.profunktor.fs2rabbit.model.AckResult.Ack
-import dev.profunktor.fs2rabbit.model.AmqpHeaderVal.{LongVal, StringVal}
+import dev.profunktor.fs2rabbit.model.AmqpFieldValue.{LongVal, StringVal}
 import dev.profunktor.fs2rabbit.model._
 import fs2.{Pipe, Pure, Stream}
 
