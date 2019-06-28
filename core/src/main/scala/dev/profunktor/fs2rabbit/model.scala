@@ -160,8 +160,8 @@ object model {
     /**
       * A type for precise decimal values. Note that while it is backed by a
       * [[BigDecimal]] (just like the underlying Java library), there is a limit
-      * on the size and precision of the decimal: its representation cannot
-      * exceed 4 bytes due to the AMQP spec.
+      * on the size and precision of the decimal: its unscaled representation cannot
+      * exceed 4 bytes due to the AMQP spec and its scale component must be an octet.
       */
     sealed abstract case class DecimalVal private (value: BigDecimal) extends AmqpFieldValue {
       override def toValueWriterCompatibleJava: java.math.BigDecimal = value.bigDecimal
@@ -172,7 +172,10 @@ object model {
       val MaxScaleValue: Int = 255
 
       /**
-        * If the representation is too large you'll get None.
+        * The AMQP 0.9.1 standard specifies that the scale component of a
+        * decimal must be an octet (i.e. between 0 and 255) and that its
+        * unscaled component must be a 32-bit integer. If those criteria are
+        * not met, then we get back None.
         */
       def fromBigDecimal(bigDecimal: BigDecimal): Option[DecimalVal] =
         if (getFullBitLengthOfUnscaled(bigDecimal) > MaxUnscaledBits || bigDecimal.scale > MaxScaleValue || bigDecimal.scale < 0) {
@@ -182,8 +185,8 @@ object model {
         }
 
       /**
-        * Only use if you're certain that the BigDecimal's representation is
-        * smaller than or equal to [[MaxUnscaledBits]].
+        * Only use if you're certain that the [[BigDecimal]]'s representation
+        * meets the requirements of a [[ DecimalVal ]].
         */
       def unsafeFromBigDecimal(bigDecimal: BigDecimal): DecimalVal =
         new DecimalVal(bigDecimal) {}
