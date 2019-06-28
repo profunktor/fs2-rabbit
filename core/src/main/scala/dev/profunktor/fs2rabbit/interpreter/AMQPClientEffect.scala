@@ -57,7 +57,7 @@ class AmqpClientEffect[F[_]: Effect] extends AMQPClient[F] {
           val routingKey  = RoutingKey(envelope.getRoutingKey)
           val exchange    = ExchangeName(envelope.getExchange)
           val redelivered = envelope.isRedeliver
-          val props       = AmqpProperties.from(properties)
+          val props       = AmqpProperties.unsafeFrom(properties)
           internals.queue.fold(Applicative[F].pure(())) { internalQ =>
             val envelope = AmqpEnvelope(DeliveryTag(tag), body, props, exchange, routingKey, redelivered)
             internalQ
@@ -173,7 +173,7 @@ class AmqpClientEffect[F[_]: Effect] extends AMQPClient[F] {
               ReplyText(replyText),
               ExchangeName(exchange),
               RoutingKey(routingKey),
-              AmqpProperties.from(properties),
+              AmqpProperties.unsafeFrom(properties),
               AmqpBody(body)
             )
 

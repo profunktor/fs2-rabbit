@@ -92,7 +92,7 @@ object model {
     *
     * Parts of the AMQP spec call for the use of such strings.
     */
-  sealed abstract case class ShortString(str: String)
+  sealed abstract case class ShortString private (str: String)
   object ShortString {
     val MaxByteLength = 255
 
@@ -103,6 +103,11 @@ object model {
         None
       }
 
+    /**
+      * This bypasses the safety check that [[of]] has. This is meant only for
+      * situations where you are certain the string cannot be larger than
+      * [[MaxByteLength]] (e.g. string literals).
+      */
     def unsafeOf(str: String): ShortString = new ShortString(str) {}
   }
 
@@ -186,7 +191,10 @@ object model {
 
       /**
         * Only use if you're certain that the [[BigDecimal]]'s representation
-        * meets the requirements of a [[ DecimalVal ]].
+        * meets the requirements of a [[ DecimalVal ]] (e.g. you are
+        * constructing one using literals).
+        *
+        * Almost always you should be using [[fromBigDecimal]].
         */
       def unsafeFromBigDecimal(bigDecimal: BigDecimal): DecimalVal =
         new DecimalVal(bigDecimal) {}
@@ -241,6 +249,9 @@ object model {
       * [[com.rabbitmq.client.impl.ValueReader.readFieldValue]]. As such it is
       * NOT total and will blow up if you pass it a class which
       * [[com.rabbitmq.client.impl.ValueReader.readFieldValue]] does not output.
+      *
+      * As a user of this library, you almost certainly be constructing
+      * [[AmqpFieldValue]]s directly instead of using this method.
       */
     def unsafeFromValueReaderOutput(value: AnyRef): AmqpFieldValue = value match {
       // It's safe to call unsafeFromBigDecimal here because if the value came
@@ -304,7 +315,17 @@ object model {
   object AmqpProperties {
     def empty = AmqpProperties()
 
-    def from(basicProps: AMQP.BasicProperties): AmqpProperties =
+    /**
+      * It is possible to construct an [[AMQP.BasicProperties]] that will cause
+      * this method to crash, hence it is unsafe. It is meant to be passed
+      * values that are created by the underlying RabbitMQ Java client library
+      * or other values that you are certain are well-formed (that is they
+      * conform to the AMQP spec).
+      *
+      * You should most likely not be calling this directly, and instead should
+      * be constructing an [[AmqpProperties]] directly.
+      */
+    def unsafeFrom(basicProps: AMQP.BasicProperties): AmqpProperties =
       AmqpProperties(
         contentType = Option(basicProps.getContentType),
         contentEncoding = Option(basicProps.getContentEncoding),
