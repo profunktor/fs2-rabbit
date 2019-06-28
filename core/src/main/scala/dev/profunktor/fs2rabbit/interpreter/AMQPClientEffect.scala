@@ -52,21 +52,19 @@ class AmqpClientEffect[F[_]: Effect] extends AMQPClient[F] {
           properties: AMQP.BasicProperties,
           body: Array[Byte]
       ): Unit = {
-        val tryEnqueuing = scala.util.Try {
+        val envelopeOrErr = scala.util.Try {
           val tag         = envelope.getDeliveryTag
           val routingKey  = RoutingKey(envelope.getRoutingKey)
           val exchange    = ExchangeName(envelope.getExchange)
           val redelivered = envelope.isRedeliver
           val props       = AmqpProperties.unsafeFrom(properties)
-          internals.queue.fold(Applicative[F].pure(())) { internalQ =>
-            val envelope = AmqpEnvelope(DeliveryTag(tag), body, props, exchange, routingKey, redelivered)
-            internalQ
-              .enqueue1(Right(envelope))
+          AmqpEnvelope(DeliveryTag(tag), body, props, exchange, routingKey, redelivered)
+        }.toEither
+
+        internals.queue
+          .fold(Applicative[F].pure(())) { internalQ =>
+            internalQ.enqueue1(envelopeOrErr)
           }
-        }
-        Effect[F]
-          .fromTry(tryEnqueuing)
-          .flatten
           .toIO
           .unsafeRunAsync(_ => ())
       }
