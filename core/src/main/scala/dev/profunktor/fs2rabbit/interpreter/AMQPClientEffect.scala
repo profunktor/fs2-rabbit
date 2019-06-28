@@ -35,7 +35,7 @@ class AmqpClientEffect[F[_]: Effect] extends AMQPClient[F] {
   private[fs2rabbit] def defaultConsumer[A](
       channel: Channel,
       internals: AMQPInternals[F]
-  ): F[Consumer] = Effect[F].delay {
+  ): F[Consumer] = Sync[F].delay {
     new DefaultConsumer(channel) {
 
       override def handleCancel(consumerTag: String): Unit =
