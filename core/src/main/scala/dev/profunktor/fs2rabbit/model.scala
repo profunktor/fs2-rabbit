@@ -167,26 +167,32 @@ object model {
       override def toValueWriterCompatibleJava: java.math.BigDecimal = value.bigDecimal
     }
     object DecimalVal {
-      val MaxRepresentationSize: Int = 32
+      val MaxUnscaledBits: Int = 32
+
+      val MaxScaleValue: Int = 255
 
       /**
         * If the representation is too large you'll get None.
         */
-      def fromBigDecimal(bigDecimal: BigDecimal): Option[DecimalVal] = {
-        val representationTooLarge = bigDecimal.bigDecimal.unscaledValue.bitLength > MaxRepresentationSize
-        if (representationTooLarge) {
+      def fromBigDecimal(bigDecimal: BigDecimal): Option[DecimalVal] =
+        if (getFullBitLengthOfUnscaled(bigDecimal) > MaxUnscaledBits || bigDecimal.scale > MaxScaleValue || bigDecimal.scale < 0) {
           None
         } else {
           Some(new DecimalVal(bigDecimal) {})
         }
-      }
 
       /**
         * Only use if you're certain that the BigDecimal's representation is
-        * smaller than [[MaxRepresentationSize]].
+        * smaller than or equal to [[MaxUnscaledBits]].
         */
       def unsafeFromBigDecimal(bigDecimal: BigDecimal): DecimalVal =
         new DecimalVal(bigDecimal) {}
+
+      private def getFullBitLengthOfUnscaled(bigDecimal: BigDecimal): Int =
+        // Note that we add back 1 here because bitLength ignores the sign bit,
+        // reporting back an answer that's one bit too small.
+        bigDecimal.bigDecimal.unscaledValue.bitLength + 1
+
     }
 
     final case class TableVal(value: Map[ShortString, AmqpFieldValue]) extends AmqpFieldValue {

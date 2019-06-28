@@ -18,11 +18,10 @@ package dev.profunktor.fs2rabbit
 
 import java.io.{DataInputStream, DataOutputStream, InputStream, OutputStream}
 import java.time.Instant
-import com.rabbitmq.client.impl.{ValueReader, ValueWriter}
-import dev.profunktor.fs2rabbit.model.{AmqpFieldValue, ShortString}
 
-import scala.math.BigDecimal.RoundingMode
+import com.rabbitmq.client.impl.{ValueReader, ValueWriter}
 import dev.profunktor.fs2rabbit.model.AmqpFieldValue._
+import dev.profunktor.fs2rabbit.model.{AmqpFieldValue, ShortString}
 import org.scalatest.{Assertion, FlatSpecLike, Matchers}
 
 class AmqpFieldValueSpec extends FlatSpecLike with Matchers with AmqpPropertiesArbitraries {
@@ -43,6 +42,27 @@ class AmqpFieldValueSpec extends FlatSpecLike with Matchers with AmqpPropertiesA
     forAll { amqpHeaderVal: AmqpFieldValue =>
       AmqpFieldValue.unsafeFromValueReaderOutput(amqpHeaderVal.toValueWriterCompatibleJava) == amqpHeaderVal
     }
+  }
+
+  it should "preserve the same values after a round-trip through the Java ValueReader and ValueWriter" in {
+    forAll(assertThatValueIsPreservedThroughJavaWriteAndRead _)
+  }
+
+  it should "preserve a specific StringVal that previously failed after a round-trip through the Java ValueReader and ValueWriter" in {
+    assertThatValueIsPreservedThroughJavaWriteAndRead(StringVal("kyvmqzlbjivLqQFukljghxdowkcmjklgSeybdy"))
+  }
+
+  it should "preserve a specific DateVal created from an Instant that has millisecond accuracy after a round-trip through the Java ValueReader and ValueWriter" in {
+    val instant   = Instant.parse("4000-11-03T20:17:29.57Z")
+    val myDateVal = TimestampVal.fromInstant(instant)
+    assertThatValueIsPreservedThroughJavaWriteAndRead(myDateVal)
+  }
+
+  "DecimalVal" should "reject a BigDecimal of an unscaled value with 33 bits..." in {
+    DecimalVal.fromBigDecimal(BigDecimal(Int.MaxValue) + BigDecimal(1)) should be(None)
+  }
+  it should "reject a BigDecimal with a scale over octet size" in {
+    DecimalVal.fromBigDecimal(new java.math.BigDecimal(java.math.BigInteger.valueOf(12345L), 1000)) should be(None)
   }
 
   // We need to wrap things in a dummy table because the method that would be
@@ -85,34 +105,10 @@ class AmqpFieldValueSpec extends FlatSpecLike with Matchers with AmqpPropertiesA
   private def assertThatValueIsPreservedThroughJavaWriteAndRead(amqpHeaderVal: AmqpFieldValue): Assertion = {
     val outputResultsAsTable = collection.mutable.Queue.empty[Byte]
     val tableWriter          = createWriterFromQueue(outputResultsAsTable)
-    val clippedAmqpHeaderVal = amqpHeaderVal match {
-      case DecimalVal(bigDecimal) =>
-        val upperLimit = BigDecimal(Short.MaxValue)
-        // Because we can't encode BigDecimals that are too big or too precise...
-        val clippedBigDecimal = (bigDecimal % upperLimit).setScale(2, RoundingMode.CEILING)
-        DecimalVal.unsafeFromBigDecimal(clippedBigDecimal)
-
-      case notBigDecimal => notBigDecimal
-    }
-    tableWriter.writeTable(wrapInDummyTable(clippedAmqpHeaderVal).toValueWriterCompatibleJava)
+    tableWriter.writeTable(wrapInDummyTable(amqpHeaderVal).toValueWriterCompatibleJava)
 
     val reader    = createReaderFromQueue(outputResultsAsTable)
     val readValue = reader.readTable()
     AmqpFieldValue.unsafeFromValueReaderOutput(readValue) should be(wrapInDummyTable(amqpHeaderVal))
   }
-
-  it should "preserve the same values after a round-trip through the Java ValueReader and ValueWriter" in {
-    forAll(assertThatValueIsPreservedThroughJavaWriteAndRead _)
-  }
-
-  it should "preserve a specific StringVal that previously failed after a round-trip through the Java ValueReader and ValueWriter" in {
-    assertThatValueIsPreservedThroughJavaWriteAndRead(StringVal("kyvmqzlbjivLqQFukljghxdowkcmjklgSeybdy"))
-  }
-
-  it should "preserve a specific DateVal created from an Instant that has millisecond accuracy after a round-trip through the Java ValueReader and ValueWriter" in {
-    val instant   = Instant.parse("4000-11-03T20:17:29.57Z")
-    val myDateVal = TimestampVal.fromInstant(instant)
-    assertThatValueIsPreservedThroughJavaWriteAndRead(myDateVal)
-  }
-
 }

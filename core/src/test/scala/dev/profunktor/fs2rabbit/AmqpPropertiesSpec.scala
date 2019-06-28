@@ -27,8 +27,6 @@ import org.scalatest.{FlatSpecLike, Matchers}
 import org.scalatestplus.scalacheck.{ScalaCheckPropertyChecks => PropertyChecks}
 import scodec.bits.ByteVector
 
-import scala.math.BigDecimal.RoundingMode
-
 class AmqpPropertiesSpec extends FlatSpecLike with Matchers with AmqpPropertiesArbitraries {
 
   it should s"convert from and to Java AMQP.BasicProperties" in {
@@ -65,10 +63,12 @@ class AmqpPropertiesSpec extends FlatSpecLike with Matchers with AmqpPropertiesA
 trait AmqpPropertiesArbitraries extends PropertyChecks {
 
   implicit val bigDecimalVal: Arbitrary[DecimalVal] = Arbitrary[DecimalVal] {
-    arbitrary[BigDecimal].map { x =>
-      val upperLimit        = BigDecimal(Short.MaxValue)
-      val clippedBigDecimal = (x % upperLimit).setScale(2, RoundingMode.CEILING)
-      DecimalVal.unsafeFromBigDecimal(clippedBigDecimal)
+    for {
+      unscaledValue <- arbitrary[Int]
+      scale         <- Gen.choose(0, 255)
+    } yield {
+      val javaBigDecimal = new java.math.BigDecimal(BigInt(unscaledValue).bigInteger, scale)
+      DecimalVal.unsafeFromBigDecimal(BigDecimal(javaBigDecimal))
     }
   }
 
