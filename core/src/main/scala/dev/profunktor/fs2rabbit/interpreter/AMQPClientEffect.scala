@@ -17,10 +17,11 @@
 package dev.profunktor.fs2rabbit.interpreter
 
 import cats.Applicative
-import cats.effect.{Effect, Sync}
 import cats.effect.syntax.effect._
+import cats.effect.{Effect, Sync}
 import cats.syntax.flatMap._
 import cats.syntax.functor._
+import com.rabbitmq.client._
 import dev.profunktor.fs2rabbit.algebra.{AMQPClient, AMQPInternals}
 import dev.profunktor.fs2rabbit.arguments._
 import dev.profunktor.fs2rabbit.config.declaration.{DeclarationExchangeConfig, DeclarationQueueConfig}
@@ -28,7 +29,6 @@ import dev.profunktor.fs2rabbit.config.deletion
 import dev.profunktor.fs2rabbit.config.deletion.DeletionQueueConfig
 import dev.profunktor.fs2rabbit.effects.BoolValue.syntax._
 import dev.profunktor.fs2rabbit.model._
-import com.rabbitmq.client._
 
 class AmqpClientEffect[F[_]: Effect] extends AMQPClient[F] {
 
@@ -52,18 +52,22 @@ class AmqpClientEffect[F[_]: Effect] extends AMQPClient[F] {
           properties: AMQP.BasicProperties,
           body: Array[Byte]
       ): Unit = {
-        val tag         = envelope.getDeliveryTag
-        val routingKey  = RoutingKey(envelope.getRoutingKey)
-        val exchange    = ExchangeName(envelope.getExchange)
-        val redelivered = envelope.isRedeliver
-        val props       = AmqpProperties.from(properties)
-        internals.queue.fold(()) { internalQ =>
-          val envelope = AmqpEnvelope(DeliveryTag(tag), body, props, exchange, routingKey, redelivered)
-          internalQ
-            .enqueue1(Right(envelope))
-            .toIO
-            .unsafeRunAsync(_ => ())
+        val tryEnqueuing = scala.util.Try {
+          val tag         = envelope.getDeliveryTag
+          val routingKey  = RoutingKey(envelope.getRoutingKey)
+          val exchange    = ExchangeName(envelope.getExchange)
+          val redelivered = envelope.isRedeliver
+          val props       = AmqpProperties.from(properties)
+          internals.queue.fold(Applicative[F].pure(())) { internalQ =>
+            val envelope = AmqpEnvelope(DeliveryTag(tag), body, props, exchange, routingKey, redelivered)
+            internalQ
+              .enqueue1(Right(envelope))
+          }
         }
+        Effect[F].fromTry(tryEnqueuing)
+          .flatten
+          .toIO
+          .unsafeRunAsync(_ => ())
       }
     }
   }
