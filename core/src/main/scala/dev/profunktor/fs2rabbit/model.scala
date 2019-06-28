@@ -34,9 +34,6 @@ import scodec.bits.ByteVector
 
 object model {
 
-  sealed trait AMQPTableReadError
-  final case class UnrecognizedFieldValueJavaType(rawObject: AnyRef) extends AMQPTableReadError
-  final case class TableKeyLengthIsTooLong(key: String)              extends AMQPTableReadError
 
   type StreamAckerConsumer[F[_], A] = (AckResult => F[Unit], Stream[F, AmqpEnvelope[A]])
 
