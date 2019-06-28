@@ -92,7 +92,7 @@ object model {
   object ShortString {
     val MaxByteLength = 255
 
-    def of(str: String): Option[ShortString] =
+    def from(str: String): Option[ShortString] =
       if (str.getBytes("utf-8").length <= MaxByteLength) {
         Some(new ShortString(str) {})
       } else {
@@ -100,11 +100,11 @@ object model {
       }
 
     /**
-      * This bypasses the safety check that [[of]] has. This is meant only for
+      * This bypasses the safety check that [[from]] has. This is meant only for
       * situations where you are certain the string cannot be larger than
       * [[MaxByteLength]] (e.g. string literals).
       */
-    def unsafeOf(str: String): ShortString = new ShortString(str) {}
+    def unsafeFrom(str: String): ShortString = new ShortString(str) {}
   }
 
   /**
@@ -133,7 +133,7 @@ object model {
   sealed trait AmqpFieldValue extends Product with Serializable {
 
     /**
-      * The opposite of [[AmqpFieldValue.unsafeFromValueReaderOutput]]. Turns an [[AmqpFieldValue]]
+      * The opposite of [[AmqpFieldValue.unsafeFrom]]. Turns an [[AmqpFieldValue]]
       * into something that can be processed by
       * [[com.rabbitmq.client.impl.ValueWriter]].
       */
@@ -152,10 +152,10 @@ object model {
       override def toValueWriterCompatibleJava: Date = Date.from(instantWithOneSecondAccuracy)
     }
     object TimestampVal {
-      def fromInstant(instant: Instant): TimestampVal =
+      def from(instant: Instant): TimestampVal =
         new TimestampVal(instant.truncatedTo(ChronoUnit.SECONDS)) {}
 
-      def fromDate(date: Date): TimestampVal = fromInstant(date.toInstant)
+      def from(date: Date): TimestampVal = from(date.toInstant)
     }
 
     /**
@@ -164,8 +164,8 @@ object model {
       * on the size and precision of the decimal: its unscaled representation cannot
       * exceed 4 bytes due to the AMQP spec and its scale component must be an octet.
       */
-    sealed abstract case class DecimalVal private (value: BigDecimal) extends AmqpFieldValue {
-      override def toValueWriterCompatibleJava: java.math.BigDecimal = value.bigDecimal
+    sealed abstract case class DecimalVal private (sizeLimitedBigDecimal: BigDecimal) extends AmqpFieldValue {
+      override def toValueWriterCompatibleJava: java.math.BigDecimal = sizeLimitedBigDecimal.bigDecimal
     }
     object DecimalVal {
       val MaxUnscaledBits: Int = 32
@@ -178,7 +178,7 @@ object model {
         * unscaled component must be a 32-bit integer. If those criteria are
         * not met, then we get back None.
         */
-      def fromBigDecimal(bigDecimal: BigDecimal): Option[DecimalVal] =
+      def from(bigDecimal: BigDecimal): Option[DecimalVal] =
         if (getFullBitLengthOfUnscaled(bigDecimal) > MaxUnscaledBits || bigDecimal.scale > MaxScaleValue || bigDecimal.scale < 0) {
           None
         } else {
@@ -190,9 +190,9 @@ object model {
         * meets the requirements of a [[ DecimalVal ]] (e.g. you are
         * constructing one using literals).
         *
-        * Almost always you should be using [[fromBigDecimal]].
+        * Almost always you should be using [[from]].
         */
-      def unsafeFromBigDecimal(bigDecimal: BigDecimal): DecimalVal =
+      def unsafeFrom(bigDecimal: BigDecimal): DecimalVal =
         new DecimalVal(bigDecimal) {}
 
       private def getFullBitLengthOfUnscaled(bigDecimal: BigDecimal): Int =
@@ -233,8 +233,8 @@ object model {
     final case class StringVal(value: String) extends AmqpFieldValue {
       override def toValueWriterCompatibleJava: String = value
     }
-    final case class ArrayVal(v: Vector[AmqpFieldValue]) extends AmqpFieldValue {
-      override def toValueWriterCompatibleJava: java.util.List[AnyRef] = v.map(_.toValueWriterCompatibleJava).asJava
+    final case class ArrayVal(value: Vector[AmqpFieldValue]) extends AmqpFieldValue {
+      override def toValueWriterCompatibleJava: java.util.List[AnyRef] = value.map(_.toValueWriterCompatibleJava).asJava
     }
     case object NullVal extends AmqpFieldValue {
       override def toValueWriterCompatibleJava: Null = null
@@ -249,14 +249,14 @@ object model {
       * As a user of this library, you almost certainly be constructing
       * [[AmqpFieldValue]]s directly instead of using this method.
       */
-    private[fs2rabbit] def unsafeFromValueReaderOutput(value: AnyRef): AmqpFieldValue = value match {
+    private[fs2rabbit] def unsafeFrom(value: AnyRef): AmqpFieldValue = value match {
       // It's safe to call unsafeFromBigDecimal here because if the value came
       // from readFieldValue, we're assured that the check on BigDecimal
       // representation size must have already occurred because ValueReader will
       // only read a maximum of 4 bytes before bailing out (similarly it will
       // read no more than the first 8 bits to determine scale).
-      case bd: java.math.BigDecimal => DecimalVal.unsafeFromBigDecimal(bd)
-      case d: java.util.Date        => TimestampVal.fromDate(d)
+      case bd: java.math.BigDecimal => DecimalVal.unsafeFrom(bd)
+      case d: java.util.Date        => TimestampVal.from(d)
       // Looking at com.rabbitmq.client.impl.ValueReader.readFieldValue reveals
       // that java.util.Maps must always be created by
       // com.rabbitmq.client.impl.ValueReader.readTable, whose Maps must always
@@ -268,7 +268,7 @@ object model {
         // validation that a short string is 255 chars or less, it only reads
         // one byte to determine how large of a byte array to allocate for the
         // string which means the length cannot possibly exceed 255.
-        TableVal(t.asScala.toMap.map { case (key, v) => ShortString.unsafeOf(key) -> unsafeFromValueReaderOutput(v) })
+        TableVal(t.asScala.toMap.map { case (key, v) => ShortString.unsafeFrom(key) -> unsafeFrom(v) })
       case byte: java.lang.Byte     => ByteVal(byte)
       case double: java.lang.Double => DoubleVal(double)
       case float: java.lang.Float   => FloatVal(float)
@@ -287,7 +287,7 @@ object model {
       // that the inner type can never be anything other than the types
       // represented by AmqpHeaderVal
       // This makes us safe from ClassCastExceptions down the road.
-      case a: java.util.List[AnyRef @unchecked] => ArrayVal(a.asScala.toVector.map(unsafeFromValueReaderOutput))
+      case a: java.util.List[AnyRef @unchecked] => ArrayVal(a.asScala.toVector.map(unsafeFrom))
       case null                                 => NullVal
     }
   }
@@ -338,7 +338,7 @@ object model {
         headers = Option(basicProps.getHeaders)
           .fold(Map.empty[String, Object])(_.asScala.toMap)
           .map {
-            case (k, v) => k -> AmqpFieldValue.unsafeFromValueReaderOutput(v)
+            case (k, v) => k -> AmqpFieldValue.unsafeFrom(v)
           }
       )
 

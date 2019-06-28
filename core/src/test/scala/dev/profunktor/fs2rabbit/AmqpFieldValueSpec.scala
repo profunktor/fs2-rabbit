@@ -32,15 +32,15 @@ class AmqpFieldValueSpec extends FlatSpecLike with Matchers with AmqpPropertiesA
     val stringVal = StringVal("hey")
     val arrayVal  = ArrayVal(Vector(IntVal(3), IntVal(2), IntVal(1)))
 
-    AmqpFieldValue.unsafeFromValueReaderOutput(intVal.toValueWriterCompatibleJava) should be(intVal)
-    AmqpFieldValue.unsafeFromValueReaderOutput(longVal.toValueWriterCompatibleJava) should be(longVal)
-    AmqpFieldValue.unsafeFromValueReaderOutput(stringVal.toValueWriterCompatibleJava) should be(stringVal)
-    AmqpFieldValue.unsafeFromValueReaderOutput("fs2") should be(StringVal("fs2"))
-    AmqpFieldValue.unsafeFromValueReaderOutput(arrayVal.toValueWriterCompatibleJava) should be(arrayVal)
+    AmqpFieldValue.unsafeFrom(intVal.toValueWriterCompatibleJava) should be(intVal)
+    AmqpFieldValue.unsafeFrom(longVal.toValueWriterCompatibleJava) should be(longVal)
+    AmqpFieldValue.unsafeFrom(stringVal.toValueWriterCompatibleJava) should be(stringVal)
+    AmqpFieldValue.unsafeFrom("fs2") should be(StringVal("fs2"))
+    AmqpFieldValue.unsafeFrom(arrayVal.toValueWriterCompatibleJava) should be(arrayVal)
   }
   it should "preserve the same value after a round-trip through impure and from" in {
     forAll { amqpHeaderVal: AmqpFieldValue =>
-      AmqpFieldValue.unsafeFromValueReaderOutput(amqpHeaderVal.toValueWriterCompatibleJava) == amqpHeaderVal
+      AmqpFieldValue.unsafeFrom(amqpHeaderVal.toValueWriterCompatibleJava) == amqpHeaderVal
     }
   }
 
@@ -54,22 +54,22 @@ class AmqpFieldValueSpec extends FlatSpecLike with Matchers with AmqpPropertiesA
 
   it should "preserve a specific DateVal created from an Instant that has millisecond accuracy after a round-trip through the Java ValueReader and ValueWriter" in {
     val instant   = Instant.parse("4000-11-03T20:17:29.57Z")
-    val myDateVal = TimestampVal.fromInstant(instant)
+    val myDateVal = TimestampVal.from(instant)
     assertThatValueIsPreservedThroughJavaWriteAndRead(myDateVal)
   }
 
   "DecimalVal" should "reject a BigDecimal of an unscaled value with 33 bits..." in {
-    DecimalVal.fromBigDecimal(BigDecimal(Int.MaxValue) + BigDecimal(1)) should be(None)
+    DecimalVal.from(BigDecimal(Int.MaxValue) + BigDecimal(1)) should be(None)
   }
   it should "reject a BigDecimal with a scale over octet size" in {
-    DecimalVal.fromBigDecimal(new java.math.BigDecimal(java.math.BigInteger.valueOf(12345L), 1000)) should be(None)
+    DecimalVal.from(new java.math.BigDecimal(java.math.BigInteger.valueOf(12345L), 1000)) should be(None)
   }
 
   // We need to wrap things in a dummy table because the method that would be
   // great to test with ValueReader, readFieldValue, is private, and so we
   // have to call the next best thing, readTable.
   private def wrapInDummyTable(value: AmqpFieldValue): TableVal =
-    TableVal(Map(ShortString.unsafeOf("dummyKey") -> value))
+    TableVal(Map(ShortString.unsafeFrom("dummyKey") -> value))
 
   private def createWriterFromQueue(outputResults: collection.mutable.Queue[Byte]): ValueWriter =
     new ValueWriter({
@@ -109,6 +109,6 @@ class AmqpFieldValueSpec extends FlatSpecLike with Matchers with AmqpPropertiesA
 
     val reader    = createReaderFromQueue(outputResultsAsTable)
     val readValue = reader.readTable()
-    AmqpFieldValue.unsafeFromValueReaderOutput(readValue) should be(wrapInDummyTable(amqpHeaderVal))
+    AmqpFieldValue.unsafeFrom(readValue) should be(wrapInDummyTable(amqpHeaderVal))
   }
 }

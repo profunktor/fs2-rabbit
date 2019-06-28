@@ -68,17 +68,17 @@ trait AmqpPropertiesArbitraries extends PropertyChecks {
       scale         <- Gen.choose(0, 255)
     } yield {
       val javaBigDecimal = new java.math.BigDecimal(BigInt(unscaledValue).bigInteger, scale)
-      DecimalVal.unsafeFromBigDecimal(BigDecimal(javaBigDecimal))
+      DecimalVal.unsafeFrom(BigDecimal(javaBigDecimal))
     }
   }
 
   implicit val dateVal: Arbitrary[TimestampVal] = Arbitrary[TimestampVal] {
-    arbitrary[Date].map(TimestampVal.fromDate)
+    arbitrary[Date].map(TimestampVal.from)
   }
 
   private def modTruncateString(str: String): ShortString = {
     val newLength = str.length % (ShortString.MaxByteLength + 1)
-    ShortString.unsafeOf(str.substring(newLength))
+    ShortString.unsafeFrom(str.substring(newLength))
   }
 
   def tableVal(maxDepth: Int): Arbitrary[TableVal] = Arbitrary {
