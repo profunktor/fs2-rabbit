@@ -64,7 +64,8 @@ class AmqpClientEffect[F[_]: Effect] extends AMQPClient[F] {
               .enqueue1(Right(envelope))
           }
         }
-        Effect[F].fromTry(tryEnqueuing)
+        Effect[F]
+          .fromTry(tryEnqueuing)
           .flatten
           .toIO
           .unsafeRunAsync(_ => ())
