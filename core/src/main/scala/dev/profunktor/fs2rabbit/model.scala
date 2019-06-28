@@ -253,7 +253,7 @@ object model {
       * As a user of this library, you almost certainly be constructing
       * [[AmqpFieldValue]]s directly instead of using this method.
       */
-    def unsafeFromValueReaderOutput(value: AnyRef): AmqpFieldValue = value match {
+    private[fs2rabbit] def unsafeFromValueReaderOutput(value: AnyRef): AmqpFieldValue = value match {
       // It's safe to call unsafeFromBigDecimal here because if the value came
       // from readFieldValue, we're assured that the check on BigDecimal
       // representation size must have already occurred because ValueReader will
@@ -322,10 +322,10 @@ object model {
       * or other values that you are certain are well-formed (that is they
       * conform to the AMQP spec).
       *
-      * You should most likely not be calling this directly, and instead should
+      * A user of the library should most likely not be calling this directly, and instead should
       * be constructing an [[AmqpProperties]] directly.
       */
-    def unsafeFrom(basicProps: AMQP.BasicProperties): AmqpProperties =
+    private[fs2rabbit] def unsafeFrom(basicProps: AMQP.BasicProperties): AmqpProperties =
       AmqpProperties(
         contentType = Option(basicProps.getContentType),
         contentEncoding = Option(basicProps.getContentEncoding),
