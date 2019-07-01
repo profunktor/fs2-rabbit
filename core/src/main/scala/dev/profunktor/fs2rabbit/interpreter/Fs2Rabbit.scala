@@ -33,6 +33,8 @@ object Fs2Rabbit {
   def apply[F[_]: ConcurrentEffect](
       config: Fs2RabbitConfig,
       sslContext: Option[SSLContext] = None,
+      // Unlike SSLContext, SaslConfig is not optional because it is always set
+      // by the underlying Java library, even if the user doesn't set it.
       saslConfig: SaslConfig = DefaultSaslConfig.PLAIN
   ): F[Fs2Rabbit[F]] =
     ConnectionEffect.mkConnectionFactory[F](config, sslContext, saslConfig).map {
