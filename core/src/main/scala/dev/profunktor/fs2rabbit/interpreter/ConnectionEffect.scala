@@ -19,7 +19,7 @@ package dev.profunktor.fs2rabbit.interpreter
 import cats.data.NonEmptyList
 import cats.effect.{Resource, Sync}
 import cats.implicits._
-import com.rabbitmq.client.{Address, ConnectionFactory}
+import com.rabbitmq.client.{Address, ConnectionFactory, SaslConfig}
 import dev.profunktor.fs2rabbit.algebra.Connection
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
 import dev.profunktor.fs2rabbit.effects.Log
@@ -62,7 +62,8 @@ object ConnectionEffect {
 
   private[fs2rabbit] def mkConnectionFactory[F[_]: Sync](
       config: Fs2RabbitConfig,
-      sslContext: Option[SSLContext]
+      sslContext: Option[SSLContext],
+      saslConfig: SaslConfig
   ): F[(ConnectionFactory, NonEmptyList[Address])] =
     Sync[F].delay {
       val factory   = new ConnectionFactory()
@@ -75,6 +76,7 @@ object ConnectionEffect {
       if (config.ssl) {
         sslContext.fold(factory.useSslProtocol())(factory.useSslProtocol)
       }
+      factory.setSaslConfig(saslConfig)
       config.username.foreach(factory.setUsername)
       config.password.foreach(factory.setPassword)
       val addresses = config.nodes.map(node => new Address(node.host, node.port))
