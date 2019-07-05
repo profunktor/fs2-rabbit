@@ -18,6 +18,7 @@ package dev.profunktor.fs2rabbit.interpreter
 
 import cats.effect.{Concurrent, ConcurrentEffect, Resource}
 import cats.syntax.functor._
+import com.rabbitmq.client.{DefaultSaslConfig, SaslConfig}
 import dev.profunktor.fs2rabbit.algebra._
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
 import dev.profunktor.fs2rabbit.config.declaration.{DeclarationExchangeConfig, DeclarationQueueConfig}
@@ -31,9 +32,12 @@ import javax.net.ssl.SSLContext
 object Fs2Rabbit {
   def apply[F[_]: ConcurrentEffect](
       config: Fs2RabbitConfig,
-      sslContext: Option[SSLContext] = None
+      sslContext: Option[SSLContext] = None,
+      // Unlike SSLContext, SaslConfig is not optional because it is always set
+      // by the underlying Java library, even if the user doesn't set it.
+      saslConfig: SaslConfig = DefaultSaslConfig.PLAIN
   ): F[Fs2Rabbit[F]] =
-    ConnectionEffect.mkConnectionFactory[F](config, sslContext).map {
+    ConnectionEffect.mkConnectionFactory[F](config, sslContext, saslConfig).map {
       case (factory, addresses) =>
         val amqpClient = new AmqpClientEffect[F]
         val conn       = new ConnectionEffect[F](factory, addresses)
