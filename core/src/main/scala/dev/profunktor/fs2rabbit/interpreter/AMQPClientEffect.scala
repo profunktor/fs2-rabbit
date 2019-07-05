@@ -58,10 +58,10 @@ class AmqpClientEffect[F[_]: Effect] extends AMQPClient[F] {
         // since it requires a pretty intricate understanding of the underlying
         // Java library) so just in case, we're wrapping it in a Try so that a
         // bug here doesn't bring down our entire queue.
-        val envelopeOrErr = (scala.util.Try(AmqpProperties.unsafeFrom(properties)) match {
+        val amqpPropertiesOrErr = scala.util.Try(AmqpProperties.unsafeFrom(properties)) match {
           // toEither is not supported by Scala 2.11
-          case scala.util.Success(amqpEnvelope) => Right(amqpEnvelope)
-          case scala.util.Failure(err)          =>
+          case scala.util.Success(amqpProperties) => Right(amqpProperties)
+          case scala.util.Failure(err) =>
             val rewrappedError = new Exception(
               "You've stumbled across a bug in the interface between the underlying " +
                 "RabbitMQ Java library and fs2-rabbit! Please report this bug and " +
@@ -70,13 +70,16 @@ class AmqpClientEffect[F[_]: Effect] extends AMQPClient[F] {
               err
             )
             Left(rewrappedError)
-        }).map{ props =>
-          val tag         = envelope.getDeliveryTag
-          val routingKey  = RoutingKey(envelope.getRoutingKey)
-          val exchange    = ExchangeName(envelope.getExchange)
-          val redelivered = envelope.isRedeliver
-          AmqpEnvelope(DeliveryTag(tag), body, props, exchange, routingKey, redelivered)
         }
+        // Manual right projection here to keep compatibility with Scala 2.11
+        val envelopeOrErr = amqpPropertiesOrErr.right
+          .map { props =>
+            val tag         = envelope.getDeliveryTag
+            val routingKey  = RoutingKey(envelope.getRoutingKey)
+            val exchange    = ExchangeName(envelope.getExchange)
+            val redelivered = envelope.isRedeliver
+            AmqpEnvelope(DeliveryTag(tag), body, props, exchange, routingKey, redelivered)
+          }
         internals.queue
           .fold(Applicative[F].pure(())) { internalQ =>
             internalQ.enqueue1(envelopeOrErr)
