@@ -52,23 +52,31 @@ class AmqpClientEffect[F[_]: Effect] extends AMQPClient[F] {
           properties: AMQP.BasicProperties,
           body: Array[Byte]
       ): Unit = {
-        val envelopeOrErr = scala.util.Try {
+        // This should not go wrong (if it does it is an indication of a bug in
+        // unsafeFrom)!
+        // However, I'm not entirely confident I've nailed down unsafeFrom (
+        // since it requires a pretty intricate understanding of the underlying
+        // Java library) so just in case, we're wrapping it in a Try so that a
+        // bug here doesn't bring down our entire queue.
+        val envelopeOrErr = (scala.util.Try(AmqpProperties.unsafeFrom(properties)) match {
+          // toEither is not supported by Scala 2.11
+          case scala.util.Success(amqpEnvelope) => Right(amqpEnvelope)
+          case scala.util.Failure(err)          =>
+            val rewrappedError = new Exception(
+              "You've stumbled across a bug in the interface between the underlying " +
+                "RabbitMQ Java library and fs2-rabbit! Please report this bug and " +
+                "include this stack trace and message.\nThe BasicProperties instance " +
+                s"that caused this error was:\n$properties\n",
+              err
+            )
+            Left(rewrappedError)
+        }).map{ props =>
           val tag         = envelope.getDeliveryTag
           val routingKey  = RoutingKey(envelope.getRoutingKey)
           val exchange    = ExchangeName(envelope.getExchange)
           val redelivered = envelope.isRedeliver
-          // This is the main point of wrapping this whole thing in a Try; it
-          // is very unlikely any of the other parts will go wrong, unsafeFrom
-          // might though (if it does it's a bug that needs to be fixed!), but
-          // we don't want a bug in unsafeFrom to bring down our entire queue
-          val props = AmqpProperties.unsafeFrom(properties)
           AmqpEnvelope(DeliveryTag(tag), body, props, exchange, routingKey, redelivered)
-        } match {
-          // toEither is not supported by Scala 2.11
-          case scala.util.Success(amqpEnvelope) => Right(amqpEnvelope)
-          case scala.util.Failure(err)          => Left(err)
         }
-
         internals.queue
           .fold(Applicative[F].pure(())) { internalQ =>
             internalQ.enqueue1(envelopeOrErr)
