@@ -59,7 +59,7 @@ class AmqpClientEffect[F[_]: Effect] extends AMQPClient[F] {
         // Java library) so just in case, we're wrapping it in a Try so that a
         // bug here doesn't bring down our entire queue.
         val amqpPropertiesOrErr = scala.util.Try(AmqpProperties.unsafeFrom(properties)) match {
-          // toEither is not supported by Scala 2.11
+          // toEither is not supported by Scala 2.11 so we have a manual match
           case scala.util.Success(amqpProperties) => Right(amqpProperties)
           case scala.util.Failure(err) =>
             val rewrappedError = new Exception(
@@ -71,15 +71,23 @@ class AmqpClientEffect[F[_]: Effect] extends AMQPClient[F] {
             )
             Left(rewrappedError)
         }
-        // Manual right projection here to keep compatibility with Scala 2.11
-        val envelopeOrErr = amqpPropertiesOrErr.right
-          .map { props =>
-            val tag         = envelope.getDeliveryTag
-            val routingKey  = RoutingKey(envelope.getRoutingKey)
-            val exchange    = ExchangeName(envelope.getExchange)
-            val redelivered = envelope.isRedeliver
-            AmqpEnvelope(DeliveryTag(tag), body, props, exchange, routingKey, redelivered)
-          }
+        // This manual match instead of a map is because of two annoying things:
+        // Scala 2.11 doesn't have right-biased Either so .map doesn't work,
+        // but Scala 2.13 deprecates .right so .right.map doesn't work either
+        // (since we have fatal warnings).
+        // So we have this manual match instead.
+        val envelopeOrErr = amqpPropertiesOrErr match {
+          case Left(err) => Left(err)
+          case Right(props) =>
+            Right{
+              val tag         = envelope.getDeliveryTag
+              val routingKey  = RoutingKey(envelope.getRoutingKey)
+              val exchange    = ExchangeName(envelope.getExchange)
+              val redelivered = envelope.isRedeliver
+              AmqpEnvelope(DeliveryTag(tag), body, props, exchange, routingKey, redelivered)
+            }
+        }
+
         internals.queue
           .fold(Applicative[F].pure(())) { internalQ =>
             internalQ.enqueue1(envelopeOrErr)
