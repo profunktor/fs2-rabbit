@@ -39,6 +39,7 @@ val commonSettings = Seq(
   licenses += ("Apache-2.0", new URL("https://www.apache.org/licenses/LICENSE-2.0.txt")),
   homepage := Some(url("https://fs2-rabbit.profunktor.dev/")),
   headerLicense := Some(HeaderLicense.ALv2("2017-2019", "ProfunKtor")),
+  scalacOptions in (Compile, doc) ++= Seq("-no-link-warnings"),
   scalacOptions ++= determineVersionSpecificDeps(scalaVersion.value).scalacOptions,
   libraryDependencies ++= {
     val library = determineVersionSpecificDeps(scalaVersion.value)

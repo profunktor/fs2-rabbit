@@ -17,8 +17,8 @@
 package dev.profunktor.fs2rabbit.effects
 import cats.{Applicative, ApplicativeError}
 import cats.data.Kleisli
-import dev.profunktor.fs2rabbit.model.{AmqpHeaderVal, AmqpProperties, ExchangeName, RoutingKey}
-import dev.profunktor.fs2rabbit.model.AmqpHeaderVal._
+import dev.profunktor.fs2rabbit.model.{AmqpFieldValue, AmqpProperties, ExchangeName, RoutingKey}
+import dev.profunktor.fs2rabbit.model.AmqpFieldValue._
 import cats.implicits._
 
 object EnvelopeDecoder {
@@ -39,10 +39,10 @@ object EnvelopeDecoder {
   def redelivered[F[_]: Applicative]: EnvelopeDecoder[F, Boolean] =
     Kleisli(e => e.redelivered.pure[F])
 
-  def header[F[_]](name: String)(implicit F: ApplicativeError[F, Throwable]): EnvelopeDecoder[F, AmqpHeaderVal] =
+  def header[F[_]](name: String)(implicit F: ApplicativeError[F, Throwable]): EnvelopeDecoder[F, AmqpFieldValue] =
     Kleisli(e => F.catchNonFatal(e.properties.headers(name)))
 
-  def optHeader[F[_]: Applicative](name: String): EnvelopeDecoder[F, Option[AmqpHeaderVal]] =
+  def optHeader[F[_]: Applicative](name: String): EnvelopeDecoder[F, Option[AmqpFieldValue]] =
     Kleisli(_.properties.headers.get(name).pure[F])
 
   def stringHeader[F[_]: ApplicativeError[?[_], Throwable]](name: String): EnvelopeDecoder[F, String] =
@@ -70,13 +70,13 @@ object EnvelopeDecoder {
       name: String): EnvelopeDecoder[F, Option[collection.Seq[Any]]] =
     optHeaderPF[F, collection.Seq[Any]](name) { case ArrayVal(a) => a }
 
-  private def headerPF[F[_], A](name: String)(pf: PartialFunction[AmqpHeaderVal, A])(
+  private def headerPF[F[_], A](name: String)(pf: PartialFunction[AmqpFieldValue, A])(
       implicit F: ApplicativeError[F, Throwable]): EnvelopeDecoder[F, A] =
     Kleisli { env =>
       F.catchNonFatal(pf(env.properties.headers(name)))
     }
 
-  private def optHeaderPF[F[_], A](name: String)(pf: PartialFunction[AmqpHeaderVal, A])(
+  private def optHeaderPF[F[_], A](name: String)(pf: PartialFunction[AmqpFieldValue, A])(
       implicit F: ApplicativeError[F, Throwable]): EnvelopeDecoder[F, Option[A]] =
     Kleisli(_.properties.headers.get(name).traverse(h => F.catchNonFatal(pf(h))))
 }

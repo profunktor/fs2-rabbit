@@ -17,10 +17,11 @@
 package dev.profunktor.fs2rabbit.interpreter
 
 import cats.Applicative
-import cats.effect.{Effect, Sync}
 import cats.effect.syntax.effect._
+import cats.effect.{Effect, Sync}
 import cats.syntax.flatMap._
 import cats.syntax.functor._
+import com.rabbitmq.client._
 import dev.profunktor.fs2rabbit.algebra.{AMQPClient, AMQPInternals}
 import dev.profunktor.fs2rabbit.arguments._
 import dev.profunktor.fs2rabbit.config.declaration.{DeclarationExchangeConfig, DeclarationQueueConfig}
@@ -28,14 +29,13 @@ import dev.profunktor.fs2rabbit.config.deletion
 import dev.profunktor.fs2rabbit.config.deletion.DeletionQueueConfig
 import dev.profunktor.fs2rabbit.effects.BoolValue.syntax._
 import dev.profunktor.fs2rabbit.model._
-import com.rabbitmq.client._
 
 class AmqpClientEffect[F[_]: Effect] extends AMQPClient[F] {
 
   private[fs2rabbit] def defaultConsumer[A](
       channel: Channel,
       internals: AMQPInternals[F]
-  ): F[Consumer] = Applicative[F].pure {
+  ): F[Consumer] = Sync[F].delay {
     new DefaultConsumer(channel) {
 
       override def handleCancel(consumerTag: String): Unit =
@@ -52,18 +52,48 @@ class AmqpClientEffect[F[_]: Effect] extends AMQPClient[F] {
           properties: AMQP.BasicProperties,
           body: Array[Byte]
       ): Unit = {
-        val tag         = envelope.getDeliveryTag
-        val routingKey  = RoutingKey(envelope.getRoutingKey)
-        val exchange    = ExchangeName(envelope.getExchange)
-        val redelivered = envelope.isRedeliver
-        val props       = AmqpProperties.from(properties)
-        internals.queue.fold(()) { internalQ =>
-          val envelope = AmqpEnvelope(DeliveryTag(tag), body, props, exchange, routingKey, redelivered)
-          internalQ
-            .enqueue1(Right(envelope))
-            .toIO
-            .unsafeRunAsync(_ => ())
+        // This should not go wrong (if it does it is an indication of a bug in
+        // unsafeFrom)!
+        // However, I'm not entirely confident I've nailed down unsafeFrom (
+        // since it requires a pretty intricate understanding of the underlying
+        // Java library) so just in case, we're wrapping it in a Try so that a
+        // bug here doesn't bring down our entire queue.
+        val amqpPropertiesOrErr = scala.util.Try(AmqpProperties.unsafeFrom(properties)) match {
+          // toEither is not supported by Scala 2.11 so we have a manual match
+          case scala.util.Success(amqpProperties) => Right(amqpProperties)
+          case scala.util.Failure(err) =>
+            val rewrappedError = new Exception(
+              "You've stumbled across a bug in the interface between the underlying " +
+                "RabbitMQ Java library and fs2-rabbit! Please report this bug and " +
+                "include this stack trace and message.\nThe BasicProperties instance " +
+                s"that caused this error was:\n$properties\n",
+              err
+            )
+            Left(rewrappedError)
         }
+        // Calling the Functor instance manually is because of three annoying things:
+        // 1. Scala 2.11 doesn't have right-biased Either so .map doesn't work,
+        // 2. Scala 2.13 deprecates .right so .right.map doesn't work either
+        // (since we have fatal warnings).
+        // 3. import cats.implicits._ doesn't work because it warns about an
+        // unused import for Scala 2.12 and Scala 2.13
+        // So we invoke the Either Functor instance manually
+        import cats.instances.either.catsStdInstancesForEither
+
+        val envelopeOrErr = catsStdInstancesForEither.map(amqpPropertiesOrErr) { props =>
+          val tag         = envelope.getDeliveryTag
+          val routingKey  = RoutingKey(envelope.getRoutingKey)
+          val exchange    = ExchangeName(envelope.getExchange)
+          val redelivered = envelope.isRedeliver
+          AmqpEnvelope(DeliveryTag(tag), body, props, exchange, routingKey, redelivered)
+        }
+
+        internals.queue
+          .fold(Applicative[F].pure(())) { internalQ =>
+            internalQ.enqueue1(envelopeOrErr)
+          }
+          .toIO
+          .unsafeRunAsync(_ => ())
       }
     }
   }
@@ -168,7 +198,7 @@ class AmqpClientEffect[F[_]: Effect] extends AMQPClient[F] {
               ReplyText(replyText),
               ExchangeName(exchange),
               RoutingKey(routingKey),
-              AmqpProperties.from(properties),
+              AmqpProperties.unsafeFrom(properties),
               AmqpBody(body)
             )
 
