@@ -71,21 +71,21 @@ class AmqpClientEffect[F[_]: Effect] extends AMQPClient[F] {
             )
             Left(rewrappedError)
         }
-        // This manual match instead of a map is because of two annoying things:
-        // Scala 2.11 doesn't have right-biased Either so .map doesn't work,
-        // but Scala 2.13 deprecates .right so .right.map doesn't work either
+        // Calling the Functor instance manually is because of three annoying things:
+        // 1. Scala 2.11 doesn't have right-biased Either so .map doesn't work,
+        // 2. Scala 2.13 deprecates .right so .right.map doesn't work either
         // (since we have fatal warnings).
-        // So we have this manual match instead.
-        val envelopeOrErr = amqpPropertiesOrErr match {
-          case Left(err) => Left(err)
-          case Right(props) =>
-            Right{
-              val tag         = envelope.getDeliveryTag
-              val routingKey  = RoutingKey(envelope.getRoutingKey)
-              val exchange    = ExchangeName(envelope.getExchange)
-              val redelivered = envelope.isRedeliver
-              AmqpEnvelope(DeliveryTag(tag), body, props, exchange, routingKey, redelivered)
-            }
+        // 3. import cats.implicits._ doesn't work because it warns about an
+        // unused import for Scala 2.12 and Scala 2.13
+        // So we invoke the Either Functor instance manually
+        import cats.instances.either.catsStdInstancesForEither
+
+        val envelopeOrErr = catsStdInstancesForEither.map(amqpPropertiesOrErr) { props =>
+          val tag         = envelope.getDeliveryTag
+          val routingKey  = RoutingKey(envelope.getRoutingKey)
+          val exchange    = ExchangeName(envelope.getExchange)
+          val redelivered = envelope.isRedeliver
+          AmqpEnvelope(DeliveryTag(tag), body, props, exchange, routingKey, redelivered)
         }
 
         internals.queue
