@@ -28,7 +28,7 @@ trait BaseSpec extends AsyncFlatSpecLike with Matchers with EitherValues {
   implicit val cs: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
 
   implicit val logger: Log[IO] = new Log[IO] {
-    override def info(value: String): IO[Unit]     = putStrLn(value)
-    override def error(error: Throwable): IO[Unit] = putStrLn(error.getMessage)
+    override def info(value: => String): IO[Unit]  = putStrLn(value)
+    override def error(error: => String): IO[Unit] = putStrLn(error)
   }
 }

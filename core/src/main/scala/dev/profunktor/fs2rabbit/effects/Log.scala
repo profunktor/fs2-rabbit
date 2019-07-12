@@ -20,8 +20,8 @@ import cats.effect.Sync
 import org.slf4j.LoggerFactory
 
 trait Log[F[_]] {
-  def info(value: String): F[Unit]
-  def error(error: Throwable): F[Unit]
+  def info(value: => String): F[Unit]
+  def error(value: => String): F[Unit]
 }
 
 object Log {
@@ -31,7 +31,7 @@ object Log {
 
   implicit def syncLogInstance[F[_]](implicit F: Sync[F]): Log[F] =
     new Log[F] {
-      override def error(error: Throwable): F[Unit] = F.delay(logger.error(error.getMessage, error))
-      override def info(value: String): F[Unit]     = F.delay(logger.info(value))
+      override def error(value: => String): F[Unit] = F.delay(logger.error(value))
+      override def info(value: => String): F[Unit]  = F.delay(logger.info(value))
     }
 }

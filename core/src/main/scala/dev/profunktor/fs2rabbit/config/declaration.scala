@@ -46,12 +46,14 @@ object declaration {
   case object AutoDelete     extends AutoDeleteCfg
   case object NonAutoDelete  extends AutoDeleteCfg
 
-  final case class DeclarationExchangeConfig(exchangeName: ExchangeName,
-                                             exchangeType: ExchangeType,
-                                             durable: DurableCfg,
-                                             autoDelete: AutoDeleteCfg,
-                                             internal: InternalCfg,
-                                             arguments: Arguments)
+  final case class DeclarationExchangeConfig(
+      exchangeName: ExchangeName,
+      exchangeType: ExchangeType,
+      durable: DurableCfg,
+      autoDelete: AutoDeleteCfg,
+      internal: InternalCfg,
+      arguments: Arguments
+  )
 
   object DeclarationExchangeConfig {
 
