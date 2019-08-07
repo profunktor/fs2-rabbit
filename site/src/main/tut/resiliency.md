@@ -29,4 +29,4 @@ This program will run forever and in the case of failure it will be restarted af
 
 For a program defined as `F[Unit]` see the equivalent `ResilientStream.runF`.
 
-See the [examples](https://github.com/gvolpe/fs2-rabbit/tree/master/examples/src/main/scala/dev.profunktor/fs2rabbit/examples) to learn more!
+See the [examples](https://github.com/gvolpe/fs2-rabbit/tree/master/examples/src/main/scala/dev/profunktor/fs2rabbit/examples) to learn more!
