@@ -96,6 +96,21 @@ class Fs2Rabbit[F[_]: Concurrent] private[fs2rabbit] (
   )(implicit channel: AMQPChannel, encoder: MessageEncoder[F, A]): F[A => F[Unit]] =
     publishingProgram.createPublisherWithListener(channel.value, exchangeName, routingKey, flags, listener)
 
+  def createBasicPublisher[A](
+      implicit channel: AMQPChannel,
+      encoder: MessageEncoder[F, A]
+  ): F[(ExchangeName, RoutingKey, A) => F[Unit]] =
+    publishingProgram.createBasicPublisher(channel.value)
+
+  def createBasicPublisherWithListener[A](
+      flag: PublishingFlag,
+      listener: PublishReturn => F[Unit]
+  )(
+      implicit channel: AMQPChannel,
+      encoder: MessageEncoder[F, A]
+  ): F[(ExchangeName, RoutingKey, A) => F[Unit]] =
+    publishingProgram.createBasicPublisherWithListener(channel.value, flag, listener)
+
   def createRoutingPublisher[A](exchangeName: ExchangeName)(
       implicit channel: AMQPChannel,
       encoder: MessageEncoder[F, A]): F[RoutingKey => A => F[Unit]] =
