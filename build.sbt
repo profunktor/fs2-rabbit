@@ -7,7 +7,8 @@ name := """fs2-rabbit-root"""
 
 organization in ThisBuild := "dev.profunktor"
 
-crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.8", "2.13.0")
+scalaVersion in ThisBuild := "2.12.9"
+crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.9", "2.13.0")
 
 // makes `tut` fail :( -> https://github.com/tpolecat/tut/issues/255
 //scalaVersion in ThisBuild := "2.12.8" // needed for metals
@@ -18,8 +19,6 @@ promptTheme := PromptTheme(List(
   text("[sbt] ", fg(105)),
   text(_ => "fs2-rabbit", fg(15)).padRight(" λ ")
  ))
-
-
 
 // We use String as our input type because `scalaVersion.value` cannot be called
 // in a lot of places in a build.sbt file where it would be convenient to do so
