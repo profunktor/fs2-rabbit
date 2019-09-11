@@ -17,12 +17,12 @@ object Dependencies {
   }
 
   object Scala211Versions extends Version {
-    val monix      = "3.0.0-RC3"
+    val monix      = "3.0.0"
     val zio        = "1.0.0-RC8-4"
   }
 
   object Scala212Versions extends Version {
-    val monix      = "3.0.0-RC3"
+    val monix      = "3.0.0"
     val zio        = "1.0.0-RC8-4"
   }
 
