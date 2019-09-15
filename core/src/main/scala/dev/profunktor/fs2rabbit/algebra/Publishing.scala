@@ -52,7 +52,6 @@ trait Publishing[F[_]] {
       channel: Channel
   )(implicit encoder: MessageEncoder[F, A]): F[(ExchangeName, RoutingKey, A) => F[Unit]]
 
-
   def createBasicPublisherWithListener[A](
       channel: Channel,
       flags: PublishingFlag,
