@@ -51,7 +51,7 @@ class Fs2JsonEncoderSpec extends FlatSpecLike with Matchers {
     val customEncode = new Fs2JsonEncoder(Printer.spaces4).jsonEncode[Address]
 
     customEncode(AmqpMessage(payload, AmqpProperties.empty)) should be(
-      AmqpMessage(payload.asJson.pretty(Printer.spaces4), AmqpProperties.empty))
+      AmqpMessage(payload.asJson.printWith(Printer.spaces4), AmqpProperties.empty))
   }
 
 }
