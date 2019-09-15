@@ -3,7 +3,7 @@ import sbt._
 object Dependencies {
 
   sealed trait Version {
-    val catsEffect = "1.3.1"
+    val catsEffect = "2.0.0"
     val fs2        = "1.0.5"
     val circe      = "0.11.1"
     val amqpClient = "5.7.3"
