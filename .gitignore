@@ -50,3 +50,4 @@ derby.log
 tags
 .metals/
 .bloop/
+.sbtopts
