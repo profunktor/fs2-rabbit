@@ -21,7 +21,6 @@ import dev.profunktor.fs2rabbit.model.AckResult.Ack
 import dev.profunktor.fs2rabbit.model.AmqpFieldValue.{LongVal, StringVal}
 import dev.profunktor.fs2rabbit.model._
 import fs2.{Pipe, Pure, Stream}
-import java.util.concurrent.Executors
 
 class Flow[F[_]: Concurrent, A](
     consumer: Stream[F, AmqpEnvelope[A]],
@@ -70,29 +69,19 @@ class AckerConsumerDemo[F[_]: Concurrent: Timer](R: Fs2Rabbit[F]) {
   // Run when there's no consumer for the routing key specified by the publisher and the flag mandatory is true
   val publishingListener: PublishReturn => F[Unit] = pr => Sync[F].delay(s"Publish listener: $pr")
 
-  val resources: Resource[F, (AMQPChannel, Blocker)] =
+  val program: F[Unit] = R.createConnectionChannel.use { implicit channel =>
     for {
-      channel    <- R.createConnectionChannel
-      blockingES = Resource.make(Sync[F].delay(Executors.newCachedThreadPool()))(es => Sync[F].delay(es.shutdown()))
-      blocker    <- blockingES.map(Blocker.liftExecutorService)
-    } yield (channel, blocker)
-
-  val program: F[Unit] = resources.use {
-    case (channel, blocker) =>
-      implicit val rabbitChannel = channel
-      for {
-        _ <- R.declareQueue(DeclarationQueueConfig.default(queueName))
-        _ <- R.declareExchange(exchangeName, ExchangeType.Topic)
-        _ <- R.bindQueue(queueName, exchangeName, routingKey)
-        publisher <- R.createPublisherWithListener[AmqpMessage[String]](exchangeName,
-                                                                        routingKey,
-                                                                        publishingFlag,
-                                                                        publishingListener,
-                                                                        blocker)
-        (acker, consumer) <- R.createAckerConsumer[String](queueName)
-        result            = new Flow[F, String](consumer, acker, logPipe, publisher).flow
-        _                 <- result.compile.drain
-      } yield ()
+      _ <- R.declareQueue(DeclarationQueueConfig.default(queueName))
+      _ <- R.declareExchange(exchangeName, ExchangeType.Topic)
+      _ <- R.bindQueue(queueName, exchangeName, routingKey)
+      publisher <- R.createPublisherWithListener[AmqpMessage[String]](exchangeName,
+                                                                      routingKey,
+                                                                      publishingFlag,
+                                                                      publishingListener)
+      (acker, consumer) <- R.createAckerConsumer[String](queueName)
+      result            = new Flow[F, String](consumer, acker, logPipe, publisher).flow
+      _                 <- result.compile.drain
+    } yield ()
   }
 }
 
@@ -102,11 +91,12 @@ At the edge of out program we define our effect, `cats.effect.IO` in this case, 
 
 ```tut:book:silent
 import cats.data.NonEmptyList
-import cats.effect.{ExitCode, IO, IOApp}
+import cats.effect._
 import cats.syntax.functor._
 import dev.profunktor.fs2rabbit.config.{Fs2RabbitConfig, Fs2RabbitNodeConfig}
 import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
 import dev.profunktor.fs2rabbit.resiliency.ResilientStream
+import java.util.concurrent.Executors
 
 object IOAckerConsumer extends IOApp {
 
@@ -127,11 +117,18 @@ object IOAckerConsumer extends IOApp {
     automaticRecovery = true
   )
 
+  val blockerResource =
+    Resource
+      .make(IO(Executors.newCachedThreadPool()))(es => IO(es.shutdown()))
+      .map(Blocker.liftExecutorService)
+
   override def run(args: List[String]): IO[ExitCode] =
-    Fs2Rabbit[IO](config).flatMap { client =>
-      ResilientStream
-        .runF(new AckerConsumerDemo[IO](client).program)
-        .as(ExitCode.Success)
+    blockerResource.use { blocker =>
+      Fs2Rabbit[IO](config, blocker).flatMap { client =>
+        ResilientStream
+          .runF(new AckerConsumerDemo[IO](client).program)
+          .as(ExitCode.Success)
+      }
     }
 
 }

@@ -18,7 +18,7 @@ package dev.profunktor.fs2rabbit.interpreter
 
 import cats.{Applicative, Functor}
 import cats.effect.syntax.effect._
-import cats.effect.{Effect, Sync}
+import cats.effect._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import com.rabbitmq.client._
@@ -31,7 +31,7 @@ import dev.profunktor.fs2rabbit.effects.BoolValue.syntax._
 import dev.profunktor.fs2rabbit.model._
 import scala.util.{Failure, Success, Try}
 
-class AmqpClientEffect[F[_]: Effect] extends AMQPClient[F] {
+class AMQPClientEffect[F[_]: ContextShift: Effect](blocker: Blocker) extends AMQPClient[F] {
 
   private[fs2rabbit] def defaultConsumer[A](
       channel: Channel,
@@ -152,7 +152,7 @@ class AmqpClientEffect[F[_]: Effect] extends AMQPClient[F] {
       exchangeName: ExchangeName,
       routingKey: RoutingKey,
       msg: AmqpMessage[Array[Byte]]
-  ): F[Unit] = Sync[F].delay {
+  ): F[Unit] = blocker.delay {
     channel.basicPublish(
       exchangeName.value,
       routingKey.value,
@@ -167,7 +167,7 @@ class AmqpClientEffect[F[_]: Effect] extends AMQPClient[F] {
       routingKey: RoutingKey,
       flag: PublishingFlag,
       msg: AmqpMessage[Array[Byte]]
-  ): F[Unit] = Sync[F].delay {
+  ): F[Unit] = blocker.delay {
     channel.basicPublish(
       exchangeName.value,
       routingKey.value,

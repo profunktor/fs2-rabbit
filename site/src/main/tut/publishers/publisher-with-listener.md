@@ -24,7 +24,6 @@ It is simply created by specifying `ExchangeName`, `RoutingKey`, `PublishingFlag
 import cats.effect._
 import dev.profunktor.fs2rabbit.model._
 import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
-import java.util.concurrent.Executors
 
 val exchangeName = ExchangeName("testEX")
 val routingKey   = RoutingKey("testRK")
@@ -35,18 +34,9 @@ val publishingListener: PublishReturn => IO[Unit] = pr => IO(println(s"Publish l
 
 def doSomething(publisher: String => IO[Unit]): IO[Unit] = IO.unit
 
-def resources(client: Fs2Rabbit[IO]): Resource[IO, (AMQPChannel, Blocker)] =
-  for {
-    channel    <- client.createConnectionChannel
-    blockingES = Resource.make(IO(Executors.newCachedThreadPool()))(es => IO(es.shutdown()))
-    blocker    <- blockingES.map(Blocker.liftExecutorService)
-  } yield (channel, blocker)
-
-def program(client: Fs2Rabbit[IO]) =
-  resources(client).use {
-    case (channel, blocker) =>
-      implicit val rabbitChannel = channel
-      client.createPublisherWithListener[String](exchangeName, routingKey, publishingFlag, publishingListener, blocker).flatMap(doSomething)
+def program(R: Fs2Rabbit[IO]) =
+  R.createConnectionChannel.use { implicit channel =>
+    R.createPublisherWithListener[String](exchangeName, routingKey, publishingFlag, publishingListener).flatMap(doSomething)
   }
 ```
 

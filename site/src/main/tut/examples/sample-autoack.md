@@ -20,8 +20,7 @@ import dev.profunktor.fs2rabbit.json.Fs2JsonEncoder
 import dev.profunktor.fs2rabbit.model.AckResult.Ack
 import dev.profunktor.fs2rabbit.model.AmqpFieldValue.{LongVal, StringVal}
 import dev.profunktor.fs2rabbit.model._
-import fs2.{Pipe, Pure, Stream}
-import java.util.concurrent.Executors
+import fs2._
 
 class AutoAckFlow[F[_]: Concurrent, A](
     consumer: Stream[F, AmqpEnvelope[A]],
@@ -64,25 +63,16 @@ class AutoAckConsumerDemo[F[_]: Concurrent](R: Fs2Rabbit[F]) {
     Sync[F].delay(println(s"Consumed: $amqpMsg")).as(Ack(amqpMsg.deliveryTag))
   }
 
-  val resources: Resource[F, (AMQPChannel, Blocker)] =
+  val program: F[Unit] = R.createConnectionChannel.use { implicit channel =>
     for {
-      channel    <- R.createConnectionChannel
-      blockingES = Resource.make(Sync[F].delay(Executors.newCachedThreadPool()))(es => Sync[F].delay(es.shutdown()))
-      blocker    <- blockingES.map(Blocker.liftExecutorService)
-    } yield (channel, blocker)
-
-  val program: F[Unit] = resources.use {
-    case (channel, blocker) =>
-      implicit val rabbitChannel = channel
-      for {
-        _         <- R.declareQueue(DeclarationQueueConfig.default(queueName))
-        _         <- R.declareExchange(exchangeName, ExchangeType.Topic)
-        _         <- R.bindQueue(queueName, exchangeName, routingKey)
-        publisher <- R.createPublisher[AmqpMessage[String]](exchangeName, routingKey, blocker)
-        consumer  <- R.createAutoAckConsumer[String](queueName)
-        _         <- new AutoAckFlow[F, String](consumer, logPipe, publisher).flow.compile.drain
-      } yield ()
-    }
+      _         <- R.declareQueue(DeclarationQueueConfig.default(queueName))
+      _         <- R.declareExchange(exchangeName, ExchangeType.Topic)
+      _         <- R.bindQueue(queueName, exchangeName, routingKey)
+      publisher <- R.createPublisher[AmqpMessage[String]](exchangeName, routingKey)
+      consumer  <- R.createAutoAckConsumer[String](queueName)
+      _         <- new AutoAckFlow[F, String](consumer, logPipe, publisher).flow.compile.drain
+    } yield ()
+  }
 }
 ```
 
@@ -90,12 +80,13 @@ At the edge of out program we define our effect, `monix.eval.Task` in this case,
 
 ```tut:book:silent
 import cats.data.NonEmptyList
-import cats.effect.ExitCode
+import cats.effect._
 import cats.syntax.functor._
 import dev.profunktor.fs2rabbit.config.{Fs2RabbitConfig, Fs2RabbitNodeConfig}
 import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
 import dev.profunktor.fs2rabbit.resiliency.ResilientStream
 import monix.eval.{Task, TaskApp}
+import java.util.concurrent.Executors
 
 object MonixAutoAckConsumer extends TaskApp {
 
@@ -116,11 +107,18 @@ object MonixAutoAckConsumer extends TaskApp {
     automaticRecovery = true
   )
 
+  val blockerResource =
+    Resource
+      .make(Task(Executors.newCachedThreadPool()))(es => Task(es.shutdown()))
+      .map(Blocker.liftExecutorService)
+
   override def run(args: List[String]): Task[ExitCode] =
-    Fs2Rabbit[Task](config).flatMap { client =>
-      ResilientStream
-        .runF(new AutoAckConsumerDemo[Task](client).program)
-        .as(ExitCode.Success)
+    blockerResource.use { blocker =>
+      Fs2Rabbit[Task](config, blocker).flatMap { client =>
+        ResilientStream
+          .runF(new AutoAckConsumerDemo[Task](client).program)
+          .as(ExitCode.Success)
+      }
     }
 
 }

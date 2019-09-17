@@ -30,8 +30,9 @@ import fs2.Stream
 import javax.net.ssl.SSLContext
 
 object Fs2Rabbit {
-  def apply[F[_]: ConcurrentEffect](
+  def apply[F[_]: ConcurrentEffect: ContextShift](
       config: Fs2RabbitConfig,
+      blocker: Blocker,
       sslContext: Option[SSLContext] = None,
       // Unlike SSLContext, SaslConfig is not optional because it is always set
       // by the underlying Java library, even if the user doesn't set it.
@@ -39,7 +40,7 @@ object Fs2Rabbit {
   ): F[Fs2Rabbit[F]] =
     ConnectionEffect.mkConnectionFactory[F](config, sslContext, saslConfig).map {
       case (factory, addresses) =>
-        val amqpClient = new AmqpClientEffect[F]
+        val amqpClient = new AMQPClientEffect[F](blocker)
         val conn       = new ConnectionEffect[F](factory, addresses)
         val internalQ  = new LiveInternalQueue[F](config.internalQueueSize.getOrElse(500))
         val acker      = new AckingProgram[F](config, amqpClient)
@@ -85,50 +86,46 @@ class Fs2Rabbit[F[_]: Concurrent] private[fs2rabbit] (
   )(implicit channel: AMQPChannel, decoder: EnvelopeDecoder[F, A]): F[Stream[F, AmqpEnvelope[A]]] =
     consumingProgram.createAutoAckConsumer(channel.value, queueName, basicQos, consumerArgs)
 
-  def createPublisher[A](exchangeName: ExchangeName, routingKey: RoutingKey, blocker: Blocker)(
+  def createPublisher[A](exchangeName: ExchangeName, routingKey: RoutingKey)(
       implicit channel: AMQPChannel,
       encoder: MessageEncoder[F, A]
   ): F[A => F[Unit]] =
-    publishingProgram.createPublisher(channel.value, exchangeName, routingKey, blocker)
+    publishingProgram.createPublisher(channel.value, exchangeName, routingKey)
 
   def createPublisherWithListener[A](
       exchangeName: ExchangeName,
       routingKey: RoutingKey,
       flags: PublishingFlag,
-      listener: PublishReturn => F[Unit],
-      blocker: Blocker
+      listener: PublishReturn => F[Unit]
   )(implicit channel: AMQPChannel, encoder: MessageEncoder[F, A]): F[A => F[Unit]] =
-    publishingProgram.createPublisherWithListener(channel.value, exchangeName, routingKey, flags, listener, blocker)
+    publishingProgram.createPublisherWithListener(channel.value, exchangeName, routingKey, flags, listener)
 
-  def createBasicPublisher[A](blocker: Blocker)(
+  def createBasicPublisher[A](
       implicit channel: AMQPChannel,
       encoder: MessageEncoder[F, A]
   ): F[(ExchangeName, RoutingKey, A) => F[Unit]] =
-    publishingProgram.createBasicPublisher(channel.value, blocker)
+    publishingProgram.createBasicPublisher(channel.value)
 
   def createBasicPublisherWithListener[A](
       flag: PublishingFlag,
-      listener: PublishReturn => F[Unit],
-      blocker: Blocker
+      listener: PublishReturn => F[Unit]
   )(
       implicit channel: AMQPChannel,
       encoder: MessageEncoder[F, A]
   ): F[(ExchangeName, RoutingKey, A) => F[Unit]] =
-    publishingProgram.createBasicPublisherWithListener(channel.value, flag, listener, blocker)
+    publishingProgram.createBasicPublisherWithListener(channel.value, flag, listener)
 
   def createRoutingPublisher[A](
-      exchangeName: ExchangeName,
-      blocker: Blocker
+      exchangeName: ExchangeName
   )(implicit channel: AMQPChannel, encoder: MessageEncoder[F, A]): F[RoutingKey => A => F[Unit]] =
-    publishingProgram.createRoutingPublisher(channel.value, exchangeName, blocker)
+    publishingProgram.createRoutingPublisher(channel.value, exchangeName)
 
   def createRoutingPublisherWithListener[A](
       exchangeName: ExchangeName,
       flags: PublishingFlag,
-      listener: PublishReturn => F[Unit],
-      blocker: Blocker
+      listener: PublishReturn => F[Unit]
   )(implicit channel: AMQPChannel, encoder: MessageEncoder[F, A]): F[RoutingKey => A => F[Unit]] =
-    publishingProgram.createRoutingPublisherWithListener(channel.value, exchangeName, flags, listener, blocker)
+    publishingProgram.createRoutingPublisherWithListener(channel.value, exchangeName, flags, listener)
 
   def addPublishingListener(listener: PublishReturn => F[Unit])(implicit channel: AMQPChannel): F[Unit] =
     amqpClient.addPublishingListener(channel.value, listener)

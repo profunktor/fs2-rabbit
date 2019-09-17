@@ -17,12 +17,13 @@
 package dev.profunktor.fs2rabbit.examples
 
 import cats.data.NonEmptyList
-import cats.effect.ExitCode
+import cats.effect._
 import cats.syntax.functor._
 import dev.profunktor.fs2rabbit.config.{Fs2RabbitConfig, Fs2RabbitNodeConfig}
 import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
 import dev.profunktor.fs2rabbit.resiliency.ResilientStream
 import monix.eval.{Task, TaskApp}
+import java.util.concurrent.Executors
 
 object MonixAutoAckConsumer extends TaskApp {
 
@@ -43,11 +44,18 @@ object MonixAutoAckConsumer extends TaskApp {
     automaticRecovery = true
   )
 
+  val blockerResource =
+    Resource
+      .make(Task(Executors.newCachedThreadPool()))(es => Task(es.shutdown()))
+      .map(Blocker.liftExecutorService)
+
   override def run(args: List[String]): Task[ExitCode] =
-    Fs2Rabbit[Task](config).flatMap { client =>
-      ResilientStream
-        .runF(new AutoAckConsumerDemo[Task](client).program)
-        .as(ExitCode.Success)
+    blockerResource.use { blocker =>
+      Fs2Rabbit[Task](config, blocker).flatMap { client =>
+        ResilientStream
+          .runF(new AutoAckConsumerDemo[Task](client).program)
+          .as(ExitCode.Success)
+      }
     }
 
 }

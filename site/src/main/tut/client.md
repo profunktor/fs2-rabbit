@@ -6,18 +6,21 @@ number: 2
 
 # Fs2 Rabbit Client
 
-`Fs2Rabbit` is the main client that wraps the communication  with `RabbitMQ`. All it needs are a `Fs2RabbitConfig`, an optional `SSLContext` and an instance of `ConcurrentEffect[F]`.
+`Fs2Rabbit` is the main client that wraps the communication  with `RabbitMQ`. The mandatory arguments are a `Fs2RabbitConfig` and a `cats.effect.Blocker` used for publishing (this action is blocking in the underlying Java client). Optionally, you can pass in a custom `SSLContext` and `SaslConfig`.
 
 ```tut:book:silent
 import cats.effect._
+import com.rabbitmq.client.{DefaultSaslConfig, SaslConfig}
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
 import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
 import javax.net.ssl.SSLContext
 
 object Fs2Rabbit {
-  def apply[F[_]: ConcurrentEffect](
+  def apply[F[_]: ConcurrentEffect: ContextShift](
     config: Fs2RabbitConfig,
-    sslContext: Option[SSLContext] = None
+    blocker: Blocker,
+    sslContext: Option[SSLContext] = None,
+    saslConfig: SaslConfig = DefaultSaslConfig.PLAIN
   ): F[Fs2Rabbit[F]] = ???
 }
 ```
@@ -25,10 +28,11 @@ object Fs2Rabbit {
 Its creation is effectful so you need to `flatMap` and pass it as an argument. For example:
 
 ```tut:book:silent
-import cats.effect.{ExitCode, IOApp}
+import cats.effect._
 import cats.syntax.functor._
 import dev.profunktor.fs2rabbit.model._
 import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
+import java.util.concurrent.Executors
 
 object Program {
   def foo[F[_]](client: Fs2Rabbit[F]): F[Unit] = ???
@@ -48,11 +52,17 @@ class Demo extends IOApp {
     internalQueueSize = Some(500)
   )
 
+  val blockerResource =
+    Resource
+      .make(IO(Executors.newCachedThreadPool()))(es => IO(es.shutdown()))
+      .map(Blocker.liftExecutorService)
+
   override def run(args: List[String]): IO[ExitCode] =
-    Fs2Rabbit[IO](config).flatMap { client =>
-      Program.foo[IO](client).as(ExitCode.Success)
+    blockerResource.use { blocker =>
+      Fs2Rabbit[IO](config, blocker).flatMap { client =>
+        Program.foo[IO](client).as(ExitCode.Success)
+      }
     }
 
 }
 ```
-

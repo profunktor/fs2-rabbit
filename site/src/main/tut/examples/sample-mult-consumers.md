@@ -14,7 +14,6 @@ import dev.profunktor.fs2rabbit.config.declaration.DeclarationQueueConfig
 import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
 import dev.profunktor.fs2rabbit.model._
 import fs2._
-import java.util.concurrent.Executors
 
 import scala.concurrent.ExecutionContext
 
@@ -36,28 +35,19 @@ def multipleConsumers(c1: Stream[IO, AmqpEnvelope[String]], c2: Stream[IO, AmqpE
   ).parJoin(3)
 }
 
-def resources(client: Fs2Rabbit[IO]): Resource[IO, (AMQPChannel, Blocker)] =
-  for {
-    channel    <- client.createConnectionChannel
-    blockingES = Resource.make(IO(Executors.newCachedThreadPool()))(es => IO(es.shutdown()))
-    blocker    <- blockingES.map(Blocker.liftExecutorService)
-  } yield (channel, blocker)
-
 def program(R: Fs2Rabbit[IO]) =
-  resources(R).use {
-    case (channel, blocker) =>
-      implicit val rabbitChannel = channel
-      for {
-        _  <- R.declareExchange(ex, ExchangeType.Topic)
-        _  <- R.declareQueue(DeclarationQueueConfig.default(q1))
-        _  <- R.declareQueue(DeclarationQueueConfig.default(q2))
-        _  <- R.bindQueue(q1, ex, rka)
-        _  <- R.bindQueue(q2, ex, rkb)
-        c1 <- R.createAutoAckConsumer[String](q1)
-        c2 <- R.createAutoAckConsumer[String](q2)
-        p  <- R.createPublisher[String](ex, rka, blocker)
-        _  <- multipleConsumers(c1, c2, p).compile.drain
-      } yield ()
+  R.createConnectionChannel.use { implicit channel =>
+    for {
+      _  <- R.declareExchange(ex, ExchangeType.Topic)
+      _  <- R.declareQueue(DeclarationQueueConfig.default(q1))
+      _  <- R.declareQueue(DeclarationQueueConfig.default(q2))
+      _  <- R.bindQueue(q1, ex, rka)
+      _  <- R.bindQueue(q2, ex, rkb)
+      c1 <- R.createAutoAckConsumer[String](q1)
+      c2 <- R.createAutoAckConsumer[String](q2)
+      p  <- R.createPublisher[String](ex, rka)
+      _  <- multipleConsumers(c1, c2, p).compile.drain
+    } yield ()
   }
 ```
 

@@ -17,11 +17,12 @@
 package dev.profunktor.fs2rabbit.examples
 
 import cats.data.NonEmptyList
-import cats.effect.{ExitCode, IO, IOApp}
+import cats.effect._
 import cats.syntax.functor._
 import dev.profunktor.fs2rabbit.config.{Fs2RabbitConfig, Fs2RabbitNodeConfig}
 import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
 import dev.profunktor.fs2rabbit.resiliency.ResilientStream
+import java.util.concurrent.Executors
 
 object IOAckerConsumer extends IOApp {
 
@@ -42,11 +43,18 @@ object IOAckerConsumer extends IOApp {
     automaticRecovery = true
   )
 
+  val blockerResource =
+    Resource
+      .make(IO(Executors.newCachedThreadPool()))(es => IO(es.shutdown()))
+      .map(Blocker.liftExecutorService)
+
   override def run(args: List[String]): IO[ExitCode] =
-    Fs2Rabbit[IO](config).flatMap { client =>
-      ResilientStream
-        .runF(new AckerConsumerDemo[IO](client).program)
-        .as(ExitCode.Success)
+    blockerResource.use { blocker =>
+      Fs2Rabbit[IO](config, blocker).flatMap { client =>
+        ResilientStream
+          .runF(new AckerConsumerDemo[IO](client).program)
+          .as(ExitCode.Success)
+      }
     }
 
 }

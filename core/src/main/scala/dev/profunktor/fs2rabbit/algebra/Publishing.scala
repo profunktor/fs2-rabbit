@@ -16,7 +16,6 @@
 
 package dev.profunktor.fs2rabbit.algebra
 
-import cats.effect.Blocker
 import com.rabbitmq.client.Channel
 import dev.profunktor.fs2rabbit.effects.MessageEncoder
 import dev.profunktor.fs2rabbit.model._
@@ -26,8 +25,7 @@ trait Publishing[F[_]] {
   def createPublisher[A](
       channel: Channel,
       exchangeName: ExchangeName,
-      routingKey: RoutingKey,
-      blocker: Blocker
+      routingKey: RoutingKey
   )(implicit encoder: MessageEncoder[F, A]): F[A => F[Unit]]
 
   def createPublisherWithListener[A](
@@ -35,34 +33,29 @@ trait Publishing[F[_]] {
       exchangeName: ExchangeName,
       routingKey: RoutingKey,
       flags: PublishingFlag,
-      listener: PublishReturn => F[Unit],
-      blocker: Blocker
+      listener: PublishReturn => F[Unit]
   )(implicit encoder: MessageEncoder[F, A]): F[A => F[Unit]]
 
   def createRoutingPublisher[A](
       channel: Channel,
-      exchangeName: ExchangeName,
-      blocker: Blocker
+      exchangeName: ExchangeName
   )(implicit encoder: MessageEncoder[F, A]): F[RoutingKey => A => F[Unit]]
 
   def createRoutingPublisherWithListener[A](
       channel: Channel,
       exchangeName: ExchangeName,
       flags: PublishingFlag,
-      listener: PublishReturn => F[Unit],
-      blocker: Blocker
+      listener: PublishReturn => F[Unit]
   )(implicit encoder: MessageEncoder[F, A]): F[RoutingKey => A => F[Unit]]
 
   def createBasicPublisher[A](
-      channel: Channel,
-      blocker: Blocker
+      channel: Channel
   )(implicit encoder: MessageEncoder[F, A]): F[(ExchangeName, RoutingKey, A) => F[Unit]]
 
   def createBasicPublisherWithListener[A](
       channel: Channel,
       flags: PublishingFlag,
-      listener: PublishReturn => F[Unit],
-      blocker: Blocker
+      listener: PublishReturn => F[Unit]
   )(implicit encoder: MessageEncoder[F, A]): F[(ExchangeName, RoutingKey, A) => F[Unit]]
 
 }

@@ -6,7 +6,7 @@ number: 10
 
 # Publishers
 
-Publishing are blocking actions in the underlying Java client so you need to pass in a `cats.effect.Blocker` when creating a publisher. The examples demonstrate how to create one.
+Publishing are blocking actions in the underlying Java client so you need to pass in a `cats.effect.Blocker` when creating the `Fs2Rabbit` client.
 
 - **[Publisher](./publisher.html)**: A simple message publisher.
 - **[Publisher with Listener](./publisher-with-listener.html)**: A publisher with a listener for messages that can not be routed.

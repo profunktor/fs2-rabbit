@@ -23,7 +23,6 @@ import dev.profunktor.fs2rabbit.config.declaration.DeclarationQueueConfig
 import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
 import dev.profunktor.fs2rabbit.model._
 import fs2._
-import java.util.concurrent.Executors
 
 import scala.concurrent.ExecutionContext
 
@@ -61,19 +60,10 @@ def p2(R: Fs2Rabbit[IO]) =
 Here's our program `p3` creating a `Publisher` representing the third `Connection`:
 
 ```tut:book:silent
-def resources(client: Fs2Rabbit[IO]): Resource[IO, (AMQPChannel, Blocker)] =
-  for {
-    channel    <- client.createConnectionChannel
-    blockingES = Resource.make(IO(Executors.newCachedThreadPool()))(es => IO(es.shutdown()))
-    blocker    <- blockingES.map(Blocker.liftExecutorService)
-  } yield (channel, blocker)
-
 def p3(R: Fs2Rabbit[IO]) =
-  resources(R).use {
-    case (channel, blocker) =>
-      implicit val rabbitChannel = channel
-			R.declareExchange(ex, ExchangeType.Topic) *>
-			R.createPublisher(ex, rk, blocker)
+  R.createConnectionChannel use { implicit channel =>
+    R.declareExchange(ex, ExchangeType.Topic) *>
+    R.createPublisher(ex, rk)
   }
 ```
 

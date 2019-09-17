@@ -29,7 +29,6 @@ import dev.profunktor.fs2rabbit.model.AmqpFieldValue.{LongVal, StringVal}
 import dev.profunktor.fs2rabbit.model._
 import fs2.{Pipe, Pure, Stream}
 import io.circe.Encoder
-import java.util.concurrent.Executors
 
 class AutoAckConsumerDemo[F[_]: Concurrent](R: Fs2Rabbit[F]) {
   private val queueName    = QueueName("testQ")
@@ -42,24 +41,15 @@ class AutoAckConsumerDemo[F[_]: Concurrent](R: Fs2Rabbit[F]) {
     putStrLn(s"Consumed: $amqpMsg").as(Ack(amqpMsg.deliveryTag))
   }
 
-  val resources: Resource[F, (AMQPChannel, Blocker)] =
+  val program: F[Unit] = R.createConnectionChannel.use { implicit channel =>
     for {
-      channel    <- R.createConnectionChannel
-      blockingES = Resource.make(Sync[F].delay(Executors.newCachedThreadPool()))(es => Sync[F].delay(es.shutdown()))
-      blocker    <- blockingES.map(Blocker.liftExecutorService)
-    } yield (channel, blocker)
-
-  val program: F[Unit] = resources.use {
-    case (channel, blocker) =>
-      implicit val rabbitChannel = channel
-      for {
-        _         <- R.declareQueue(DeclarationQueueConfig.default(queueName))
-        _         <- R.declareExchange(exchangeName, ExchangeType.Topic)
-        _         <- R.bindQueue(queueName, exchangeName, routingKey)
-        publisher <- R.createPublisher[AmqpMessage[String]](exchangeName, routingKey, blocker)
-        consumer  <- R.createAutoAckConsumer[String](queueName)
-        _         <- new AutoAckFlow[F, String](consumer, logPipe, publisher).flow.compile.drain
-      } yield ()
+      _         <- R.declareQueue(DeclarationQueueConfig.default(queueName))
+      _         <- R.declareExchange(exchangeName, ExchangeType.Topic)
+      _         <- R.bindQueue(queueName, exchangeName, routingKey)
+      publisher <- R.createPublisher[AmqpMessage[String]](exchangeName, routingKey)
+      consumer  <- R.createAutoAckConsumer[String](queueName)
+      _         <- new AutoAckFlow[F, String](consumer, logPipe, publisher).flow.compile.drain
+    } yield ()
   }
 
 }
