@@ -21,7 +21,7 @@ The server SHOULD implement the mandatory flag.
 It is simply created by specifying `ExchangeName`, `RoutingKey`, `PublishingFlag` and a listener, i.e. a function from `PublishReturn` to `F[Unit]`:
 
 ```tut:book:silent
-import cats.effect.IO
+import cats.effect._
 import dev.profunktor.fs2rabbit.model._
 import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
 
@@ -30,7 +30,6 @@ val routingKey   = RoutingKey("testRK")
 
 val publishingFlag: PublishingFlag = PublishingFlag(mandatory = true)
 
-// Run when there's no consumer for the routing key specified by the publisher and the flag mandatory is true
 val publishingListener: PublishReturn => IO[Unit] = pr => IO(println(s"Publish listener: $pr"))
 
 def doSomething(publisher: String => IO[Unit]): IO[Unit] = IO.unit

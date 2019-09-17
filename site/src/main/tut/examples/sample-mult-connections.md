@@ -17,7 +17,7 @@ We start by defining three different programs representing each connection, name
 We will be consuming messages from `c1` and `c2`, and publishing the result to `p3` concurrently. Thanks to `fs2` this becomes such a simple case:
 
 ```tut:book:silent
-import cats.effect.IO
+import cats.effect._
 import cats.implicits._
 import dev.profunktor.fs2rabbit.config.declaration.DeclarationQueueConfig
 import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit

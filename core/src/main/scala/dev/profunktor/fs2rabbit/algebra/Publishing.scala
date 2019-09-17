@@ -16,9 +16,9 @@
 
 package dev.profunktor.fs2rabbit.algebra
 
+import com.rabbitmq.client.Channel
 import dev.profunktor.fs2rabbit.effects.MessageEncoder
 import dev.profunktor.fs2rabbit.model._
-import com.rabbitmq.client.Channel
 
 trait Publishing[F[_]] {
 

@@ -12,7 +12,7 @@ Here we create a single `AckerConsumer`, a single `Publisher` and finally we pub
 import java.nio.charset.StandardCharsets.UTF_8
 
 import cats.data.Kleisli
-import cats.effect.{Concurrent, Timer, Sync}
+import cats.effect._
 import cats.implicits._
 import dev.profunktor.fs2rabbit.config.declaration.DeclarationQueueConfig
 import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
@@ -69,7 +69,7 @@ class AckerConsumerDemo[F[_]: Concurrent: Timer](R: Fs2Rabbit[F]) {
   // Run when there's no consumer for the routing key specified by the publisher and the flag mandatory is true
   val publishingListener: PublishReturn => F[Unit] = pr => Sync[F].delay(s"Publish listener: $pr")
 
-  val program: F[Unit] = R.createConnectionChannel use { implicit channel =>
+  val program: F[Unit] = R.createConnectionChannel.use { implicit channel =>
     for {
       _ <- R.declareQueue(DeclarationQueueConfig.default(queueName))
       _ <- R.declareExchange(exchangeName, ExchangeType.Topic)
@@ -91,11 +91,12 @@ At the edge of out program we define our effect, `cats.effect.IO` in this case, 
 
 ```tut:book:silent
 import cats.data.NonEmptyList
-import cats.effect.{ExitCode, IO, IOApp}
+import cats.effect._
 import cats.syntax.functor._
 import dev.profunktor.fs2rabbit.config.{Fs2RabbitConfig, Fs2RabbitNodeConfig}
 import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
 import dev.profunktor.fs2rabbit.resiliency.ResilientStream
+import java.util.concurrent.Executors
 
 object IOAckerConsumer extends IOApp {
 
@@ -116,11 +117,18 @@ object IOAckerConsumer extends IOApp {
     automaticRecovery = true
   )
 
+  val blockerResource =
+    Resource
+      .make(IO(Executors.newCachedThreadPool()))(es => IO(es.shutdown()))
+      .map(Blocker.liftExecutorService)
+
   override def run(args: List[String]): IO[ExitCode] =
-    Fs2Rabbit[IO](config).flatMap { client =>
-      ResilientStream
-        .runF(new AckerConsumerDemo[IO](client).program)
-        .as(ExitCode.Success)
+    blockerResource.use { blocker =>
+      Fs2Rabbit[IO](config, blocker).flatMap { client =>
+        ResilientStream
+          .runF(new AckerConsumerDemo[IO](client).program)
+          .as(ExitCode.Success)
+      }
     }
 
 }

@@ -17,7 +17,7 @@
 package dev.profunktor.fs2rabbit.interpreter
 
 import cats.effect.concurrent.Deferred
-import cats.effect.IO
+import cats.effect._
 import cats.implicits._
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
 import dev.profunktor.fs2rabbit.config.declaration._
@@ -30,12 +30,18 @@ import org.scalatest.Assertion
 import scala.concurrent.duration._
 import scala.util.Random
 import scala.concurrent.Future
+import java.util.concurrent.Executors
 
 trait Fs2RabbitSpec { self: BaseSpec =>
 
   def config: Fs2RabbitConfig
 
   val emptyAssertion: Assertion = true shouldBe true
+
+  val blockerResource =
+    Resource
+      .make(IO(Executors.newCachedThreadPool()))(es => IO(es.shutdown()))
+      .map(Blocker.liftExecutorService)
 
   it should "create a connection and a queue with default arguments" in withRabbit { interpreter =>
     import interpreter._
@@ -288,15 +294,19 @@ trait Fs2RabbitSpec { self: BaseSpec =>
 
     createConnectionChannel.use { implicit channel =>
       for {
-        (q, x, rk)        <- randomQueueData
-        ct                <- mkRandomString.map(ConsumerTag)
-        _                 <- declareExchange(x, ExchangeType.Topic)
-        _                 <- declareQueue(DeclarationQueueConfig.default(q))
-        _                 <- bindQueue(q, x, rk)
-        publisher         <- createPublisher[String](x, rk)
-        consumerArgs      = ConsumerArgs(consumerTag = ct, noLocal = false, exclusive = true, args = Map.empty)
-        (acker, consumer) <- createAckerConsumer(q, BasicQos(prefetchSize = 0, prefetchCount = 10), Some(consumerArgs))
-        _                 <- publisher("test")
+        (q, x, rk)   <- randomQueueData
+        ct           <- mkRandomString.map(ConsumerTag)
+        _            <- declareExchange(x, ExchangeType.Topic)
+        _            <- declareQueue(DeclarationQueueConfig.default(q))
+        _            <- bindQueue(q, x, rk)
+        publisher    <- createPublisher[String](x, rk)
+        consumerArgs = ConsumerArgs(consumerTag = ct, noLocal = false, exclusive = true, args = Map.empty)
+        (acker, consumer) <- createAckerConsumer(
+                              q,
+                              BasicQos(prefetchSize = 0, prefetchCount = 10),
+                              Some(consumerArgs)
+                            )
+        _ <- publisher("test")
         _ <- consumer
               .take(1)
               .evalTap { msg =>
@@ -396,19 +406,23 @@ trait Fs2RabbitSpec { self: BaseSpec =>
 
     createConnectionChannel.use { implicit channel =>
       for {
-        (q, _, rk)        <- randomQueueData
-        sourceExchange    <- mkRandomString.map(ExchangeName)
-        destExchange      <- mkRandomString.map(ExchangeName)
-        consumerTag       <- mkRandomString.map(ConsumerTag)
-        _                 <- declareExchange(sourceExchange, ExchangeType.Direct)
-        _                 <- declareExchange(destExchange, ExchangeType.Direct)
-        _                 <- declareQueue(DeclarationQueueConfig.default(q))
-        _                 <- bindQueue(q, destExchange, rk)
-        _                 <- bindExchange(destExchange, sourceExchange, rk, ExchangeBindingArgs(Map.empty))
-        publisher         <- createPublisher[String](sourceExchange, rk)
-        consumerArgs      = ConsumerArgs(consumerTag = consumerTag, noLocal = false, exclusive = true, args = Map.empty)
-        (acker, consumer) <- createAckerConsumer(q, BasicQos(prefetchSize = 0, prefetchCount = 10), Some(consumerArgs))
-        _                 <- publisher("test")
+        (q, _, rk)     <- randomQueueData
+        sourceExchange <- mkRandomString.map(ExchangeName)
+        destExchange   <- mkRandomString.map(ExchangeName)
+        consumerTag    <- mkRandomString.map(ConsumerTag)
+        _              <- declareExchange(sourceExchange, ExchangeType.Direct)
+        _              <- declareExchange(destExchange, ExchangeType.Direct)
+        _              <- declareQueue(DeclarationQueueConfig.default(q))
+        _              <- bindQueue(q, destExchange, rk)
+        _              <- bindExchange(destExchange, sourceExchange, rk, ExchangeBindingArgs(Map.empty))
+        publisher      <- createPublisher[String](sourceExchange, rk)
+        consumerArgs   = ConsumerArgs(consumerTag = consumerTag, noLocal = false, exclusive = true, args = Map.empty)
+        (acker, consumer) <- createAckerConsumer(
+                              q,
+                              BasicQos(prefetchSize = 0, prefetchCount = 10),
+                              Some(consumerArgs)
+                            )
+        _ <- publisher("test")
         _ <- consumer
               .take(1)
               .evalTap { msg =>
@@ -511,11 +525,12 @@ trait Fs2RabbitSpec { self: BaseSpec =>
           _          <- Stream.eval(declareQueue(DeclarationQueueConfig.default(q)))
           _          <- Stream.eval(bindQueue(q, x, rk))
           promise    <- Stream.eval(Deferred[IO, PublishReturn])
-          publisher  <- Stream.eval(createPublisherWithListener(x, RoutingKey("diff-rk"), flag, listener(promise)))
-          _          <- Stream.eval(publisher("test"))
-          callback   <- Stream.eval(promise.get.map(_.some).timeoutTo(500.millis, IO.pure(none[PublishReturn]))).unNone
-          consumer   <- Stream.eval(createAutoAckConsumer(q))
-          result     <- takeWithTimeOut(consumer, 500.millis)
+          publisher <- Stream
+                        .eval(createPublisherWithListener(x, RoutingKey("diff-rk"), flag, listener(promise)))
+          _        <- Stream.eval(publisher("test"))
+          callback <- Stream.eval(promise.get.map(_.some).timeoutTo(500.millis, IO.pure(none[PublishReturn]))).unNone
+          consumer <- Stream.eval(createAutoAckConsumer(q))
+          result   <- takeWithTimeOut(consumer, 500.millis)
         } yield {
           result shouldBe None
           callback.body.value shouldEqual "test".getBytes("UTF-8")
@@ -614,13 +629,25 @@ trait Fs2RabbitSpec { self: BaseSpec =>
   }
 
   private def withStreamRabbit[A](fa: Fs2Rabbit[IO] => Stream[IO, A]): Future[Assertion] =
-    Fs2Rabbit[IO](config).flatMap(r => fa(r).compile.drain).as(emptyAssertion).unsafeToFuture
+    blockerResource
+      .use { blocker =>
+        Fs2Rabbit[IO](config, blocker).flatMap(r => fa(r).compile.drain)
+      }
+      .as(emptyAssertion)
+      .unsafeToFuture
 
   private def withStreamNackRabbit[A](fa: Fs2Rabbit[IO] => Stream[IO, A]): Future[Assertion] =
-    Fs2Rabbit[IO](config.copy(requeueOnNack = true)).flatMap(r => fa(r).compile.drain).as(emptyAssertion).unsafeToFuture
+    blockerResource
+      .use { blocker =>
+        Fs2Rabbit[IO](config.copy(requeueOnNack = true), blocker).flatMap(r => fa(r).compile.drain)
+      }
+      .as(emptyAssertion)
+      .unsafeToFuture
 
   private def withRabbit[A](fa: Fs2Rabbit[IO] => IO[A]): Future[A] =
-    Fs2Rabbit[IO](config).flatMap(r => fa(r)).unsafeToFuture
+    blockerResource.use { blocker =>
+      Fs2Rabbit[IO](config, blocker).flatMap(r => fa(r))
+    }.unsafeToFuture
 
   private def randomQueueData: IO[(QueueName, ExchangeName, RoutingKey)] =
     (mkRandomString, mkRandomString, mkRandomString).mapN {

@@ -53,7 +53,9 @@ class PublishingProgram[F[_]: Monad](AMQP: AMQPClient[F]) extends Publishing[F] 
       flag: PublishingFlag,
       listener: PublishReturn => F[Unit]
   )(implicit encoder: MessageEncoder[F, A]): F[RoutingKey => A => F[Unit]] =
-    createBasicPublisherWithListener(channel, flag, listener).map(pub => key => msg => pub(exchangeName, key, msg))
+    createBasicPublisherWithListener(channel, flag, listener).map(
+      pub => key => msg => pub(exchangeName, key, msg)
+    )
 
   override def createBasicPublisher[A](
       channel: Channel

@@ -9,7 +9,7 @@ number: 11
 A `Publisher` is simply created by specifying an `ExchangeName` and a `RoutingKey`:
 
 ```tut:book:silent
-import cats.effect.IO
+import cats.effect._
 import dev.profunktor.fs2rabbit.model._
 import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
 

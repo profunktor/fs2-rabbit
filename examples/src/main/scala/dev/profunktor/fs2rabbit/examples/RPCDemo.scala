@@ -28,6 +28,7 @@ import dev.profunktor.fs2rabbit.effects.MessageEncoder
 import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
 import dev.profunktor.fs2rabbit.model._
 import fs2.Stream
+import java.util.concurrent.Executors
 
 object RPCDemo extends IOApp {
 
@@ -48,13 +49,20 @@ object RPCDemo extends IOApp {
     automaticRecovery = true
   )
 
+  val blockerResource =
+    Resource
+      .make(IO(Executors.newCachedThreadPool()))(es => IO(es.shutdown()))
+      .map(Blocker.liftExecutorService)
+
   override def run(args: List[String]): IO[ExitCode] =
-    Fs2Rabbit[IO](config).flatMap { implicit fs2Rabbit =>
-      val queue = QueueName("rpc_queue")
-      runServer[IO](queue).concurrently(runClient[IO](queue)).compile.drain.as(ExitCode.Success)
+    blockerResource.use { blocker =>
+      Fs2Rabbit[IO](config, blocker).flatMap { implicit client =>
+        val queue = QueueName("rpc_queue")
+        runServer[IO](queue).concurrently(runClient[IO](queue)).compile.drain.as(ExitCode.Success)
+      }
     }
 
-  def runServer[F[_]: Sync: LiftIO](rpcQueue: QueueName)(implicit R: Fs2Rabbit[F]): Stream[F, Unit] =
+  def runServer[F[_]: Sync](rpcQueue: QueueName)(implicit R: Fs2Rabbit[F]): Stream[F, Unit] =
     Stream.resource(R.createConnectionChannel).flatMap { implicit channel =>
       new RPCServer[F](rpcQueue).serve
     }
@@ -83,20 +91,25 @@ class RPCClient[F[_]: Sync](rpcQueue: QueueName)(implicit R: Fs2Rabbit[F], chann
     val correlationId = UUID.randomUUID().toString
 
     for {
-      queue     <- Stream.eval(R.declareQueue)
-      publisher <- Stream.eval(R.createPublisher[AmqpMessage[String]](EmptyExchange, RoutingKey(rpcQueue.value)))
-      _         <- Stream.eval(putStrLn(s"[Client] Message $body. ReplyTo queue $queue. Correlation $correlationId"))
-      message   = AmqpMessage(body, AmqpProperties(replyTo = Some(queue.value), correlationId = Some(correlationId)))
-      _         <- Stream.eval(publisher(message))
-      consumer  <- Stream.eval(R.createAutoAckConsumer(queue))
-      response  <- consumer.filter(_.properties.correlationId.contains(correlationId)).take(1)
-      _         <- Stream.eval(putStrLn(s"[Client] Request $body. Received response [${response.payload}]"))
+      queue <- Stream.eval(R.declareQueue)
+      publisher <- Stream.eval(
+                    R.createPublisher[AmqpMessage[String]](EmptyExchange, RoutingKey(rpcQueue.value))
+                  )
+      _        <- Stream.eval(putStrLn(s"[Client] Message $body. ReplyTo queue $queue. Correlation $correlationId"))
+      message  = AmqpMessage(body, AmqpProperties(replyTo = Some(queue.value), correlationId = Some(correlationId)))
+      _        <- Stream.eval(publisher(message))
+      consumer <- Stream.eval(R.createAutoAckConsumer(queue))
+      response <- consumer.filter(_.properties.correlationId.contains(correlationId)).take(1)
+      _        <- Stream.eval(putStrLn(s"[Client] Request $body. Received response [${response.payload}]"))
     } yield response
   }
 
 }
 
-class RPCServer[F[_]: Sync: LiftIO](rpcQueue: QueueName)(implicit R: Fs2Rabbit[F], channel: AMQPChannel) {
+class RPCServer[F[_]: Sync](rpcQueue: QueueName)(
+    implicit R: Fs2Rabbit[F],
+    channel: AMQPChannel
+) {
 
   private val EmptyExchange = ExchangeName("")
 
@@ -116,7 +129,7 @@ class RPCServer[F[_]: Sync: LiftIO](rpcQueue: QueueName)(implicit R: Fs2Rabbit[F
     val replyTo       = e.properties.replyTo.toRight(new IllegalArgumentException("ReplyTo parameter is missing"))
 
     for {
-      rk        <- IO.fromEither(replyTo).to[F]
+      rk        <- replyTo.liftTo[F]
       _         <- putStrLn(s"[Server] Received message [${e.payload}]. ReplyTo $rk. CorrelationId $correlationId")
       publisher <- R.createPublisher[AmqpMessage[String]](EmptyExchange, RoutingKey(rk))
       response  = AmqpMessage(s"Response for ${e.payload}", AmqpProperties(correlationId = correlationId))

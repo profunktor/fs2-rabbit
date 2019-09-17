@@ -16,7 +16,7 @@
 
 package dev.profunktor.fs2rabbit.interpreter
 
-import cats.effect.{Concurrent, ConcurrentEffect, Resource}
+import cats.effect._
 import cats.syntax.functor._
 import com.rabbitmq.client.{DefaultSaslConfig, SaslConfig}
 import dev.profunktor.fs2rabbit.algebra._
@@ -30,8 +30,9 @@ import fs2.Stream
 import javax.net.ssl.SSLContext
 
 object Fs2Rabbit {
-  def apply[F[_]: ConcurrentEffect](
+  def apply[F[_]: ConcurrentEffect: ContextShift](
       config: Fs2RabbitConfig,
+      blocker: Blocker,
       sslContext: Option[SSLContext] = None,
       // Unlike SSLContext, SaslConfig is not optional because it is always set
       // by the underlying Java library, even if the user doesn't set it.
@@ -39,7 +40,7 @@ object Fs2Rabbit {
   ): F[Fs2Rabbit[F]] =
     ConnectionEffect.mkConnectionFactory[F](config, sslContext, saslConfig).map {
       case (factory, addresses) =>
-        val amqpClient = new AmqpClientEffect[F]
+        val amqpClient = new AMQPClientEffect[F](blocker)
         val conn       = new ConnectionEffect[F](factory, addresses)
         val internalQ  = new LiveInternalQueue[F](config.internalQueueSize.getOrElse(500))
         val acker      = new AckingProgram[F](config, amqpClient)
@@ -72,8 +73,10 @@ class Fs2Rabbit[F[_]: Concurrent] private[fs2rabbit] (
       queueName: QueueName,
       basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
       consumerArgs: Option[ConsumerArgs] = None
-  )(implicit channel: AMQPChannel,
-    decoder: EnvelopeDecoder[F, A]): F[(AckResult => F[Unit], Stream[F, AmqpEnvelope[A]])] =
+  )(
+      implicit channel: AMQPChannel,
+      decoder: EnvelopeDecoder[F, A]
+  ): F[(AckResult => F[Unit], Stream[F, AmqpEnvelope[A]])] =
     consumingProgram.createAckerConsumer(channel.value, queueName, basicQos, consumerArgs)
 
   def createAutoAckConsumer[A](
@@ -85,7 +88,8 @@ class Fs2Rabbit[F[_]: Concurrent] private[fs2rabbit] (
 
   def createPublisher[A](exchangeName: ExchangeName, routingKey: RoutingKey)(
       implicit channel: AMQPChannel,
-      encoder: MessageEncoder[F, A]): F[A => F[Unit]] =
+      encoder: MessageEncoder[F, A]
+  ): F[A => F[Unit]] =
     publishingProgram.createPublisher(channel.value, exchangeName, routingKey)
 
   def createPublisherWithListener[A](
@@ -111,9 +115,9 @@ class Fs2Rabbit[F[_]: Concurrent] private[fs2rabbit] (
   ): F[(ExchangeName, RoutingKey, A) => F[Unit]] =
     publishingProgram.createBasicPublisherWithListener(channel.value, flag, listener)
 
-  def createRoutingPublisher[A](exchangeName: ExchangeName)(
-      implicit channel: AMQPChannel,
-      encoder: MessageEncoder[F, A]): F[RoutingKey => A => F[Unit]] =
+  def createRoutingPublisher[A](
+      exchangeName: ExchangeName
+  )(implicit channel: AMQPChannel, encoder: MessageEncoder[F, A]): F[RoutingKey => A => F[Unit]] =
     publishingProgram.createRoutingPublisher(channel.value, exchangeName)
 
   def createRoutingPublisherWithListener[A](
@@ -133,31 +137,38 @@ class Fs2Rabbit[F[_]: Concurrent] private[fs2rabbit] (
     amqpClient.basicCancel(channel.value, consumerTag)
 
   def bindQueue(queueName: QueueName, exchangeName: ExchangeName, routingKey: RoutingKey)(
-      implicit channel: AMQPChannel): F[Unit] =
+      implicit channel: AMQPChannel
+  ): F[Unit] =
     amqpClient.bindQueue(channel.value, queueName, exchangeName, routingKey)
 
   def bindQueue(queueName: QueueName, exchangeName: ExchangeName, routingKey: RoutingKey, args: QueueBindingArgs)(
-      implicit channel: AMQPChannel): F[Unit] =
+      implicit channel: AMQPChannel
+  ): F[Unit] =
     amqpClient.bindQueue(channel.value, queueName, exchangeName, routingKey, args)
 
   def bindQueueNoWait(queueName: QueueName, exchangeName: ExchangeName, routingKey: RoutingKey, args: QueueBindingArgs)(
-      implicit channel: AMQPChannel): F[Unit] =
+      implicit channel: AMQPChannel
+  ): F[Unit] =
     amqpClient.bindQueueNoWait(channel.value, queueName, exchangeName, routingKey, args)
 
   def unbindQueue(queueName: QueueName, exchangeName: ExchangeName, routingKey: RoutingKey)(
-      implicit channel: AMQPChannel): F[Unit] =
+      implicit channel: AMQPChannel
+  ): F[Unit] =
     unbindQueue(queueName, exchangeName, routingKey, QueueUnbindArgs(Map.empty))
 
   def unbindQueue(queueName: QueueName, exchangeName: ExchangeName, routingKey: RoutingKey, args: QueueUnbindArgs)(
-      implicit channel: AMQPChannel): F[Unit] =
+      implicit channel: AMQPChannel
+  ): F[Unit] =
     amqpClient.unbindQueue(channel.value, queueName, exchangeName, routingKey, args)
 
   def bindExchange(destination: ExchangeName, source: ExchangeName, routingKey: RoutingKey, args: ExchangeBindingArgs)(
-      implicit channel: AMQPChannel): F[Unit] =
+      implicit channel: AMQPChannel
+  ): F[Unit] =
     amqpClient.bindExchange(channel.value, destination, source, routingKey, args)
 
   def bindExchange(destination: ExchangeName, source: ExchangeName, routingKey: RoutingKey)(
-      implicit channel: AMQPChannel): F[Unit] =
+      implicit channel: AMQPChannel
+  ): F[Unit] =
     bindExchange(destination, source, routingKey, ExchangeBindingArgs(Map.empty))
 
   def bindExchangeNoWait(
@@ -169,11 +180,13 @@ class Fs2Rabbit[F[_]: Concurrent] private[fs2rabbit] (
     amqpClient.bindExchangeNoWait(channel.value, destination, source, routingKey, args)
 
   def unbindExchange(destination: ExchangeName, source: ExchangeName, routingKey: RoutingKey, args: ExchangeUnbindArgs)(
-      implicit channel: AMQPChannel): F[Unit] =
+      implicit channel: AMQPChannel
+  ): F[Unit] =
     amqpClient.unbindExchange(channel.value, destination, source, routingKey, args)
 
   def unbindExchange(destination: ExchangeName, source: ExchangeName, routingKey: RoutingKey)(
-      implicit channel: AMQPChannel): F[Unit] =
+      implicit channel: AMQPChannel
+  ): F[Unit] =
     unbindExchange(destination, source, routingKey, ExchangeUnbindArgs(Map.empty))
 
   def declareExchange(exchangeName: ExchangeName, exchangeType: ExchangeType)(implicit channel: AMQPChannel): F[Unit] =

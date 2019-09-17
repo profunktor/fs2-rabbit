@@ -19,7 +19,7 @@ package dev.profunktor.fs2rabbit.examples
 import java.nio.charset.StandardCharsets.UTF_8
 
 import cats.data.Kleisli
-import cats.effect.{Concurrent, Timer}
+import cats.effect._
 import cats.implicits._
 import dev.profunktor.fs2rabbit.config.declaration.DeclarationQueueConfig
 import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
@@ -27,7 +27,7 @@ import dev.profunktor.fs2rabbit.json.Fs2JsonEncoder
 import dev.profunktor.fs2rabbit.model.AckResult.Ack
 import dev.profunktor.fs2rabbit.model.AmqpFieldValue.{LongVal, StringVal}
 import dev.profunktor.fs2rabbit.model._
-import fs2.{Pipe, Pure, Stream}
+import fs2._
 
 class AckerConsumerDemo[F[_]: Concurrent: Timer](R: Fs2Rabbit[F]) {
   private val queueName    = QueueName("testQ")
@@ -61,6 +61,7 @@ class AckerConsumerDemo[F[_]: Concurrent: Timer](R: Fs2Rabbit[F]) {
       _ <- new Flow[F, String](consumer, acker, logPipe, publisher).flow.compile.drain
     } yield ()
   }
+
 }
 
 class Flow[F[_]: Concurrent, A](
