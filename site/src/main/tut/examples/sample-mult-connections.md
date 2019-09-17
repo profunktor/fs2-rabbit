@@ -17,12 +17,13 @@ We start by defining three different programs representing each connection, name
 We will be consuming messages from `c1` and `c2`, and publishing the result to `p3` concurrently. Thanks to `fs2` this becomes such a simple case:
 
 ```tut:book:silent
-import cats.effect.IO
+import cats.effect._
 import cats.implicits._
 import dev.profunktor.fs2rabbit.config.declaration.DeclarationQueueConfig
 import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
 import dev.profunktor.fs2rabbit.model._
 import fs2._
+import java.util.concurrent.Executors
 
 import scala.concurrent.ExecutionContext
 
@@ -60,10 +61,19 @@ def p2(R: Fs2Rabbit[IO]) =
 Here's our program `p3` creating a `Publisher` representing the third `Connection`:
 
 ```tut:book:silent
+def resources(client: Fs2Rabbit[IO]): Resource[IO, (AMQPChannel, Blocker)] =
+  for {
+    channel    <- client.createConnectionChannel
+    blockingES = Resource.make(IO(Executors.newCachedThreadPool()))(es => IO(es.shutdown()))
+    blocker    <- blockingES.map(Blocker.liftExecutorService)
+  } yield (channel, blocker)
+
 def p3(R: Fs2Rabbit[IO]) =
-  R.createConnectionChannel use { implicit channel =>
-    R.declareExchange(ex, ExchangeType.Topic) *>
-    R.createPublisher(ex, rk)
+  resources(R).use {
+    case (channel, blocker) =>
+      implicit val rabbitChannel = channel
+			R.declareExchange(ex, ExchangeType.Topic) *>
+			R.createPublisher(ex, rk, blocker)
   }
 ```
 

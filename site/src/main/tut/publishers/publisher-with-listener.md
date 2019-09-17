@@ -18,26 +18,35 @@ The server SHOULD implement the mandatory flag.
 
 ### Creating a Publisher with Listener
 
-It is simply created by specifying `ExchangeName`, `RoutingKey`, `PublishingFlag` and a listener, i.e. a function from `PublishReturn` to `F[Unit]`:
+It is simply created by specifying `ExchangeName`, `RoutingKey`, `PublishingFlag` and a listener, i.e. a function from `PublishReturn` to `F[Unit]`. In addition, you need to pass in a `cats.effect.Blocker` since publishing are blocking actions in the underlying Java client:
 
 ```tut:book:silent
-import cats.effect.IO
+import cats.effect._
 import dev.profunktor.fs2rabbit.model._
 import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
+import java.util.concurrent.Executors
 
 val exchangeName = ExchangeName("testEX")
 val routingKey   = RoutingKey("testRK")
 
 val publishingFlag: PublishingFlag = PublishingFlag(mandatory = true)
 
-// Run when there's no consumer for the routing key specified by the publisher and the flag mandatory is true
 val publishingListener: PublishReturn => IO[Unit] = pr => IO(println(s"Publish listener: $pr"))
 
 def doSomething(publisher: String => IO[Unit]): IO[Unit] = IO.unit
 
-def program(R: Fs2Rabbit[IO]) =
-  R.createConnectionChannel.use { implicit channel =>
-    R.createPublisherWithListener[String](exchangeName, routingKey, publishingFlag, publishingListener).flatMap(doSomething)
+def resources(client: Fs2Rabbit[IO]): Resource[IO, (AMQPChannel, Blocker)] =
+  for {
+    channel    <- client.createConnectionChannel
+    blockingES = Resource.make(IO(Executors.newCachedThreadPool()))(es => IO(es.shutdown()))
+    blocker    <- blockingES.map(Blocker.liftExecutorService)
+  } yield (channel, blocker)
+
+def program(client: Fs2Rabbit[IO]) =
+  resources(client).use {
+    case (channel, blocker) =>
+      implicit val rabbitChannel = channel
+      client.createPublisherWithListener[String](exchangeName, routingKey, publishingFlag, publishingListener, blocker).flatMap(doSomething)
   }
 ```
 

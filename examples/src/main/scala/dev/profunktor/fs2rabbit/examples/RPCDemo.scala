@@ -28,6 +28,7 @@ import dev.profunktor.fs2rabbit.effects.MessageEncoder
 import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
 import dev.profunktor.fs2rabbit.model._
 import fs2.Stream
+import java.util.concurrent.Executors
 
 object RPCDemo extends IOApp {
 
@@ -48,20 +49,24 @@ object RPCDemo extends IOApp {
     automaticRecovery = true
   )
 
+  val publishingES = Resource.make(IO(Executors.newCachedThreadPool()))(es => IO(es.shutdown()))
+
   override def run(args: List[String]): IO[ExitCode] =
-    Fs2Rabbit[IO](config).flatMap { implicit fs2Rabbit =>
+    Fs2Rabbit[IO](config).flatMap { implicit client =>
       val queue = QueueName("rpc_queue")
-      runServer[IO](queue).concurrently(runClient[IO](queue)).compile.drain.as(ExitCode.Success)
+      publishingES.map(Blocker.liftExecutorService).use { blocker =>
+        runServer[IO](queue, blocker).concurrently(runClient[IO](queue, blocker)).compile.drain.as(ExitCode.Success)
+      }
     }
 
-  def runServer[F[_]: Sync: LiftIO](rpcQueue: QueueName)(implicit R: Fs2Rabbit[F]): Stream[F, Unit] =
+  def runServer[F[_]: Sync: LiftIO](rpcQueue: QueueName, blocker: Blocker)(implicit R: Fs2Rabbit[F]): Stream[F, Unit] =
     Stream.resource(R.createConnectionChannel).flatMap { implicit channel =>
-      new RPCServer[F](rpcQueue).serve
+      new RPCServer[F](rpcQueue, blocker).serve
     }
 
-  def runClient[F[_]: Concurrent](rpcQueue: QueueName)(implicit R: Fs2Rabbit[F]): Stream[F, Unit] =
+  def runClient[F[_]: Concurrent](rpcQueue: QueueName, blocker: Blocker)(implicit R: Fs2Rabbit[F]): Stream[F, Unit] =
     Stream.resource(R.createConnectionChannel).flatMap { implicit channel =>
-      val client = new RPCClient[F](rpcQueue)
+      val client = new RPCClient[F](rpcQueue, blocker)
 
       Stream(
         client.call("Message 1"),
@@ -72,7 +77,7 @@ object RPCDemo extends IOApp {
 
 }
 
-class RPCClient[F[_]: Sync](rpcQueue: QueueName)(implicit R: Fs2Rabbit[F], channel: AMQPChannel) {
+class RPCClient[F[_]: Sync](rpcQueue: QueueName, blocker: Blocker)(implicit R: Fs2Rabbit[F], channel: AMQPChannel) {
 
   private val EmptyExchange = ExchangeName("")
 
@@ -83,20 +88,25 @@ class RPCClient[F[_]: Sync](rpcQueue: QueueName)(implicit R: Fs2Rabbit[F], chann
     val correlationId = UUID.randomUUID().toString
 
     for {
-      queue     <- Stream.eval(R.declareQueue)
-      publisher <- Stream.eval(R.createPublisher[AmqpMessage[String]](EmptyExchange, RoutingKey(rpcQueue.value)))
-      _         <- Stream.eval(putStrLn(s"[Client] Message $body. ReplyTo queue $queue. Correlation $correlationId"))
-      message   = AmqpMessage(body, AmqpProperties(replyTo = Some(queue.value), correlationId = Some(correlationId)))
-      _         <- Stream.eval(publisher(message))
-      consumer  <- Stream.eval(R.createAutoAckConsumer(queue))
-      response  <- consumer.filter(_.properties.correlationId.contains(correlationId)).take(1)
-      _         <- Stream.eval(putStrLn(s"[Client] Request $body. Received response [${response.payload}]"))
+      queue <- Stream.eval(R.declareQueue)
+      publisher <- Stream.eval(
+                    R.createPublisher[AmqpMessage[String]](EmptyExchange, RoutingKey(rpcQueue.value), blocker)
+                  )
+      _        <- Stream.eval(putStrLn(s"[Client] Message $body. ReplyTo queue $queue. Correlation $correlationId"))
+      message  = AmqpMessage(body, AmqpProperties(replyTo = Some(queue.value), correlationId = Some(correlationId)))
+      _        <- Stream.eval(publisher(message))
+      consumer <- Stream.eval(R.createAutoAckConsumer(queue))
+      response <- consumer.filter(_.properties.correlationId.contains(correlationId)).take(1)
+      _        <- Stream.eval(putStrLn(s"[Client] Request $body. Received response [${response.payload}]"))
     } yield response
   }
 
 }
 
-class RPCServer[F[_]: Sync: LiftIO](rpcQueue: QueueName)(implicit R: Fs2Rabbit[F], channel: AMQPChannel) {
+class RPCServer[F[_]: Sync: LiftIO](rpcQueue: QueueName, blocker: Blocker)(
+    implicit R: Fs2Rabbit[F],
+    channel: AMQPChannel
+) {
 
   private val EmptyExchange = ExchangeName("")
 
@@ -118,7 +128,7 @@ class RPCServer[F[_]: Sync: LiftIO](rpcQueue: QueueName)(implicit R: Fs2Rabbit[F
     for {
       rk        <- IO.fromEither(replyTo).to[F]
       _         <- putStrLn(s"[Server] Received message [${e.payload}]. ReplyTo $rk. CorrelationId $correlationId")
-      publisher <- R.createPublisher[AmqpMessage[String]](EmptyExchange, RoutingKey(rk))
+      publisher <- R.createPublisher[AmqpMessage[String]](EmptyExchange, RoutingKey(rk), blocker)
       response  = AmqpMessage(s"Response for ${e.payload}", AmqpProperties(correlationId = correlationId))
       _         <- publisher(response)
     } yield ()

@@ -12,7 +12,7 @@ Here we create a single `AckerConsumer`, a single `Publisher` and finally we pub
 import java.nio.charset.StandardCharsets.UTF_8
 
 import cats.data.Kleisli
-import cats.effect.{Concurrent, Timer, Sync}
+import cats.effect._
 import cats.implicits._
 import dev.profunktor.fs2rabbit.config.declaration.DeclarationQueueConfig
 import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
@@ -21,6 +21,7 @@ import dev.profunktor.fs2rabbit.model.AckResult.Ack
 import dev.profunktor.fs2rabbit.model.AmqpFieldValue.{LongVal, StringVal}
 import dev.profunktor.fs2rabbit.model._
 import fs2.{Pipe, Pure, Stream}
+import java.util.concurrent.Executors
 
 class Flow[F[_]: Concurrent, A](
     consumer: Stream[F, AmqpEnvelope[A]],
@@ -69,19 +70,29 @@ class AckerConsumerDemo[F[_]: Concurrent: Timer](R: Fs2Rabbit[F]) {
   // Run when there's no consumer for the routing key specified by the publisher and the flag mandatory is true
   val publishingListener: PublishReturn => F[Unit] = pr => Sync[F].delay(s"Publish listener: $pr")
 
-  val program: F[Unit] = R.createConnectionChannel use { implicit channel =>
+  val resources: Resource[F, (AMQPChannel, Blocker)] =
     for {
-      _ <- R.declareQueue(DeclarationQueueConfig.default(queueName))
-      _ <- R.declareExchange(exchangeName, ExchangeType.Topic)
-      _ <- R.bindQueue(queueName, exchangeName, routingKey)
-      publisher <- R.createPublisherWithListener[AmqpMessage[String]](exchangeName,
-                                                                      routingKey,
-                                                                      publishingFlag,
-                                                                      publishingListener)
-      (acker, consumer) <- R.createAckerConsumer[String](queueName)
-      result            = new Flow[F, String](consumer, acker, logPipe, publisher).flow
-      _                 <- result.compile.drain
-    } yield ()
+      channel    <- R.createConnectionChannel
+      blockingES = Resource.make(Sync[F].delay(Executors.newCachedThreadPool()))(es => Sync[F].delay(es.shutdown()))
+      blocker    <- blockingES.map(Blocker.liftExecutorService)
+    } yield (channel, blocker)
+
+  val program: F[Unit] = resources.use {
+    case (channel, blocker) =>
+      implicit val rabbitChannel = channel
+      for {
+        _ <- R.declareQueue(DeclarationQueueConfig.default(queueName))
+        _ <- R.declareExchange(exchangeName, ExchangeType.Topic)
+        _ <- R.bindQueue(queueName, exchangeName, routingKey)
+        publisher <- R.createPublisherWithListener[AmqpMessage[String]](exchangeName,
+                                                                        routingKey,
+                                                                        publishingFlag,
+                                                                        publishingListener,
+                                                                        blocker)
+        (acker, consumer) <- R.createAckerConsumer[String](queueName)
+        result            = new Flow[F, String](consumer, acker, logPipe, publisher).flow
+        _                 <- result.compile.drain
+      } yield ()
   }
 }
 
