@@ -46,5 +46,5 @@ class Fs2JsonEncoder(printer: Printer = Printer.noSpaces) {
     * The result will be an `AmqpMessage` of type `String`
     * */
   def jsonEncode[A: Encoder]: AmqpMessage[A] => AmqpMessage[String] =
-    amqpMsg => AmqpMessage[String](amqpMsg.payload.asJson.pretty(printer), amqpMsg.properties)
+    amqpMsg => AmqpMessage[String](amqpMsg.payload.asJson.printWith(printer), amqpMsg.properties)
 }

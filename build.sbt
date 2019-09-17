@@ -8,28 +8,20 @@ name := """fs2-rabbit-root"""
 organization in ThisBuild := "dev.profunktor"
 
 scalaVersion in ThisBuild := "2.12.9"
-crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.9", "2.13.0")
-
-// makes `tut` fail :( -> https://github.com/tpolecat/tut/issues/255
-//scalaVersion in ThisBuild := "2.12.8" // needed for metals
+crossScalaVersions in ThisBuild := Seq("2.12.10", "2.13.0")
 
 sonatypeProfileName := "dev.profunktor"
 
-promptTheme := PromptTheme(List(
-  text("[sbt] ", fg(105)),
-  text(_ => "fs2-rabbit", fg(15)).padRight(" λ ")
- ))
+promptTheme := PromptTheme(
+  List(
+    text("[sbt] ", fg(105)),
+    text(_ => "fs2-rabbit", fg(15)).padRight(" λ ")
+  )
+)
 
-// We use String as our input type because `scalaVersion.value` cannot be called
-// in a lot of places in a build.sbt file where it would be convenient to do so
-// and so we have to thread it through at the last moment instead and
-// scalaVersion.value is a String.
-def determineVersionSpecificDeps(scalaVersionStr: String) = CrossVersion.partialVersion(scalaVersionStr) match {
-  case Some((2, 13)) => Scala213Dependencies
-  case Some((2, 12)) => Scala212Dependencies
-  case Some((2, 11)) => Scala211Dependencies
-  // Fallback to 2.12 libraries as they're currently the most well-supported
-  case _ => Scala212Dependencies
+def maxClassFileName(v: String) = CrossVersion.partialVersion(v) match {
+  case Some((2, 13)) => Seq.empty[String]
+  case _             => Seq("-Xmax-classfile-name", "100")
 }
 
 val commonSettings = Seq(
@@ -39,17 +31,16 @@ val commonSettings = Seq(
   homepage := Some(url("https://fs2-rabbit.profunktor.dev/")),
   headerLicense := Some(HeaderLicense.ALv2("2017-2019", "ProfunKtor")),
   scalacOptions in (Compile, doc) ++= Seq("-no-link-warnings"),
-  scalacOptions ++= determineVersionSpecificDeps(scalaVersion.value).scalacOptions,
+  scalacOptions ++= maxClassFileName(scalaVersion.value),
   libraryDependencies ++= {
-    val library = determineVersionSpecificDeps(scalaVersion.value)
     Seq(
-      compilerPlugin(library.kindProjector),
-      compilerPlugin(library.betterMonadicFor),
-      library.amqpClient,
-      library.catsEffect,
-      library.fs2Core,
-      library.scalaTest % "test",
-      library.scalaCheck % "test"
+      compilerPlugin(Libraries.kindProjector),
+      compilerPlugin(Libraries.betterMonadicFor),
+      Libraries.amqpClient,
+      Libraries.catsEffect,
+      Libraries.fs2Core,
+      Libraries.scalaTest  % "test",
+      Libraries.scalaCheck % "test"
     )
   },
   resolvers += "Apache public" at "https://repository.apache.org/content/groups/public/",
@@ -63,9 +54,11 @@ val commonSettings = Seq(
   },
   publishMavenStyle := true,
   publishArtifact in Test := false,
-  pomIncludeRepository := { _ => false },
+  pomIncludeRepository := { _ =>
+    false
+  },
   pomExtra :=
-      <developers>
+    <developers>
         <developer>
           <id>gvolpe</id>
           <name>Gabriel Volpe</name>
@@ -74,41 +67,22 @@ val commonSettings = Seq(
       </developers>
 )
 
-def CoreDependencies(scalaVersionStr: String): Seq[ModuleID] = {
-  val library = determineVersionSpecificDeps(scalaVersionStr)
-  Seq(
-    library.logback % "test"
-  )
-}
+def CoreDependencies(scalaVersionStr: String): Seq[ModuleID] = Seq(Libraries.logback % "test")
 
-def JsonDependencies(scalaVersionStr: String): Seq[ModuleID] = {
-  val library = determineVersionSpecificDeps(scalaVersionStr)
+def JsonDependencies(scalaVersionStr: String): Seq[ModuleID] =
   Seq(
-    library.circeCore,
-    library.circeGeneric,
-    library.circeParser
+    Libraries.circeCore,
+    Libraries.circeGeneric,
+    Libraries.circeParser
   )
-}
 
-def ExamplesDependencies(scalaVersionStr: String): Seq[ModuleID] = {
-  determineVersionSpecificDeps(scalaVersionStr) match {
-    case library: Scala213Dependencies.type => Seq(library.logback % "runtime")
-    case library: Scala212Dependencies.type =>
-      Seq(
-        library.logback % "runtime",
-        library.monix,
-        library.zioCore,
-        library.zioCats
-      )
-    case library: Scala211Dependencies.type =>
-      Seq(
-        library.logback % "runtime",
-        library.monix,
-        library.zioCore,
-        library.zioCats
-      )
-  }
-}
+def ExamplesDependencies(scalaVersionStr: String): Seq[ModuleID] =
+  Seq(
+    Libraries.logback % "runtime",
+    Libraries.monix,
+    Libraries.zioCore,
+    Libraries.zioCats
+  )
 
 lazy val noPublish = Seq(
   publish := {},
@@ -117,44 +91,51 @@ lazy val noPublish = Seq(
   skip in publish := true
 )
 
-lazy val `fs2-rabbit-root` = project.in(file("."))
+lazy val `fs2-rabbit-root` = project
+  .in(file("."))
   .aggregate(`fs2-rabbit`, `fs2-rabbit-circe`, `fs2-rabbit-test-support`, tests, examples, microsite)
   .settings(noPublish)
 
-lazy val `fs2-rabbit` = project.in(file("core"))
+lazy val `fs2-rabbit` = project
+  .in(file("core"))
   .settings(commonSettings: _*)
   .settings(libraryDependencies ++= CoreDependencies(scalaVersion.value))
   .settings(parallelExecution in Test := false)
   .enablePlugins(AutomateHeaderPlugin)
 
-lazy val `fs2-rabbit-circe` = project.in(file("json-circe"))
+lazy val `fs2-rabbit-circe` = project
+  .in(file("json-circe"))
   .settings(commonSettings: _*)
   .settings(libraryDependencies ++= JsonDependencies(scalaVersion.value))
   .settings(parallelExecution in Test := false)
   .enablePlugins(AutomateHeaderPlugin)
   .dependsOn(`fs2-rabbit`)
 
-lazy val `fs2-rabbit-test-support` = project.in(file("test-support"))
+lazy val `fs2-rabbit-test-support` = project
+  .in(file("test-support"))
   .settings(commonSettings: _*)
-  .settings(libraryDependencies += determineVersionSpecificDeps(scalaVersion.value).scalaTest)
+  .settings(libraryDependencies += Libraries.scalaTest)
   .enablePlugins(AutomateHeaderPlugin)
   .dependsOn(`fs2-rabbit`)
 
-lazy val tests = project.in(file("tests"))
+lazy val tests = project
+  .in(file("tests"))
   .settings(commonSettings: _*)
   .settings(noPublish)
   .enablePlugins(AutomateHeaderPlugin)
   .settings(parallelExecution in Test := false)
   .dependsOn(`fs2-rabbit-test-support` % Test)
 
-lazy val examples = project.in(file("examples"))
+lazy val examples = project
+  .in(file("examples"))
   .settings(commonSettings: _*)
   .settings(libraryDependencies ++= ExamplesDependencies(scalaVersion.value))
   .settings(noPublish)
   .enablePlugins(AutomateHeaderPlugin)
   .dependsOn(`fs2-rabbit`, `fs2-rabbit-circe`)
 
-lazy val microsite = project.in(file("site"))
+lazy val microsite = project
+  .in(file("site"))
   .enablePlugins(MicrositesPlugin)
   .settings(commonSettings: _*)
   .settings(noPublish)
@@ -178,14 +159,14 @@ lazy val microsite = project.in(file("site"))
       )
     ),
     micrositePalette := Map(
-      "brand-primary"     -> "#E05236",
-      "brand-secondary"   -> "#774615",
-      "brand-tertiary"    -> "#2f2623",
-      "gray-dark"         -> "#453E46",
-      "gray"              -> "#837F84",
-      "gray-light"        -> "#E3E2E3",
-      "gray-lighter"      -> "#F4F3F4",
-      "white-color"       -> "#FFFFFF"
+      "brand-primary"   -> "#E05236",
+      "brand-secondary" -> "#774615",
+      "brand-tertiary"  -> "#2f2623",
+      "gray-dark"       -> "#453E46",
+      "gray"            -> "#837F84",
+      "gray-light"      -> "#E3E2E3",
+      "gray-lighter"    -> "#F4F3F4",
+      "white-color"     -> "#FFFFFF"
     ),
     micrositeGitterChannel := true,
     micrositeGitterChannelUrl := "profunktor-dev/fs2-rabbit",
@@ -197,11 +178,10 @@ lazy val microsite = project.in(file("site"))
       "-Ywarn-unused-import",
       "-Ywarn-numeric-widen",
       "-Ywarn-dead-code",
-      "-Xlint:-missing-interpolator,_",
+      "-Xlint:-missing-interpolator,_"
     )
   )
   .dependsOn(`fs2-rabbit`, `fs2-rabbit-circe`, `examples`)
 
 // CI build
 addCommandAlias("buildFs2Rabbit", ";clean;+test;tut")
-
