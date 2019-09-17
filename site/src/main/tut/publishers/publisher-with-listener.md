@@ -18,7 +18,7 @@ The server SHOULD implement the mandatory flag.
 
 ### Creating a Publisher with Listener
 
-It is simply created by specifying `ExchangeName`, `RoutingKey`, `PublishingFlag` and a listener, i.e. a function from `PublishReturn` to `F[Unit]`. In addition, you need to pass in a `cats.effect.Blocker` since publishing are blocking actions in the underlying Java client:
+It is simply created by specifying `ExchangeName`, `RoutingKey`, `PublishingFlag` and a listener, i.e. a function from `PublishReturn` to `F[Unit]`:
 
 ```tut:book:silent
 import cats.effect._
