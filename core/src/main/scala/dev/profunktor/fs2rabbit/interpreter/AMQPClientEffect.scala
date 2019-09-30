@@ -147,8 +147,11 @@ class AMQPClientEffect[F[_]: Effect] extends AMQPClient[F] {
       channel.basicCancel(consumerTag.value)
     }
 
-  def basicPublish(channel: Channel, exchangeName: ExchangeName, routingKey: RoutingKey, msg: AmqpMessage[Array[Byte]])(
-      blocker: Blocker)(implicit cs: ContextShift[F]): F[Unit] = blocker.delay {
+  def basicPublish(channel: Channel,
+                   exchangeName: ExchangeName,
+                   routingKey: RoutingKey,
+                   msg: AmqpMessage[Array[Byte]],
+                   blocker: Blocker)(implicit cs: ContextShift[F]): F[Unit] = blocker.delay {
     channel.basicPublish(
       exchangeName.value,
       routingKey.value,
@@ -161,7 +164,8 @@ class AMQPClientEffect[F[_]: Effect] extends AMQPClient[F] {
                            exchangeName: ExchangeName,
                            routingKey: RoutingKey,
                            flag: PublishingFlag,
-                           msg: AmqpMessage[Array[Byte]])(blocker: Blocker)(implicit cs: ContextShift[F]): F[Unit] =
+                           msg: AmqpMessage[Array[Byte]],
+                           blocker: Blocker)(implicit cs: ContextShift[F]): F[Unit] =
     blocker.delay {
       channel.basicPublish(
         exchangeName.value,

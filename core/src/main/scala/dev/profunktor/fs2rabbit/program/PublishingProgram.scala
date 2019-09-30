@@ -68,7 +68,7 @@ class PublishingProgram[F[_]: Monad](AMQP: AMQPClient[F]) extends Publishing[F] 
   )(implicit encoder: MessageEncoder[F, A], cs: ContextShift[F]): F[(ExchangeName, RoutingKey, A) => F[Unit]] =
     Applicative[F].pure {
       case (exchangeName: ExchangeName, routingKey: RoutingKey, msg: A @unchecked) =>
-        encoder.run(msg).flatMap(payload => AMQP.basicPublish(channel, exchangeName, routingKey, payload)(blocker))
+        encoder.run(msg).flatMap(payload => AMQP.basicPublish(channel, exchangeName, routingKey, payload, blocker))
     }
 
   override def createBasicPublisherWithListener[A](
@@ -81,6 +81,6 @@ class PublishingProgram[F[_]: Monad](AMQP: AMQPClient[F]) extends Publishing[F] 
       case (exchangeName: ExchangeName, routingKey: RoutingKey, msg: A @unchecked) =>
         encoder
           .run(msg)
-          .flatMap(payload => AMQP.basicPublishWithFlag(channel, exchangeName, routingKey, flag, payload)(blocker))
+          .flatMap(payload => AMQP.basicPublishWithFlag(channel, exchangeName, routingKey, flag, payload, blocker))
     }
 }
