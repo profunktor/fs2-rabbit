@@ -31,7 +31,7 @@ import dev.profunktor.fs2rabbit.effects.BoolValue.syntax._
 import dev.profunktor.fs2rabbit.model._
 import scala.util.{Failure, Success, Try}
 
-class AMQPClientEffect[F[_]: ContextShift: Effect](blocker: Blocker) extends AMQPClient[F] {
+class AMQPClientEffect[F[_]: Effect] extends AMQPClient[F] {
 
   private[fs2rabbit] def defaultConsumer[A](
       channel: Channel,
@@ -147,12 +147,8 @@ class AMQPClientEffect[F[_]: ContextShift: Effect](blocker: Blocker) extends AMQ
       channel.basicCancel(consumerTag.value)
     }
 
-  override def basicPublish(
-      channel: Channel,
-      exchangeName: ExchangeName,
-      routingKey: RoutingKey,
-      msg: AmqpMessage[Array[Byte]]
-  ): F[Unit] = blocker.delay {
+  def basicPublish(channel: Channel, exchangeName: ExchangeName, routingKey: RoutingKey, msg: AmqpMessage[Array[Byte]])(
+      blocker: Blocker)(implicit cs: ContextShift[F]): F[Unit] = blocker.delay {
     channel.basicPublish(
       exchangeName.value,
       routingKey.value,
@@ -161,21 +157,20 @@ class AMQPClientEffect[F[_]: ContextShift: Effect](blocker: Blocker) extends AMQ
     )
   }
 
-  override def basicPublishWithFlag(
-      channel: Channel,
-      exchangeName: ExchangeName,
-      routingKey: RoutingKey,
-      flag: PublishingFlag,
-      msg: AmqpMessage[Array[Byte]]
-  ): F[Unit] = blocker.delay {
-    channel.basicPublish(
-      exchangeName.value,
-      routingKey.value,
-      flag.mandatory,
-      msg.properties.asBasicProps,
-      msg.payload
-    )
-  }
+  def basicPublishWithFlag(channel: Channel,
+                           exchangeName: ExchangeName,
+                           routingKey: RoutingKey,
+                           flag: PublishingFlag,
+                           msg: AmqpMessage[Array[Byte]])(blocker: Blocker)(implicit cs: ContextShift[F]): F[Unit] =
+    blocker.delay {
+      channel.basicPublish(
+        exchangeName.value,
+        routingKey.value,
+        flag.mandatory,
+        msg.properties.asBasicProps,
+        msg.payload
+      )
+    }
 
   override def addPublishingListener(
       channel: Channel,

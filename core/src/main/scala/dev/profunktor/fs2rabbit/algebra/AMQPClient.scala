@@ -16,6 +16,7 @@
 
 package dev.profunktor.fs2rabbit.algebra
 
+import cats.effect.{Blocker, ContextShift}
 import dev.profunktor.fs2rabbit.arguments.Arguments
 import dev.profunktor.fs2rabbit.config.declaration.{DeclarationExchangeConfig, DeclarationQueueConfig}
 import dev.profunktor.fs2rabbit.config.deletion.{DeletionExchangeConfig, DeletionQueueConfig}
@@ -30,8 +31,10 @@ trait AMQPClient[F[_]] extends Binding[F] with Declaration[F] with Deletion[F] {
   def basicConsume[A](channel: Channel, queueName: QueueName, autoAck: Boolean, consumerTag: ConsumerTag, noLocal: Boolean, exclusive: Boolean, args: Arguments)
                   (internals: AMQPInternals[F]): F[ConsumerTag]
   def basicCancel(channel: Channel, consumerTag: ConsumerTag): F[Unit]
-  def basicPublish(channel: Channel, exchangeName: ExchangeName, routingKey: RoutingKey, msg: AmqpMessage[Array[Byte]]): F[Unit]
-  def basicPublishWithFlag(channel: Channel, exchangeName: ExchangeName, routingKey: RoutingKey, flag: PublishingFlag, msg: AmqpMessage[Array[Byte]]): F[Unit]
+  def basicPublish(channel: Channel, exchangeName: ExchangeName, routingKey: RoutingKey, msg: AmqpMessage[Array[Byte]])
+                  (blocker: Blocker)(implicit cs: ContextShift[F]): F[Unit]
+  def basicPublishWithFlag(channel: Channel, exchangeName: ExchangeName, routingKey: RoutingKey, flag: PublishingFlag, msg: AmqpMessage[Array[Byte]])
+                          (blocker: Blocker)(implicit cs: ContextShift[F]): F[Unit]
   def addPublishingListener(channel: Channel, listener: PublishReturn => F[Unit]): F[Unit]
   def clearPublishingListeners(channel: Channel): F[Unit]
 }
