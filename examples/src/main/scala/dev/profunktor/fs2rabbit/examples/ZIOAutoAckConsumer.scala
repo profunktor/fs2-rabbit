@@ -48,9 +48,9 @@ object ZIOAutoAckConsumer extends CatsApp {
   override def run(args: List[String]): UIO[Int] =
     blockerResource
       .use { blocker =>
-        Fs2Rabbit[Task](config, blocker).flatMap { client =>
+        Fs2Rabbit[Task](config).flatMap { client =>
           ResilientStream
-            .runF(new AutoAckConsumerDemo[Task](client).program)
+            .runF(new AutoAckConsumerDemo[Task](client, blocker).program)
         }
       }
       .run

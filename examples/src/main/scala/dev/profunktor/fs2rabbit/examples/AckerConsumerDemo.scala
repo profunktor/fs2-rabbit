@@ -29,7 +29,7 @@ import dev.profunktor.fs2rabbit.model.AmqpFieldValue.{LongVal, StringVal}
 import dev.profunktor.fs2rabbit.model._
 import fs2._
 
-class AckerConsumerDemo[F[_]: Concurrent: Timer](R: Fs2Rabbit[F]) {
+class AckerConsumerDemo[F[_]: Concurrent: Timer: ContextShift](R: Fs2Rabbit[F], blocker: Blocker) {
   private val queueName    = QueueName("testQ")
   private val exchangeName = ExchangeName("testEX")
   private val routingKey   = RoutingKey("testRK")
@@ -56,7 +56,8 @@ class AckerConsumerDemo[F[_]: Concurrent: Timer](R: Fs2Rabbit[F]) {
                     exchangeName,
                     routingKey,
                     publishingFlag,
-                    publishingListener
+                    publishingListener,
+                    blocker
                   )
       _ <- new Flow[F, String](consumer, acker, logPipe, publisher).flow.compile.drain
     } yield ()

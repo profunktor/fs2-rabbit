@@ -50,9 +50,9 @@ object IOAckerConsumer extends IOApp {
 
   override def run(args: List[String]): IO[ExitCode] =
     blockerResource.use { blocker =>
-      Fs2Rabbit[IO](config, blocker).flatMap { client =>
+      Fs2Rabbit[IO](config).flatMap { client =>
         ResilientStream
-          .runF(new AckerConsumerDemo[IO](client).program)
+          .runF(new AckerConsumerDemo[IO](client, blocker).program)
           .as(ExitCode.Success)
       }
     }

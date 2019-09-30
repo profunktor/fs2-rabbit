@@ -196,126 +196,136 @@ trait Fs2RabbitSpec { self: BaseSpec =>
   it should "create an acker consumer and verify both envelope and ack result" in withRabbit { interpreter =>
     import interpreter._
 
-    createConnectionChannel.use { implicit channel =>
-      for {
-        (q, x, rk)        <- randomQueueData
-        _                 <- declareExchange(x, ExchangeType.Topic)
-        _                 <- declareQueue(DeclarationQueueConfig.default(q))
-        _                 <- bindQueue(q, x, rk, QueueBindingArgs(Map.empty))
-        publisher         <- createPublisher[String](x, rk)
-        _                 <- publisher("acker-test")
-        (acker, consumer) <- createAckerConsumer(q)
-        _ <- consumer
-              .take(1)
-              .evalMap { msg =>
-                IO(msg shouldBe expectedDelivery(msg.deliveryTag, x, rk, "acker-test")) *>
-                  acker(Ack(msg.deliveryTag))
-              }
-              .compile
-              .drain
-      } yield emptyAssertion
+    (blockerResource, createConnectionChannel).tupled.use {
+      case (blocker, channel) =>
+        implicit val ch: AMQPChannel = channel
+        for {
+          (q, x, rk)        <- randomQueueData
+          _                 <- declareExchange(x, ExchangeType.Topic)
+          _                 <- declareQueue(DeclarationQueueConfig.default(q))
+          _                 <- bindQueue(q, x, rk, QueueBindingArgs(Map.empty))
+          publisher         <- createPublisher[String](x, rk, blocker)
+          _                 <- publisher("acker-test")
+          (acker, consumer) <- createAckerConsumer(q)
+          _ <- consumer
+                .take(1)
+                .evalMap { msg =>
+                  IO(msg shouldBe expectedDelivery(msg.deliveryTag, x, rk, "acker-test")) *>
+                    acker(Ack(msg.deliveryTag))
+                }
+                .compile
+                .drain
+        } yield emptyAssertion
     }
   }
 
   it should "NOT requeue a message in case of NAck when option 'requeueOnNack = false'" in withRabbit { interpreter =>
     import interpreter._
 
-    createConnectionChannel.use { implicit channel =>
-      for {
-        (q, x, rk)        <- randomQueueData
-        _                 <- declareExchange(x, ExchangeType.Topic)
-        _                 <- declareQueue(DeclarationQueueConfig.default(q))
-        _                 <- bindQueue(q, x, rk, QueueBindingArgs(Map.empty))
-        publisher         <- createPublisher[String](x, rk)
-        _                 <- publisher("NAck-test")
-        (acker, consumer) <- createAckerConsumer(q)
-        _ <- consumer
-              .take(1)
-              .evalMap { msg =>
-                IO(msg shouldBe expectedDelivery(msg.deliveryTag, x, rk, "NAck-test")) *>
-                  acker(NAck(msg.deliveryTag))
-              }
-              .compile
-              .drain
-      } yield emptyAssertion
+    (blockerResource, createConnectionChannel).tupled.use {
+      case (blocker, channel) =>
+        implicit val ch: AMQPChannel = channel
+        for {
+          (q, x, rk)        <- randomQueueData
+          _                 <- declareExchange(x, ExchangeType.Topic)
+          _                 <- declareQueue(DeclarationQueueConfig.default(q))
+          _                 <- bindQueue(q, x, rk, QueueBindingArgs(Map.empty))
+          publisher         <- createPublisher[String](x, rk, blocker)
+          _                 <- publisher("NAck-test")
+          (acker, consumer) <- createAckerConsumer(q)
+          _ <- consumer
+                .take(1)
+                .evalMap { msg =>
+                  IO(msg shouldBe expectedDelivery(msg.deliveryTag, x, rk, "NAck-test")) *>
+                    acker(NAck(msg.deliveryTag))
+                }
+                .compile
+                .drain
+        } yield emptyAssertion
     }
   }
 
   it should "create a publisher, an auto-ack consumer, publish a message and consume it" in withRabbit { interpreter =>
     import interpreter._
 
-    createConnectionChannel.use { implicit channel =>
-      for {
-        (q, x, rk) <- randomQueueData
-        _          <- declareExchange(x, ExchangeType.Topic)
-        _          <- declareQueue(DeclarationQueueConfig.default(q))
-        _          <- bindQueue(q, x, rk)
-        publisher  <- createPublisher[String](x, rk)
-        _          <- publisher("test")
-        consumer   <- createAutoAckConsumer(q)
-        _ <- consumer
-              .take(1)
-              .evalMap { msg =>
-                IO(msg shouldBe expectedDelivery(msg.deliveryTag, x, rk, "test"))
-              }
-              .compile
-              .drain
-      } yield emptyAssertion
+    (blockerResource, createConnectionChannel).tupled.use {
+      case (blocker, channel) =>
+        implicit val ch: AMQPChannel = channel
+        for {
+          (q, x, rk) <- randomQueueData
+          _          <- declareExchange(x, ExchangeType.Topic)
+          _          <- declareQueue(DeclarationQueueConfig.default(q))
+          _          <- bindQueue(q, x, rk)
+          publisher  <- createPublisher[String](x, rk, blocker)
+          _          <- publisher("test")
+          consumer   <- createAutoAckConsumer(q)
+          _ <- consumer
+                .take(1)
+                .evalMap { msg =>
+                  IO(msg shouldBe expectedDelivery(msg.deliveryTag, x, rk, "test"))
+                }
+                .compile
+                .drain
+        } yield emptyAssertion
     }
   }
 
   it should "create an exclusive auto-ack consumer with specific BasicQos" in withRabbit { interpreter =>
     import interpreter._
 
-    createConnectionChannel.use { implicit channel =>
-      for {
-        (q, x, rk)   <- randomQueueData
-        ct           <- mkRandomString.map(ConsumerTag)
-        _            <- declareExchange(x, ExchangeType.Topic)
-        _            <- declareQueue(DeclarationQueueConfig.default(q))
-        _            <- bindQueue(q, x, rk)
-        publisher    <- createPublisher[String](x, rk)
-        consumerArgs = ConsumerArgs(consumerTag = ct, noLocal = false, exclusive = true, args = Map.empty)
-        _            <- publisher("test")
-        consumer     <- createAutoAckConsumer(q, BasicQos(prefetchSize = 0, prefetchCount = 10), Some(consumerArgs))
-        _ <- consumer
-              .take(1)
-              .evalMap { msg =>
-                IO(msg shouldBe expectedDelivery(msg.deliveryTag, x, rk, "test"))
-              }
-              .compile
-              .drain
-      } yield emptyAssertion
+    (blockerResource, createConnectionChannel).tupled.use {
+      case (blocker, channel) =>
+        implicit val ch: AMQPChannel = channel
+        for {
+          (q, x, rk)   <- randomQueueData
+          ct           <- mkRandomString.map(ConsumerTag)
+          _            <- declareExchange(x, ExchangeType.Topic)
+          _            <- declareQueue(DeclarationQueueConfig.default(q))
+          _            <- bindQueue(q, x, rk)
+          publisher    <- createPublisher[String](x, rk, blocker)
+          consumerArgs = ConsumerArgs(consumerTag = ct, noLocal = false, exclusive = true, args = Map.empty)
+          _            <- publisher("test")
+          consumer     <- createAutoAckConsumer(q, BasicQos(prefetchSize = 0, prefetchCount = 10), Some(consumerArgs))
+          _ <- consumer
+                .take(1)
+                .evalMap { msg =>
+                  IO(msg shouldBe expectedDelivery(msg.deliveryTag, x, rk, "test"))
+                }
+                .compile
+                .drain
+        } yield emptyAssertion
     }
   }
 
   it should "create an exclusive acker consumer with specific BasicQos" in withRabbit { interpreter =>
     import interpreter._
 
-    createConnectionChannel.use { implicit channel =>
-      for {
-        (q, x, rk)   <- randomQueueData
-        ct           <- mkRandomString.map(ConsumerTag)
-        _            <- declareExchange(x, ExchangeType.Topic)
-        _            <- declareQueue(DeclarationQueueConfig.default(q))
-        _            <- bindQueue(q, x, rk)
-        publisher    <- createPublisher[String](x, rk)
-        consumerArgs = ConsumerArgs(consumerTag = ct, noLocal = false, exclusive = true, args = Map.empty)
-        (acker, consumer) <- createAckerConsumer(
-                              q,
-                              BasicQos(prefetchSize = 0, prefetchCount = 10),
-                              Some(consumerArgs)
-                            )
-        _ <- publisher("test")
-        _ <- consumer
-              .take(1)
-              .evalTap { msg =>
-                IO(msg shouldBe expectedDelivery(msg.deliveryTag, x, rk, "test")) *>
-                  acker(Ack(msg.deliveryTag))
-              }
-              .compile
-              .drain
-      } yield emptyAssertion
+    (blockerResource, createConnectionChannel).tupled.use {
+      case (blocker, channel) =>
+        implicit val ch: AMQPChannel = channel
+        for {
+          (q, x, rk)   <- randomQueueData
+          ct           <- mkRandomString.map(ConsumerTag)
+          _            <- declareExchange(x, ExchangeType.Topic)
+          _            <- declareQueue(DeclarationQueueConfig.default(q))
+          _            <- bindQueue(q, x, rk)
+          publisher    <- createPublisher[String](x, rk, blocker)
+          consumerArgs = ConsumerArgs(consumerTag = ct, noLocal = false, exclusive = true, args = Map.empty)
+          (acker, consumer) <- createAckerConsumer(
+                                q,
+                                BasicQos(prefetchSize = 0, prefetchCount = 10),
+                                Some(consumerArgs)
+                              )
+          _ <- publisher("test")
+          _ <- consumer
+                .take(1)
+                .evalTap { msg =>
+                  IO(msg shouldBe expectedDelivery(msg.deliveryTag, x, rk, "test")) *>
+                    acker(Ack(msg.deliveryTag))
+                }
+                .compile
+                .drain
+        } yield emptyAssertion
     }
   }
 
@@ -404,34 +414,36 @@ trait Fs2RabbitSpec { self: BaseSpec =>
   it should "bind an exchange to another exchange" in withRabbit { interpreter =>
     import interpreter._
 
-    createConnectionChannel.use { implicit channel =>
-      for {
-        (q, _, rk)     <- randomQueueData
-        sourceExchange <- mkRandomString.map(ExchangeName)
-        destExchange   <- mkRandomString.map(ExchangeName)
-        consumerTag    <- mkRandomString.map(ConsumerTag)
-        _              <- declareExchange(sourceExchange, ExchangeType.Direct)
-        _              <- declareExchange(destExchange, ExchangeType.Direct)
-        _              <- declareQueue(DeclarationQueueConfig.default(q))
-        _              <- bindQueue(q, destExchange, rk)
-        _              <- bindExchange(destExchange, sourceExchange, rk, ExchangeBindingArgs(Map.empty))
-        publisher      <- createPublisher[String](sourceExchange, rk)
-        consumerArgs   = ConsumerArgs(consumerTag = consumerTag, noLocal = false, exclusive = true, args = Map.empty)
-        (acker, consumer) <- createAckerConsumer(
-                              q,
-                              BasicQos(prefetchSize = 0, prefetchCount = 10),
-                              Some(consumerArgs)
-                            )
-        _ <- publisher("test")
-        _ <- consumer
-              .take(1)
-              .evalTap { msg =>
-                IO(msg shouldBe expectedDelivery(msg.deliveryTag, sourceExchange, rk, "test")) *>
-                  acker(Ack(msg.deliveryTag))
-              }
-              .compile
-              .drain
-      } yield emptyAssertion
+    (blockerResource, createConnectionChannel).tupled.use {
+      case (blocker, channel) =>
+        implicit val ch: AMQPChannel = channel
+        for {
+          (q, _, rk)     <- randomQueueData
+          sourceExchange <- mkRandomString.map(ExchangeName)
+          destExchange   <- mkRandomString.map(ExchangeName)
+          consumerTag    <- mkRandomString.map(ConsumerTag)
+          _              <- declareExchange(sourceExchange, ExchangeType.Direct)
+          _              <- declareExchange(destExchange, ExchangeType.Direct)
+          _              <- declareQueue(DeclarationQueueConfig.default(q))
+          _              <- bindQueue(q, destExchange, rk)
+          _              <- bindExchange(destExchange, sourceExchange, rk, ExchangeBindingArgs(Map.empty))
+          publisher      <- createPublisher[String](sourceExchange, rk, blocker)
+          consumerArgs   = ConsumerArgs(consumerTag = consumerTag, noLocal = false, exclusive = true, args = Map.empty)
+          (acker, consumer) <- createAckerConsumer(
+                                q,
+                                BasicQos(prefetchSize = 0, prefetchCount = 10),
+                                Some(consumerArgs)
+                              )
+          _ <- publisher("test")
+          _ <- consumer
+                .take(1)
+                .evalTap { msg =>
+                  IO(msg shouldBe expectedDelivery(msg.deliveryTag, sourceExchange, rk, "test")) *>
+                    acker(Ack(msg.deliveryTag))
+                }
+                .compile
+                .drain
+        } yield emptyAssertion
     }
   }
 
@@ -455,25 +467,27 @@ trait Fs2RabbitSpec { self: BaseSpec =>
     interpreter =>
       import interpreter._
 
-      Stream.resource(createConnectionChannel).flatMap { implicit channel =>
-        for {
-          (q, x, rk)        <- Stream.eval(randomQueueData)
-          _                 <- Stream.eval(declareExchange(x, ExchangeType.Topic))
-          _                 <- Stream.eval(declareQueue(DeclarationQueueConfig.default(q)))
-          _                 <- Stream.eval(bindQueue(q, x, rk, QueueBindingArgs(Map.empty)))
-          publisher         <- Stream.eval(createPublisher[String](x, rk))
-          _                 <- Stream.eval(publisher("NAck-test"))
-          (acker, consumer) <- Stream.eval(createAckerConsumer(q))
-          result            <- Stream.eval(consumer.take(1).compile.lastOrError)
-          _                 <- Stream.eval(acker(NAck(result.deliveryTag)))
-          consumer          <- Stream.eval(createAutoAckConsumer(q))
-          result2           <- consumer.take(1) // Message will be re-queued
-        } yield {
-          val expected = expectedDelivery(result.deliveryTag, x, rk, "NAck-test")
+      Stream.resource((blockerResource, createConnectionChannel).tupled).flatMap {
+        case (blocker, channel) =>
+          implicit val ch: AMQPChannel = channel
+          for {
+            (q, x, rk)        <- Stream.eval(randomQueueData)
+            _                 <- Stream.eval(declareExchange(x, ExchangeType.Topic))
+            _                 <- Stream.eval(declareQueue(DeclarationQueueConfig.default(q)))
+            _                 <- Stream.eval(bindQueue(q, x, rk, QueueBindingArgs(Map.empty)))
+            publisher         <- Stream.eval(createPublisher[String](x, rk, blocker))
+            _                 <- Stream.eval(publisher("NAck-test"))
+            (acker, consumer) <- Stream.eval(createAckerConsumer(q))
+            result            <- Stream.eval(consumer.take(1).compile.lastOrError)
+            _                 <- Stream.eval(acker(NAck(result.deliveryTag)))
+            consumer          <- Stream.eval(createAutoAckConsumer(q))
+            result2           <- consumer.take(1) // Message will be re-queued
+          } yield {
+            val expected = expectedDelivery(result.deliveryTag, x, rk, "NAck-test")
 
-          result shouldBe expected
-          result2 shouldBe expected.copy(deliveryTag = result2.deliveryTag, redelivered = true)
-        }
+            result shouldBe expected
+            result2 shouldBe expected.copy(deliveryTag = result2.deliveryTag, redelivered = true)
+          }
       }
   }
 
@@ -481,34 +495,36 @@ trait Fs2RabbitSpec { self: BaseSpec =>
     interpreter =>
       import interpreter._
 
-      createConnectionChannel.use { implicit channel =>
-        for {
-          (q, x, rk) <- randomQueueData
-          diffQ      <- mkRandomString.map(QueueName)
-          _          <- declareExchange(x, ExchangeType.Topic)
-          publisher  <- createPublisher[String](x, rk)
-          _          <- declareQueue(DeclarationQueueConfig.default(q))
-          _          <- bindQueue(q, x, rk)
-          _          <- declareQueue(DeclarationQueueConfig.default(diffQ))
-          _          <- bindQueue(q, x, RoutingKey("diffRK"))
-          _          <- publisher("test")
-          consumer   <- createAutoAckConsumer(q)
-          _ <- consumer
-                .take(1)
-                .evalMap { msg =>
-                  createAutoAckConsumer(diffQ).flatMap { c2 =>
-                    c2.take(1)
-                      .compile
-                      .last
-                      .timeout(1.second)
-                      .attempt
-                      .map(_ shouldBe a[Left[_, _]])
-                      .as(msg shouldBe expectedDelivery(msg.deliveryTag, x, rk, "test"))
+      (blockerResource, createConnectionChannel).tupled.use {
+        case (blocker, channel) =>
+          implicit val ch: AMQPChannel = channel
+          for {
+            (q, x, rk) <- randomQueueData
+            diffQ      <- mkRandomString.map(QueueName)
+            _          <- declareExchange(x, ExchangeType.Topic)
+            publisher  <- createPublisher[String](x, rk, blocker)
+            _          <- declareQueue(DeclarationQueueConfig.default(q))
+            _          <- bindQueue(q, x, rk)
+            _          <- declareQueue(DeclarationQueueConfig.default(diffQ))
+            _          <- bindQueue(q, x, RoutingKey("diffRK"))
+            _          <- publisher("test")
+            consumer   <- createAutoAckConsumer(q)
+            _ <- consumer
+                  .take(1)
+                  .evalMap { msg =>
+                    createAutoAckConsumer(diffQ).flatMap { c2 =>
+                      c2.take(1)
+                        .compile
+                        .last
+                        .timeout(1.second)
+                        .attempt
+                        .map(_ shouldBe a[Left[_, _]])
+                        .as(msg shouldBe expectedDelivery(msg.deliveryTag, x, rk, "test"))
+                    }
                   }
-                }
-                .compile
-                .drain
-        } yield emptyAssertion
+                  .compile
+                  .drain
+          } yield emptyAssertion
       }
   }
 
@@ -518,24 +534,26 @@ trait Fs2RabbitSpec { self: BaseSpec =>
 
       val flag = PublishingFlag(mandatory = true)
 
-      Stream.resource(createConnectionChannel).flatMap { implicit channel =>
-        for {
-          (q, x, rk) <- Stream.eval(randomQueueData)
-          _          <- Stream.eval(declareExchange(x, ExchangeType.Topic))
-          _          <- Stream.eval(declareQueue(DeclarationQueueConfig.default(q)))
-          _          <- Stream.eval(bindQueue(q, x, rk))
-          promise    <- Stream.eval(Deferred[IO, PublishReturn])
-          publisher <- Stream
-                        .eval(createPublisherWithListener(x, RoutingKey("diff-rk"), flag, listener(promise)))
-          _        <- Stream.eval(publisher("test"))
-          callback <- Stream.eval(promise.get.map(_.some).timeoutTo(500.millis, IO.pure(none[PublishReturn]))).unNone
-          consumer <- Stream.eval(createAutoAckConsumer(q))
-          result   <- takeWithTimeOut(consumer, 500.millis)
-        } yield {
-          result shouldBe None
-          callback.body.value shouldEqual "test".getBytes("UTF-8")
-          callback.routingKey shouldBe RoutingKey("diff-rk")
-        }
+      Stream.resource((blockerResource, createConnectionChannel).tupled).flatMap {
+        case (blocker, channel) =>
+          implicit val ch: AMQPChannel = channel
+          for {
+            (q, x, rk) <- Stream.eval(randomQueueData)
+            _          <- Stream.eval(declareExchange(x, ExchangeType.Topic))
+            _          <- Stream.eval(declareQueue(DeclarationQueueConfig.default(q)))
+            _          <- Stream.eval(bindQueue(q, x, rk))
+            promise    <- Stream.eval(Deferred[IO, PublishReturn])
+            publisher <- Stream
+                          .eval(createPublisherWithListener(x, RoutingKey("diff-rk"), flag, listener(promise), blocker))
+            _        <- Stream.eval(publisher("test"))
+            callback <- Stream.eval(promise.get.map(_.some).timeoutTo(500.millis, IO.pure(none[PublishReturn]))).unNone
+            consumer <- Stream.eval(createAutoAckConsumer(q))
+            result   <- takeWithTimeOut(consumer, 500.millis)
+          } yield {
+            result shouldBe None
+            callback.body.value shouldEqual "test".getBytes("UTF-8")
+            callback.routingKey shouldBe RoutingKey("diff-rk")
+          }
       }
   }
 
@@ -543,23 +561,25 @@ trait Fs2RabbitSpec { self: BaseSpec =>
     interpreter =>
       import interpreter._
 
-      createConnectionChannel.use { implicit channel =>
-        for {
-          (q, x, rk) <- randomQueueData
-          _          <- declareExchange(x, ExchangeType.Topic)
-          _          <- declareQueue(DeclarationQueueConfig.default(q))
-          _          <- bindQueue(q, x, rk)
-          publisher  <- createRoutingPublisher[String](x)
-          _          <- publisher(rk).apply("test")
-          consumer   <- createAutoAckConsumer(q)
-          _ <- consumer
-                .take(1)
-                .evalMap { msg =>
-                  IO(msg shouldBe expectedDelivery(msg.deliveryTag, x, rk, "test"))
-                }
-                .compile
-                .drain
-        } yield emptyAssertion
+      (blockerResource, createConnectionChannel).tupled.use {
+        case (blocker, channel) =>
+          implicit val ch: AMQPChannel = channel
+          for {
+            (q, x, rk) <- randomQueueData
+            _          <- declareExchange(x, ExchangeType.Topic)
+            _          <- declareQueue(DeclarationQueueConfig.default(q))
+            _          <- bindQueue(q, x, rk)
+            publisher  <- createRoutingPublisher[String](x, blocker)
+            _          <- publisher(rk).apply("test")
+            consumer   <- createAutoAckConsumer(q)
+            _ <- consumer
+                  .take(1)
+                  .evalMap { msg =>
+                    IO(msg shouldBe expectedDelivery(msg.deliveryTag, x, rk, "test"))
+                  }
+                  .compile
+                  .drain
+          } yield emptyAssertion
       }
   }
 
@@ -569,23 +589,25 @@ trait Fs2RabbitSpec { self: BaseSpec =>
 
       val flag = PublishingFlag(mandatory = true)
 
-      Stream.resource(createConnectionChannel).flatMap { implicit channel =>
-        for {
-          (q, x, rk) <- Stream.eval(randomQueueData)
-          _          <- Stream.eval(declareExchange(x, ExchangeType.Topic))
-          _          <- Stream.eval(declareQueue(DeclarationQueueConfig.default(q)))
-          _          <- Stream.eval(bindQueue(q, x, rk))
-          promise    <- Stream.eval(Deferred[IO, PublishReturn])
-          publisher  <- Stream.eval(createRoutingPublisherWithListener[String](x, flag, listener(promise)))
-          _          <- Stream.eval(publisher(RoutingKey("diff-rk"))("test"))
-          callback   <- Stream.eval(promise.get.map(_.some).timeoutTo(500.millis, IO.pure(none[PublishReturn]))).unNone
-          consumer   <- Stream.eval(createAutoAckConsumer(q))
-          result     <- takeWithTimeOut(consumer, 500.millis)
-        } yield {
-          result shouldBe None
-          callback.body.value shouldEqual "test".getBytes("UTF-8")
-          callback.routingKey shouldBe RoutingKey("diff-rk")
-        }
+      Stream.resource((blockerResource, createConnectionChannel).tupled).flatMap {
+        case (blocker, channel) =>
+          implicit val ch: AMQPChannel = channel
+          for {
+            (q, x, rk) <- Stream.eval(randomQueueData)
+            _          <- Stream.eval(declareExchange(x, ExchangeType.Topic))
+            _          <- Stream.eval(declareQueue(DeclarationQueueConfig.default(q)))
+            _          <- Stream.eval(bindQueue(q, x, rk))
+            promise    <- Stream.eval(Deferred[IO, PublishReturn])
+            publisher  <- Stream.eval(createRoutingPublisherWithListener[String](x, flag, listener(promise), blocker))
+            _          <- Stream.eval(publisher(RoutingKey("diff-rk"))("test"))
+            callback   <- Stream.eval(promise.get.map(_.some).timeoutTo(500.millis, IO.pure(none[PublishReturn]))).unNone
+            consumer   <- Stream.eval(createAutoAckConsumer(q))
+            result     <- takeWithTimeOut(consumer, 500.millis)
+          } yield {
+            result shouldBe None
+            callback.body.value shouldEqual "test".getBytes("UTF-8")
+            callback.routingKey shouldBe RoutingKey("diff-rk")
+          }
       }
   }
 
@@ -606,14 +628,16 @@ trait Fs2RabbitSpec { self: BaseSpec =>
       }
 
     def producer(q: QueueName, x: ExchangeName, rk: RoutingKey): IO[Unit] =
-      createConnectionChannel.use { implicit channel =>
-        for {
-          _         <- declareQueue(DeclarationQueueConfig.default(q))
-          _         <- declareExchange(x, ExchangeType.Topic)
-          _         <- bindQueue(q, x, rk)
-          publisher <- createPublisher[String](x, rk)
-          _         <- publisher(message)
-        } yield ()
+      (blockerResource, createConnectionChannel).tupled.use {
+        case (blocker, channel) =>
+          implicit val ch: AMQPChannel = channel
+          for {
+            _         <- declareQueue(DeclarationQueueConfig.default(q))
+            _         <- declareExchange(x, ExchangeType.Topic)
+            _         <- bindQueue(q, x, rk)
+            publisher <- createPublisher[String](x, rk, blocker)
+            _         <- publisher(message)
+          } yield ()
       }
 
     randomQueueData
@@ -629,25 +653,19 @@ trait Fs2RabbitSpec { self: BaseSpec =>
   }
 
   private def withStreamRabbit[A](fa: Fs2Rabbit[IO] => Stream[IO, A]): Future[Assertion] =
-    blockerResource
-      .use { blocker =>
-        Fs2Rabbit[IO](config, blocker).flatMap(r => fa(r).compile.drain)
-      }
+    Fs2Rabbit[IO](config)
+      .flatMap(r => fa(r).compile.drain)
       .as(emptyAssertion)
       .unsafeToFuture
 
   private def withStreamNackRabbit[A](fa: Fs2Rabbit[IO] => Stream[IO, A]): Future[Assertion] =
-    blockerResource
-      .use { blocker =>
-        Fs2Rabbit[IO](config.copy(requeueOnNack = true), blocker).flatMap(r => fa(r).compile.drain)
-      }
+    Fs2Rabbit[IO](config.copy(requeueOnNack = true))
+      .flatMap(r => fa(r).compile.drain)
       .as(emptyAssertion)
       .unsafeToFuture
 
   private def withRabbit[A](fa: Fs2Rabbit[IO] => IO[A]): Future[A] =
-    blockerResource.use { blocker =>
-      Fs2Rabbit[IO](config, blocker).flatMap(r => fa(r))
-    }.unsafeToFuture
+    Fs2Rabbit[IO](config).flatMap(r => fa(r)).unsafeToFuture
 
   private def randomQueueData: IO[(QueueName, ExchangeName, RoutingKey)] =
     (mkRandomString, mkRandomString, mkRandomString).mapN {
