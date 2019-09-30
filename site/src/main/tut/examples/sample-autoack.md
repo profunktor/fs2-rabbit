@@ -51,7 +51,7 @@ class AutoAckFlow[F[_]: Concurrent, A](
 
 }
 
-class AutoAckConsumerDemo[F[_]: Concurrent](R: Fs2Rabbit[F]) {
+class AutoAckConsumerDemo[F[_]: Concurrent: ContextShift](R: Fs2Rabbit[F], blocker: Blocker) {
 
   private val queueName    = QueueName("testQ")
   private val exchangeName = ExchangeName("testEX")
@@ -68,7 +68,7 @@ class AutoAckConsumerDemo[F[_]: Concurrent](R: Fs2Rabbit[F]) {
       _         <- R.declareQueue(DeclarationQueueConfig.default(queueName))
       _         <- R.declareExchange(exchangeName, ExchangeType.Topic)
       _         <- R.bindQueue(queueName, exchangeName, routingKey)
-      publisher <- R.createPublisher[AmqpMessage[String]](exchangeName, routingKey)
+      publisher <- R.createPublisher[AmqpMessage[String]](exchangeName, routingKey, blocker)
       consumer  <- R.createAutoAckConsumer[String](queueName)
       _         <- new AutoAckFlow[F, String](consumer, logPipe, publisher).flow.compile.drain
     } yield ()
@@ -114,9 +114,9 @@ object MonixAutoAckConsumer extends TaskApp {
 
   override def run(args: List[String]): Task[ExitCode] =
     blockerResource.use { blocker =>
-      Fs2Rabbit[Task](config, blocker).flatMap { client =>
+      Fs2Rabbit[Task](config).flatMap { client =>
         ResilientStream
-          .runF(new AutoAckConsumerDemo[Task](client).program)
+          .runF(new AutoAckConsumerDemo[Task](client, blocker).program)
           .as(ExitCode.Success)
       }
     }

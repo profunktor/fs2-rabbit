@@ -6,7 +6,7 @@ number: 2
 
 # Fs2 Rabbit Client
 
-`Fs2Rabbit` is the main client that wraps the communication  with `RabbitMQ`. The mandatory arguments are a `Fs2RabbitConfig` and a `cats.effect.Blocker` used for publishing (this action is blocking in the underlying Java client). Optionally, you can pass in a custom `SSLContext` and `SaslConfig`.
+`Fs2Rabbit` is the main client that wraps the communication  with `RabbitMQ`. The mandatory arguments is a `Fs2RabbitConfig`. Optionally, you can pass in a custom `SSLContext` and `SaslConfig`.
 
 ```tut:book:silent
 import cats.effect._
@@ -18,7 +18,6 @@ import javax.net.ssl.SSLContext
 object Fs2Rabbit {
   def apply[F[_]: ConcurrentEffect: ContextShift](
     config: Fs2RabbitConfig,
-    blocker: Blocker,
     sslContext: Option[SSLContext] = None,
     saslConfig: SaslConfig = DefaultSaslConfig.PLAIN
   ): F[Fs2Rabbit[F]] = ???
@@ -52,17 +51,9 @@ class Demo extends IOApp {
     internalQueueSize = Some(500)
   )
 
-  val blockerResource =
-    Resource
-      .make(IO(Executors.newCachedThreadPool()))(es => IO(es.shutdown()))
-      .map(Blocker.liftExecutorService)
-
   override def run(args: List[String]): IO[ExitCode] =
-    blockerResource.use { blocker =>
-      Fs2Rabbit[IO](config, blocker).flatMap { client =>
+      Fs2Rabbit[IO](config).flatMap { client =>
         Program.foo[IO](client).as(ExitCode.Success)
       }
-    }
-
 }
 ```

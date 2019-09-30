@@ -35,7 +35,7 @@ def multipleConsumers(c1: Stream[IO, AmqpEnvelope[String]], c2: Stream[IO, AmqpE
   ).parJoin(3)
 }
 
-def program(R: Fs2Rabbit[IO]) =
+def program(R: Fs2Rabbit[IO], blocker: Blocker) =
   R.createConnectionChannel.use { implicit channel =>
     for {
       _  <- R.declareExchange(ex, ExchangeType.Topic)
@@ -45,7 +45,7 @@ def program(R: Fs2Rabbit[IO]) =
       _  <- R.bindQueue(q2, ex, rkb)
       c1 <- R.createAutoAckConsumer[String](q1)
       c2 <- R.createAutoAckConsumer[String](q2)
-      p  <- R.createPublisher[String](ex, rka)
+      p  <- R.createPublisher[String](ex, rka, blocker)
       _  <- multipleConsumers(c1, c2, p).compile.drain
     } yield ()
   }

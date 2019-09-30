@@ -52,7 +52,7 @@ class Flow[F[_]: Concurrent, A](
 
 }
 
-class AckerConsumerDemo[F[_]: Concurrent: Timer](R: Fs2Rabbit[F]) {
+class AckerConsumerDemo[F[_]: Concurrent: Timer: ContextShift](R: Fs2Rabbit[F], blocker: Blocker) {
 
   private val queueName    = QueueName("testQ")
   private val exchangeName = ExchangeName("testEX")
@@ -77,7 +77,8 @@ class AckerConsumerDemo[F[_]: Concurrent: Timer](R: Fs2Rabbit[F]) {
       publisher <- R.createPublisherWithListener[AmqpMessage[String]](exchangeName,
                                                                       routingKey,
                                                                       publishingFlag,
-                                                                      publishingListener)
+                                                                      publishingListener,
+                                                                      blocker)
       (acker, consumer) <- R.createAckerConsumer[String](queueName)
       result            = new Flow[F, String](consumer, acker, logPipe, publisher).flow
       _                 <- result.compile.drain
@@ -124,9 +125,9 @@ object IOAckerConsumer extends IOApp {
 
   override def run(args: List[String]): IO[ExitCode] =
     blockerResource.use { blocker =>
-      Fs2Rabbit[IO](config, blocker).flatMap { client =>
+      Fs2Rabbit[IO](config).flatMap { client =>
         ResilientStream
-          .runF(new AckerConsumerDemo[IO](client).program)
+          .runF(new AckerConsumerDemo[IO](client, blocker).program)
           .as(ExitCode.Success)
       }
     }

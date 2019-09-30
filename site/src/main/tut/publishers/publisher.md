@@ -6,7 +6,7 @@ number: 11
 
 # Publisher
 
-A `Publisher` is simply created by specifying an `ExchangeName` and a `RoutingKey`:
+A `Publisher` is simply created by specifying an `ExchangeName`, `RoutingKey` and a `cats.effect.Blocker`, which is used for publishing (this action is blocking in the underlying Java client):
 
 ```tut:book:silent
 import cats.effect._
@@ -18,9 +18,9 @@ val routingKey   = RoutingKey("testRK")
 
 def doSomething(publisher: String => IO[Unit]): IO[Unit] = IO.unit
 
-def program(R: Fs2Rabbit[IO]) =
+def program(R: Fs2Rabbit[IO], blocker: Blocker)(implicit cs: ContextShift[IO]) =
   R.createConnectionChannel.use { implicit channel =>
-    R.createPublisher[String](exchangeName, routingKey).flatMap(doSomething)
+    R.createPublisher[String](exchangeName, routingKey, blocker).flatMap(doSomething)
   }
 ```
 

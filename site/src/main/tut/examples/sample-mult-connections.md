@@ -60,10 +60,10 @@ def p2(R: Fs2Rabbit[IO]) =
 Here's our program `p3` creating a `Publisher` representing the third `Connection`:
 
 ```tut:book:silent
-def p3(R: Fs2Rabbit[IO]) =
+def p3(R: Fs2Rabbit[IO], blocker: Blocker) =
   R.createConnectionChannel use { implicit channel =>
     R.declareExchange(ex, ExchangeType.Topic) *>
-    R.createPublisher(ex, rk)
+    R.createPublisher(ex, rk, blocker)
   }
 ```
 
@@ -72,8 +72,8 @@ And finally we compose all the three programs together:
 ```tut:book:silent
 val pipe: Pipe[IO, AmqpEnvelope[String], String] = _.map(_.payload)
 
-def program(c: Fs2Rabbit[IO]) =
-  (p1(c), p2(c), p3(c)).mapN { case (c1, c2, pb) =>
+def program(c: Fs2Rabbit[IO], blocker: Blocker) =
+  (p1(c), p2(c), p3(c, blocker)).mapN { case (c1, c2, pb) =>
     (c1.through(pipe).evalMap(pb)).concurrently(c2.through(pipe).evalMap(pb)).compile.drain
   }
 ```
