@@ -25,7 +25,14 @@ import dev.profunktor.fs2rabbit.effects.EnvelopeDecoder
 import dev.profunktor.fs2rabbit.model._
 import fs2.Stream
 
-class ConsumingProgram[F[_]: Bracket[?[_], Throwable]](AMQP: Consume[F], IQ: InternalQueue[F])
+object ConsumingProgram {
+  def apply[F[_]: Bracket[?[_], Throwable]: Consume](
+      IQ: InternalQueue[F]
+  ): ConsumingProgram[F] =
+    new ConsumingProgram(Consume[F], IQ)
+}
+
+class ConsumingProgram[F[_]: Bracket[?[_], Throwable]](consume: Consume[F], IQ: InternalQueue[F])
     extends Consuming[F, Stream[F, ?]] {
 
   override def createConsumer[A](
@@ -42,8 +49,8 @@ class ConsumingProgram[F[_]: Bracket[?[_], Throwable]](AMQP: Consume[F], IQ: Int
     val setup = for {
       internalQ <- IQ.create
       internals = AMQPInternals[F](Some(internalQ))
-      _         <- AMQP.basicQos(channel, basicQos)
-      consumerTag <- AMQP.basicConsume(
+      _         <- consume.basicQos(channel, basicQos)
+      consumerTag <- consume.basicConsume(
                       channel,
                       queueName,
                       autoAck,
@@ -57,7 +64,7 @@ class ConsumingProgram[F[_]: Bracket[?[_], Throwable]](AMQP: Consume[F], IQ: Int
     Stream
       .bracket(setup) {
         case (tag, _) =>
-          AMQP.basicCancel(channel, tag)
+          consume.basicCancel(channel, tag)
       }
       .flatMap {
         case (_, queue) =>

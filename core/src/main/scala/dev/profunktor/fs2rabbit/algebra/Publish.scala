@@ -19,10 +19,20 @@ package dev.profunktor.fs2rabbit.algebra
 import com.rabbitmq.client.Channel
 import dev.profunktor.fs2rabbit.model._
 
-// format: off
-trait Publish[F[_]]{
-  def basicPublish(channel: Channel, exchangeName: ExchangeName, routingKey: RoutingKey, msg: AmqpMessage[Array[Byte]]): F[Unit]
-  def basicPublishWithFlag(channel: Channel, exchangeName: ExchangeName, routingKey: RoutingKey, flag: PublishingFlag, msg: AmqpMessage[Array[Byte]]): F[Unit]
+object Publish {
+  def apply[F[_]](implicit ev: Publish[F]): Publish[F] = ev
+}
+
+trait Publish[F[_]] {
+  def basicPublish(channel: Channel,
+                   exchangeName: ExchangeName,
+                   routingKey: RoutingKey,
+                   msg: AmqpMessage[Array[Byte]]): F[Unit]
+  def basicPublishWithFlag(channel: Channel,
+                           exchangeName: ExchangeName,
+                           routingKey: RoutingKey,
+                           flag: PublishingFlag,
+                           msg: AmqpMessage[Array[Byte]]): F[Unit]
   def addPublishingListener(channel: Channel, listener: PublishReturn => F[Unit]): F[Unit]
   def clearPublishingListeners(channel: Channel): F[Unit]
 }

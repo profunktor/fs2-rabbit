@@ -20,7 +20,9 @@ import com.rabbitmq.client.Channel
 import dev.profunktor.fs2rabbit.config.declaration.{DeclarationExchangeConfig, DeclarationQueueConfig}
 import dev.profunktor.fs2rabbit.model._
 
-// format: off
+object Declaration {
+  def apply[F[_]](implicit ev: Declaration[F]): Declaration[F] = ev
+}
 
 trait Declaration[F[_]] {
   def declareExchange(channel: Channel, exchangeConfig: DeclarationExchangeConfig): F[Unit]

@@ -23,7 +23,7 @@ import cats.effect._
 import cats.syntax.functor._
 import dev.profunktor.fs2rabbit.config.{Fs2RabbitConfig, Fs2RabbitNodeConfig}
 import dev.profunktor.fs2rabbit.interpreter._
-import dev.profunktor.fs2rabbit.program.{AckingProgram, ConsumingProgram}
+import dev.profunktor.fs2rabbit.program.{AckConsumingProgram, AckingProgram, ConsumingProgram, PublishingProgram}
 import dev.profunktor.fs2rabbit.resiliency.ResilientStream
 
 object IOAckerConsumer extends IOApp {
@@ -47,22 +47,21 @@ object IOAckerConsumer extends IOApp {
 
   override def run(args: List[String]): IO[ExitCode] =
     blockerResource.use { blocker =>
-      ConnectionEffect[IO](config).flatMap { connection =>
-        val consumeClient = ConsumeEffect[IO]()
-        val internalQ =
-          new LiveInternalQueue[IO](config.internalQueueSize.getOrElse(500))
-        val consumer = new ConsumingProgram[IO](consumeClient, internalQ)
+      ConnectionEffect[IO](config).flatMap { implicit connection =>
+        val internalQ = new LiveInternalQueue[IO](config.internalQueueSize.getOrElse(500))
+
+        implicit val consumeClient       = ConsumeEffect[IO]()
+        implicit val consumProgram       = ConsumingProgram[IO](internalQ)
+        implicit val bindingEffect       = BindingEffect[IO]()
+        implicit val publishEffect       = PublishEffect[IO](blocker)
+        implicit val declarationEffect   = DeclarationEffect[IO]()
+        implicit val ackingProgram       = AckingProgram[IO](config)
+        implicit val ackConsumingProgram = AckConsumingProgram[IO]
+        implicit val publishingProgram   = PublishingProgram[IO]
 
         ResilientStream
           .runF(
-            new AckerConsumerDemo[IO](
-              connection,
-              PublishEffect[IO](blocker),
-              BindingEffect[IO](),
-              DeclarationEffect[IO](),
-              AckingProgram[IO](consumeClient, config),
-              consumer
-            ).program
+            new AckerConsumerDemo[IO]().program
           )
           .as(ExitCode.Success)
       }

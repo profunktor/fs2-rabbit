@@ -23,7 +23,11 @@ import dev.profunktor.fs2rabbit.algebra.{Publish, Publishing}
 import dev.profunktor.fs2rabbit.effects.MessageEncoder
 import dev.profunktor.fs2rabbit.model._
 
-class PublishingProgram[F[_]: Monad](AMQP: Publish[F]) extends Publishing[F] {
+object PublishingProgram {
+  def apply[F[_]: Monad: Publish] = new PublishingProgram(Publish[F])
+}
+
+class PublishingProgram[F[_]: Monad](publish: Publish[F]) extends Publishing[F] {
 
   override def createPublisher[A](
       channel: Channel,
@@ -72,7 +76,7 @@ class PublishingProgram[F[_]: Monad](AMQP: Publish[F]) extends Publishing[F] {
         encoder
           .run(msg)
           .flatMap(
-            payload => AMQP.basicPublish(channel, exchangeName, routingKey, payload)
+            payload => publish.basicPublish(channel, exchangeName, routingKey, payload)
           )
     }
 
@@ -83,7 +87,7 @@ class PublishingProgram[F[_]: Monad](AMQP: Publish[F]) extends Publishing[F] {
   )(
       implicit encoder: MessageEncoder[F, A]
   ): F[(ExchangeName, RoutingKey, A) => F[Unit]] =
-    AMQP.addPublishingListener(channel, listener).as {
+    publish.addPublishingListener(channel, listener).as {
       case (
           exchangeName: ExchangeName,
           routingKey: RoutingKey,
@@ -93,7 +97,7 @@ class PublishingProgram[F[_]: Monad](AMQP: Publish[F]) extends Publishing[F] {
           .run(msg)
           .flatMap(
             payload =>
-              AMQP.basicPublishWithFlag(
+              publish.basicPublishWithFlag(
                 channel,
                 exchangeName,
                 routingKey,

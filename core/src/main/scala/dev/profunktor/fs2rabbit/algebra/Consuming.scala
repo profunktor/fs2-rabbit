@@ -20,6 +20,13 @@ import dev.profunktor.fs2rabbit.arguments.Arguments
 import dev.profunktor.fs2rabbit.effects.EnvelopeDecoder
 import dev.profunktor.fs2rabbit.model.{AmqpEnvelope, BasicQos, ConsumerTag, QueueName}
 import com.rabbitmq.client.Channel
+import fs2.Stream
+
+object ConsumingStream {
+  type ConsumingStream[F[_]] = Consuming[F, Stream[F, ?]]
+
+  def apply[F[_]](implicit ev: Consuming[F, Stream[F, ?]]): Consuming[F, Stream[F, ?]] = ev
+}
 
 trait Consuming[F[_], R[_]] {
 

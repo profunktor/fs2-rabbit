@@ -19,7 +19,10 @@ package dev.profunktor.fs2rabbit.algebra
 import com.rabbitmq.client.Channel
 import dev.profunktor.fs2rabbit.config.deletion.{DeletionExchangeConfig, DeletionQueueConfig}
 
-// format: off
+object Deletion {
+  def apply[F[_]](implicit ev: Deletion[F]): Deletion[F] = ev
+}
+
 trait Deletion[F[_]] {
   def deleteQueue(channel: Channel, config: DeletionQueueConfig): F[Unit]
   def deleteQueueNoWait(channel: Channel, config: DeletionQueueConfig): F[Unit]

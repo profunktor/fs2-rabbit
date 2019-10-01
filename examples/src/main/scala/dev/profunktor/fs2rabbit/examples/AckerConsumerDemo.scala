@@ -21,40 +21,22 @@ import java.nio.charset.StandardCharsets.UTF_8
 import cats.data.Kleisli
 import cats.effect._
 import cats.implicits._
-import dev.profunktor.fs2rabbit.algebra.{
-  AckConsuming,
-  Acking,
-  Binding,
-  Connection,
-  Consuming,
-  Declaration,
-  Publish,
-  Publishing
-}
+import dev.profunktor.fs2rabbit.algebra.AckConsumingStream.AckConsumingStream
+import dev.profunktor.fs2rabbit.algebra.ConnectionResource.ConnectionResource
+import dev.profunktor.fs2rabbit.algebra._
 import dev.profunktor.fs2rabbit.config.declaration.{DeclarationExchangeConfig, DeclarationQueueConfig}
 import dev.profunktor.fs2rabbit.json.Fs2JsonEncoder
 import dev.profunktor.fs2rabbit.model.AckResult.Ack
 import dev.profunktor.fs2rabbit.model.AmqpFieldValue.{LongVal, StringVal}
 import dev.profunktor.fs2rabbit.model.ExchangeType.Topic
 import dev.profunktor.fs2rabbit.model._
-import dev.profunktor.fs2rabbit.program.{AckConsumingProgram, PublishingProgram}
 import fs2._
 
-class AckerConsumerDemo[F[_]: Concurrent: Timer](connection: Connection[Resource[F, ?]],
-                                                 publish: Publish[F],
-                                                 binding: Binding[F],
-                                                 declaration: Declaration[F],
-                                                 acker: Acking[F],
-                                                 consumer: Consuming[F, Stream[F, ?]]) {
+class AckerConsumerDemo[
+    F[_]: Concurrent: Timer: ConnectionResource: Binding: Declaration: AckConsumingStream: Publishing] {
   private val queueName    = QueueName("testQ")
   private val exchangeName = ExchangeName("testEX")
   private val routingKey   = RoutingKey("testRK")
-
-  private[fs2rabbit] val consumingProgram: AckConsuming[F, Stream[F, ?]] =
-    new AckConsumingProgram[F](acker, consumer)
-
-  private[fs2rabbit] val publishingProgram: Publishing[F] =
-    new PublishingProgram[F](publish)
 
   implicit val stringMessageEncoder =
     Kleisli[F, AmqpMessage[String], AmqpMessage[Array[Byte]]](s => s.copy(payload = s.payload.getBytes(UTF_8)).pure[F])
@@ -68,26 +50,19 @@ class AckerConsumerDemo[F[_]: Concurrent: Timer](connection: Connection[Resource
   // Run when there's no consumer for the routing key specified by the publisher and the flag mandatory is true
   val publishingListener: PublishReturn => F[Unit] = pr => putStrLn(s"Publish listener: $pr")
 
-  private def createChannel(conn: AMQPConnection): Resource[F, AMQPChannel] =
-    connection.createChannel(conn)
+  private val mkChannel = ConnectionResource[F].createConnection.flatMap(ConnectionResource[F].createChannel)
 
-  private def createConnection: Resource[F, AMQPConnection] =
-    connection.createConnection
-
-  private def createConnectionChannel: Resource[F, AMQPChannel] =
-    createConnection.flatMap(createChannel)
-
-  val program: F[Unit] = createConnectionChannel.use { implicit channel =>
+  val program: F[Unit] = mkChannel.use { channel =>
     for {
-      _                 <- declaration.declareQueue(channel.value, DeclarationQueueConfig.default(queueName))
-      _                 <- declaration.declareExchange(channel.value, DeclarationExchangeConfig.default(exchangeName, Topic))
-      _                 <- binding.bindQueue(channel.value, queueName, exchangeName, routingKey)
-      (acker, consumer) <- consumingProgram.createAckerConsumer[String](channel.value, queueName)
-      publisher <- publishingProgram.createPublisherWithListener[AmqpMessage[String]](channel.value,
-                                                                                      exchangeName,
-                                                                                      routingKey,
-                                                                                      publishingFlag,
-                                                                                      publishingListener)
+      _                 <- Declaration[F].declareQueue(channel.value, DeclarationQueueConfig.default(queueName))
+      _                 <- Declaration[F].declareExchange(channel.value, DeclarationExchangeConfig.default(exchangeName, Topic))
+      _                 <- Binding[F].bindQueue(channel.value, queueName, exchangeName, routingKey)
+      (acker, consumer) <- AckConsumingStream[F].createAckerConsumer[String](channel.value, queueName)
+      publisher <- Publishing[F].createPublisherWithListener[AmqpMessage[String]](channel.value,
+                                                                                  exchangeName,
+                                                                                  routingKey,
+                                                                                  publishingFlag,
+                                                                                  publishingListener)
       _ <- new Flow[F, String](consumer, acker, logPipe, publisher).flow.compile.drain
     } yield ()
   }

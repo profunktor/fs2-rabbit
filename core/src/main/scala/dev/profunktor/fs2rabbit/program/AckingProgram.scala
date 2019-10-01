@@ -24,8 +24,8 @@ import dev.profunktor.fs2rabbit.model.AckResult.{Ack, NAck}
 import dev.profunktor.fs2rabbit.model._
 
 object AckingProgram {
-  def apply[F[_]: Applicative](consumeClient: Consume[F], config: Fs2RabbitConfig): Acking[F] =
-    new AckingProgram[F](config, consumeClient)
+  def apply[F[_]: Applicative: Consume](config: Fs2RabbitConfig): Acking[F] =
+    new AckingProgram[F](config, Consume[F])
 }
 
 class AckingProgram[F[_]: Applicative](config: Fs2RabbitConfig, consume: Consume[F]) extends Acking[F] {

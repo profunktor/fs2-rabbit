@@ -20,6 +20,10 @@ import com.rabbitmq.client.Channel
 import dev.profunktor.fs2rabbit.effects.MessageEncoder
 import dev.profunktor.fs2rabbit.model._
 
+object Publishing {
+  def apply[F[_]](implicit ev: Publishing[F]): Publishing[F] = ev
+}
+
 trait Publishing[F[_]] {
 
   def createPublisher[A](

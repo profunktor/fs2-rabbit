@@ -16,7 +16,14 @@
 
 package dev.profunktor.fs2rabbit.algebra
 
+import cats.effect.Resource
 import dev.profunktor.fs2rabbit.model.{AMQPChannel, AMQPConnection}
+
+object ConnectionResource {
+  type ConnectionResource[F[_]] = Connection[Resource[F, ?]]
+  def apply[F[_]](implicit ev: ConnectionResource[F]): ConnectionResource[F] =
+    ev
+}
 
 trait Connection[F[_]] {
   def createConnection: F[AMQPConnection]

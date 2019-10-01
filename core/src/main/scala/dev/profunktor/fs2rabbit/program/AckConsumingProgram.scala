@@ -18,11 +18,17 @@ package dev.profunktor.fs2rabbit.program
 
 import cats.Apply
 import cats.implicits._
-import dev.profunktor.fs2rabbit.algebra.{AckConsuming, Acking, Consuming}
+import dev.profunktor.fs2rabbit.algebra.{AckConsuming, Acking, Consuming, ConsumingStream}
 import dev.profunktor.fs2rabbit.effects.EnvelopeDecoder
 import dev.profunktor.fs2rabbit.model._
 import com.rabbitmq.client.Channel
+import dev.profunktor.fs2rabbit.algebra.ConsumingStream.ConsumingStream
 import fs2.Stream
+
+object AckConsumingProgram {
+  def apply[F[_]: Acking: ConsumingStream: Apply]: AckConsumingProgram[F] =
+    new AckConsumingProgram(Acking[F], ConsumingStream[F])
+}
 
 class AckConsumingProgram[F[_]: Apply](A: Acking[F], C: Consuming[F, Stream[F, ?]])
     extends AckConsuming[F, Stream[F, ?]] {

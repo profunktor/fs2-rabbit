@@ -19,6 +19,12 @@ package dev.profunktor.fs2rabbit.algebra
 import dev.profunktor.fs2rabbit.effects.EnvelopeDecoder
 import dev.profunktor.fs2rabbit.model._
 import com.rabbitmq.client.Channel
+import fs2.Stream
+
+object AckConsumingStream {
+  type AckConsumingStream[F[_]] = AckConsuming[F, Stream[F, ?]]
+  def apply[F[_]](implicit ev: AckConsumingStream[F]): AckConsumingStream[F] = ev
+}
 
 trait AckConsuming[F[_], R[_]] {
 

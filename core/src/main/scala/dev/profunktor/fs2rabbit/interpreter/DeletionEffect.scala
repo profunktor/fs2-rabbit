@@ -24,6 +24,10 @@ import dev.profunktor.fs2rabbit.config.deletion
 import dev.profunktor.fs2rabbit.config.deletion.DeletionQueueConfig
 import dev.profunktor.fs2rabbit.effects.BoolValue.syntax._
 
+object DeletionEffect {
+  def apply[F[_]: Effect]: Deletion[F] = new DeletionEffect[F]
+}
+
 class DeletionEffect[F[_]: Effect] extends Deletion[F] {
   override def deleteQueue(channel: Channel, config: DeletionQueueConfig): F[Unit] =
     Sync[F].delay {
