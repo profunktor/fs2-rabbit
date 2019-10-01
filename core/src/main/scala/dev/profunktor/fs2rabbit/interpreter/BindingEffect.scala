@@ -23,6 +23,11 @@ import dev.profunktor.fs2rabbit.algebra.Binding
 import dev.profunktor.fs2rabbit.arguments._
 import dev.profunktor.fs2rabbit.model._
 
+object BindingEffect {
+  def apply[F[_]: Effect](): Binding[F] =
+    new BindingEffect[F]
+}
+
 class BindingEffect[F[_]: Effect] extends Binding[F] {
   override def bindQueue(channel: Channel,
                          queueName: QueueName,

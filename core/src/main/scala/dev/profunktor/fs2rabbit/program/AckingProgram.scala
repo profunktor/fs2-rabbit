@@ -23,13 +23,18 @@ import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
 import dev.profunktor.fs2rabbit.model.AckResult.{Ack, NAck}
 import dev.profunktor.fs2rabbit.model._
 
-class AckingProgram[F[_]: Applicative](config: Fs2RabbitConfig, AMQP: Consume[F]) extends Acking[F] {
+object AckingProgram {
+  def apply[F[_]: Applicative](consumeClient: Consume[F], config: Fs2RabbitConfig): Acking[F] =
+    new AckingProgram[F](config, consumeClient)
+}
+
+class AckingProgram[F[_]: Applicative](config: Fs2RabbitConfig, consume: Consume[F]) extends Acking[F] {
 
   def createAcker(channel: Channel): F[AckResult => F[Unit]] =
     Applicative[F].pure {
-      case Ack(tag) => AMQP.basicAck(channel, tag, multiple = false)
+      case Ack(tag) => consume.basicAck(channel, tag, multiple = false)
       case NAck(tag) =>
-        AMQP.basicNack(channel, tag, multiple = false, config.requeueOnNack)
+        consume.basicNack(channel, tag, multiple = false, config.requeueOnNack)
     }
 
 }

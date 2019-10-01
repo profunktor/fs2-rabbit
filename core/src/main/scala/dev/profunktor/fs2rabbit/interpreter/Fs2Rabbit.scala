@@ -48,11 +48,13 @@ object Fs2Rabbit {
           val declarationClient = new DeclarationEffect[F]
           val deletionClient    = new DeletionEffect[F]
 
-          val conn = new ConnectionEffect[F](factory, addresses)
           val internalQ =
             new LiveInternalQueue[F](config.internalQueueSize.getOrElse(500))
           val acker    = new AckingProgram[F](config, consumeClient)
           val consumer = new ConsumingProgram[F](consumeClient, internalQ)
+
+          val conn = new ConnectionEffect[F](factory, addresses)
+
           new Fs2Rabbit[F](
             conn,
             consumeClient,

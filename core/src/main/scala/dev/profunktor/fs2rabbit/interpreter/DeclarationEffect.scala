@@ -25,6 +25,11 @@ import dev.profunktor.fs2rabbit.config.declaration.{DeclarationExchangeConfig, D
 import dev.profunktor.fs2rabbit.effects.BoolValue.syntax._
 import dev.profunktor.fs2rabbit.model.{ExchangeName, QueueName}
 
+object DeclarationEffect {
+  def apply[F[_]: Effect](): Declaration[F] =
+    new DeclarationEffect[F]
+}
+
 class DeclarationEffect[F[_]: Effect] extends Declaration[F] {
   override def declareExchange(channel: Channel, config: DeclarationExchangeConfig): F[Unit] =
     Sync[F].delay {

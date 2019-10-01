@@ -16,24 +16,21 @@
 
 package dev.profunktor.fs2rabbit.examples
 
+import java.util.concurrent.Executors
+
 import cats.data.NonEmptyList
 import cats.effect._
 import cats.syntax.functor._
 import dev.profunktor.fs2rabbit.config.{Fs2RabbitConfig, Fs2RabbitNodeConfig}
-import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
+import dev.profunktor.fs2rabbit.interpreter._
+import dev.profunktor.fs2rabbit.program.{AckingProgram, ConsumingProgram}
 import dev.profunktor.fs2rabbit.resiliency.ResilientStream
-import java.util.concurrent.Executors
 
 object IOAckerConsumer extends IOApp {
 
   private val config: Fs2RabbitConfig = Fs2RabbitConfig(
     virtualHost = "/",
-    nodes = NonEmptyList.one(
-      Fs2RabbitNodeConfig(
-        host = "127.0.0.1",
-        port = 5672
-      )
-    ),
+    nodes = NonEmptyList.one(Fs2RabbitNodeConfig(host = "127.0.0.1", port = 5672)),
     username = Some("guest"),
     password = Some("guest"),
     ssl = false,
@@ -50,9 +47,23 @@ object IOAckerConsumer extends IOApp {
 
   override def run(args: List[String]): IO[ExitCode] =
     blockerResource.use { blocker =>
-      Fs2Rabbit[IO](config, blocker).flatMap { client =>
+      ConnectionEffect[IO](config).flatMap { connection =>
+        val consumeClient = ConsumeEffect[IO]()
+        val internalQ =
+          new LiveInternalQueue[IO](config.internalQueueSize.getOrElse(500))
+        val consumer = new ConsumingProgram[IO](consumeClient, internalQ)
+
         ResilientStream
-          .runF(new AckerConsumerDemo[IO](client).program)
+          .runF(
+            new AckerConsumerDemo[IO](
+              connection,
+              PublishEffect[IO](blocker),
+              BindingEffect[IO](),
+              DeclarationEffect[IO](),
+              AckingProgram[IO](consumeClient, config),
+              consumer
+            ).program
+          )
           .as(ExitCode.Success)
       }
     }

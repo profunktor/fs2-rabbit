@@ -17,9 +17,9 @@
 package dev.profunktor.fs2rabbit.interpreter
 
 import cats.data.NonEmptyList
-import cats.effect.{Resource, Sync}
+import cats.effect.{ConcurrentEffect, ContextShift, Resource, Sync}
 import cats.implicits._
-import com.rabbitmq.client.{Address, ConnectionFactory, SaslConfig}
+import com.rabbitmq.client.{Address, ConnectionFactory, DefaultSaslConfig, SaslConfig}
 import dev.profunktor.fs2rabbit.algebra.Connection
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
 import dev.profunktor.fs2rabbit.effects.Log
@@ -60,6 +60,20 @@ class ConnectionEffect[F[_]: Log: Sync](
 
 object ConnectionEffect {
 
+  def apply[F[_]: ConcurrentEffect: ContextShift](
+      config: Fs2RabbitConfig,
+      sslContext: Option[SSLContext] = None,
+      // Unlike SSLContext, SaslConfig is not optional because it is always set
+      // by the underlying Java library, even if the user doesn't set it.
+      saslConfig: SaslConfig = DefaultSaslConfig.PLAIN
+  ): F[Connection[Resource[F, ?]]] =
+    ConnectionEffect
+      .mkConnectionFactory[F](config, sslContext, saslConfig)
+      .map {
+        case (factory, addresses) =>
+          new ConnectionEffect[F](factory, addresses)
+      }
+
   private[fs2rabbit] def mkConnectionFactory[F[_]: Sync](
       config: Fs2RabbitConfig,
       sslContext: Option[SSLContext],
@@ -82,5 +96,4 @@ object ConnectionEffect {
       val addresses = config.nodes.map(node => new Address(node.host, node.port))
       (factory, addresses)
     }
-
 }

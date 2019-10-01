@@ -28,6 +28,10 @@ import dev.profunktor.fs2rabbit.model._
 
 import scala.util.{Failure, Success, Try}
 
+object ConsumeEffect {
+  def apply[F[_]: Effect](): Consume[F] =
+    new ConsumeEffect[F]
+}
 class ConsumeEffect[F[_]: Effect] extends Consume[F] {
   private[fs2rabbit] def defaultConsumer[A](
       channel: Channel,
