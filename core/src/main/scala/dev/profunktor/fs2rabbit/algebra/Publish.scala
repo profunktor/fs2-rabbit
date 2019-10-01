@@ -14,22 +14,15 @@
  * limitations under the License.
  */
 
-package dev.profunktor.fs2rabbit.program
+package dev.profunktor.fs2rabbit.algebra
 
-import cats.Applicative
 import com.rabbitmq.client.Channel
-import dev.profunktor.fs2rabbit.algebra.{Acking, Consume}
-import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
-import dev.profunktor.fs2rabbit.model.AckResult.{Ack, NAck}
 import dev.profunktor.fs2rabbit.model._
 
-class AckingProgram[F[_]: Applicative](config: Fs2RabbitConfig, AMQP: Consume[F]) extends Acking[F] {
-
-  def createAcker(channel: Channel): F[AckResult => F[Unit]] =
-    Applicative[F].pure {
-      case Ack(tag) => AMQP.basicAck(channel, tag, multiple = false)
-      case NAck(tag) =>
-        AMQP.basicNack(channel, tag, multiple = false, config.requeueOnNack)
-    }
-
+// format: off
+trait Publish[F[_]]{
+  def basicPublish(channel: Channel, exchangeName: ExchangeName, routingKey: RoutingKey, msg: AmqpMessage[Array[Byte]]): F[Unit]
+  def basicPublishWithFlag(channel: Channel, exchangeName: ExchangeName, routingKey: RoutingKey, flag: PublishingFlag, msg: AmqpMessage[Array[Byte]]): F[Unit]
+  def addPublishingListener(channel: Channel, listener: PublishReturn => F[Unit]): F[Unit]
+  def clearPublishingListeners(channel: Channel): F[Unit]
 }

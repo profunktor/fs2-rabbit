@@ -16,14 +16,14 @@
 
 package dev.profunktor.fs2rabbit.program
 
-import cats.{Applicative, Monad}
 import cats.implicits._
-import dev.profunktor.fs2rabbit.algebra.{AMQPClient, Publishing}
+import cats.{Applicative, Monad}
+import com.rabbitmq.client.Channel
+import dev.profunktor.fs2rabbit.algebra.{Publish, Publishing}
 import dev.profunktor.fs2rabbit.effects.MessageEncoder
 import dev.profunktor.fs2rabbit.model._
-import com.rabbitmq.client.Channel
 
-class PublishingProgram[F[_]: Monad](AMQP: AMQPClient[F]) extends Publishing[F] {
+class PublishingProgram[F[_]: Monad](AMQP: Publish[F]) extends Publishing[F] {
 
   override def createPublisher[A](
       channel: Channel,
@@ -39,13 +39,16 @@ class PublishingProgram[F[_]: Monad](AMQP: AMQPClient[F]) extends Publishing[F] 
       flag: PublishingFlag,
       listener: PublishReturn => F[Unit]
   )(implicit encoder: MessageEncoder[F, A]): F[A => F[Unit]] =
-    createRoutingPublisherWithListener(channel, exchangeName, flag, listener).map(_.apply(routingKey))
+    createRoutingPublisherWithListener(channel, exchangeName, flag, listener)
+      .map(_.apply(routingKey))
 
   override def createRoutingPublisher[A](
       channel: Channel,
       exchangeName: ExchangeName
   )(implicit encoder: MessageEncoder[F, A]): F[RoutingKey => A => F[Unit]] =
-    createBasicPublisher(channel).map(pub => key => msg => pub(exchangeName, key, msg))
+    createBasicPublisher(channel).map(
+      pub => key => msg => pub(exchangeName, key, msg)
+    )
 
   override def createRoutingPublisherWithListener[A](
       channel: Channel,
@@ -57,21 +60,46 @@ class PublishingProgram[F[_]: Monad](AMQP: AMQPClient[F]) extends Publishing[F] 
       pub => key => msg => pub(exchangeName, key, msg)
     )
 
-  override def createBasicPublisher[A](
-      channel: Channel
-  )(implicit encoder: MessageEncoder[F, A]): F[(ExchangeName, RoutingKey, A) => F[Unit]] =
+  override def createBasicPublisher[A](channel: Channel)(
+      implicit encoder: MessageEncoder[F, A]
+  ): F[(ExchangeName, RoutingKey, A) => F[Unit]] =
     Applicative[F].pure {
-      case (exchangeName: ExchangeName, routingKey: RoutingKey, msg: A @unchecked) =>
-        encoder.run(msg).flatMap(payload => AMQP.basicPublish(channel, exchangeName, routingKey, payload))
+      case (
+          exchangeName: ExchangeName,
+          routingKey: RoutingKey,
+          msg: A @unchecked
+          ) =>
+        encoder
+          .run(msg)
+          .flatMap(
+            payload => AMQP.basicPublish(channel, exchangeName, routingKey, payload)
+          )
     }
 
   override def createBasicPublisherWithListener[A](
       channel: Channel,
       flag: PublishingFlag,
       listener: PublishReturn => F[Unit]
-  )(implicit encoder: MessageEncoder[F, A]): F[(ExchangeName, RoutingKey, A) => F[Unit]] =
+  )(
+      implicit encoder: MessageEncoder[F, A]
+  ): F[(ExchangeName, RoutingKey, A) => F[Unit]] =
     AMQP.addPublishingListener(channel, listener).as {
-      case (exchangeName: ExchangeName, routingKey: RoutingKey, msg: A @unchecked) =>
-        encoder.run(msg).flatMap(payload => AMQP.basicPublishWithFlag(channel, exchangeName, routingKey, flag, payload))
+      case (
+          exchangeName: ExchangeName,
+          routingKey: RoutingKey,
+          msg: A @unchecked
+          ) =>
+        encoder
+          .run(msg)
+          .flatMap(
+            payload =>
+              AMQP.basicPublishWithFlag(
+                channel,
+                exchangeName,
+                routingKey,
+                flag,
+                payload
+            )
+          )
     }
 }

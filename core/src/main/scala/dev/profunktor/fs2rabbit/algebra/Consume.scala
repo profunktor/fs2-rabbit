@@ -14,22 +14,18 @@
  * limitations under the License.
  */
 
-package dev.profunktor.fs2rabbit.program
+package dev.profunktor.fs2rabbit.algebra
 
-import cats.Applicative
 import com.rabbitmq.client.Channel
-import dev.profunktor.fs2rabbit.algebra.{Acking, Consume}
-import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
-import dev.profunktor.fs2rabbit.model.AckResult.{Ack, NAck}
+import dev.profunktor.fs2rabbit.arguments.Arguments
 import dev.profunktor.fs2rabbit.model._
 
-class AckingProgram[F[_]: Applicative](config: Fs2RabbitConfig, AMQP: Consume[F]) extends Acking[F] {
-
-  def createAcker(channel: Channel): F[AckResult => F[Unit]] =
-    Applicative[F].pure {
-      case Ack(tag) => AMQP.basicAck(channel, tag, multiple = false)
-      case NAck(tag) =>
-        AMQP.basicNack(channel, tag, multiple = false, config.requeueOnNack)
-    }
-
+// format: off
+trait Consume[F[_]]{
+  def basicAck(channel: Channel, tag: DeliveryTag, multiple: Boolean): F[Unit]
+  def basicNack(channel: Channel, tag: DeliveryTag, multiple: Boolean, requeue: Boolean): F[Unit]
+  def basicQos(channel: Channel, basicQos: BasicQos): F[Unit]
+  def basicConsume[A](channel: Channel, queueName: QueueName, autoAck: Boolean, consumerTag: ConsumerTag, noLocal: Boolean, exclusive: Boolean, args: Arguments)
+                     (internals: AMQPInternals[F]): F[ConsumerTag]
+  def basicCancel(channel: Channel, consumerTag: ConsumerTag): F[Unit]
 }
