@@ -25,12 +25,21 @@ import dev.profunktor.fs2rabbit.model._
 
 object PublishEffect {
   def apply[F[_]: ConcurrentEffect: ContextShift](
-      blocker: Blocker
+      block: Blocker
   ): Publish[F] =
-    new PublishEffect[F](blocker)
+    new PublishEffect[F] {
+      override val blocker: Blocker              = block
+      override val contextShift: ContextShift[F] = ContextShift[F]
+      override val effectF: Effect[F]            = Effect[F]
+    }
 }
 
-class PublishEffect[F[_]: Effect: ContextShift](blocker: Blocker) extends Publish[F] {
+trait PublishEffect[F[_]] extends Publish[F] {
+
+  val blocker: Blocker
+  implicit val effectF: Effect[F]
+  implicit val contextShift: ContextShift[F]
+
   override def basicPublish(channel: Channel,
                             exchangeName: ExchangeName,
                             routingKey: RoutingKey,

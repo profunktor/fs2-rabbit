@@ -38,33 +38,28 @@ object Fs2Rabbit {
       // by the underlying Java library, even if the user doesn't set it.
       saslConfig: SaslConfig = DefaultSaslConfig.PLAIN
   ): F[Fs2Rabbit[F]] =
-    ConnectionEffect
-      .mkConnectionFactory[F](config, sslContext, saslConfig)
-      .map {
-        case (factory, addresses) =>
-          val consumeClient     = new ConsumeEffect[F]
-          val publishClient     = new PublishEffect[F](blocker)
-          val bindingClient     = new BindingEffect[F]
-          val declarationClient = new DeclarationEffect[F]
-          val deletionClient    = new DeletionEffect[F]
+    ConnectionEffect[F](config, sslContext, saslConfig)
+      .map { conn =>
+        val consumeClient     = ConsumeEffect[F]
+        val publishClient     = PublishEffect[F](blocker)
+        val bindingClient     = BindingEffect[F]
+        val declarationClient = DeclarationEffect[F]
+        val deletionClient    = DeletionEffect[F]
 
-          val internalQ =
-            new LiveInternalQueue[F](config.internalQueueSize.getOrElse(500))
-          val acker    = new AckingProgram[F](config, consumeClient)
-          val consumer = new ConsumingProgram[F](consumeClient, internalQ)
+        val internalQ: InternalQueue[F]                     = new LiveInternalQueue[F](config.internalQueueSize.getOrElse(500))
+        val consumingProgram: AckConsuming[F, Stream[F, ?]] = AckConsumingProgram[F](config, internalQ)
+        val publishingProgram: Publishing[F]                = PublishingProgram[F](blocker)
 
-          val conn = new ConnectionEffect[F](factory, addresses)
-
-          new Fs2Rabbit[F](
-            conn,
-            consumeClient,
-            publishClient,
-            bindingClient,
-            declarationClient,
-            deletionClient,
-            acker,
-            consumer
-          )
+        new Fs2Rabbit[F](
+          conn,
+          consumeClient,
+          publishClient,
+          bindingClient,
+          declarationClient,
+          deletionClient,
+          consumingProgram,
+          publishingProgram
+        )
       }
 }
 
@@ -75,15 +70,9 @@ class Fs2Rabbit[F[_]: Concurrent] private[fs2rabbit] (
     binding: Binding[F],
     declaration: Declaration[F],
     deletion: Deletion[F],
-    acker: Acking[F],
-    consumer: Consuming[F, Stream[F, ?]]
+    consumingProgram: AckConsuming[F, Stream[F, ?]],
+    publishingProgram: Publishing[F]
 ) {
-
-  private[fs2rabbit] val consumingProgram: AckConsuming[F, Stream[F, ?]] =
-    new AckConsumingProgram[F](acker, consumer)
-
-  private[fs2rabbit] val publishingProgram: Publishing[F] =
-    new PublishingProgram[F](publish)
 
   def createChannel(conn: AMQPConnection): Resource[F, AMQPChannel] =
     connection.createChannel(conn)

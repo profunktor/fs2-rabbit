@@ -16,24 +16,32 @@
 
 package dev.profunktor.fs2rabbit.program
 
-import cats.effect.Bracket
+import cats.effect.{Bracket, Effect}
 import cats.implicits._
 import com.rabbitmq.client.Channel
-import dev.profunktor.fs2rabbit.algebra.{AMQPInternals, Consume, Consuming, InternalQueue}
+import dev.profunktor.fs2rabbit.algebra.{AMQPInternals, Consume, InternalQueue}
+import dev.profunktor.fs2rabbit.algebra.ConsumingStream._
 import dev.profunktor.fs2rabbit.arguments.Arguments
 import dev.profunktor.fs2rabbit.effects.EnvelopeDecoder
 import dev.profunktor.fs2rabbit.model._
 import fs2.Stream
+import dev.profunktor.fs2rabbit.interpreter.ConsumeEffect
 
 object ConsumingProgram {
-  def apply[F[_]: Bracket[?[_], Throwable]: Consume](
-      IQ: InternalQueue[F]
+  def apply[F[_]: Bracket[?[_], Throwable]: Effect](
+      internalQueue: InternalQueue[F]
   ): ConsumingProgram[F] =
-    new ConsumingProgram(Consume[F], IQ)
+    new ConsumingProgram[F] with ConsumeEffect[F] {
+      override val effectF                        = Effect[F]
+      override val IQ: InternalQueue[F]           = internalQueue
+      override val bracket: Bracket[F, Throwable] = Bracket[F, Throwable]
+    }
 }
 
-class ConsumingProgram[F[_]: Bracket[?[_], Throwable]](consume: Consume[F], IQ: InternalQueue[F])
-    extends Consuming[F, Stream[F, ?]] {
+trait ConsumingProgram[F[_]] extends ConsumingStream[F] { this: Consume[F] =>
+
+  val IQ: InternalQueue[F]
+  implicit val bracket: Bracket[F, Throwable]
 
   override def createConsumer[A](
       queueName: QueueName,
@@ -49,8 +57,8 @@ class ConsumingProgram[F[_]: Bracket[?[_], Throwable]](consume: Consume[F], IQ: 
     val setup = for {
       internalQ <- IQ.create
       internals = AMQPInternals[F](Some(internalQ))
-      _         <- consume.basicQos(channel, basicQos)
-      consumerTag <- consume.basicConsume(
+      _         <- this.basicQos(channel, basicQos)
+      consumerTag <- this.basicConsume(
                       channel,
                       queueName,
                       autoAck,
@@ -64,7 +72,7 @@ class ConsumingProgram[F[_]: Bracket[?[_], Throwable]](consume: Consume[F], IQ: 
     Stream
       .bracket(setup) {
         case (tag, _) =>
-          consume.basicCancel(channel, tag)
+          this.basicCancel(channel, tag)
       }
       .flatMap {
         case (_, queue) =>

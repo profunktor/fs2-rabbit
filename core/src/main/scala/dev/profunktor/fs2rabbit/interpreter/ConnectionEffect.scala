@@ -27,10 +27,57 @@ import dev.profunktor.fs2rabbit.javaConversion._
 import dev.profunktor.fs2rabbit.model.{AMQPChannel, AMQPConnection, RabbitChannel, RabbitConnection}
 import javax.net.ssl.SSLContext
 
-class ConnectionEffect[F[_]: Log: Sync](
-    factory: ConnectionFactory,
-    addresses: NonEmptyList[Address]
-) extends Connection[Resource[F, ?]] {
+object ConnectionEffect {
+
+  def apply[F[_]: ConcurrentEffect: ContextShift](
+      config: Fs2RabbitConfig,
+      sslContext: Option[SSLContext] = None,
+      // Unlike SSLContext, SaslConfig is not optional because it is always set
+      // by the underlying Java library, even if the user doesn't set it.
+      saslConfig: SaslConfig = DefaultSaslConfig.PLAIN
+  ): F[Connection[Resource[F, ?]]] =
+    ConnectionEffect
+      .mkConnectionFactory[F](config, sslContext, saslConfig)
+      .map {
+        case (fact, address) =>
+          new ConnectionEffect[F] {
+            override val factory       = fact
+            override val addresses     = address
+            override val log: Log[F]   = Log[F]
+            override val sync: Sync[F] = Sync[F]
+          }
+      }
+
+  private[fs2rabbit] def mkConnectionFactory[F[_]: Sync](
+      config: Fs2RabbitConfig,
+      sslContext: Option[SSLContext],
+      saslConfig: SaslConfig
+  ): F[(ConnectionFactory, NonEmptyList[Address])] =
+    Sync[F].delay {
+      val factory   = new ConnectionFactory()
+      val firstNode = config.nodes.head
+      factory.setHost(firstNode.host)
+      factory.setPort(firstNode.port)
+      factory.setVirtualHost(config.virtualHost)
+      factory.setConnectionTimeout(config.connectionTimeout)
+      factory.setAutomaticRecoveryEnabled(config.automaticRecovery)
+      if (config.ssl) {
+        sslContext.fold(factory.useSslProtocol())(factory.useSslProtocol)
+      }
+      factory.setSaslConfig(saslConfig)
+      config.username.foreach(factory.setUsername)
+      config.password.foreach(factory.setPassword)
+      val addresses = config.nodes.map(node => new Address(node.host, node.port))
+      (factory, addresses)
+    }
+}
+
+trait ConnectionEffect[F[_]] extends Connection[Resource[F, ?]] {
+
+  implicit val sync: Sync[F]
+  implicit val log: Log[F]
+  val factory: ConnectionFactory
+  val addresses: NonEmptyList[Address]
 
   private[fs2rabbit] def acquireChannel(connection: AMQPConnection): F[AMQPChannel] =
     Sync[F]
@@ -55,45 +102,5 @@ class ConnectionEffect[F[_]: Log: Sync](
     Resource.make(acquireChannel(connection)) {
       case RabbitChannel(channel) =>
         Sync[F].delay { if (channel.isOpen) channel.close() }
-    }
-}
-
-object ConnectionEffect {
-
-  def apply[F[_]: ConcurrentEffect: ContextShift](
-      config: Fs2RabbitConfig,
-      sslContext: Option[SSLContext] = None,
-      // Unlike SSLContext, SaslConfig is not optional because it is always set
-      // by the underlying Java library, even if the user doesn't set it.
-      saslConfig: SaslConfig = DefaultSaslConfig.PLAIN
-  ): F[Connection[Resource[F, ?]]] =
-    ConnectionEffect
-      .mkConnectionFactory[F](config, sslContext, saslConfig)
-      .map {
-        case (factory, addresses) =>
-          new ConnectionEffect[F](factory, addresses)
-      }
-
-  private[fs2rabbit] def mkConnectionFactory[F[_]: Sync](
-      config: Fs2RabbitConfig,
-      sslContext: Option[SSLContext],
-      saslConfig: SaslConfig
-  ): F[(ConnectionFactory, NonEmptyList[Address])] =
-    Sync[F].delay {
-      val factory   = new ConnectionFactory()
-      val firstNode = config.nodes.head
-      factory.setHost(firstNode.host)
-      factory.setPort(firstNode.port)
-      factory.setVirtualHost(config.virtualHost)
-      factory.setConnectionTimeout(config.connectionTimeout)
-      factory.setAutomaticRecoveryEnabled(config.automaticRecovery)
-      if (config.ssl) {
-        sslContext.fold(factory.useSslProtocol())(factory.useSslProtocol)
-      }
-      factory.setSaslConfig(saslConfig)
-      config.username.foreach(factory.setUsername)
-      config.password.foreach(factory.setPassword)
-      val addresses = config.nodes.map(node => new Address(node.host, node.port))
-      (factory, addresses)
     }
 }

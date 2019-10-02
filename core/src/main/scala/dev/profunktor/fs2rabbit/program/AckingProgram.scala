@@ -22,13 +22,22 @@ import dev.profunktor.fs2rabbit.algebra.{Acking, Consume}
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
 import dev.profunktor.fs2rabbit.model.AckResult.{Ack, NAck}
 import dev.profunktor.fs2rabbit.model._
+import dev.profunktor.fs2rabbit.interpreter.ConsumeEffect
+import cats.effect.Effect
 
 object AckingProgram {
-  def apply[F[_]: Applicative: Consume](config: Fs2RabbitConfig): Acking[F] =
-    new AckingProgram[F](config, Consume[F])
+  def apply[F[_]: Applicative: Effect](configuration: Fs2RabbitConfig): Acking[F] =
+    new AckingProgram[F] with ConsumeEffect[F] {
+      override val config: Fs2RabbitConfig     = configuration
+      override val applicative: Applicative[F] = Applicative[F]
+      override val effectF: Effect[F]          = Effect[F]
+    }
 }
 
-class AckingProgram[F[_]: Applicative](config: Fs2RabbitConfig, consume: Consume[F]) extends Acking[F] {
+trait AckingProgram[F[_]] extends Acking[F] { consume: Consume[F] =>
+
+  val config: Fs2RabbitConfig
+  implicit val applicative: Applicative[F]
 
   def createAcker(channel: Channel): F[AckResult => F[Unit]] =
     Applicative[F].pure {

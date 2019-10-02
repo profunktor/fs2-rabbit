@@ -22,12 +22,22 @@ import com.rabbitmq.client.Channel
 import dev.profunktor.fs2rabbit.algebra.{Publish, Publishing}
 import dev.profunktor.fs2rabbit.effects.MessageEncoder
 import dev.profunktor.fs2rabbit.model._
+import dev.profunktor.fs2rabbit.interpreter.PublishEffect
+import cats.effect.{Blocker, ContextShift, Effect}
 
 object PublishingProgram {
-  def apply[F[_]: Monad: Publish] = new PublishingProgram(Publish[F])
+  def apply[F[_]: Monad: Effect: ContextShift](block: Blocker) =
+    new PublishingProgram[F] with PublishEffect[F] {
+      override val m: Monad[F]                   = Monad[F]
+      override val blocker: Blocker              = block
+      override val contextShift: ContextShift[F] = ContextShift[F]
+      override val effectF: Effect[F]            = Effect[F]
+    }
 }
 
-class PublishingProgram[F[_]: Monad](publish: Publish[F]) extends Publishing[F] {
+trait PublishingProgram[F[_]] extends Publishing[F] { publish: Publish[F] =>
+
+  implicit val m: Monad[F]
 
   override def createPublisher[A](
       channel: Channel,
