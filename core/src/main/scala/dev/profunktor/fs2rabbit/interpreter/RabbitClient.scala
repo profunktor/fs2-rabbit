@@ -16,22 +16,31 @@
 
 package dev.profunktor.fs2rabbit.algebra
 
-import cats.effect.{Blocker, ConcurrentEffect, ContextShift, Effect}
 import dev.profunktor.fs2rabbit.algebra.AckConsumingStream.AckConsumingStream
 import dev.profunktor.fs2rabbit.algebra.ConsumingStream.ConsumingStream
+import dev.profunktor.fs2rabbit.algebra.ConnectionResource.ConnectionResource
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
 import dev.profunktor.fs2rabbit.interpreter._
 import dev.profunktor.fs2rabbit.program.{AckConsumingProgram, AckingProgram, ConsumingProgram, PublishingProgram}
 import cats.Monad
 import cats.Apply
 import cats.Applicative
-import cats.effect.Bracket
+import cats.effect._
+import dev.profunktor.fs2rabbit.effects.Log
+import com.rabbitmq.client.SaslConfig
+import javax.net.ssl.SSLContext
+import com.rabbitmq.client.{DefaultSaslConfig, SaslConfig}
 
 object RabbitClient {
-  def apply[F[_]: ConcurrentEffect: ContextShift](configuration: Fs2RabbitConfig, block: Blocker): RabbitClient[F] =
-    new RabbitClient[F] with ConsumeEffect[F] with BindingEffect[F] with PublishEffect[F] with DeclarationEffect[F]
-    with DeletionEffect[F] with ConsumingProgram[F] with PublishingProgram[F] with AckingProgram[F]
-    with AckConsumingProgram[F] {
+  def apply[F[_]: ConcurrentEffect: ContextShift](
+      configuration: Fs2RabbitConfig,
+      block: Blocker,
+      sslCtx: Option[SSLContext] = None,
+      saslCfg: SaslConfig = DefaultSaslConfig.PLAIN
+  ): RabbitClient[F] =
+    new RabbitClient[F] with ConnectionEffect[F] with ConsumeEffect[F] with BindingEffect[F] with PublishEffect[F]
+    with DeclarationEffect[F] with DeletionEffect[F] with ConsumingProgram[F] with PublishingProgram[F]
+    with AckingProgram[F] with AckConsumingProgram[F] {
       override val blocker: Blocker               = block
       override val contextShift: ContextShift[F]  = ContextShift[F]
       override val effectF: Effect[F]             = Effect[F]
@@ -41,11 +50,17 @@ object RabbitClient {
       override val IQ: InternalQueue[F]           = new LiveInternalQueue[F](configuration.internalQueueSize.getOrElse(500))
       override val config                         = configuration
       override val applicative: Applicative[F]    = m
+
+      override val sync: Sync[F]                  = effectF
+      override val log: Log[F]                    = Log[F]
+      override val sslContext: Option[SSLContext] = sslCtx
+      override val saslConfig: SaslConfig         = saslCfg
     }
 }
 
 trait RabbitClient[F[_]]
-    extends AckConsumingStream[F]
+    extends ConnectionResource[F]
+    with AckConsumingStream[F]
     with Acking[F]
     with Binding[F]
     with Consume[F]

@@ -28,25 +28,19 @@ import dev.profunktor.fs2rabbit.model.{AMQPChannel, AMQPConnection, RabbitChanne
 import javax.net.ssl.SSLContext
 
 object ConnectionEffect {
-
-  def apply[F[_]: ConcurrentEffect: ContextShift](
-      config: Fs2RabbitConfig,
-      sslContext: Option[SSLContext] = None,
+  def apply[F[_]: ConcurrentEffect: ContextShift: Log](
+      conf: Fs2RabbitConfig,
+      sslCtx: Option[SSLContext] = None,
       // Unlike SSLContext, SaslConfig is not optional because it is always set
       // by the underlying Java library, even if the user doesn't set it.
-      saslConfig: SaslConfig = DefaultSaslConfig.PLAIN
-  ): F[Connection[Resource[F, ?]]] =
-    ConnectionEffect
-      .mkConnectionFactory[F](config, sslContext, saslConfig)
-      .map {
-        case (fact, address) =>
-          new ConnectionEffect[F] {
-            override val factory       = fact
-            override val addresses     = address
-            override val log: Log[F]   = Log[F]
-            override val sync: Sync[F] = Sync[F]
-          }
-      }
+      saslConf: SaslConfig = DefaultSaslConfig.PLAIN
+  ): Connection[Resource[F, ?]] = new ConnectionEffect[F] {
+    override val config: Fs2RabbitConfig        = conf
+    override val sslContext: Option[SSLContext] = sslCtx
+    override val saslConfig: SaslConfig         = saslConf
+    override val sync: Sync[F]                  = Sync[F]
+    override val log: Log[F]                    = Log[F]
+  }
 
   private[fs2rabbit] def mkConnectionFactory[F[_]: Sync](
       config: Fs2RabbitConfig,
@@ -76,8 +70,9 @@ trait ConnectionEffect[F[_]] extends Connection[Resource[F, ?]] {
 
   implicit val sync: Sync[F]
   implicit val log: Log[F]
-  val factory: ConnectionFactory
-  val addresses: NonEmptyList[Address]
+  val config: Fs2RabbitConfig
+  val sslContext: Option[SSLContext]
+  val saslConfig: SaslConfig
 
   private[fs2rabbit] def acquireChannel(connection: AMQPConnection): F[AMQPChannel] =
     Sync[F]
@@ -86,10 +81,13 @@ trait ConnectionEffect[F[_]] extends Connection[Resource[F, ?]] {
       .map(RabbitChannel)
 
   private[fs2rabbit] val acquireConnection: F[AMQPConnection] =
-    Sync[F]
-      .delay(factory.newConnection(addresses.toList.asJava))
-      .flatTap(c => Log[F].info(s"Acquired connection: $c"))
-      .map(RabbitConnection)
+    ConnectionEffect.mkConnectionFactory(config, sslContext, saslConfig).flatMap {
+      case (factory, addresses) =>
+        Sync[F]
+          .delay(factory.newConnection(addresses.toList.asJava))
+          .flatTap(c => Log[F].info(s"Acquired connection: $c"))
+          .map(RabbitConnection)
+    }
 
   override def createConnection: Resource[F, AMQPConnection] =
     Resource.make(acquireConnection) {

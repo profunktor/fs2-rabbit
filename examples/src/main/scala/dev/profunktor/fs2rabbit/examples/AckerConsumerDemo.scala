@@ -21,8 +21,6 @@ import java.nio.charset.StandardCharsets.UTF_8
 import cats.data.Kleisli
 import cats.effect._
 import cats.implicits._
-import dev.profunktor.fs2rabbit.algebra.AckConsumingStream.AckConsumingStream
-import dev.profunktor.fs2rabbit.algebra.ConnectionResource.ConnectionResource
 import dev.profunktor.fs2rabbit.algebra._
 import dev.profunktor.fs2rabbit.config.declaration.{DeclarationExchangeConfig, DeclarationQueueConfig}
 import dev.profunktor.fs2rabbit.json.Fs2JsonEncoder
@@ -32,8 +30,7 @@ import dev.profunktor.fs2rabbit.model.ExchangeType.Topic
 import dev.profunktor.fs2rabbit.model._
 import fs2._
 
-class AckerConsumerDemo[
-    F[_]: Concurrent: Timer: ConnectionResource: Binding: Declaration: AckConsumingStream: Publishing] {
+class AckerConsumerDemo[F[_]: Concurrent: Timer](rabbitClient: RabbitClient[F]) {
   private val queueName    = QueueName("testQ")
   private val exchangeName = ExchangeName("testEX")
   private val routingKey   = RoutingKey("testRK")
@@ -50,19 +47,21 @@ class AckerConsumerDemo[
   // Run when there's no consumer for the routing key specified by the publisher and the flag mandatory is true
   val publishingListener: PublishReturn => F[Unit] = pr => putStrLn(s"Publish listener: $pr")
 
-  private val mkChannel = ConnectionResource[F].createConnection.flatMap(ConnectionResource[F].createChannel)
+  private val mkChannel = rabbitClient.createConnection.flatMap(rabbitClient.createChannel)
 
   val program: F[Unit] = mkChannel.use { channel =>
     for {
-      _                 <- Declaration[F].declareQueue(channel.value, DeclarationQueueConfig.default(queueName))
-      _                 <- Declaration[F].declareExchange(channel.value, DeclarationExchangeConfig.default(exchangeName, Topic))
-      _                 <- Binding[F].bindQueue(channel.value, queueName, exchangeName, routingKey)
-      (acker, consumer) <- AckConsumingStream[F].createAckerConsumer[String](channel.value, queueName)
-      publisher <- Publishing[F].createPublisherWithListener[AmqpMessage[String]](channel.value,
-                                                                                  exchangeName,
-                                                                                  routingKey,
-                                                                                  publishingFlag,
-                                                                                  publishingListener)
+      _                 <- rabbitClient.declareQueue(channel.value, DeclarationQueueConfig.default(queueName))
+      _                 <- rabbitClient.declareExchange(channel.value, DeclarationExchangeConfig.default(exchangeName, Topic))
+      _                 <- rabbitClient.bindQueue(channel.value, queueName, exchangeName, routingKey)
+      (acker, consumer) <- rabbitClient.createAckerConsumer[String](channel.value, queueName)
+      publisher <- rabbitClient.createPublisherWithListener[AmqpMessage[String]](
+                    channel.value,
+                    exchangeName,
+                    routingKey,
+                    publishingFlag,
+                    publishingListener
+                  )
       _ <- new Flow[F, String](consumer, acker, logPipe, publisher).flow.compile.drain
     } yield ()
   }

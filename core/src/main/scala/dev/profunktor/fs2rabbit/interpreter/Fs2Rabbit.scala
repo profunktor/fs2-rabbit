@@ -17,7 +17,6 @@
 package dev.profunktor.fs2rabbit.interpreter
 
 import cats.effect._
-import cats.syntax.functor._
 import com.rabbitmq.client.{DefaultSaslConfig, SaslConfig}
 import dev.profunktor.fs2rabbit.algebra._
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
@@ -28,39 +27,50 @@ import dev.profunktor.fs2rabbit.model._
 import dev.profunktor.fs2rabbit.program._
 import fs2.Stream
 import javax.net.ssl.SSLContext
+import cats.Applicative
 
 object Fs2Rabbit {
-  def apply[F[_]: ConcurrentEffect: ContextShift](
+  def create[F[_]: ConcurrentEffect: ContextShift](
       config: Fs2RabbitConfig,
       blocker: Blocker,
       sslContext: Option[SSLContext] = None,
       // Unlike SSLContext, SaslConfig is not optional because it is always set
       // by the underlying Java library, even if the user doesn't set it.
       saslConfig: SaslConfig = DefaultSaslConfig.PLAIN
-  ): F[Fs2Rabbit[F]] =
-    ConnectionEffect[F](config, sslContext, saslConfig)
-      .map { conn =>
-        val consumeClient     = ConsumeEffect[F]
-        val publishClient     = PublishEffect[F](blocker)
-        val bindingClient     = BindingEffect[F]
-        val declarationClient = DeclarationEffect[F]
-        val deletionClient    = DeletionEffect[F]
+  ): Fs2Rabbit[F] = {
+    val conn              = ConnectionEffect[F](config, sslContext, saslConfig)
+    val consumeClient     = ConsumeEffect[F]
+    val publishClient     = PublishEffect[F](blocker)
+    val bindingClient     = BindingEffect[F]
+    val declarationClient = DeclarationEffect[F]
+    val deletionClient    = DeletionEffect[F]
 
-        val internalQ: InternalQueue[F]                     = new LiveInternalQueue[F](config.internalQueueSize.getOrElse(500))
-        val consumingProgram: AckConsuming[F, Stream[F, ?]] = AckConsumingProgram[F](config, internalQ)
-        val publishingProgram: Publishing[F]                = PublishingProgram[F](blocker)
+    val internalQ: InternalQueue[F]                     = new LiveInternalQueue[F](config.internalQueueSize.getOrElse(500))
+    val consumingProgram: AckConsuming[F, Stream[F, ?]] = AckConsumingProgram[F](config, internalQ)
+    val publishingProgram: Publishing[F]                = PublishingProgram[F](blocker)
 
-        new Fs2Rabbit[F](
-          conn,
-          consumeClient,
-          publishClient,
-          bindingClient,
-          declarationClient,
-          deletionClient,
-          consumingProgram,
-          publishingProgram
-        )
-      }
+    new Fs2Rabbit[F](
+      conn,
+      consumeClient,
+      publishClient,
+      bindingClient,
+      declarationClient,
+      deletionClient,
+      consumingProgram,
+      publishingProgram
+    )
+  }
+
+  // This is for retrocompatibility
+  def apply[F[_]: ConcurrentEffect: ContextShift: Applicative](
+      config: Fs2RabbitConfig,
+      blocker: Blocker,
+      sslContext: Option[SSLContext] = None,
+      // Unlike SSLContext, SaslConfig is not optional because it is always set
+      // by the underlying Java library, even if the user doesn't set it.
+      saslConfig: SaslConfig = DefaultSaslConfig.PLAIN
+  ): F[Fs2Rabbit[F]] = Applicative[F].pure(create(config, blocker, sslContext, saslConfig))
+
 }
 
 class Fs2Rabbit[F[_]: Concurrent] private[fs2rabbit] (
@@ -87,8 +97,10 @@ class Fs2Rabbit[F[_]: Concurrent] private[fs2rabbit] (
       queueName: QueueName,
       basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
       consumerArgs: Option[ConsumerArgs] = None
-  )(implicit channel: AMQPChannel,
-    decoder: EnvelopeDecoder[F, A]): F[(AckResult => F[Unit], Stream[F, AmqpEnvelope[A]])] =
+  )(
+      implicit channel: AMQPChannel,
+      decoder: EnvelopeDecoder[F, A]
+  ): F[(AckResult => F[Unit], Stream[F, AmqpEnvelope[A]])] =
     consumingProgram.createAckerConsumer(
       channel.value,
       queueName,
