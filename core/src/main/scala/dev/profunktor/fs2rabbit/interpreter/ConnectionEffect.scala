@@ -35,11 +35,11 @@ object ConnectionEffect {
       // by the underlying Java library, even if the user doesn't set it.
       saslConf: SaslConfig = DefaultSaslConfig.PLAIN
   ): Connection[Resource[F, ?]] = new ConnectionEffect[F] {
-    override val config: Fs2RabbitConfig        = conf
-    override val sslContext: Option[SSLContext] = sslCtx
-    override val saslConfig: SaslConfig         = saslConf
-    override val sync: Sync[F]                  = Sync[F]
-    override val log: Log[F]                    = Log[F]
+    override lazy val config: Fs2RabbitConfig        = conf
+    override lazy val sslContext: Option[SSLContext] = sslCtx
+    override lazy val saslConfig: SaslConfig         = saslConf
+    override lazy val sync: Sync[F]                  = Sync[F]
+    override lazy val log: Log[F]                    = Log[F]
   }
 
   private[fs2rabbit] def mkConnectionFactory[F[_]: Sync](

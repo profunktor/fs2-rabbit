@@ -28,13 +28,13 @@ import dev.profunktor.fs2rabbit.model.{ExchangeName, QueueName}
 object DeclarationEffect {
   def apply[F[_]: Effect]: Declaration[F] =
     new DeclarationEffect[F] {
-      override val effectF: Effect[F] = Effect[F]
+      override lazy val effect: Effect[F] = Effect[F]
     }
 }
 
 trait DeclarationEffect[F[_]] extends Declaration[F] {
 
-  implicit val effectF: Effect[F]
+  implicit val effect: Effect[F]
 
   override def declareExchange(channel: Channel, config: DeclarationExchangeConfig): F[Unit] =
     Sync[F].delay {

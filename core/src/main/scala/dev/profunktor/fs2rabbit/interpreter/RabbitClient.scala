@@ -38,20 +38,19 @@ object RabbitClient {
     new RabbitClient[F] with ConnectionEffect[F] with ConsumeEffect[F] with BindingEffect[F] with PublishEffect[F]
     with DeclarationEffect[F] with DeletionEffect[F] with ConsumingProgram[F] with PublishingProgram[F]
     with AckingProgram[F] with AckConsumingProgram[F] {
-      override val blocker: Blocker               = block
-      override val contextShift: ContextShift[F]  = ContextShift[F]
-      override val effectF: Effect[F]             = Effect[F]
-      override val m: Monad[F]                    = Monad[F]
-      override val apply: Apply[F]                = m
-      override val bracket: Bracket[F, Throwable] = Bracket[F, Throwable]
-      override val IQ: InternalQueue[F]           = new LiveInternalQueue[F](configuration.internalQueueSize.getOrElse(500))
-      override val config: Fs2RabbitConfig        = configuration
-      override val applicative: Applicative[F]    = m
-
-      override val sync: Sync[F]                  = effectF
-      override val log: Log[F]                    = Log[F]
-      override val sslContext: Option[SSLContext] = sslCtx
-      override val saslConfig: SaslConfig         = saslCfg
+      override lazy val contextShift: ContextShift[F]  = ContextShift[F]
+      override lazy val effect: Effect[F]              = Effect[F]
+      override lazy val sync: Sync[F]                  = effect
+      override lazy val monad: Monad[F]                = Monad[F]
+      override lazy val apply: Apply[F]                = monad
+      override lazy val applicative: Applicative[F]    = monad
+      override lazy val bracket: Bracket[F, Throwable] = Bracket[F, Throwable]
+      override lazy val IQ: InternalQueue[F]           = new LiveInternalQueue[F](configuration.internalQueueSize.getOrElse(500))
+      override lazy val log: Log[F]                    = Log[F]
+      override lazy val blocker: Blocker               = block
+      override lazy val config: Fs2RabbitConfig        = configuration
+      override lazy val sslContext: Option[SSLContext] = sslCtx
+      override lazy val saslConfig: SaslConfig         = saslCfg
     }
 }
 

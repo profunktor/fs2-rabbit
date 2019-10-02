@@ -32,9 +32,9 @@ object ConsumingProgram {
       internalQueue: InternalQueue[F]
   ): ConsumingProgram[F] =
     new ConsumingProgram[F] with ConsumeEffect[F] {
-      override val effectF                        = Effect[F]
-      override val IQ: InternalQueue[F]           = internalQueue
-      override val bracket: Bracket[F, Throwable] = Bracket[F, Throwable]
+      override lazy val effect: Effect[F]              = Effect[F]
+      override lazy val IQ: InternalQueue[F]           = internalQueue
+      override lazy val bracket: Bracket[F, Throwable] = Bracket[F, Throwable]
     }
 }
 

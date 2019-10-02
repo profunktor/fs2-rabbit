@@ -26,13 +26,13 @@ import dev.profunktor.fs2rabbit.effects.BoolValue.syntax._
 
 object DeletionEffect {
   def apply[F[_]: Effect]: Deletion[F] = new DeletionEffect[F] {
-    override val effectF: Effect[F] = Effect[F]
+    override lazy val effect: Effect[F] = Effect[F]
   }
 }
 
 trait DeletionEffect[F[_]] extends Deletion[F] {
 
-  implicit val effectF: Effect[F]
+  implicit val effect: Effect[F]
 
   override def deleteQueue(channel: Channel, config: DeletionQueueConfig): F[Unit] =
     Sync[F].delay {

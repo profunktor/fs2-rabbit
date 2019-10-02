@@ -28,9 +28,9 @@ import cats.effect.Effect
 object AckingProgram {
   def apply[F[_]: Applicative: Effect](configuration: Fs2RabbitConfig): Acking[F] =
     new AckingProgram[F] with ConsumeEffect[F] {
-      override val config: Fs2RabbitConfig     = configuration
-      override val applicative: Applicative[F] = Applicative[F]
-      override val effectF: Effect[F]          = Effect[F]
+      override lazy val config: Fs2RabbitConfig     = configuration
+      override lazy val applicative: Applicative[F] = Applicative[F]
+      override lazy val effect: Effect[F]           = Effect[F]
     }
 }
 

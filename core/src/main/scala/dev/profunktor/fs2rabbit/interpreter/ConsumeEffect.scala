@@ -31,13 +31,13 @@ import scala.util.{Failure, Success, Try}
 object ConsumeEffect {
   def apply[F[_]: Effect]: Consume[F] =
     new ConsumeEffect[F] {
-      override val effectF: Effect[F] = Effect[F]
+      override lazy val effect: Effect[F] = Effect[F]
     }
 }
 
 trait ConsumeEffect[F[_]] extends Consume[F] {
 
-  implicit val effectF: Effect[F]
+  implicit val effect: Effect[F]
 
   private[fs2rabbit] def defaultConsumer[A](
       channel: Channel,

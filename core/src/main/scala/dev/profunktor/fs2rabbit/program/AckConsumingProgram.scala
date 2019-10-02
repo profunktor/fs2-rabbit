@@ -33,12 +33,12 @@ object AckConsumingProgram {
       configuration: Fs2RabbitConfig,
       internalQueue: InternalQueue[F]): AckConsumingProgram[F] =
     new AckConsumingProgram[F] with ConsumeEffect[F] with AckingProgram[F] with ConsumingProgram[F] {
-      override val apply: Apply[F]                  = Applicative[F]
-      override val effectF: Effect[F]               = Effect[F]
-      override val config                           = configuration
-      override val applicative: cats.Applicative[F] = Applicative[F]
-      override val IQ: InternalQueue[F]             = internalQueue
-      override val bracket: Bracket[F, Throwable]   = Bracket[F, Throwable]
+      override lazy val applicative: Applicative[F]    = Applicative[F]
+      override lazy val apply: Apply[F]                = applicative
+      override lazy val effect: Effect[F]              = Effect[F]
+      override lazy val config: Fs2RabbitConfig        = configuration
+      override lazy val IQ: InternalQueue[F]           = internalQueue
+      override lazy val bracket: Bracket[F, Throwable] = Bracket[F, Throwable]
     }
 }
 

@@ -26,18 +26,18 @@ import dev.profunktor.fs2rabbit.interpreter.PublishEffect
 import cats.effect.{Blocker, ContextShift, Effect}
 
 object PublishingProgram {
-  def apply[F[_]: Monad: Effect: ContextShift](block: Blocker) =
+  def apply[F[_]: Monad: Effect: ContextShift](block: Blocker): PublishingProgram[F] =
     new PublishingProgram[F] with PublishEffect[F] {
-      override val m: Monad[F]                   = Monad[F]
-      override val blocker: Blocker              = block
-      override val contextShift: ContextShift[F] = ContextShift[F]
-      override val effectF: Effect[F]            = Effect[F]
+      override lazy val monad: Monad[F]               = Monad[F]
+      override lazy val blocker: Blocker              = block
+      override lazy val contextShift: ContextShift[F] = ContextShift[F]
+      override lazy val effect: Effect[F]             = Effect[F]
     }
 }
 
 trait PublishingProgram[F[_]] extends Publishing[F] { publish: Publish[F] =>
 
-  implicit val m: Monad[F]
+  implicit val monad: Monad[F]
 
   override def createPublisher[A](
       channel: Channel,

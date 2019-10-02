@@ -25,11 +25,11 @@ import dev.profunktor.fs2rabbit.model._
 
 object BindingEffect {
   def apply[F[_]: Effect]: Binding[F] =
-    new BindingEffect[F] { override val effectF: Effect[F] = Effect[F] }
+    new BindingEffect[F] { override lazy val effect: Effect[F] = Effect[F] }
 }
 
 trait BindingEffect[F[_]] extends Binding[F] {
-  implicit val effectF: Effect[F]
+  implicit val effect: Effect[F]
 
   override def bindQueue(channel: Channel,
                          queueName: QueueName,
