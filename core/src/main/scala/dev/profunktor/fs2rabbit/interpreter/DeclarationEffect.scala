@@ -26,7 +26,7 @@ import dev.profunktor.fs2rabbit.effects.BoolValue.syntax._
 import dev.profunktor.fs2rabbit.model.{ExchangeName, QueueName}
 
 object DeclarationEffect {
-  def apply[F[_]: Effect](): Declaration[F] =
+  def apply[F[_]: Effect]: Declaration[F] =
     new DeclarationEffect[F] {
       override val effectF: Effect[F] = Effect[F]
     }

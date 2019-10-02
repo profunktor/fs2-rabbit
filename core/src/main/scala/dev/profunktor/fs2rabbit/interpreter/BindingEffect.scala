@@ -24,7 +24,7 @@ import dev.profunktor.fs2rabbit.arguments._
 import dev.profunktor.fs2rabbit.model._
 
 object BindingEffect {
-  def apply[F[_]: Effect](): Binding[F] =
+  def apply[F[_]: Effect]: Binding[F] =
     new BindingEffect[F] { override val effectF: Effect[F] = Effect[F] }
 }
 

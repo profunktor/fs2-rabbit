@@ -21,8 +21,8 @@ import java.nio.charset.StandardCharsets.UTF_8
 import cats.data.Kleisli
 import cats.effect._
 import cats.implicits._
-import dev.profunktor.fs2rabbit.algebra._
 import dev.profunktor.fs2rabbit.config.declaration.{DeclarationExchangeConfig, DeclarationQueueConfig}
+import dev.profunktor.fs2rabbit.interpreter.RabbitClient
 import dev.profunktor.fs2rabbit.json.Fs2JsonEncoder
 import dev.profunktor.fs2rabbit.model.AckResult.Ack
 import dev.profunktor.fs2rabbit.model.AmqpFieldValue.{LongVal, StringVal}

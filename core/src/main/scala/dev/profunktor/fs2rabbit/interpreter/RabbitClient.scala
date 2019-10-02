@@ -14,22 +14,19 @@
  * limitations under the License.
  */
 
-package dev.profunktor.fs2rabbit.algebra
+package dev.profunktor.fs2rabbit.interpreter
 
-import dev.profunktor.fs2rabbit.algebra.AckConsumingStream.AckConsumingStream
-import dev.profunktor.fs2rabbit.algebra.ConsumingStream.ConsumingStream
-import dev.profunktor.fs2rabbit.algebra.ConnectionResource.ConnectionResource
-import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
-import dev.profunktor.fs2rabbit.interpreter._
-import dev.profunktor.fs2rabbit.program.{AckConsumingProgram, AckingProgram, ConsumingProgram, PublishingProgram}
-import cats.Monad
-import cats.Apply
-import cats.Applicative
+import cats.{Applicative, Apply, Monad}
 import cats.effect._
-import dev.profunktor.fs2rabbit.effects.Log
-import com.rabbitmq.client.SaslConfig
-import javax.net.ssl.SSLContext
 import com.rabbitmq.client.{DefaultSaslConfig, SaslConfig}
+import dev.profunktor.fs2rabbit.algebra.AckConsumingStream.AckConsumingStream
+import dev.profunktor.fs2rabbit.algebra.ConnectionResource.ConnectionResource
+import dev.profunktor.fs2rabbit.algebra.ConsumingStream.ConsumingStream
+import dev.profunktor.fs2rabbit.algebra.{Acking, Binding, InternalQueue, _}
+import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
+import dev.profunktor.fs2rabbit.effects.Log
+import dev.profunktor.fs2rabbit.program.{AckConsumingProgram, AckingProgram, ConsumingProgram, PublishingProgram}
+import javax.net.ssl.SSLContext
 
 object RabbitClient {
   def apply[F[_]: ConcurrentEffect: ContextShift](
@@ -48,7 +45,7 @@ object RabbitClient {
       override val apply: Apply[F]                = m
       override val bracket: Bracket[F, Throwable] = Bracket[F, Throwable]
       override val IQ: InternalQueue[F]           = new LiveInternalQueue[F](configuration.internalQueueSize.getOrElse(500))
-      override val config                         = configuration
+      override val config: Fs2RabbitConfig        = configuration
       override val applicative: Applicative[F]    = m
 
       override val sync: Sync[F]                  = effectF

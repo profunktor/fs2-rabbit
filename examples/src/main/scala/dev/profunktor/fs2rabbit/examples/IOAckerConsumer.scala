@@ -22,8 +22,8 @@ import cats.data.NonEmptyList
 import cats.effect._
 import cats.syntax.functor._
 import dev.profunktor.fs2rabbit.config.{Fs2RabbitConfig, Fs2RabbitNodeConfig}
+import dev.profunktor.fs2rabbit.interpreter.RabbitClient
 import dev.profunktor.fs2rabbit.resiliency.ResilientStream
-import dev.profunktor.fs2rabbit.algebra.RabbitClient
 
 object IOAckerConsumer extends IOApp {
 
