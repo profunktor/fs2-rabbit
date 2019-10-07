@@ -17,20 +17,20 @@
 package dev.profunktor.fs2rabbit.program
 
 import cats.Applicative
+import cats.effect.Effect
 import com.rabbitmq.client.Channel
 import dev.profunktor.fs2rabbit.algebra.{Acking, Consume}
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
+import dev.profunktor.fs2rabbit.interpreter.ConsumeEffect
 import dev.profunktor.fs2rabbit.model.AckResult.{Ack, NAck}
 import dev.profunktor.fs2rabbit.model._
-import dev.profunktor.fs2rabbit.interpreter.ConsumeEffect
-import cats.effect.Effect
 
 object AckingProgram {
-  def apply[F[_]: Applicative: Effect](configuration: Fs2RabbitConfig): Acking[F] =
+  def apply[F[_]: Effect](configuration: Fs2RabbitConfig): Acking[F] =
     new AckingProgram[F] with ConsumeEffect[F] {
       override lazy val config: Fs2RabbitConfig     = configuration
-      override lazy val applicative: Applicative[F] = Applicative[F]
       override lazy val effect: Effect[F]           = Effect[F]
+      override lazy val applicative: Applicative[F] = effect
     }
 }
 

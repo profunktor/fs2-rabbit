@@ -17,14 +17,14 @@
 package dev.profunktor.fs2rabbit.interpreter
 
 import cats.effect.syntax.effect._
-import cats.effect.{Blocker, ConcurrentEffect, ContextShift, Effect, Sync}
+import cats.effect.{Blocker, ContextShift, Effect, Sync}
 import cats.syntax.functor._
 import com.rabbitmq.client.{AMQP, Channel, ReturnListener}
 import dev.profunktor.fs2rabbit.algebra.Publish
 import dev.profunktor.fs2rabbit.model._
 
 object PublishEffect {
-  def apply[F[_]: ConcurrentEffect: ContextShift](
+  def apply[F[_]: Effect: ContextShift](
       block: Blocker
   ): Publish[F] =
     new PublishEffect[F] {

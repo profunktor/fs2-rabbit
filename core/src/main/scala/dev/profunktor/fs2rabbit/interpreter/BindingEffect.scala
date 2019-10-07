@@ -16,7 +16,7 @@
 
 package dev.profunktor.fs2rabbit.interpreter
 
-import cats.effect.{Effect, _}
+import cats.effect._
 import cats.syntax.functor._
 import com.rabbitmq.client._
 import dev.profunktor.fs2rabbit.algebra.Binding
@@ -24,12 +24,12 @@ import dev.profunktor.fs2rabbit.arguments._
 import dev.profunktor.fs2rabbit.model._
 
 object BindingEffect {
-  def apply[F[_]: Effect]: Binding[F] =
-    new BindingEffect[F] { override lazy val effect: Effect[F] = Effect[F] }
+  def apply[F[_]: Sync]: Binding[F] =
+    new BindingEffect[F] { override lazy val sync: Sync[F] = Sync[F] }
 }
 
 trait BindingEffect[F[_]] extends Binding[F] {
-  implicit val effect: Effect[F]
+  implicit val sync: Sync[F]
 
   override def bindQueue(channel: Channel,
                          queueName: QueueName,

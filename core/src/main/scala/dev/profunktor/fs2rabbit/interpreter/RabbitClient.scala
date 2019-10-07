@@ -16,8 +16,8 @@
 
 package dev.profunktor.fs2rabbit.interpreter
 
-import cats.{Applicative, Apply, Monad}
 import cats.effect._
+import cats.{Applicative, Apply, Monad}
 import com.rabbitmq.client.{DefaultSaslConfig, SaslConfig}
 import dev.profunktor.fs2rabbit.algebra.AckConsumingStream.AckConsumingStream
 import dev.profunktor.fs2rabbit.algebra.ConnectionResource.ConnectionResource
@@ -41,10 +41,10 @@ object RabbitClient {
       override lazy val contextShift: ContextShift[F]  = ContextShift[F]
       override lazy val effect: Effect[F]              = Effect[F]
       override lazy val sync: Sync[F]                  = effect
-      override lazy val monad: Monad[F]                = Monad[F]
-      override lazy val apply: Apply[F]                = monad
+      override lazy val bracket: Bracket[F, Throwable] = sync
+      override lazy val monad: Monad[F]                = effect
       override lazy val applicative: Applicative[F]    = monad
-      override lazy val bracket: Bracket[F, Throwable] = Bracket[F, Throwable]
+      override lazy val apply: Apply[F]                = monad
       override lazy val IQ: InternalQueue[F]           = new LiveInternalQueue[F](configuration.internalQueueSize.getOrElse(500))
       override lazy val log: Log[F]                    = Log[F]
       override lazy val blocker: Blocker               = block

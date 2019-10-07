@@ -62,7 +62,7 @@ object Fs2Rabbit {
   }
 
   // This is for retrocompatibility
-  def apply[F[_]: ConcurrentEffect: ContextShift: Applicative](
+  def apply[F[_]: ConcurrentEffect: ContextShift](
       config: Fs2RabbitConfig,
       blocker: Blocker,
       sslContext: Option[SSLContext] = None,

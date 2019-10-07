@@ -16,7 +16,7 @@
 
 package dev.profunktor.fs2rabbit.interpreter
 
-import cats.effect.{Effect, Sync}
+import cats.effect.Sync
 import cats.syntax.functor._
 import com.rabbitmq.client.Channel
 import dev.profunktor.fs2rabbit.algebra.Deletion
@@ -25,14 +25,14 @@ import dev.profunktor.fs2rabbit.config.deletion.DeletionQueueConfig
 import dev.profunktor.fs2rabbit.effects.BoolValue.syntax._
 
 object DeletionEffect {
-  def apply[F[_]: Effect]: Deletion[F] = new DeletionEffect[F] {
-    override lazy val effect: Effect[F] = Effect[F]
+  def apply[F[_]: Sync]: Deletion[F] = new DeletionEffect[F] {
+    override lazy val sync: Sync[F] = Sync[F]
   }
 }
 
 trait DeletionEffect[F[_]] extends Deletion[F] {
 
-  implicit val effect: Effect[F]
+  implicit val sync: Sync[F]
 
   override def deleteQueue(channel: Channel, config: DeletionQueueConfig): F[Unit] =
     Sync[F].delay {

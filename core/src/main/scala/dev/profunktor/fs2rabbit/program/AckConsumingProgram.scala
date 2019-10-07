@@ -16,29 +16,27 @@
 
 package dev.profunktor.fs2rabbit.program
 
-import cats.{Applicative, Apply}
-import cats.implicits._
-import dev.profunktor.fs2rabbit.algebra.{AckConsuming, Acking, InternalQueue}
-import dev.profunktor.fs2rabbit.effects.EnvelopeDecoder
-import dev.profunktor.fs2rabbit.interpreter.ConsumeEffect
 import cats.effect._
-import dev.profunktor.fs2rabbit.model._
+import cats.implicits._
+import cats.{Applicative, Apply}
 import com.rabbitmq.client.Channel
 import dev.profunktor.fs2rabbit.algebra.ConsumingStream.ConsumingStream
-import fs2.Stream
+import dev.profunktor.fs2rabbit.algebra.{AckConsuming, Acking, InternalQueue}
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
+import dev.profunktor.fs2rabbit.effects.EnvelopeDecoder
+import dev.profunktor.fs2rabbit.interpreter.ConsumeEffect
+import dev.profunktor.fs2rabbit.model._
+import fs2.Stream
 
 object AckConsumingProgram {
-  def apply[F[_]: Applicative: Effect: Bracket[?[_], Throwable]](
-      configuration: Fs2RabbitConfig,
-      internalQueue: InternalQueue[F]): AckConsumingProgram[F] =
+  def apply[F[_]: Effect](configuration: Fs2RabbitConfig, internalQueue: InternalQueue[F]): AckConsumingProgram[F] =
     new AckConsumingProgram[F] with ConsumeEffect[F] with AckingProgram[F] with ConsumingProgram[F] {
-      override lazy val applicative: Applicative[F]    = Applicative[F]
-      override lazy val apply: Apply[F]                = applicative
       override lazy val effect: Effect[F]              = Effect[F]
+      override lazy val bracket: Bracket[F, Throwable] = effect
+      override lazy val applicative: Applicative[F]    = effect
+      override lazy val apply: Apply[F]                = applicative
       override lazy val config: Fs2RabbitConfig        = configuration
       override lazy val IQ: InternalQueue[F]           = internalQueue
-      override lazy val bracket: Bracket[F, Throwable] = Bracket[F, Throwable]
     }
 }
 

@@ -16,22 +16,22 @@
 
 package dev.profunktor.fs2rabbit.program
 
+import cats.effect.{Blocker, ContextShift, Effect}
 import cats.implicits._
 import cats.{Applicative, Monad}
 import com.rabbitmq.client.Channel
 import dev.profunktor.fs2rabbit.algebra.{Publish, Publishing}
 import dev.profunktor.fs2rabbit.effects.MessageEncoder
-import dev.profunktor.fs2rabbit.model._
 import dev.profunktor.fs2rabbit.interpreter.PublishEffect
-import cats.effect.{Blocker, ContextShift, Effect}
+import dev.profunktor.fs2rabbit.model._
 
 object PublishingProgram {
-  def apply[F[_]: Monad: Effect: ContextShift](block: Blocker): PublishingProgram[F] =
+  def apply[F[_]: Effect: ContextShift](block: Blocker): PublishingProgram[F] =
     new PublishingProgram[F] with PublishEffect[F] {
-      override lazy val monad: Monad[F]               = Monad[F]
+      override lazy val effect: Effect[F]             = Effect[F]
+      override lazy val monad: Monad[F]               = effect
       override lazy val blocker: Blocker              = block
       override lazy val contextShift: ContextShift[F] = ContextShift[F]
-      override lazy val effect: Effect[F]             = Effect[F]
     }
 }
 

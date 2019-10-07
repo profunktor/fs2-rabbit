@@ -16,7 +16,7 @@
 
 package dev.profunktor.fs2rabbit.interpreter
 
-import cats.effect.{Effect, Sync}
+import cats.effect.Sync
 import cats.syntax.functor._
 import com.rabbitmq.client.Channel
 import dev.profunktor.fs2rabbit.algebra.Declaration
@@ -26,15 +26,15 @@ import dev.profunktor.fs2rabbit.effects.BoolValue.syntax._
 import dev.profunktor.fs2rabbit.model.{ExchangeName, QueueName}
 
 object DeclarationEffect {
-  def apply[F[_]: Effect]: Declaration[F] =
+  def apply[F[_]: Sync]: Declaration[F] =
     new DeclarationEffect[F] {
-      override lazy val effect: Effect[F] = Effect[F]
+      override lazy val sync: Sync[F] = Sync[F]
     }
 }
 
 trait DeclarationEffect[F[_]] extends Declaration[F] {
 
-  implicit val effect: Effect[F]
+  implicit val sync: Sync[F]
 
   override def declareExchange(channel: Channel, config: DeclarationExchangeConfig): F[Unit] =
     Sync[F].delay {
