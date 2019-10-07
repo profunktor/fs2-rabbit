@@ -16,17 +16,17 @@
 
 package dev.profunktor.fs2rabbit.algebra
 
-import com.rabbitmq.client.Channel
 import dev.profunktor.fs2rabbit.config.deletion.{DeletionExchangeConfig, DeletionQueueConfig}
+import dev.profunktor.fs2rabbit.model.AMQPChannel
 
 object Deletion {
   def apply[F[_]](implicit ev: Deletion[F]): Deletion[F] = ev
 }
 
 trait Deletion[F[_]] {
-  def deleteQueue(channel: Channel, config: DeletionQueueConfig): F[Unit]
-  def deleteQueueNoWait(channel: Channel, config: DeletionQueueConfig): F[Unit]
+  def deleteQueue(channel: AMQPChannel, config: DeletionQueueConfig): F[Unit]
+  def deleteQueueNoWait(channel: AMQPChannel, config: DeletionQueueConfig): F[Unit]
 
-  def deleteExchange(channel: Channel, config: DeletionExchangeConfig): F[Unit]
-  def deleteExchangeNoWait(channel: Channel, config: DeletionExchangeConfig): F[Unit]
+  def deleteExchange(channel: AMQPChannel, config: DeletionExchangeConfig): F[Unit]
+  def deleteExchangeNoWait(channel: AMQPChannel, config: DeletionExchangeConfig): F[Unit]
 }

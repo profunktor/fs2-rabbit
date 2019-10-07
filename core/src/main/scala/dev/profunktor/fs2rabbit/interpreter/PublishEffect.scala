@@ -19,7 +19,7 @@ package dev.profunktor.fs2rabbit.interpreter
 import cats.effect.syntax.effect._
 import cats.effect.{Blocker, ContextShift, Effect, Sync}
 import cats.syntax.functor._
-import com.rabbitmq.client.{AMQP, Channel, ReturnListener}
+import com.rabbitmq.client.{AMQP, ReturnListener}
 import dev.profunktor.fs2rabbit.algebra.Publish
 import dev.profunktor.fs2rabbit.model._
 
@@ -40,12 +40,12 @@ trait PublishEffect[F[_]] extends Publish[F] {
   implicit val effect: Effect[F]
   implicit val contextShift: ContextShift[F]
 
-  override def basicPublish(channel: Channel,
+  override def basicPublish(channel: AMQPChannel,
                             exchangeName: ExchangeName,
                             routingKey: RoutingKey,
                             msg: AmqpMessage[Array[Byte]]): F[Unit] =
     blocker.delay {
-      channel.basicPublish(
+      channel.value.basicPublish(
         exchangeName.value,
         routingKey.value,
         msg.properties.asBasicProps,
@@ -53,13 +53,13 @@ trait PublishEffect[F[_]] extends Publish[F] {
       )
     }
 
-  override def basicPublishWithFlag(channel: Channel,
+  override def basicPublishWithFlag(channel: AMQPChannel,
                                     exchangeName: ExchangeName,
                                     routingKey: RoutingKey,
                                     flag: PublishingFlag,
                                     msg: AmqpMessage[Array[Byte]]): F[Unit] =
     blocker.delay {
-      channel.basicPublish(
+      channel.value.basicPublish(
         exchangeName.value,
         routingKey.value,
         flag.mandatory,
@@ -69,7 +69,7 @@ trait PublishEffect[F[_]] extends Publish[F] {
     }
 
   override def addPublishingListener(
-      channel: Channel,
+      channel: AMQPChannel,
       listener: PublishReturn => F[Unit]
   ): F[Unit] =
     Sync[F].delay {
@@ -94,12 +94,12 @@ trait PublishEffect[F[_]] extends Publish[F] {
         }
       }
 
-      channel.addReturnListener(returnListener)
+      channel.value.addReturnListener(returnListener)
     }.void
 
-  override def clearPublishingListeners(channel: Channel): F[Unit] =
+  override def clearPublishingListeners(channel: AMQPChannel): F[Unit] =
     Sync[F].delay {
-      channel.clearReturnListeners()
+      channel.value.clearReturnListeners()
     }.void
 
 }

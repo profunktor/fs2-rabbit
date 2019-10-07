@@ -18,11 +18,11 @@ package dev.profunktor.fs2rabbit.interpreter
 
 import cats.effect.Sync
 import cats.syntax.functor._
-import com.rabbitmq.client.Channel
 import dev.profunktor.fs2rabbit.algebra.Deletion
 import dev.profunktor.fs2rabbit.config.deletion
 import dev.profunktor.fs2rabbit.config.deletion.DeletionQueueConfig
 import dev.profunktor.fs2rabbit.effects.BoolValue.syntax._
+import dev.profunktor.fs2rabbit.model.AMQPChannel
 
 object DeletionEffect {
   def apply[F[_]: Sync]: Deletion[F] = new DeletionEffect[F] {
@@ -34,18 +34,18 @@ trait DeletionEffect[F[_]] extends Deletion[F] {
 
   implicit val sync: Sync[F]
 
-  override def deleteQueue(channel: Channel, config: DeletionQueueConfig): F[Unit] =
+  override def deleteQueue(channel: AMQPChannel, config: DeletionQueueConfig): F[Unit] =
     Sync[F].delay {
-      channel.queueDelete(
+      channel.value.queueDelete(
         config.queueName.value,
         config.ifUnused.isTrue,
         config.ifEmpty.isTrue
       )
     }.void
 
-  override def deleteQueueNoWait(channel: Channel, config: DeletionQueueConfig): F[Unit] =
+  override def deleteQueueNoWait(channel: AMQPChannel, config: DeletionQueueConfig): F[Unit] =
     Sync[F].delay {
-      channel.queueDeleteNoWait(
+      channel.value.queueDeleteNoWait(
         config.queueName.value,
         config.ifUnused.isTrue,
         config.ifEmpty.isTrue
@@ -53,19 +53,19 @@ trait DeletionEffect[F[_]] extends Deletion[F] {
     }.void
 
   override def deleteExchange(
-      channel: Channel,
+      channel: AMQPChannel,
       config: deletion.DeletionExchangeConfig
   ): F[Unit] =
     Sync[F].delay {
-      channel.exchangeDelete(config.exchangeName.value, config.ifUnused.isTrue)
+      channel.value.exchangeDelete(config.exchangeName.value, config.ifUnused.isTrue)
     }.void
 
   override def deleteExchangeNoWait(
-      channel: Channel,
+      channel: AMQPChannel,
       config: deletion.DeletionExchangeConfig
   ): F[Unit] =
     Sync[F].delay {
-      channel.exchangeDeleteNoWait(
+      channel.value.exchangeDeleteNoWait(
         config.exchangeName.value,
         config.ifUnused.isTrue
       )

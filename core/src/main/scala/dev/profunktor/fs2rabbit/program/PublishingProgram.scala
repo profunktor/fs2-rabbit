@@ -19,7 +19,6 @@ package dev.profunktor.fs2rabbit.program
 import cats.effect.{Blocker, ContextShift, Effect}
 import cats.implicits._
 import cats.{Applicative, Monad}
-import com.rabbitmq.client.Channel
 import dev.profunktor.fs2rabbit.algebra.{Publish, Publishing}
 import dev.profunktor.fs2rabbit.effects.MessageEncoder
 import dev.profunktor.fs2rabbit.interpreter.PublishEffect
@@ -40,14 +39,14 @@ trait PublishingProgram[F[_]] extends Publishing[F] { publish: Publish[F] =>
   implicit val monad: Monad[F]
 
   override def createPublisher[A](
-      channel: Channel,
+      channel: AMQPChannel,
       exchangeName: ExchangeName,
       routingKey: RoutingKey
   )(implicit encoder: MessageEncoder[F, A]): F[A => F[Unit]] =
     createRoutingPublisher(channel, exchangeName).map(_.apply(routingKey))
 
   override def createPublisherWithListener[A](
-      channel: Channel,
+      channel: AMQPChannel,
       exchangeName: ExchangeName,
       routingKey: RoutingKey,
       flag: PublishingFlag,
@@ -57,7 +56,7 @@ trait PublishingProgram[F[_]] extends Publishing[F] { publish: Publish[F] =>
       .map(_.apply(routingKey))
 
   override def createRoutingPublisher[A](
-      channel: Channel,
+      channel: AMQPChannel,
       exchangeName: ExchangeName
   )(implicit encoder: MessageEncoder[F, A]): F[RoutingKey => A => F[Unit]] =
     createBasicPublisher(channel).map(
@@ -65,7 +64,7 @@ trait PublishingProgram[F[_]] extends Publishing[F] { publish: Publish[F] =>
     )
 
   override def createRoutingPublisherWithListener[A](
-      channel: Channel,
+      channel: AMQPChannel,
       exchangeName: ExchangeName,
       flag: PublishingFlag,
       listener: PublishReturn => F[Unit]
@@ -74,7 +73,7 @@ trait PublishingProgram[F[_]] extends Publishing[F] { publish: Publish[F] =>
       pub => key => msg => pub(exchangeName, key, msg)
     )
 
-  override def createBasicPublisher[A](channel: Channel)(
+  override def createBasicPublisher[A](channel: AMQPChannel)(
       implicit encoder: MessageEncoder[F, A]
   ): F[(ExchangeName, RoutingKey, A) => F[Unit]] =
     Applicative[F].pure {
@@ -91,7 +90,7 @@ trait PublishingProgram[F[_]] extends Publishing[F] { publish: Publish[F] =>
     }
 
   override def createBasicPublisherWithListener[A](
-      channel: Channel,
+      channel: AMQPChannel,
       flag: PublishingFlag,
       listener: PublishReturn => F[Unit]
   )(

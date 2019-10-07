@@ -18,7 +18,6 @@ package dev.profunktor.fs2rabbit.program
 
 import cats.effect.{Bracket, Effect}
 import cats.implicits._
-import com.rabbitmq.client.Channel
 import dev.profunktor.fs2rabbit.algebra.ConsumingStream._
 import dev.profunktor.fs2rabbit.algebra.{AMQPInternals, Consume, InternalQueue}
 import dev.profunktor.fs2rabbit.arguments.Arguments
@@ -45,7 +44,7 @@ trait ConsumingProgram[F[_]] extends ConsumingStream[F] { this: Consume[F] =>
 
   override def createConsumer[A](
       queueName: QueueName,
-      channel: Channel,
+      channel: AMQPChannel,
       basicQos: BasicQos,
       autoAck: Boolean = false,
       noLocal: Boolean = false,

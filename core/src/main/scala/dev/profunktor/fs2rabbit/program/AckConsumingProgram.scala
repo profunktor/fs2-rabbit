@@ -19,7 +19,6 @@ package dev.profunktor.fs2rabbit.program
 import cats.effect._
 import cats.implicits._
 import cats.{Applicative, Apply}
-import com.rabbitmq.client.Channel
 import dev.profunktor.fs2rabbit.algebra.ConsumingStream.ConsumingStream
 import dev.profunktor.fs2rabbit.algebra.{AckConsuming, Acking, InternalQueue}
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
@@ -44,7 +43,7 @@ trait AckConsumingProgram[F[_]] extends AckConsuming[F, Stream[F, ?]] { this: Ac
   implicit val apply: Apply[F]
 
   override def createAckerConsumer[A](
-      channel: Channel,
+      channel: AMQPChannel,
       queueName: QueueName,
       basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
       consumerArgs: Option[ConsumerArgs] = None
@@ -65,7 +64,7 @@ trait AckConsumingProgram[F[_]] extends AckConsuming[F, Stream[F, ?]] { this: Ac
   }
 
   override def createAutoAckConsumer[A](
-      channel: Channel,
+      channel: AMQPChannel,
       queueName: QueueName,
       basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
       consumerArgs: Option[ConsumerArgs] = None

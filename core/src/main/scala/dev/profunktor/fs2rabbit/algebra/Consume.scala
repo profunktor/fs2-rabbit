@@ -16,7 +16,6 @@
 
 package dev.profunktor.fs2rabbit.algebra
 
-import com.rabbitmq.client.Channel
 import dev.profunktor.fs2rabbit.arguments.Arguments
 import dev.profunktor.fs2rabbit.model._
 
@@ -25,15 +24,15 @@ object Consume {
 }
 
 trait Consume[F[_]] {
-  def basicAck(channel: Channel, tag: DeliveryTag, multiple: Boolean): F[Unit]
-  def basicNack(channel: Channel, tag: DeliveryTag, multiple: Boolean, requeue: Boolean): F[Unit]
-  def basicQos(channel: Channel, basicQos: BasicQos): F[Unit]
-  def basicConsume[A](channel: Channel,
+  def basicAck(channel: AMQPChannel, tag: DeliveryTag, multiple: Boolean): F[Unit]
+  def basicNack(channel: AMQPChannel, tag: DeliveryTag, multiple: Boolean, requeue: Boolean): F[Unit]
+  def basicQos(channel: AMQPChannel, basicQos: BasicQos): F[Unit]
+  def basicConsume[A](channel: AMQPChannel,
                       queueName: QueueName,
                       autoAck: Boolean,
                       consumerTag: ConsumerTag,
                       noLocal: Boolean,
                       exclusive: Boolean,
                       args: Arguments)(internals: AMQPInternals[F]): F[ConsumerTag]
-  def basicCancel(channel: Channel, consumerTag: ConsumerTag): F[Unit]
+  def basicCancel(channel: AMQPChannel, consumerTag: ConsumerTag): F[Unit]
 }

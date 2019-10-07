@@ -18,7 +18,6 @@ package dev.profunktor.fs2rabbit.program
 
 import cats.Applicative
 import cats.effect.Effect
-import com.rabbitmq.client.Channel
 import dev.profunktor.fs2rabbit.algebra.{Acking, Consume}
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
 import dev.profunktor.fs2rabbit.interpreter.ConsumeEffect
@@ -39,7 +38,7 @@ trait AckingProgram[F[_]] extends Acking[F] { consume: Consume[F] =>
   val config: Fs2RabbitConfig
   implicit val applicative: Applicative[F]
 
-  def createAcker(channel: Channel): F[AckResult => F[Unit]] =
+  def createAcker(channel: AMQPChannel): F[AckResult => F[Unit]] =
     Applicative[F].pure {
       case Ack(tag) => consume.basicAck(channel, tag, multiple = false)
       case NAck(tag) =>

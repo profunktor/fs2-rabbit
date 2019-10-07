@@ -18,7 +18,6 @@ package dev.profunktor.fs2rabbit.interpreter
 
 import cats.effect._
 import cats.syntax.functor._
-import com.rabbitmq.client._
 import dev.profunktor.fs2rabbit.algebra.Binding
 import dev.profunktor.fs2rabbit.arguments._
 import dev.profunktor.fs2rabbit.model._
@@ -31,21 +30,21 @@ object BindingEffect {
 trait BindingEffect[F[_]] extends Binding[F] {
   implicit val sync: Sync[F]
 
-  override def bindQueue(channel: Channel,
+  override def bindQueue(channel: AMQPChannel,
                          queueName: QueueName,
                          exchangeName: ExchangeName,
                          routingKey: RoutingKey): F[Unit] =
     Sync[F].delay {
-      channel.queueBind(queueName.value, exchangeName.value, routingKey.value)
+      channel.value.queueBind(queueName.value, exchangeName.value, routingKey.value)
     }.void
 
-  override def bindQueue(channel: Channel,
+  override def bindQueue(channel: AMQPChannel,
                          queueName: QueueName,
                          exchangeName: ExchangeName,
                          routingKey: RoutingKey,
                          args: QueueBindingArgs): F[Unit] =
     Sync[F].delay {
-      channel.queueBind(
+      channel.value.queueBind(
         queueName.value,
         exchangeName.value,
         routingKey.value,
@@ -53,13 +52,13 @@ trait BindingEffect[F[_]] extends Binding[F] {
       )
     }.void
 
-  override def bindQueueNoWait(channel: Channel,
+  override def bindQueueNoWait(channel: AMQPChannel,
                                queueName: QueueName,
                                exchangeName: ExchangeName,
                                routingKey: RoutingKey,
                                args: QueueBindingArgs): F[Unit] =
     Sync[F].delay {
-      channel.queueBindNoWait(
+      channel.value.queueBindNoWait(
         queueName.value,
         exchangeName.value,
         routingKey.value,
@@ -67,7 +66,7 @@ trait BindingEffect[F[_]] extends Binding[F] {
       )
     }.void
 
-  override def unbindQueue(channel: Channel,
+  override def unbindQueue(channel: AMQPChannel,
                            queueName: QueueName,
                            exchangeName: ExchangeName,
                            routingKey: RoutingKey): F[Unit] =
@@ -81,13 +80,13 @@ trait BindingEffect[F[_]] extends Binding[F] {
       )
     }.void
 
-  override def unbindQueue(channel: Channel,
+  override def unbindQueue(channel: AMQPChannel,
                            queueName: QueueName,
                            exchangeName: ExchangeName,
                            routingKey: RoutingKey,
                            args: QueueUnbindArgs): F[Unit] =
     Sync[F].delay {
-      channel.queueUnbind(
+      channel.value.queueUnbind(
         queueName.value,
         exchangeName.value,
         routingKey.value,
@@ -95,13 +94,13 @@ trait BindingEffect[F[_]] extends Binding[F] {
       )
     }.void
 
-  override def bindExchange(channel: Channel,
+  override def bindExchange(channel: AMQPChannel,
                             destination: ExchangeName,
                             source: ExchangeName,
                             routingKey: RoutingKey,
                             args: ExchangeBindingArgs): F[Unit] =
     Sync[F].delay {
-      channel.exchangeBind(
+      channel.value.exchangeBind(
         destination.value,
         source.value,
         routingKey.value,
@@ -109,13 +108,13 @@ trait BindingEffect[F[_]] extends Binding[F] {
       )
     }.void
 
-  override def bindExchangeNoWait(channel: Channel,
+  override def bindExchangeNoWait(channel: AMQPChannel,
                                   destination: ExchangeName,
                                   source: ExchangeName,
                                   routingKey: RoutingKey,
                                   args: ExchangeBindingArgs): F[Unit] =
     Sync[F].delay {
-      channel.exchangeBindNoWait(
+      channel.value.exchangeBindNoWait(
         destination.value,
         source.value,
         routingKey.value,
@@ -123,13 +122,13 @@ trait BindingEffect[F[_]] extends Binding[F] {
       )
     }.void
 
-  override def unbindExchange(channel: Channel,
+  override def unbindExchange(channel: AMQPChannel,
                               destination: ExchangeName,
                               source: ExchangeName,
                               routingKey: RoutingKey,
                               args: ExchangeUnbindArgs): F[Unit] =
     Sync[F].delay {
-      channel.exchangeUnbind(
+      channel.value.exchangeUnbind(
         destination.value,
         source.value,
         routingKey.value,

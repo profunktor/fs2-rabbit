@@ -16,7 +16,6 @@
 
 package dev.profunktor.fs2rabbit.algebra
 
-import com.rabbitmq.client.Channel
 import dev.profunktor.fs2rabbit.config.declaration.{DeclarationExchangeConfig, DeclarationQueueConfig}
 import dev.profunktor.fs2rabbit.model._
 
@@ -25,11 +24,11 @@ object Declaration {
 }
 
 trait Declaration[F[_]] {
-  def declareExchange(channel: Channel, exchangeConfig: DeclarationExchangeConfig): F[Unit]
-  def declareExchangeNoWait(value: Channel, exchangeConfig: DeclarationExchangeConfig): F[Unit]
-  def declareExchangePassive(channel: Channel, exchangeName: ExchangeName): F[Unit]
-  def declareQueue(channel: Channel): F[QueueName]
-  def declareQueue(channel: Channel, queueConfig: DeclarationQueueConfig): F[Unit]
-  def declareQueueNoWait(channel: Channel, queueConfig: DeclarationQueueConfig): F[Unit]
-  def declareQueuePassive(channel: Channel, queueName: QueueName): F[Unit]
+  def declareExchange(channel: AMQPChannel, exchangeConfig: DeclarationExchangeConfig): F[Unit]
+  def declareExchangeNoWait(value: AMQPChannel, exchangeConfig: DeclarationExchangeConfig): F[Unit]
+  def declareExchangePassive(channel: AMQPChannel, exchangeName: ExchangeName): F[Unit]
+  def declareQueue(channel: AMQPChannel): F[QueueName]
+  def declareQueue(channel: AMQPChannel, queueConfig: DeclarationQueueConfig): F[Unit]
+  def declareQueueNoWait(channel: AMQPChannel, queueConfig: DeclarationQueueConfig): F[Unit]
+  def declareQueuePassive(channel: AMQPChannel, queueName: QueueName): F[Unit]
 }

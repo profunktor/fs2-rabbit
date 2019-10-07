@@ -16,7 +16,6 @@
 
 package dev.profunktor.fs2rabbit.algebra
 
-import com.rabbitmq.client.Channel
 import dev.profunktor.fs2rabbit.model._
 
 object Publish {
@@ -24,15 +23,15 @@ object Publish {
 }
 
 trait Publish[F[_]] {
-  def basicPublish(channel: Channel,
+  def basicPublish(channel: AMQPChannel,
                    exchangeName: ExchangeName,
                    routingKey: RoutingKey,
                    msg: AmqpMessage[Array[Byte]]): F[Unit]
-  def basicPublishWithFlag(channel: Channel,
+  def basicPublishWithFlag(channel: AMQPChannel,
                            exchangeName: ExchangeName,
                            routingKey: RoutingKey,
                            flag: PublishingFlag,
                            msg: AmqpMessage[Array[Byte]]): F[Unit]
-  def addPublishingListener(channel: Channel, listener: PublishReturn => F[Unit]): F[Unit]
-  def clearPublishingListeners(channel: Channel): F[Unit]
+  def addPublishingListener(channel: AMQPChannel, listener: PublishReturn => F[Unit]): F[Unit]
+  def clearPublishingListeners(channel: AMQPChannel): F[Unit]
 }

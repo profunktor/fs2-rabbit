@@ -40,10 +40,10 @@ trait ConsumeEffect[F[_]] extends Consume[F] {
   implicit val effect: Effect[F]
 
   private[fs2rabbit] def defaultConsumer[A](
-      channel: Channel,
+      channel: AMQPChannel,
       internals: AMQPInternals[F]
   ): F[Consumer] = Sync[F].delay {
-    new DefaultConsumer(channel) {
+    new DefaultConsumer(channel.value) {
 
       override def handleCancel(consumerTag: String): Unit =
         internals.queue.fold(()) { internalQ =>
@@ -112,18 +112,18 @@ trait ConsumeEffect[F[_]] extends Consume[F] {
     }
   }
 
-  override def basicAck(channel: Channel, tag: DeliveryTag, multiple: Boolean): F[Unit] = Sync[F].delay {
-    channel.basicAck(tag.value, multiple)
+  override def basicAck(channel: AMQPChannel, tag: DeliveryTag, multiple: Boolean): F[Unit] = Sync[F].delay {
+    channel.value.basicAck(tag.value, multiple)
   }
 
-  override def basicNack(channel: Channel, tag: DeliveryTag, multiple: Boolean, requeue: Boolean): F[Unit] =
+  override def basicNack(channel: AMQPChannel, tag: DeliveryTag, multiple: Boolean, requeue: Boolean): F[Unit] =
     Sync[F].delay {
-      channel.basicNack(tag.value, multiple, requeue)
+      channel.value.basicNack(tag.value, multiple, requeue)
     }
 
-  override def basicQos(channel: Channel, basicQos: BasicQos): F[Unit] =
+  override def basicQos(channel: AMQPChannel, basicQos: BasicQos): F[Unit] =
     Sync[F].delay {
-      channel.basicQos(
+      channel.value.basicQos(
         basicQos.prefetchSize,
         basicQos.prefetchCount,
         basicQos.global
@@ -131,7 +131,7 @@ trait ConsumeEffect[F[_]] extends Consume[F] {
     }.void
 
   override def basicConsume[A](
-      channel: Channel,
+      channel: AMQPChannel,
       queueName: QueueName,
       autoAck: Boolean,
       consumerTag: ConsumerTag,
@@ -142,7 +142,7 @@ trait ConsumeEffect[F[_]] extends Consume[F] {
     for {
       dc <- defaultConsumer(channel, internals)
       rs <- Sync[F].delay(
-             channel.basicConsume(
+             channel.value.basicConsume(
                queueName.value,
                autoAck,
                consumerTag.value,
@@ -154,9 +154,9 @@ trait ConsumeEffect[F[_]] extends Consume[F] {
            )
     } yield ConsumerTag(rs)
 
-  override def basicCancel(channel: Channel, consumerTag: ConsumerTag): F[Unit] =
+  override def basicCancel(channel: AMQPChannel, consumerTag: ConsumerTag): F[Unit] =
     Sync[F].delay {
-      channel.basicCancel(consumerTag.value)
+      channel.value.basicCancel(consumerTag.value)
     }
 
 }

@@ -102,7 +102,7 @@ class Fs2Rabbit[F[_]: Concurrent] private[fs2rabbit] (
       decoder: EnvelopeDecoder[F, A]
   ): F[(AckResult => F[Unit], Stream[F, AmqpEnvelope[A]])] =
     consumingProgram.createAckerConsumer(
-      channel.value,
+      channel,
       queueName,
       basicQos,
       consumerArgs
@@ -114,7 +114,7 @@ class Fs2Rabbit[F[_]: Concurrent] private[fs2rabbit] (
       consumerArgs: Option[ConsumerArgs] = None
   )(implicit channel: AMQPChannel, decoder: EnvelopeDecoder[F, A]): F[Stream[F, AmqpEnvelope[A]]] =
     consumingProgram.createAutoAckConsumer(
-      channel.value,
+      channel,
       queueName,
       basicQos,
       consumerArgs
@@ -124,7 +124,7 @@ class Fs2Rabbit[F[_]: Concurrent] private[fs2rabbit] (
       implicit channel: AMQPChannel,
       encoder: MessageEncoder[F, A]
   ): F[A => F[Unit]] =
-    publishingProgram.createPublisher(channel.value, exchangeName, routingKey)
+    publishingProgram.createPublisher(channel, exchangeName, routingKey)
 
   def createPublisherWithListener[A](
       exchangeName: ExchangeName,
@@ -133,7 +133,7 @@ class Fs2Rabbit[F[_]: Concurrent] private[fs2rabbit] (
       listener: PublishReturn => F[Unit]
   )(implicit channel: AMQPChannel, encoder: MessageEncoder[F, A]): F[A => F[Unit]] =
     publishingProgram.createPublisherWithListener(
-      channel.value,
+      channel,
       exchangeName,
       routingKey,
       flags,
@@ -144,14 +144,14 @@ class Fs2Rabbit[F[_]: Concurrent] private[fs2rabbit] (
       implicit channel: AMQPChannel,
       encoder: MessageEncoder[F, A]
   ): F[(ExchangeName, RoutingKey, A) => F[Unit]] =
-    publishingProgram.createBasicPublisher(channel.value)
+    publishingProgram.createBasicPublisher(channel)
 
   def createBasicPublisherWithListener[A](flag: PublishingFlag, listener: PublishReturn => F[Unit])(
       implicit channel: AMQPChannel,
       encoder: MessageEncoder[F, A]
   ): F[(ExchangeName, RoutingKey, A) => F[Unit]] =
     publishingProgram.createBasicPublisherWithListener(
-      channel.value,
+      channel,
       flag,
       listener
     )
@@ -160,7 +160,7 @@ class Fs2Rabbit[F[_]: Concurrent] private[fs2rabbit] (
       implicit channel: AMQPChannel,
       encoder: MessageEncoder[F, A]
   ): F[RoutingKey => A => F[Unit]] =
-    publishingProgram.createRoutingPublisher(channel.value, exchangeName)
+    publishingProgram.createRoutingPublisher(channel, exchangeName)
 
   def createRoutingPublisherWithListener[A](
       exchangeName: ExchangeName,
@@ -168,7 +168,7 @@ class Fs2Rabbit[F[_]: Concurrent] private[fs2rabbit] (
       listener: PublishReturn => F[Unit]
   )(implicit channel: AMQPChannel, encoder: MessageEncoder[F, A]): F[RoutingKey => A => F[Unit]] =
     publishingProgram.createRoutingPublisherWithListener(
-      channel.value,
+      channel,
       exchangeName,
       flags,
       listener
@@ -177,22 +177,22 @@ class Fs2Rabbit[F[_]: Concurrent] private[fs2rabbit] (
   def addPublishingListener(
       listener: PublishReturn => F[Unit]
   )(implicit channel: AMQPChannel): F[Unit] =
-    publish.addPublishingListener(channel.value, listener)
+    publish.addPublishingListener(channel, listener)
 
   def clearPublishingListeners(implicit channel: AMQPChannel): F[Unit] =
-    publish.clearPublishingListeners(channel.value)
+    publish.clearPublishingListeners(channel)
 
   def basicCancel(
       consumerTag: ConsumerTag
   )(implicit channel: AMQPChannel): F[Unit] =
-    consume.basicCancel(channel.value, consumerTag)
+    consume.basicCancel(channel, consumerTag)
 
   def bindQueue(
       queueName: QueueName,
       exchangeName: ExchangeName,
       routingKey: RoutingKey
   )(implicit channel: AMQPChannel): F[Unit] =
-    binding.bindQueue(channel.value, queueName, exchangeName, routingKey)
+    binding.bindQueue(channel, queueName, exchangeName, routingKey)
 
   def bindQueue(
       queueName: QueueName,
@@ -200,7 +200,7 @@ class Fs2Rabbit[F[_]: Concurrent] private[fs2rabbit] (
       routingKey: RoutingKey,
       args: QueueBindingArgs
   )(implicit channel: AMQPChannel): F[Unit] =
-    binding.bindQueue(channel.value, queueName, exchangeName, routingKey, args)
+    binding.bindQueue(channel, queueName, exchangeName, routingKey, args)
 
   def bindQueueNoWait(
       queueName: QueueName,
@@ -209,7 +209,7 @@ class Fs2Rabbit[F[_]: Concurrent] private[fs2rabbit] (
       args: QueueBindingArgs
   )(implicit channel: AMQPChannel): F[Unit] =
     binding.bindQueueNoWait(
-      channel.value,
+      channel,
       queueName,
       exchangeName,
       routingKey,
@@ -230,7 +230,7 @@ class Fs2Rabbit[F[_]: Concurrent] private[fs2rabbit] (
       args: QueueUnbindArgs
   )(implicit channel: AMQPChannel): F[Unit] =
     binding.unbindQueue(
-      channel.value,
+      channel,
       queueName,
       exchangeName,
       routingKey,
@@ -243,7 +243,7 @@ class Fs2Rabbit[F[_]: Concurrent] private[fs2rabbit] (
       routingKey: RoutingKey,
       args: ExchangeBindingArgs
   )(implicit channel: AMQPChannel): F[Unit] =
-    binding.bindExchange(channel.value, destination, source, routingKey, args)
+    binding.bindExchange(channel, destination, source, routingKey, args)
 
   def bindExchange(
       destination: ExchangeName,
@@ -264,7 +264,7 @@ class Fs2Rabbit[F[_]: Concurrent] private[fs2rabbit] (
       args: ExchangeBindingArgs
   )(implicit channel: AMQPChannel): F[Unit] =
     binding.bindExchangeNoWait(
-      channel.value,
+      channel,
       destination,
       source,
       routingKey,
@@ -277,7 +277,7 @@ class Fs2Rabbit[F[_]: Concurrent] private[fs2rabbit] (
       routingKey: RoutingKey,
       args: ExchangeUnbindArgs
   )(implicit channel: AMQPChannel): F[Unit] =
-    binding.unbindExchange(channel.value, destination, source, routingKey, args)
+    binding.unbindExchange(channel, destination, source, routingKey, args)
 
   def unbindExchange(
       destination: ExchangeName,
@@ -301,54 +301,54 @@ class Fs2Rabbit[F[_]: Concurrent] private[fs2rabbit] (
   def declareExchange(
       exchangeConfig: DeclarationExchangeConfig
   )(implicit channel: AMQPChannel): F[Unit] =
-    declaration.declareExchange(channel.value, exchangeConfig)
+    declaration.declareExchange(channel, exchangeConfig)
 
   def declareExchangeNoWait(
       exchangeConfig: DeclarationExchangeConfig
   )(implicit channel: AMQPChannel): F[Unit] =
-    declaration.declareExchangeNoWait(channel.value, exchangeConfig)
+    declaration.declareExchangeNoWait(channel, exchangeConfig)
 
   def declareExchangePassive(
       exchangeName: ExchangeName
   )(implicit channel: AMQPChannel): F[Unit] =
-    declaration.declareExchangePassive(channel.value, exchangeName)
+    declaration.declareExchangePassive(channel, exchangeName)
 
   def declareQueue(implicit channel: AMQPChannel): F[QueueName] =
-    declaration.declareQueue(channel.value)
+    declaration.declareQueue(channel)
 
   def declareQueue(
       queueConfig: DeclarationQueueConfig
   )(implicit channel: AMQPChannel): F[Unit] =
-    declaration.declareQueue(channel.value, queueConfig)
+    declaration.declareQueue(channel, queueConfig)
 
   def declareQueueNoWait(
       queueConfig: DeclarationQueueConfig
   )(implicit channel: AMQPChannel): F[Unit] =
-    declaration.declareQueueNoWait(channel.value, queueConfig)
+    declaration.declareQueueNoWait(channel, queueConfig)
 
   def declareQueuePassive(
       queueName: QueueName
   )(implicit channel: AMQPChannel): F[Unit] =
-    declaration.declareQueuePassive(channel.value, queueName)
+    declaration.declareQueuePassive(channel, queueName)
 
   def deleteQueue(
       config: DeletionQueueConfig
   )(implicit channel: AMQPChannel): F[Unit] =
-    deletion.deleteQueue(channel.value, config)
+    deletion.deleteQueue(channel, config)
 
   def deleteQueueNoWait(
       config: DeletionQueueConfig
   )(implicit channel: AMQPChannel): F[Unit] =
-    deletion.deleteQueueNoWait(channel.value, config)
+    deletion.deleteQueueNoWait(channel, config)
 
   def deleteExchange(
       config: DeletionExchangeConfig
   )(implicit channel: AMQPChannel): F[Unit] =
-    deletion.deleteExchange(channel.value, config)
+    deletion.deleteExchange(channel, config)
 
   def deleteExchangeNoWait(
       config: DeletionExchangeConfig
   )(implicit channel: AMQPChannel): F[Unit] =
-    deletion.deleteExchangeNoWait(channel.value, config)
+    deletion.deleteExchangeNoWait(channel, config)
 
 }

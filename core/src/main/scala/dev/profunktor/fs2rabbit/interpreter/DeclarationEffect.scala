@@ -18,12 +18,11 @@ package dev.profunktor.fs2rabbit.interpreter
 
 import cats.effect.Sync
 import cats.syntax.functor._
-import com.rabbitmq.client.Channel
 import dev.profunktor.fs2rabbit.algebra.Declaration
 import dev.profunktor.fs2rabbit.arguments._
 import dev.profunktor.fs2rabbit.config.declaration.{DeclarationExchangeConfig, DeclarationQueueConfig}
 import dev.profunktor.fs2rabbit.effects.BoolValue.syntax._
-import dev.profunktor.fs2rabbit.model.{ExchangeName, QueueName}
+import dev.profunktor.fs2rabbit.model.{AMQPChannel, ExchangeName, QueueName}
 
 object DeclarationEffect {
   def apply[F[_]: Sync]: Declaration[F] =
@@ -36,9 +35,9 @@ trait DeclarationEffect[F[_]] extends Declaration[F] {
 
   implicit val sync: Sync[F]
 
-  override def declareExchange(channel: Channel, config: DeclarationExchangeConfig): F[Unit] =
+  override def declareExchange(channel: AMQPChannel, config: DeclarationExchangeConfig): F[Unit] =
     Sync[F].delay {
-      channel.exchangeDeclare(
+      channel.value.exchangeDeclare(
         config.exchangeName.value,
         config.exchangeType.toString.toLowerCase,
         config.durable.isTrue,
@@ -49,11 +48,11 @@ trait DeclarationEffect[F[_]] extends Declaration[F] {
     }.void
 
   override def declareExchangeNoWait(
-      channel: Channel,
+      channel: AMQPChannel,
       config: DeclarationExchangeConfig
   ): F[Unit] =
     Sync[F].delay {
-      channel.exchangeDeclareNoWait(
+      channel.value.exchangeDeclareNoWait(
         config.exchangeName.value,
         config.exchangeType.toString.toLowerCase,
         config.durable.isTrue,
@@ -63,19 +62,19 @@ trait DeclarationEffect[F[_]] extends Declaration[F] {
       )
     }.void
 
-  override def declareExchangePassive(channel: Channel, exchangeName: ExchangeName): F[Unit] =
+  override def declareExchangePassive(channel: AMQPChannel, exchangeName: ExchangeName): F[Unit] =
     Sync[F].delay {
-      channel.exchangeDeclarePassive(exchangeName.value)
+      channel.value.exchangeDeclarePassive(exchangeName.value)
     }.void
 
-  override def declareQueue(channel: Channel): F[QueueName] =
+  override def declareQueue(channel: AMQPChannel): F[QueueName] =
     Sync[F].delay {
-      QueueName(channel.queueDeclare().getQueue)
+      QueueName(channel.value.queueDeclare().getQueue)
     }
 
-  override def declareQueue(channel: Channel, config: DeclarationQueueConfig): F[Unit] =
+  override def declareQueue(channel: AMQPChannel, config: DeclarationQueueConfig): F[Unit] =
     Sync[F].delay {
-      channel.queueDeclare(
+      channel.value.queueDeclare(
         config.queueName.value,
         config.durable.isTrue,
         config.exclusive.isTrue,
@@ -84,9 +83,9 @@ trait DeclarationEffect[F[_]] extends Declaration[F] {
       )
     }.void
 
-  override def declareQueueNoWait(channel: Channel, config: DeclarationQueueConfig): F[Unit] =
+  override def declareQueueNoWait(channel: AMQPChannel, config: DeclarationQueueConfig): F[Unit] =
     Sync[F].delay {
-      channel.queueDeclareNoWait(
+      channel.value.queueDeclareNoWait(
         config.queueName.value,
         config.durable.isTrue,
         config.exclusive.isTrue,
@@ -95,9 +94,9 @@ trait DeclarationEffect[F[_]] extends Declaration[F] {
       )
     }.void
 
-  override def declareQueuePassive(channel: Channel, queueName: QueueName): F[Unit] =
+  override def declareQueuePassive(channel: AMQPChannel, queueName: QueueName): F[Unit] =
     Sync[F].delay {
-      channel.queueDeclarePassive(queueName.value)
+      channel.value.queueDeclarePassive(queueName.value)
     }.void
 
 }

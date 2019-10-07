@@ -51,12 +51,12 @@ class AckerConsumerDemo[F[_]: Concurrent: Timer](rabbitClient: RabbitClient[F]) 
 
   val program: F[Unit] = mkChannel.use { channel =>
     for {
-      _                 <- rabbitClient.declareQueue(channel.value, DeclarationQueueConfig.default(queueName))
-      _                 <- rabbitClient.declareExchange(channel.value, DeclarationExchangeConfig.default(exchangeName, Topic))
-      _                 <- rabbitClient.bindQueue(channel.value, queueName, exchangeName, routingKey)
-      (acker, consumer) <- rabbitClient.createAckerConsumer[String](channel.value, queueName)
+      _                 <- rabbitClient.declareQueue(channel, DeclarationQueueConfig.default(queueName))
+      _                 <- rabbitClient.declareExchange(channel, DeclarationExchangeConfig.default(exchangeName, Topic))
+      _                 <- rabbitClient.bindQueue(channel, queueName, exchangeName, routingKey)
+      (acker, consumer) <- rabbitClient.createAckerConsumer[String](channel, queueName)
       publisher <- rabbitClient.createPublisherWithListener[AmqpMessage[String]](
-                    channel.value,
+                    channel,
                     exchangeName,
                     routingKey,
                     publishingFlag,
