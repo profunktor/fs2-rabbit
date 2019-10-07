@@ -16,6 +16,7 @@
 
 package dev.profunktor.fs2rabbit.interpreter
 
+import cats.Applicative
 import cats.effect._
 import com.rabbitmq.client.{DefaultSaslConfig, SaslConfig}
 import dev.profunktor.fs2rabbit.algebra._
@@ -27,7 +28,6 @@ import dev.profunktor.fs2rabbit.model._
 import dev.profunktor.fs2rabbit.program._
 import fs2.Stream
 import javax.net.ssl.SSLContext
-import cats.Applicative
 
 object Fs2Rabbit {
   def create[F[_]: ConcurrentEffect: ContextShift](
