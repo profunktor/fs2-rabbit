@@ -23,6 +23,7 @@ import com.rabbitmq.client.{AMQP, ReturnListener}
 import dev.profunktor.fs2rabbit.algebra.Publish
 import dev.profunktor.fs2rabbit.model._
 
+// TODO delete
 object PublishEffect {
   def apply[F[_]: Effect: ContextShift](
       block: Blocker

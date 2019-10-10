@@ -24,6 +24,7 @@ import dev.profunktor.fs2rabbit.config.declaration.{DeclarationExchangeConfig, D
 import dev.profunktor.fs2rabbit.effects.BoolValue.syntax._
 import dev.profunktor.fs2rabbit.model.{AMQPChannel, ExchangeName, QueueName}
 
+// TODO delete
 object DeclarationEffect {
   def apply[F[_]: Sync]: Declaration[F] =
     new DeclarationEffect[F] {

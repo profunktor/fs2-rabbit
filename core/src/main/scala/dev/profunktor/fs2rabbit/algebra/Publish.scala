@@ -16,10 +16,79 @@
 
 package dev.profunktor.fs2rabbit.algebra
 
+import cats.effect.syntax.effect._
+import cats.effect.{Blocker, ContextShift, Effect, Sync}
+import cats.syntax.functor._
+import com.rabbitmq.client.{AMQP, ReturnListener}
 import dev.profunktor.fs2rabbit.model._
 
 object Publish {
-  def apply[F[_]](implicit ev: Publish[F]): Publish[F] = ev
+  def make[F[_]: Effect: ContextShift](
+      blocker: Blocker
+  ): Publish[F] =
+    new Publish[F] {
+      override def basicPublish(channel: AMQPChannel,
+                                exchangeName: ExchangeName,
+                                routingKey: RoutingKey,
+                                msg: AmqpMessage[Array[Byte]]): F[Unit] =
+        blocker.delay {
+          channel.value.basicPublish(
+            exchangeName.value,
+            routingKey.value,
+            msg.properties.asBasicProps,
+            msg.payload
+          )
+        }
+
+      override def basicPublishWithFlag(channel: AMQPChannel,
+                                        exchangeName: ExchangeName,
+                                        routingKey: RoutingKey,
+                                        flag: PublishingFlag,
+                                        msg: AmqpMessage[Array[Byte]]): F[Unit] =
+        blocker.delay {
+          channel.value.basicPublish(
+            exchangeName.value,
+            routingKey.value,
+            flag.mandatory,
+            msg.properties.asBasicProps,
+            msg.payload
+          )
+        }
+
+      override def addPublishingListener(
+          channel: AMQPChannel,
+          listener: PublishReturn => F[Unit]
+      ): F[Unit] =
+        Sync[F].delay {
+          val returnListener = new ReturnListener {
+            override def handleReturn(replyCode: Int,
+                                      replyText: String,
+                                      exchange: String,
+                                      routingKey: String,
+                                      properties: AMQP.BasicProperties,
+                                      body: Array[Byte]): Unit = {
+              val publishReturn =
+                PublishReturn(
+                  ReplyCode(replyCode),
+                  ReplyText(replyText),
+                  ExchangeName(exchange),
+                  RoutingKey(routingKey),
+                  AmqpProperties.unsafeFrom(properties),
+                  AmqpBody(body)
+                )
+
+              listener(publishReturn).toIO.unsafeRunAsync(_ => ())
+            }
+          }
+
+          channel.value.addReturnListener(returnListener)
+        }.void
+
+      override def clearPublishingListeners(channel: AMQPChannel): F[Unit] =
+        Sync[F].delay {
+          channel.value.clearReturnListeners()
+        }.void
+    }
 }
 
 trait Publish[F[_]] {

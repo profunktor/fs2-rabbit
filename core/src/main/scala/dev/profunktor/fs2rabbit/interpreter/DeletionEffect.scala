@@ -24,6 +24,7 @@ import dev.profunktor.fs2rabbit.config.deletion.DeletionQueueConfig
 import dev.profunktor.fs2rabbit.effects.BoolValue.syntax._
 import dev.profunktor.fs2rabbit.model.AMQPChannel
 
+// TODO delete
 object DeletionEffect {
   def apply[F[_]: Sync]: Deletion[F] = new DeletionEffect[F] {
     override lazy val sync: Sync[F] = Sync[F]

@@ -22,6 +22,7 @@ import dev.profunktor.fs2rabbit.algebra.Binding
 import dev.profunktor.fs2rabbit.arguments._
 import dev.profunktor.fs2rabbit.model._
 
+// TODO delete
 object BindingEffect {
   def apply[F[_]: Sync]: Binding[F] =
     new BindingEffect[F] { override lazy val sync: Sync[F] = Sync[F] }

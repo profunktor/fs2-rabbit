@@ -28,6 +28,7 @@ import dev.profunktor.fs2rabbit.model._
 
 import scala.util.{Failure, Success, Try}
 
+// TODO delete
 object ConsumeEffect {
   def apply[F[_]: Effect]: Consume[F] =
     new ConsumeEffect[F] {

@@ -16,11 +16,53 @@
 
 package dev.profunktor.fs2rabbit.algebra
 
+import cats.effect.Sync
+import cats.syntax.functor._
+import dev.profunktor.fs2rabbit.config.deletion
 import dev.profunktor.fs2rabbit.config.deletion.{DeletionExchangeConfig, DeletionQueueConfig}
+import dev.profunktor.fs2rabbit.effects.BoolValue.syntax._
 import dev.profunktor.fs2rabbit.model.AMQPChannel
 
 object Deletion {
-  def apply[F[_]](implicit ev: Deletion[F]): Deletion[F] = ev
+  def make[F[_]: Sync]: Deletion[F] = new Deletion[F] {
+    override def deleteQueue(channel: AMQPChannel, config: DeletionQueueConfig): F[Unit] =
+      Sync[F].delay {
+        channel.value.queueDelete(
+          config.queueName.value,
+          config.ifUnused.isTrue,
+          config.ifEmpty.isTrue
+        )
+      }.void
+
+    override def deleteQueueNoWait(channel: AMQPChannel, config: DeletionQueueConfig): F[Unit] =
+      Sync[F].delay {
+        channel.value.queueDeleteNoWait(
+          config.queueName.value,
+          config.ifUnused.isTrue,
+          config.ifEmpty.isTrue
+        )
+      }.void
+
+    override def deleteExchange(
+        channel: AMQPChannel,
+        config: deletion.DeletionExchangeConfig
+    ): F[Unit] =
+      Sync[F].delay {
+        channel.value.exchangeDelete(config.exchangeName.value, config.ifUnused.isTrue)
+      }.void
+
+    override def deleteExchangeNoWait(
+        channel: AMQPChannel,
+        config: deletion.DeletionExchangeConfig
+    ): F[Unit] =
+      Sync[F].delay {
+        channel.value.exchangeDeleteNoWait(
+          config.exchangeName.value,
+          config.ifUnused.isTrue
+        )
+      }.void
+
+  }
 }
 
 trait Deletion[F[_]] {

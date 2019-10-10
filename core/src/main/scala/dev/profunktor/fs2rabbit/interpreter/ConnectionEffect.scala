@@ -27,6 +27,7 @@ import dev.profunktor.fs2rabbit.javaConversion._
 import dev.profunktor.fs2rabbit.model.{AMQPChannel, AMQPConnection, RabbitChannel, RabbitConnection}
 import javax.net.ssl.SSLContext
 
+// TODO delete
 object ConnectionEffect {
   def apply[F[_]: Sync: Log](
       conf: Fs2RabbitConfig,

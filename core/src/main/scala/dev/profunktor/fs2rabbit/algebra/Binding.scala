@@ -16,10 +16,124 @@
 
 package dev.profunktor.fs2rabbit.algebra
 
+import cats.effect.Sync
+import cats.syntax.functor._
+import dev.profunktor.fs2rabbit.arguments._
 import dev.profunktor.fs2rabbit.model._
 
 object Binding {
-  def apply[F[_]](implicit ev: Binding[F]): Binding[F] = ev
+  def make[F[_]: Sync]: Binding[F] =
+    new Binding[F] {
+      override def bindQueue(channel: AMQPChannel,
+                             queueName: QueueName,
+                             exchangeName: ExchangeName,
+                             routingKey: RoutingKey): F[Unit] =
+        Sync[F].delay {
+          channel.value.queueBind(
+            queueName.value,
+            exchangeName.value,
+            routingKey.value
+          )
+        }.void
+
+      override def bindQueue(channel: AMQPChannel,
+                             queueName: QueueName,
+                             exchangeName: ExchangeName,
+                             routingKey: RoutingKey,
+                             args: QueueBindingArgs): F[Unit] =
+        Sync[F].delay {
+          channel.value.queueBind(
+            queueName.value,
+            exchangeName.value,
+            routingKey.value,
+            args.value
+          )
+        }.void
+
+      override def bindQueueNoWait(channel: AMQPChannel,
+                                   queueName: QueueName,
+                                   exchangeName: ExchangeName,
+                                   routingKey: RoutingKey,
+                                   args: QueueBindingArgs): F[Unit] =
+        Sync[F].delay {
+          channel.value.queueBindNoWait(
+            queueName.value,
+            exchangeName.value,
+            routingKey.value,
+            args.value
+          )
+        }.void
+
+      override def unbindQueue(channel: AMQPChannel,
+                               queueName: QueueName,
+                               exchangeName: ExchangeName,
+                               routingKey: RoutingKey): F[Unit] =
+        Sync[F].delay {
+          unbindQueue(
+            channel,
+            queueName,
+            exchangeName,
+            routingKey,
+            QueueUnbindArgs(Map.empty)
+          )
+        }.void
+
+      override def unbindQueue(channel: AMQPChannel,
+                               queueName: QueueName,
+                               exchangeName: ExchangeName,
+                               routingKey: RoutingKey,
+                               args: QueueUnbindArgs): F[Unit] =
+        Sync[F].delay {
+          channel.value.queueUnbind(
+            queueName.value,
+            exchangeName.value,
+            routingKey.value,
+            args.value
+          )
+        }.void
+
+      override def bindExchange(channel: AMQPChannel,
+                                destination: ExchangeName,
+                                source: ExchangeName,
+                                routingKey: RoutingKey,
+                                args: ExchangeBindingArgs): F[Unit] =
+        Sync[F].delay {
+          channel.value.exchangeBind(
+            destination.value,
+            source.value,
+            routingKey.value,
+            args.value
+          )
+        }.void
+
+      override def bindExchangeNoWait(channel: AMQPChannel,
+                                      destination: ExchangeName,
+                                      source: ExchangeName,
+                                      routingKey: RoutingKey,
+                                      args: ExchangeBindingArgs): F[Unit] =
+        Sync[F].delay {
+          channel.value.exchangeBindNoWait(
+            destination.value,
+            source.value,
+            routingKey.value,
+            args.value
+          )
+        }.void
+
+      override def unbindExchange(channel: AMQPChannel,
+                                  destination: ExchangeName,
+                                  source: ExchangeName,
+                                  routingKey: RoutingKey,
+                                  args: ExchangeUnbindArgs): F[Unit] =
+        Sync[F].delay {
+          channel.value.exchangeUnbind(
+            destination.value,
+            source.value,
+            routingKey.value,
+            args.value
+          )
+        }.void
+    }
 }
 
 trait Binding[F[_]] {
