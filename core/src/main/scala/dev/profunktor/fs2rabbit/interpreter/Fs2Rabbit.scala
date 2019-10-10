@@ -46,8 +46,8 @@ object Fs2Rabbit {
     val deletionClient    = DeletionEffect[F]
 
     val internalQ: InternalQueue[F]                     = new LiveInternalQueue[F](config.internalQueueSize.getOrElse(500))
-    val consumingProgram: AckConsuming[F, Stream[F, ?]] = AckConsumingProgram[F](config, internalQ)
-    val publishingProgram: Publishing[F]                = PublishingProgram[F](blocker)
+    val consumingProgram: AckConsuming[F, Stream[F, ?]] = AckConsumingProgramOld[F](config, internalQ)
+    val publishingProgram: Publishing[F]                = PublishingProgramOld[F](blocker)
 
     new Fs2Rabbit[F](
       conn,

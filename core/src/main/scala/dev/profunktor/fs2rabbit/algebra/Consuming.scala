@@ -24,6 +24,7 @@ import fs2.Stream
 object ConsumingStream {
   type ConsumingStream[F[_]] = Consuming[F, Stream[F, ?]]
 
+  // TODO delete
   def apply[F[_]](implicit ev: Consuming[F, Stream[F, ?]]): Consuming[F, Stream[F, ?]] = ev
 }
 

@@ -25,7 +25,12 @@ import dev.profunktor.fs2rabbit.algebra.ConsumingStream.ConsumingStream
 import dev.profunktor.fs2rabbit.algebra.{Acking, Binding, InternalQueue, _}
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
 import dev.profunktor.fs2rabbit.effects.Log
-import dev.profunktor.fs2rabbit.program.{AckConsumingProgram, AckingProgram, ConsumingProgram, PublishingProgram}
+import dev.profunktor.fs2rabbit.program.{
+  AckConsumingProgramOld,
+  AckingProgramOld,
+  ConsumingProgramOld,
+  PublishingProgramOld
+}
 import javax.net.ssl.SSLContext
 
 object RabbitClient {
@@ -36,8 +41,8 @@ object RabbitClient {
       saslCfg: SaslConfig = DefaultSaslConfig.PLAIN
   ): RabbitClient[F] =
     new RabbitClient[F] with ConnectionEffect[F] with ConsumeEffect[F] with BindingEffect[F] with PublishEffect[F]
-    with DeclarationEffect[F] with DeletionEffect[F] with ConsumingProgram[F] with PublishingProgram[F]
-    with AckingProgram[F] with AckConsumingProgram[F] {
+    with DeclarationEffect[F] with DeletionEffect[F] with ConsumingProgramOld[F] with PublishingProgramOld[F]
+    with AckingProgramOld[F] with AckConsumingProgramOld[F] {
       override lazy val contextShift: ContextShift[F]  = ContextShift[F]
       override lazy val effect: Effect[F]              = Effect[F]
       override lazy val sync: Sync[F]                  = effect
