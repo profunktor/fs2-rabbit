@@ -22,7 +22,7 @@ import cats.data.Kleisli
 import cats.effect._
 import cats.implicits._
 import dev.profunktor.fs2rabbit.config.declaration.{DeclarationExchangeConfig, DeclarationQueueConfig}
-import dev.profunktor.fs2rabbit.interpreter.RabbitClient
+import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
 import dev.profunktor.fs2rabbit.json.Fs2JsonEncoder
 import dev.profunktor.fs2rabbit.model.AckResult.Ack
 import dev.profunktor.fs2rabbit.model.AmqpFieldValue.{LongVal, StringVal}
@@ -30,7 +30,7 @@ import dev.profunktor.fs2rabbit.model.ExchangeType.Topic
 import dev.profunktor.fs2rabbit.model._
 import fs2._
 
-class AckerConsumerDemo[F[_]: Concurrent: Timer](rabbitClient: RabbitClient[F]) {
+class AckerConsumerDemo[F[_]: Concurrent: Timer](fs2Rabbit: Fs2Rabbit[F]) {
   private val queueName    = QueueName("testQ")
   private val exchangeName = ExchangeName("testEX")
   private val routingKey   = RoutingKey("testRK")
@@ -47,16 +47,15 @@ class AckerConsumerDemo[F[_]: Concurrent: Timer](rabbitClient: RabbitClient[F]) 
   // Run when there's no consumer for the routing key specified by the publisher and the flag mandatory is true
   val publishingListener: PublishReturn => F[Unit] = pr => putStrLn(s"Publish listener: $pr")
 
-  private val mkChannel = rabbitClient.createConnection.flatMap(rabbitClient.createChannel)
+  private val mkChannel = fs2Rabbit.createConnection.flatMap(fs2Rabbit.createChannel)
 
-  val program: F[Unit] = mkChannel.use { channel =>
+  val program: F[Unit] = mkChannel.use { implicit channel =>
     for {
-      _                 <- rabbitClient.declareQueue(channel, DeclarationQueueConfig.default(queueName))
-      _                 <- rabbitClient.declareExchange(channel, DeclarationExchangeConfig.default(exchangeName, Topic))
-      _                 <- rabbitClient.bindQueue(channel, queueName, exchangeName, routingKey)
-      (acker, consumer) <- rabbitClient.createAckerConsumer[String](channel, queueName)
-      publisher <- rabbitClient.createPublisherWithListener[AmqpMessage[String]](
-                    channel,
+      _                 <- fs2Rabbit.declareQueue(DeclarationQueueConfig.default(queueName))
+      _                 <- fs2Rabbit.declareExchange(DeclarationExchangeConfig.default(exchangeName, Topic))
+      _                 <- fs2Rabbit.bindQueue(queueName, exchangeName, routingKey)
+      (acker, consumer) <- fs2Rabbit.createAckerConsumer[String](queueName)
+      publisher <- fs2Rabbit.createPublisherWithListener[AmqpMessage[String]](
                     exchangeName,
                     routingKey,
                     publishingFlag,
