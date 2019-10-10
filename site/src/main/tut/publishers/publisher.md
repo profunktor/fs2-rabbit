@@ -11,14 +11,14 @@ A `Publisher` is simply created by specifying an `ExchangeName` and a `RoutingKe
 ```tut:book:silent
 import cats.effect._
 import dev.profunktor.fs2rabbit.model._
-import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
+import dev.profunktor.fs2rabbit.interpreter.RabbitClient
 
 val exchangeName = ExchangeName("testEX")
 val routingKey   = RoutingKey("testRK")
 
 def doSomething(publisher: String => IO[Unit]): IO[Unit] = IO.unit
 
-def program(R: Fs2Rabbit[IO]) =
+def program(R: RabbitClient[IO]) =
   R.createConnectionChannel.use { implicit channel =>
     R.createPublisher[String](exchangeName, routingKey).flatMap(doSomething)
   }

@@ -31,7 +31,7 @@ import dev.profunktor.fs2rabbit.program._
 import fs2.Stream
 import javax.net.ssl.SSLContext
 
-object Fs2Rabbit {
+object RabbitClient {
 
   def apply[F[_]: ConcurrentEffect: ContextShift](
       config: Fs2RabbitConfig,
@@ -40,7 +40,7 @@ object Fs2Rabbit {
       // Unlike SSLContext, SaslConfig is not optional because it is always set
       // by the underlying Java library, even if the user doesn't set it.
       saslConfig: SaslConfig = DefaultSaslConfig.PLAIN
-  ): F[Fs2Rabbit[F]] = {
+  ): F[RabbitClient[F]] = {
 
     val internalQ         = new LiveInternalQueue[F](config.internalQueueSize.getOrElse(500))
     val connection        = ConnectionResource.make(config, sslContext, saslConfig)
@@ -55,7 +55,7 @@ object Fs2Rabbit {
         val declarationClient = Declaration.make[F]
         val deletionClient    = Deletion.make[F]
 
-        new Fs2Rabbit[F](
+        new RabbitClient[F](
           conn,
           consumeClient,
           publishClient,
@@ -69,7 +69,7 @@ object Fs2Rabbit {
   }
 }
 
-class Fs2Rabbit[F[_]: Concurrent] private[fs2rabbit] (
+class RabbitClient[F[_]: Concurrent] private[fs2rabbit] (
     connection: ConnectionResource[F],
     consume: Consume[F],
     publish: Publish[F],

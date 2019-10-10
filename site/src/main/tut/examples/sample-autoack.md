@@ -15,7 +15,7 @@ import cats.data.Kleisli
 import cats.effect._
 import cats.implicits._
 import dev.profunktor.fs2rabbit.config.declaration.DeclarationQueueConfig
-import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
+import dev.profunktor.fs2rabbit.interpreter.RabbitClient
 import dev.profunktor.fs2rabbit.json.Fs2JsonEncoder
 import dev.profunktor.fs2rabbit.model.AckResult.Ack
 import dev.profunktor.fs2rabbit.model.AmqpFieldValue.{LongVal, StringVal}
@@ -51,7 +51,7 @@ class AutoAckFlow[F[_]: Concurrent, A](
 
 }
 
-class AutoAckConsumerDemo[F[_]: Concurrent](R: Fs2Rabbit[F]) {
+class AutoAckConsumerDemo[F[_]: Concurrent](R: RabbitClient[F]) {
 
   private val queueName    = QueueName("testQ")
   private val exchangeName = ExchangeName("testEX")
@@ -83,7 +83,7 @@ import cats.data.NonEmptyList
 import cats.effect._
 import cats.syntax.functor._
 import dev.profunktor.fs2rabbit.config.{Fs2RabbitConfig, Fs2RabbitNodeConfig}
-import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
+import dev.profunktor.fs2rabbit.interpreter.RabbitClient
 import dev.profunktor.fs2rabbit.resiliency.ResilientStream
 import monix.eval.{Task, TaskApp}
 import java.util.concurrent.Executors
@@ -114,7 +114,7 @@ object MonixAutoAckConsumer extends TaskApp {
 
   override def run(args: List[String]): Task[ExitCode] =
     blockerResource.use { blocker =>
-      Fs2Rabbit[Task](config, blocker).flatMap { client =>
+      RabbitClient[Task](config, blocker).flatMap { client =>
         ResilientStream
           .runF(new AutoAckConsumerDemo[Task](client).program)
           .as(ExitCode.Success)

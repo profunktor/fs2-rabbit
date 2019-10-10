@@ -628,25 +628,25 @@ trait Fs2RabbitSpec { self: BaseSpec =>
       }
   }
 
-  private def withStreamRabbit[A](fa: Fs2Rabbit[IO] => Stream[IO, A]): Future[Assertion] =
+  private def withStreamRabbit[A](fa: RabbitClient[IO] => Stream[IO, A]): Future[Assertion] =
     blockerResource
       .use { blocker =>
-        Fs2Rabbit[IO](config, blocker).flatMap(r => fa(r).compile.drain)
+        RabbitClient[IO](config, blocker).flatMap(r => fa(r).compile.drain)
       }
       .as(emptyAssertion)
       .unsafeToFuture
 
-  private def withStreamNackRabbit[A](fa: Fs2Rabbit[IO] => Stream[IO, A]): Future[Assertion] =
+  private def withStreamNackRabbit[A](fa: RabbitClient[IO] => Stream[IO, A]): Future[Assertion] =
     blockerResource
       .use { blocker =>
-        Fs2Rabbit[IO](config.copy(requeueOnNack = true), blocker).flatMap(r => fa(r).compile.drain)
+        RabbitClient[IO](config.copy(requeueOnNack = true), blocker).flatMap(r => fa(r).compile.drain)
       }
       .as(emptyAssertion)
       .unsafeToFuture
 
-  private def withRabbit[A](fa: Fs2Rabbit[IO] => IO[A]): Future[A] =
+  private def withRabbit[A](fa: RabbitClient[IO] => IO[A]): Future[A] =
     blockerResource.use { blocker =>
-      Fs2Rabbit[IO](config, blocker).flatMap(r => fa(r))
+      RabbitClient[IO](config, blocker).flatMap(r => fa(r))
     }.unsafeToFuture
 
   private def randomQueueData: IO[(QueueName, ExchangeName, RoutingKey)] =

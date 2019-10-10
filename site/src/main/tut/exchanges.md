@@ -16,13 +16,13 @@ If the `Exchange` already exists, but has different properties (type, internal, 
 ```tut:book:silent
 import cats.effect.IO
 import cats.implicits._
-import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
+import dev.profunktor.fs2rabbit.interpreter.RabbitClient
 import dev.profunktor.fs2rabbit.model._
 
 val x1 = ExchangeName("x1")
 val x2 = ExchangeName("x2")
 
-def exchanges(R: Fs2Rabbit[IO]) =
+def exchanges(R: RabbitClient[IO]) =
   R.createConnectionChannel.use { implicit channel =>
     R.declareExchange(x1, ExchangeType.Topic) *>
     R.declareExchange(x2, ExchangeType.FanOut)
@@ -33,12 +33,12 @@ An `Exchange` can be declared passively, meaning that the `Exchange` is required
 
 ```tut:book:silent
 import cats.effect.IO
-import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
+import dev.profunktor.fs2rabbit.interpreter.RabbitClient
 import dev.profunktor.fs2rabbit.model._
 
 val x = ExchangeName("x")
 
-def exchanges(R: Fs2Rabbit[IO]) =
+def exchanges(R: RabbitClient[IO]) =
   R.createConnectionChannel.use { implicit channel =>
     R.declareExchangePassive(x)
   }
@@ -49,7 +49,7 @@ def exchanges(R: Fs2Rabbit[IO]) =
 Two exchanges can be bound together by providing a `RoutingKey` and some extra arguments with `ExchangeBindingArgs`.
 
 ```tut:book:silent
-def binding(R: Fs2Rabbit[IO])(implicit channel: AMQPChannel) =
+def binding(R: RabbitClient[IO])(implicit channel: AMQPChannel) =
   R.bindExchange(x1, x2, RoutingKey("rk"), ExchangeBindingArgs(Map.empty))
 ```
 

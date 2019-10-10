@@ -17,7 +17,7 @@
 package dev.profunktor.fs2rabbit.examples
 
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
-import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
+import dev.profunktor.fs2rabbit.interpreter.RabbitClient
 
 import cats.effect.{Blocker, Resource}
 import zio._
@@ -48,7 +48,7 @@ object ZIOAutoAckConsumer extends CatsApp {
   override def run(args: List[String]): UIO[Int] =
     blockerResource
       .use { blocker =>
-        Fs2Rabbit[Task](config, blocker).flatMap { client =>
+        RabbitClient[Task](config, blocker).flatMap { client =>
           ResilientStream
             .runF(new AutoAckConsumerDemo[Task](client).program)
         }

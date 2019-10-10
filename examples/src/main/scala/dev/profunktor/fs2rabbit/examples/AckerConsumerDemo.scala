@@ -22,7 +22,7 @@ import cats.data.Kleisli
 import cats.effect._
 import cats.implicits._
 import dev.profunktor.fs2rabbit.config.declaration.{DeclarationExchangeConfig, DeclarationQueueConfig}
-import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
+import dev.profunktor.fs2rabbit.interpreter.RabbitClient
 import dev.profunktor.fs2rabbit.json.Fs2JsonEncoder
 import dev.profunktor.fs2rabbit.model.AckResult.Ack
 import dev.profunktor.fs2rabbit.model.AmqpFieldValue.{LongVal, StringVal}
@@ -30,7 +30,7 @@ import dev.profunktor.fs2rabbit.model.ExchangeType.Topic
 import dev.profunktor.fs2rabbit.model._
 import fs2._
 
-class AckerConsumerDemo[F[_]: Concurrent: Timer](fs2Rabbit: Fs2Rabbit[F]) {
+class AckerConsumerDemo[F[_]: Concurrent: Timer](fs2Rabbit: RabbitClient[F]) {
   private val queueName    = QueueName("testQ")
   private val exchangeName = ExchangeName("testEX")
   private val routingKey   = RoutingKey("testRK")
