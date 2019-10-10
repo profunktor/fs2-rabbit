@@ -61,14 +61,12 @@ object Deletion {
           config.ifUnused.isTrue
         )
       }.void
-
   }
 }
 
 trait Deletion[F[_]] {
   def deleteQueue(channel: AMQPChannel, config: DeletionQueueConfig): F[Unit]
   def deleteQueueNoWait(channel: AMQPChannel, config: DeletionQueueConfig): F[Unit]
-
   def deleteExchange(channel: AMQPChannel, config: DeletionExchangeConfig): F[Unit]
   def deleteExchangeNoWait(channel: AMQPChannel, config: DeletionExchangeConfig): F[Unit]
 }

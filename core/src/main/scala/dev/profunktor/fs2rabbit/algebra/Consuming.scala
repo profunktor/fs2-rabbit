@@ -23,13 +23,9 @@ import fs2.Stream
 
 object ConsumingStream {
   type ConsumingStream[F[_]] = Consuming[F, Stream[F, ?]]
-
-  // TODO delete
-  def apply[F[_]](implicit ev: Consuming[F, Stream[F, ?]]): Consuming[F, Stream[F, ?]] = ev
 }
 
 trait Consuming[F[_], R[_]] {
-
   def createConsumer[A](
       queueName: QueueName,
       channel: AMQPChannel,
@@ -40,5 +36,4 @@ trait Consuming[F[_], R[_]] {
       consumerTag: ConsumerTag = ConsumerTag(""),
       args: Arguments = Map.empty
   )(implicit decoder: EnvelopeDecoder[F, A]): F[R[AmqpEnvelope[A]]]
-
 }

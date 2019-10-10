@@ -22,7 +22,6 @@ import cats.implicits._
 import com.rabbitmq.client.{Address, ConnectionFactory, DefaultSaslConfig, SaslConfig}
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
 import dev.profunktor.fs2rabbit.effects.Log
-import dev.profunktor.fs2rabbit.interpreter.ConnectionEffect
 import dev.profunktor.fs2rabbit.javaConversion._
 import dev.profunktor.fs2rabbit.model.{AMQPChannel, AMQPConnection, RabbitChannel, RabbitConnection}
 import javax.net.ssl.SSLContext
@@ -65,7 +64,7 @@ object ConnectionResource {
             .map(RabbitChannel)
 
         private[fs2rabbit] val acquireConnection: F[AMQPConnection] =
-          ConnectionEffect.mkConnectionFactory(conf, sslCtx, saslConf).flatMap {
+          mkConnectionFactory.flatMap {
             case (factory, addresses) =>
               Sync[F]
                 .delay(factory.newConnection(addresses.toList.asJava))

@@ -18,10 +18,6 @@ package dev.profunktor.fs2rabbit.algebra
 
 import dev.profunktor.fs2rabbit.model.{AMQPChannel, AckResult}
 
-object Acking {
-  def apply[F[_]](implicit ev: Acking[F]): Acking[F] = ev
-}
-
 trait Acking[F[_]] {
   def createAcker(channel: AMQPChannel): F[AckResult => F[Unit]]
 }

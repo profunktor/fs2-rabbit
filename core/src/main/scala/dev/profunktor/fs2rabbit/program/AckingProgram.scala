@@ -21,7 +21,6 @@ import cats.effect.{Effect, Sync}
 import dev.profunktor.fs2rabbit.algebra.{AMQPInternals, Acking, Consume}
 import dev.profunktor.fs2rabbit.arguments.Arguments
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
-import dev.profunktor.fs2rabbit.interpreter.ConsumeEffect
 import dev.profunktor.fs2rabbit.model.AckResult.{Ack, NAck}
 import dev.profunktor.fs2rabbit.model._
 
@@ -63,27 +62,4 @@ case class WrapperAckingProgram[F[_]: Effect] private (
 
   override def basicCancel(channel: AMQPChannel, consumerTag: ConsumerTag): F[Unit] =
     consume.basicCancel(channel, consumerTag)
-}
-
-object AckingProgramOld {
-  def apply[F[_]: Effect](configuration: Fs2RabbitConfig): Acking[F] =
-    new AckingProgramOld[F] with ConsumeEffect[F] {
-      override lazy val config: Fs2RabbitConfig     = configuration
-      override lazy val effect: Effect[F]           = Effect[F]
-      override lazy val applicative: Applicative[F] = effect
-    }
-}
-
-trait AckingProgramOld[F[_]] extends Acking[F] { consume: Consume[F] =>
-
-  val config: Fs2RabbitConfig
-  implicit val applicative: Applicative[F]
-
-  def createAcker(channel: AMQPChannel): F[AckResult => F[Unit]] =
-    Applicative[F].pure {
-      case Ack(tag) => consume.basicAck(channel, tag, multiple = false)
-      case NAck(tag) =>
-        consume.basicNack(channel, tag, multiple = false, config.requeueOnNack)
-    }
-
 }
