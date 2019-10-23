@@ -5,12 +5,12 @@ object Dependencies {
   object Version {
     val catsEffect = "2.0.0"
     val fs2        = "2.0.1"
-    val circe      = "0.12.2"
+    val circe      = "0.12.3"
     val amqpClient = "5.7.3"
     val logback    = "1.2.3"
     val monix      = "3.0.0"
-    val zio        = "1.0.0-RC14"
-    val zioCats    = "2.0.0.0-RC5"
+    val zio        = "1.0.0-RC15"
+    val zioCats    = "2.0.0.0-RC6"
 
     val kindProjector    = "0.10.3"
     val betterMonadicFor = "0.3.1"
