@@ -11,14 +11,14 @@ An `AckerConsumer` delegates the responsibility to acknowledge messages to the u
 ```tut:book:silent
 import cats.effect.IO
 import dev.profunktor.fs2rabbit.model._
-import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
+import dev.profunktor.fs2rabbit.interpreter.RabbitClient
 import fs2.Stream
 
 val queueName = QueueName("daQ")
 
 def doSomething(consumer: Stream[IO, AmqpEnvelope[String]], acker: AckResult => IO[Unit]): IO[Unit] = IO.unit
 
-def program(R: Fs2Rabbit[IO]) =
+def program(R: RabbitClient[IO]) =
   R.createConnectionChannel.use { implicit channel =>
     R.createAckerConsumer[String](queueName).flatMap { case (acker, consumer) =>
       doSomething(consumer, acker)

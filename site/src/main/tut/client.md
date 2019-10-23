@@ -6,22 +6,22 @@ number: 2
 
 # Fs2 Rabbit Client
 
-`Fs2Rabbit` is the main client that wraps the communication  with `RabbitMQ`. The mandatory arguments are a `Fs2RabbitConfig` and a `cats.effect.Blocker` used for publishing (this action is blocking in the underlying Java client). Optionally, you can pass in a custom `SSLContext` and `SaslConfig`.
+`RabbitClient` is the main client that wraps the communication  with `RabbitMQ`. The mandatory arguments are a `Fs2RabbitConfig` and a `cats.effect.Blocker` used for publishing (this action is blocking in the underlying Java client). Optionally, you can pass in a custom `SSLContext` and `SaslConfig`.
 
 ```tut:book:silent
 import cats.effect._
 import com.rabbitmq.client.{DefaultSaslConfig, SaslConfig}
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
-import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
+import dev.profunktor.fs2rabbit.interpreter.RabbitClient
 import javax.net.ssl.SSLContext
 
-object Fs2Rabbit {
+object RabbitClient {
   def apply[F[_]: ConcurrentEffect: ContextShift](
     config: Fs2RabbitConfig,
     blocker: Blocker,
     sslContext: Option[SSLContext] = None,
     saslConfig: SaslConfig = DefaultSaslConfig.PLAIN
-  ): F[Fs2Rabbit[F]] = ???
+  ): F[RabbitClient[F]] = ???
 }
 ```
 
@@ -31,11 +31,11 @@ Its creation is effectful so you need to `flatMap` and pass it as an argument. F
 import cats.effect._
 import cats.syntax.functor._
 import dev.profunktor.fs2rabbit.model._
-import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
+import dev.profunktor.fs2rabbit.interpreter.RabbitClient
 import java.util.concurrent.Executors
 
 object Program {
-  def foo[F[_]](client: Fs2Rabbit[F]): F[Unit] = ???
+  def foo[F[_]](client: RabbitClient[F]): F[Unit] = ???
 }
 
 class Demo extends IOApp {
@@ -59,7 +59,7 @@ class Demo extends IOApp {
 
   override def run(args: List[String]): IO[ExitCode] =
     blockerResource.use { blocker =>
-      Fs2Rabbit[IO](config, blocker).flatMap { client =>
+      RabbitClient[IO](config, blocker).flatMap { client =>
         Program.foo[IO](client).as(ExitCode.Success)
       }
     }

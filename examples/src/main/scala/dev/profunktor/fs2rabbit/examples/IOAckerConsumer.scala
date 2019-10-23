@@ -16,24 +16,20 @@
 
 package dev.profunktor.fs2rabbit.examples
 
+import java.util.concurrent.Executors
+
 import cats.data.NonEmptyList
 import cats.effect._
 import cats.syntax.functor._
 import dev.profunktor.fs2rabbit.config.{Fs2RabbitConfig, Fs2RabbitNodeConfig}
-import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
+import dev.profunktor.fs2rabbit.interpreter.RabbitClient
 import dev.profunktor.fs2rabbit.resiliency.ResilientStream
-import java.util.concurrent.Executors
 
 object IOAckerConsumer extends IOApp {
 
   private val config: Fs2RabbitConfig = Fs2RabbitConfig(
     virtualHost = "/",
-    nodes = NonEmptyList.one(
-      Fs2RabbitNodeConfig(
-        host = "127.0.0.1",
-        port = 5672
-      )
-    ),
+    nodes = NonEmptyList.one(Fs2RabbitNodeConfig(host = "127.0.0.1", port = 5672)),
     username = Some("guest"),
     password = Some("guest"),
     ssl = false,
@@ -50,11 +46,10 @@ object IOAckerConsumer extends IOApp {
 
   override def run(args: List[String]): IO[ExitCode] =
     blockerResource.use { blocker =>
-      Fs2Rabbit[IO](config, blocker).flatMap { client =>
+      RabbitClient[IO](config, blocker).flatMap { client =>
         ResilientStream
           .runF(new AckerConsumerDemo[IO](client).program)
           .as(ExitCode.Success)
       }
     }
-
 }

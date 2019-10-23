@@ -16,9 +16,8 @@
 
 package dev.profunktor.fs2rabbit.algebra
 
-import dev.profunktor.fs2rabbit.model.AckResult
-import com.rabbitmq.client.Channel
+import dev.profunktor.fs2rabbit.model.{AMQPChannel, AckResult}
 
 trait Acking[F[_]] {
-  def createAcker(channel: Channel): F[AckResult => F[Unit]]
+  def createAcker(channel: AMQPChannel): F[AckResult => F[Unit]]
 }

@@ -12,14 +12,14 @@ An `AutoAckConsumer` acknowledges every consumed message automatically, so all y
 import cats.effect.IO
 import cats.implicits._
 import dev.profunktor.fs2rabbit.model._
-import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
+import dev.profunktor.fs2rabbit.interpreter.RabbitClient
 import fs2.Stream
 
 val queueName = QueueName("daQ")
 
 val doSomething: Stream[IO, AmqpEnvelope[String]] => IO[Unit] = consumer => IO.unit
 
-def program(R: Fs2Rabbit[IO]) =
+def program(R: RabbitClient[IO]) =
   R.createConnectionChannel.use { implicit channel =>
     R.createAutoAckConsumer[String](queueName).flatMap(doSomething)
   }

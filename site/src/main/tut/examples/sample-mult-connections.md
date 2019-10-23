@@ -20,7 +20,7 @@ We will be consuming messages from `c1` and `c2`, and publishing the result to `
 import cats.effect._
 import cats.implicits._
 import dev.profunktor.fs2rabbit.config.declaration.DeclarationQueueConfig
-import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
+import dev.profunktor.fs2rabbit.interpreter.RabbitClient
 import dev.profunktor.fs2rabbit.model._
 import fs2._
 
@@ -36,7 +36,7 @@ val rk = RoutingKey("RKA")
 Here's our program `p1` creating a `Consumer` representing the first `Connection`:
 
 ```tut:book:silent
-def p1(R: Fs2Rabbit[IO]) =
+def p1(R: RabbitClient[IO]) =
   R.createConnectionChannel.use { implicit channel =>
     R.declareExchange(ex, ExchangeType.Topic) *>
     R.declareQueue(DeclarationQueueConfig.default(q1)) *>
@@ -48,7 +48,7 @@ def p1(R: Fs2Rabbit[IO]) =
 Here's our program `p2` creating a `Consumer` representing the second `Connection`:
 
 ```tut:book:silent
-def p2(R: Fs2Rabbit[IO]) =
+def p2(R: RabbitClient[IO]) =
   R.createConnectionChannel use { implicit channel =>
     R.declareExchange(ex, ExchangeType.Topic) *>
     R.declareQueue(DeclarationQueueConfig.default(q1)) *>
@@ -60,7 +60,7 @@ def p2(R: Fs2Rabbit[IO]) =
 Here's our program `p3` creating a `Publisher` representing the third `Connection`:
 
 ```tut:book:silent
-def p3(R: Fs2Rabbit[IO]) =
+def p3(R: RabbitClient[IO]) =
   R.createConnectionChannel use { implicit channel =>
     R.declareExchange(ex, ExchangeType.Topic) *>
     R.createPublisher(ex, rk)
@@ -72,7 +72,7 @@ And finally we compose all the three programs together:
 ```tut:book:silent
 val pipe: Pipe[IO, AmqpEnvelope[String], String] = _.map(_.payload)
 
-def program(c: Fs2Rabbit[IO]) =
+def program(c: RabbitClient[IO]) =
   (p1(c), p2(c), p3(c)).mapN { case (c1, c2, pb) =>
     (c1.through(pipe).evalMap(pb)).concurrently(c2.through(pipe).evalMap(pb)).compile.drain
   }

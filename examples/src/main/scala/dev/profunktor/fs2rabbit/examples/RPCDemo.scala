@@ -25,7 +25,7 @@ import cats.implicits._
 import dev.profunktor.fs2rabbit.config.declaration.DeclarationQueueConfig
 import dev.profunktor.fs2rabbit.config.{Fs2RabbitConfig, Fs2RabbitNodeConfig}
 import dev.profunktor.fs2rabbit.effects.MessageEncoder
-import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
+import dev.profunktor.fs2rabbit.interpreter.RabbitClient
 import dev.profunktor.fs2rabbit.model._
 import fs2.Stream
 import java.util.concurrent.Executors
@@ -56,18 +56,18 @@ object RPCDemo extends IOApp {
 
   override def run(args: List[String]): IO[ExitCode] =
     blockerResource.use { blocker =>
-      Fs2Rabbit[IO](config, blocker).flatMap { implicit client =>
+      RabbitClient[IO](config, blocker).flatMap { implicit client =>
         val queue = QueueName("rpc_queue")
         runServer[IO](queue).concurrently(runClient[IO](queue)).compile.drain.as(ExitCode.Success)
       }
     }
 
-  def runServer[F[_]: Sync](rpcQueue: QueueName)(implicit R: Fs2Rabbit[F]): Stream[F, Unit] =
+  def runServer[F[_]: Sync](rpcQueue: QueueName)(implicit R: RabbitClient[F]): Stream[F, Unit] =
     Stream.resource(R.createConnectionChannel).flatMap { implicit channel =>
       new RPCServer[F](rpcQueue).serve
     }
 
-  def runClient[F[_]: Concurrent](rpcQueue: QueueName)(implicit R: Fs2Rabbit[F]): Stream[F, Unit] =
+  def runClient[F[_]: Concurrent](rpcQueue: QueueName)(implicit R: RabbitClient[F]): Stream[F, Unit] =
     Stream.resource(R.createConnectionChannel).flatMap { implicit channel =>
       val client = new RPCClient[F](rpcQueue)
 
@@ -80,7 +80,7 @@ object RPCDemo extends IOApp {
 
 }
 
-class RPCClient[F[_]: Sync](rpcQueue: QueueName)(implicit R: Fs2Rabbit[F], channel: AMQPChannel) {
+class RPCClient[F[_]: Sync](rpcQueue: QueueName)(implicit R: RabbitClient[F], channel: AMQPChannel) {
 
   private val EmptyExchange = ExchangeName("")
 
@@ -107,7 +107,7 @@ class RPCClient[F[_]: Sync](rpcQueue: QueueName)(implicit R: Fs2Rabbit[F], chann
 }
 
 class RPCServer[F[_]: Sync](rpcQueue: QueueName)(
-    implicit R: Fs2Rabbit[F],
+    implicit R: RabbitClient[F],
     channel: AMQPChannel
 ) {
 

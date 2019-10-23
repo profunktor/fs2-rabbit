@@ -20,7 +20,7 @@ import cats.data.NonEmptyList
 import cats.effect._
 import cats.syntax.functor._
 import dev.profunktor.fs2rabbit.config.{Fs2RabbitConfig, Fs2RabbitNodeConfig}
-import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
+import dev.profunktor.fs2rabbit.interpreter.RabbitClient
 import dev.profunktor.fs2rabbit.resiliency.ResilientStream
 import monix.eval.{Task, TaskApp}
 import java.util.concurrent.Executors
@@ -51,7 +51,7 @@ object MonixAutoAckConsumer extends TaskApp {
 
   override def run(args: List[String]): Task[ExitCode] =
     blockerResource.use { blocker =>
-      Fs2Rabbit[Task](config, blocker).flatMap { client =>
+      RabbitClient[Task](config, blocker).flatMap { client =>
         ResilientStream
           .runF(new AutoAckConsumerDemo[Task](client).program)
           .as(ExitCode.Success)

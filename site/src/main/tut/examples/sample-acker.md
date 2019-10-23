@@ -15,7 +15,7 @@ import cats.data.Kleisli
 import cats.effect._
 import cats.implicits._
 import dev.profunktor.fs2rabbit.config.declaration.DeclarationQueueConfig
-import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
+import dev.profunktor.fs2rabbit.interpreter.RabbitClient
 import dev.profunktor.fs2rabbit.json.Fs2JsonEncoder
 import dev.profunktor.fs2rabbit.model.AckResult.Ack
 import dev.profunktor.fs2rabbit.model.AmqpFieldValue.{LongVal, StringVal}
@@ -52,7 +52,7 @@ class Flow[F[_]: Concurrent, A](
 
 }
 
-class AckerConsumerDemo[F[_]: Concurrent: Timer](R: Fs2Rabbit[F]) {
+class AckerConsumerDemo[F[_]: Concurrent: Timer](R: RabbitClient[F]) {
 
   private val queueName    = QueueName("testQ")
   private val exchangeName = ExchangeName("testEX")
@@ -94,7 +94,7 @@ import cats.data.NonEmptyList
 import cats.effect._
 import cats.syntax.functor._
 import dev.profunktor.fs2rabbit.config.{Fs2RabbitConfig, Fs2RabbitNodeConfig}
-import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
+import dev.profunktor.fs2rabbit.interpreter.RabbitClient
 import dev.profunktor.fs2rabbit.resiliency.ResilientStream
 import java.util.concurrent.Executors
 
@@ -124,7 +124,7 @@ object IOAckerConsumer extends IOApp {
 
   override def run(args: List[String]): IO[ExitCode] =
     blockerResource.use { blocker =>
-      Fs2Rabbit[IO](config, blocker).flatMap { client =>
+      RabbitClient[IO](config, blocker).flatMap { client =>
         ResilientStream
           .runF(new AckerConsumerDemo[IO](client).program)
           .as(ExitCode.Success)

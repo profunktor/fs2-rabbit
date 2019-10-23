@@ -11,7 +11,7 @@ Given two `Consumers` bound to queues with different `RoutingKey`s `RKA` and `RK
 ```tut:book:silent
 import cats.effect._
 import dev.profunktor.fs2rabbit.config.declaration.DeclarationQueueConfig
-import dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit
+import dev.profunktor.fs2rabbit.interpreter.RabbitClient
 import dev.profunktor.fs2rabbit.model._
 import fs2._
 
@@ -35,7 +35,7 @@ def multipleConsumers(c1: Stream[IO, AmqpEnvelope[String]], c2: Stream[IO, AmqpE
   ).parJoin(3)
 }
 
-def program(R: Fs2Rabbit[IO]) =
+def program(R: RabbitClient[IO]) =
   R.createConnectionChannel.use { implicit channel =>
     for {
       _  <- R.declareExchange(ex, ExchangeType.Topic)

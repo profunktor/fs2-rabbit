@@ -18,19 +18,23 @@ package dev.profunktor.fs2rabbit.algebra
 
 import dev.profunktor.fs2rabbit.effects.EnvelopeDecoder
 import dev.profunktor.fs2rabbit.model._
-import com.rabbitmq.client.Channel
+import fs2.Stream
+
+object AckConsumingStream {
+  type AckConsumingStream[F[_]] = AckConsuming[F, Stream[F, ?]]
+}
 
 trait AckConsuming[F[_], R[_]] {
 
   def createAckerConsumer[A](
-      channel: Channel,
+      channel: AMQPChannel,
       queueName: QueueName,
       basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
       consumerArgs: Option[ConsumerArgs] = None
   )(implicit decoder: EnvelopeDecoder[F, A]): F[(AckResult => F[Unit], R[AmqpEnvelope[A]])]
 
   def createAutoAckConsumer[A](
-      channel: Channel,
+      channel: AMQPChannel,
       queueName: QueueName,
       basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
       consumerArgs: Option[ConsumerArgs] = None
