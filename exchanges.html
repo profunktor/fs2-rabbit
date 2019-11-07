@@ -9,13 +9,13 @@ If the <code class="highlighter-rouge">Exchange</code> already exists, but has d
 
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="nn">cats.effect.IO</span>
 <span class="k">import</span> <span class="nn">cats.implicits._</span>
-<span class="k">import</span> <span class="nn">dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit</span>
+<span class="k">import</span> <span class="nn">dev.profunktor.fs2rabbit.interpreter.RabbitClient</span>
 <span class="k">import</span> <span class="nn">dev.profunktor.fs2rabbit.model._</span>
 
 <span class="k">val</span> <span class="nv">x1</span> <span class="k">=</span> <span class="nc">ExchangeName</span><span class="o">(</span><span class="s">"x1"</span><span class="o">)</span>
 <span class="k">val</span> <span class="nv">x2</span> <span class="k">=</span> <span class="nc">ExchangeName</span><span class="o">(</span><span class="s">"x2"</span><span class="o">)</span>
 
-<span class="k">def</span> <span class="nf">exchanges</span><span class="o">(</span><span class="n">R</span><span class="k">:</span> <span class="kt">Fs2Rabbit</span><span class="o">[</span><span class="kt">IO</span><span class="o">])</span> <span class="k">=</span>
+<span class="k">def</span> <span class="nf">exchanges</span><span class="o">(</span><span class="n">R</span><span class="k">:</span> <span class="kt">RabbitClient</span><span class="o">[</span><span class="kt">IO</span><span class="o">])</span> <span class="k">=</span>
   <span class="nv">R</span><span class="o">.</span><span class="py">createConnectionChannel</span><span class="o">.</span><span class="py">use</span> <span class="o">{</span> <span class="k">implicit</span> <span class="n">channel</span> <span class="k">=&gt;</span>
     <span class="nv">R</span><span class="o">.</span><span class="py">declareExchange</span><span class="o">(</span><span class="n">x1</span><span class="o">,</span> <span class="nv">ExchangeType</span><span class="o">.</span><span class="py">Topic</span><span class="o">)</span> <span class="o">*&gt;</span>
     <span class="nv">R</span><span class="o">.</span><span class="py">declareExchange</span><span class="o">(</span><span class="n">x2</span><span class="o">,</span> <span class="nv">ExchangeType</span><span class="o">.</span><span class="py">FanOut</span><span class="o">)</span>
@@ -25,12 +25,12 @@ If the <code class="highlighter-rouge">Exchange</code> already exists, but has d
 <p>An <code class="highlighter-rouge">Exchange</code> can be declared passively, meaning that the <code class="highlighter-rouge">Exchange</code> is required to exist, whatever its properties.</p>
 
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="nn">cats.effect.IO</span>
-<span class="k">import</span> <span class="nn">dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit</span>
+<span class="k">import</span> <span class="nn">dev.profunktor.fs2rabbit.interpreter.RabbitClient</span>
 <span class="k">import</span> <span class="nn">dev.profunktor.fs2rabbit.model._</span>
 
 <span class="k">val</span> <span class="nv">x</span> <span class="k">=</span> <span class="nc">ExchangeName</span><span class="o">(</span><span class="s">"x"</span><span class="o">)</span>
 
-<span class="k">def</span> <span class="nf">exchanges</span><span class="o">(</span><span class="n">R</span><span class="k">:</span> <span class="kt">Fs2Rabbit</span><span class="o">[</span><span class="kt">IO</span><span class="o">])</span> <span class="k">=</span>
+<span class="k">def</span> <span class="nf">exchanges</span><span class="o">(</span><span class="n">R</span><span class="k">:</span> <span class="kt">RabbitClient</span><span class="o">[</span><span class="kt">IO</span><span class="o">])</span> <span class="k">=</span>
   <span class="nv">R</span><span class="o">.</span><span class="py">createConnectionChannel</span><span class="o">.</span><span class="py">use</span> <span class="o">{</span> <span class="k">implicit</span> <span class="n">channel</span> <span class="k">=&gt;</span>
     <span class="nv">R</span><span class="o">.</span><span class="py">declareExchangePassive</span><span class="o">(</span><span class="n">x</span><span class="o">)</span>
   <span class="o">}</span>
@@ -40,7 +40,7 @@ If the <code class="highlighter-rouge">Exchange</code> already exists, but has d
 
 <p>Two exchanges can be bound together by providing a <code class="highlighter-rouge">RoutingKey</code> and some extra arguments with <code class="highlighter-rouge">ExchangeBindingArgs</code>.</p>
 
-<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">binding</span><span class="o">(</span><span class="n">R</span><span class="k">:</span> <span class="kt">Fs2Rabbit</span><span class="o">[</span><span class="kt">IO</span><span class="o">])(</span><span class="k">implicit</span> <span class="n">channel</span><span class="k">:</span> <span class="kt">AMQPChannel</span><span class="o">)</span> <span class="k">=</span>
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">binding</span><span class="o">(</span><span class="n">R</span><span class="k">:</span> <span class="kt">RabbitClient</span><span class="o">[</span><span class="kt">IO</span><span class="o">])(</span><span class="k">implicit</span> <span class="n">channel</span><span class="k">:</span> <span class="kt">AMQPChannel</span><span class="o">)</span> <span class="k">=</span>
   <span class="nv">R</span><span class="o">.</span><span class="py">bindExchange</span><span class="o">(</span><span class="n">x1</span><span class="o">,</span> <span class="n">x2</span><span class="o">,</span> <span class="nc">RoutingKey</span><span class="o">(</span><span class="s">"rk"</span><span class="o">),</span> <span class="nc">ExchangeBindingArgs</span><span class="o">(</span><span class="nv">Map</span><span class="o">.</span><span class="py">empty</span><span class="o">))</span>
 </code></pre></div></div>
 

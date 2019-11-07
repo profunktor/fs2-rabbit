@@ -9,13 +9,13 @@
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="nn">cats.effect.IO</span>
 <span class="k">import</span> <span class="nn">cats.implicits._</span>
 <span class="k">import</span> <span class="nn">dev.profunktor.fs2rabbit.config.declaration._</span>
-<span class="k">import</span> <span class="nn">dev.profunktor.fs2rabbit.interpreter.Fs2Rabbit</span>
+<span class="k">import</span> <span class="nn">dev.profunktor.fs2rabbit.interpreter.RabbitClient</span>
 <span class="k">import</span> <span class="nn">dev.profunktor.fs2rabbit.model._</span>
 
 <span class="k">val</span> <span class="nv">q1</span> <span class="k">=</span> <span class="nc">QueueName</span><span class="o">(</span><span class="s">"q1"</span><span class="o">)</span>
 <span class="k">val</span> <span class="nv">q2</span> <span class="k">=</span> <span class="nc">QueueName</span><span class="o">(</span><span class="s">"q2"</span><span class="o">)</span>
 
-<span class="k">def</span> <span class="nf">exchanges</span><span class="o">(</span><span class="n">R</span><span class="k">:</span> <span class="kt">Fs2Rabbit</span><span class="o">[</span><span class="kt">IO</span><span class="o">])</span> <span class="k">=</span>
+<span class="k">def</span> <span class="nf">exchanges</span><span class="o">(</span><span class="n">R</span><span class="k">:</span> <span class="kt">RabbitClient</span><span class="o">[</span><span class="kt">IO</span><span class="o">])</span> <span class="k">=</span>
   <span class="nv">R</span><span class="o">.</span><span class="py">createConnectionChannel</span><span class="o">.</span><span class="py">use</span> <span class="o">{</span> <span class="k">implicit</span> <span class="n">channel</span> <span class="k">=&gt;</span>
     <span class="nv">R</span><span class="o">.</span><span class="py">declareQueue</span><span class="o">(</span><span class="nv">DeclarationQueueConfig</span><span class="o">.</span><span class="py">default</span><span class="o">(</span><span class="n">q1</span><span class="o">))</span> <span class="o">*&gt;</span>
     <span class="nv">R</span><span class="o">.</span><span class="py">declareQueue</span><span class="o">(</span><span class="nv">DeclarationQueueConfig</span><span class="o">.</span><span class="py">default</span><span class="o">(</span><span class="n">q2</span><span class="o">))</span>
@@ -28,7 +28,7 @@
 <span class="k">val</span> <span class="nv">rk1</span> <span class="k">=</span> <span class="nc">RoutingKey</span><span class="o">(</span><span class="s">"rk1"</span><span class="o">)</span>
 <span class="k">val</span> <span class="nv">rk2</span> <span class="k">=</span> <span class="nc">RoutingKey</span><span class="o">(</span><span class="s">"rk2"</span><span class="o">)</span>
 
-<span class="k">def</span> <span class="nf">binding</span><span class="o">(</span><span class="n">R</span><span class="k">:</span> <span class="kt">Fs2Rabbit</span><span class="o">[</span><span class="kt">IO</span><span class="o">])(</span><span class="k">implicit</span> <span class="n">channel</span><span class="k">:</span> <span class="kt">AMQPChannel</span><span class="o">)</span> <span class="k">=</span>
+<span class="k">def</span> <span class="nf">binding</span><span class="o">(</span><span class="n">R</span><span class="k">:</span> <span class="kt">RabbitClient</span><span class="o">[</span><span class="kt">IO</span><span class="o">])(</span><span class="k">implicit</span> <span class="n">channel</span><span class="k">:</span> <span class="kt">AMQPChannel</span><span class="o">)</span> <span class="k">=</span>
   <span class="nv">R</span><span class="o">.</span><span class="py">bindQueue</span><span class="o">(</span><span class="n">q1</span><span class="o">,</span> <span class="n">x1</span><span class="o">,</span> <span class="n">rk1</span><span class="o">)</span> <span class="o">*&gt;</span> <span class="nv">R</span><span class="o">.</span><span class="py">bindQueue</span><span class="o">(</span><span class="n">q2</span><span class="o">,</span> <span class="n">x1</span><span class="o">,</span> <span class="n">rk2</span><span class="o">)</span>
 </code></pre></div></div>
 </section></div></div></div></div><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script><script src="/highlight/highlight.pack.js"></script><script>hljs.configure({languages:['scala','java','bash']});
