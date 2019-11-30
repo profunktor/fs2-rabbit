@@ -20,9 +20,10 @@ import dev.profunktor.fs2rabbit.model.{AmqpMessage, AmqpProperties}
 import io.circe.Printer
 import io.circe.generic.auto._
 import io.circe.syntax._
-import org.scalatest.{FlatSpecLike, Matchers}
+import org.scalatest.flatspec.AnyFlatSpecLike
+import org.scalatest.matchers.should.Matchers
 
-class Fs2JsonEncoderSpec extends FlatSpecLike with Matchers {
+class Fs2JsonEncoderSpec extends AnyFlatSpecLike with Matchers {
 
   case class Address(number: Int, streetName: String)
   case class Person(name: String, address: Address)

@@ -17,10 +17,11 @@
 package dev.profunktor.fs2rabbit
 
 import org.scalacheck.Gen
-import org.scalatest.{Assertion, FunSuite}
+import org.scalatest.Assertion
 import org.scalatestplus.scalacheck.{ScalaCheckPropertyChecks => PropertyChecks}
+import org.scalatest.funsuite.AnyFunSuite
 
-class SafeArgSpec extends FunSuite with PropertyChecks {
+class SafeArgSpec extends AnyFunSuite with PropertyChecks {
 
   import arguments._
 
