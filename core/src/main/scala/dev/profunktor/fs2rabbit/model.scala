@@ -305,6 +305,7 @@ object model {
       expiration: Option[String] = None,
       replyTo: Option[String] = None,
       clusterId: Option[String] = None,
+      timestamp: Option[Date] = None,
       headers: Map[String, AmqpFieldValue] = Map.empty
   )
 
@@ -335,6 +336,7 @@ object model {
         expiration = Option(basicProps.getExpiration),
         replyTo = Option(basicProps.getReplyTo),
         clusterId = Option(basicProps.getClusterId),
+        timestamp = Option(basicProps.getTimestamp),
         headers = Option(basicProps.getHeaders)
           .fold(Map.empty[String, Object])(_.asScala.toMap)
           .map {
@@ -357,6 +359,7 @@ object model {
           .expiration(props.expiration.orNull)
           .replyTo(props.replyTo.orNull)
           .clusterId(props.clusterId.orNull)
+          .timestamp(props.timestamp.orNull)
           // Note we don't use mapValues here to maintain compatibility between
           // Scala 2.12 and 2.13
           .headers(props.headers.map { case (key, value) => (key, value.toValueWriterCompatibleJava) }.asJava)
