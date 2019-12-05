@@ -337,7 +337,7 @@ object model {
         expiration = Option(basicProps.getExpiration),
         replyTo = Option(basicProps.getReplyTo),
         clusterId = Option(basicProps.getClusterId),
-        timestamp = Option(basicProps.getTimestamp.toInstant),
+        timestamp = Option(basicProps.getTimestamp).map(_.toInstant),
         headers = Option(basicProps.getHeaders)
           .fold(Map.empty[String, Object])(_.asScala.toMap)
           .map {
