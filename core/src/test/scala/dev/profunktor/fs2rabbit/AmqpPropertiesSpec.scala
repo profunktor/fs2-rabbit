@@ -50,6 +50,7 @@ class AmqpPropertiesSpec extends FlatSpecLike with Matchers with AmqpPropertiesA
                      None,
                      None,
                      None,
+                     None,
                      Map.empty[String, AmqpFieldValue]))
   }
 
@@ -185,6 +186,7 @@ trait AmqpPropertiesArbitraries extends PropertyChecks {
       expiration      <- Gen.option(Gen.alphaNumStr)
       replyTo         <- Gen.option(Gen.alphaNumStr)
       clusterId       <- Gen.option(Gen.alphaNumStr)
+      timestamp       <- Gen.option(dateVal.arbitrary.map(_.instantWithOneSecondAccuracy))
       headers         <- Gen.mapOf[String, AmqpFieldValue](headersGen)
     } yield
       AmqpProperties(
@@ -200,6 +202,7 @@ trait AmqpPropertiesArbitraries extends PropertyChecks {
         expiration,
         replyTo,
         clusterId,
+        timestamp,
         headers
       )
   }
