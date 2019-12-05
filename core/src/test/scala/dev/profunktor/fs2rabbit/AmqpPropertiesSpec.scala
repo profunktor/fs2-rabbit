@@ -186,7 +186,7 @@ trait AmqpPropertiesArbitraries extends PropertyChecks {
       expiration      <- Gen.option(Gen.alphaNumStr)
       replyTo         <- Gen.option(Gen.alphaNumStr)
       clusterId       <- Gen.option(Gen.alphaNumStr)
-      timestamp       <- Gen.option(dateVal.arbitrary.map(_.toValueWriterCompatibleJava))
+      timestamp       <- Gen.option(dateVal.arbitrary.map(_.instantWithOneSecondAccuracy))
       headers         <- Gen.mapOf[String, AmqpFieldValue](headersGen)
     } yield
       AmqpProperties(
