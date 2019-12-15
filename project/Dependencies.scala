@@ -6,7 +6,7 @@ object Dependencies {
     val catsEffect = "2.0.0"
     val fs2        = "2.1.0"
     val circe      = "0.12.3"
-    val amqpClient = "5.7.3"
+    val amqpClient = "5.8.0"
     val logback    = "1.2.3"
     val monix      = "3.1.0"
     val zio        = "1.0.0-RC17"
@@ -15,8 +15,8 @@ object Dependencies {
     val kindProjector    = "0.10.3"
     val betterMonadicFor = "0.3.1"
 
-    val scalaTest  = "3.1.0"
-    val scalaCheck = "1.14.0"
+    val scalaTest  = "3.0.8"
+    val scalaCheck = "1.14.3"
   }
 
   object Libraries {
