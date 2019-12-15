@@ -15,7 +15,7 @@ object Dependencies {
     val kindProjector    = "0.10.3"
     val betterMonadicFor = "0.3.1"
 
-    val scalaTest  = "3.0.8"
+    val scalaTest  = "3.1.0"
     val scalaCheck = "1.14.3"
   }
 
