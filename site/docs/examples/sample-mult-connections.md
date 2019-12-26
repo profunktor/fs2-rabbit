@@ -69,7 +69,7 @@ def p3(R: RabbitClient[IO]) =
 
 And finally we compose all the three programs together:
 
-```tut:book:silent
+```scala mdoc:silent
 val pipe: Pipe[IO, AmqpEnvelope[String], String] = _.map(_.payload)
 
 def program(c: RabbitClient[IO]) =

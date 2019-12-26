@@ -38,7 +38,7 @@ import dev.profunktor.fs2rabbit.model._
 
 val x = ExchangeName("x")
 
-def exchanges(R: RabbitClient[IO]) =
+def moreExchanges(R: RabbitClient[IO]) =
   R.createConnectionChannel.use { implicit channel =>
     R.declareExchangePassive(x)
   }

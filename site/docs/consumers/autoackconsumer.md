@@ -8,7 +8,7 @@ number: 7
 
 An `AutoAckConsumer` acknowledges every consumed message automatically, so all you need to worry about is to process the message. Keep in mind that messages whose processing fails will still be acknowledged to `RabbitMQ` meaning that messages could get lost.
 
-```scala mdoc::silent
+```scala mdoc:silent
 import cats.effect.IO
 import cats.implicits._
 import dev.profunktor.fs2rabbit.model._

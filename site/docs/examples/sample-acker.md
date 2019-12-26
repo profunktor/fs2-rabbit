@@ -61,13 +61,13 @@ class AckerConsumerDemo[F[_]: Concurrent: Timer](R: RabbitClient[F]) {
     Kleisli[F, AmqpMessage[String], AmqpMessage[Array[Byte]]](s => s.copy(payload = s.payload.getBytes(UTF_8)).pure[F])
 
   def logPipe: Pipe[F, AmqpEnvelope[String], AckResult] = _.evalMap { amqpMsg =>
-    Sync[F].delay(s"Consumed: $amqpMsg").as(Ack(amqpMsg.deliveryTag))
+    Sync[F].delay(println(s"Consumed: $amqpMsg")).as(Ack(amqpMsg.deliveryTag))
   }
 
   val publishingFlag: PublishingFlag = PublishingFlag(mandatory = true)
 
   // Run when there's no consumer for the routing key specified by the publisher and the flag mandatory is true
-  val publishingListener: PublishReturn => F[Unit] = pr => Sync[F].delay(s"Publish listener: $pr")
+  val publishingListener: PublishReturn => F[Unit] = pr => Sync[F].delay(println(s"Publish listener: $pr"))
 
   val program: F[Unit] = R.createConnectionChannel.use { implicit channel =>
     for {
@@ -91,8 +91,6 @@ At the edge of out program we define our effect, `cats.effect.IO` in this case, 
 
 ```scala mdoc:silent
 import cats.data.NonEmptyList
-import cats.effect._
-import cats.syntax.functor._
 import dev.profunktor.fs2rabbit.config.{Fs2RabbitConfig, Fs2RabbitNodeConfig}
 import dev.profunktor.fs2rabbit.interpreter.RabbitClient
 import dev.profunktor.fs2rabbit.resiliency.ResilientStream

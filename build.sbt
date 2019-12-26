@@ -161,7 +161,15 @@ lazy val microsite = project
     micrositeGitterChannel := true,
     micrositeGitterChannelUrl := "profunktor-dev/fs2-rabbit",
     micrositePushSiteWith := GitHub4s,
-    micrositeGithubToken := sys.env.get("GITHUB_TOKEN")
+    micrositeGithubToken := sys.env.get("GITHUB_TOKEN"),
+    scalacOptions --= Seq(
+          "-Werror",
+          "-Xfatal-warnings",
+          "-Ywarn-unused-import",
+          "-Ywarn-numeric-widen",
+          "-Ywarn-dead-code",
+          "-Xlint:-missing-interpolator,_"
+        )
   )
   .dependsOn(`fs2-rabbit`, `fs2-rabbit-circe`, `examples`)
 

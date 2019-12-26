@@ -80,8 +80,6 @@ At the edge of out program we define our effect, `monix.eval.Task` in this case,
 
 ```scala mdoc:silent
 import cats.data.NonEmptyList
-import cats.effect._
-import cats.syntax.functor._
 import dev.profunktor.fs2rabbit.config.{Fs2RabbitConfig, Fs2RabbitNodeConfig}
 import dev.profunktor.fs2rabbit.interpreter.RabbitClient
 import dev.profunktor.fs2rabbit.resiliency.ResilientStream

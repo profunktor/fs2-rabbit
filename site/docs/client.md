@@ -30,7 +30,6 @@ Its creation is effectful so you need to `flatMap` and pass it as an argument. F
 ```scala mdoc:silent
 import cats.effect._
 import cats.syntax.functor._
-import dev.profunktor.fs2rabbit.model._
 import dev.profunktor.fs2rabbit.interpreter.RabbitClient
 import java.util.concurrent.Executors
 
