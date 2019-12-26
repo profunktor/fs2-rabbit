@@ -158,30 +158,13 @@ lazy val microsite = project
         Map("title" -> "Code of Conduct")
       )
     ),
-    micrositePalette := Map(
-      "brand-primary"   -> "#E05236",
-      "brand-secondary" -> "#774615",
-      "brand-tertiary"  -> "#2f2623",
-      "gray-dark"       -> "#453E46",
-      "gray"            -> "#837F84",
-      "gray-light"      -> "#E3E2E3",
-      "gray-lighter"    -> "#F4F3F4",
-      "white-color"     -> "#FFFFFF"
-    ),
+    micrositeExtraMdFilesOutput := (resourceManaged in Compile).value / "jekyll",
     micrositeGitterChannel := true,
     micrositeGitterChannelUrl := "profunktor-dev/fs2-rabbit",
     micrositePushSiteWith := GitHub4s,
-    micrositeGithubToken := sys.env.get("GITHUB_TOKEN"),
-    fork in tut := true,
-    scalacOptions in Tut --= Seq(
-      "-Xfatal-warnings",
-      "-Ywarn-unused-import",
-      "-Ywarn-numeric-widen",
-      "-Ywarn-dead-code",
-      "-Xlint:-missing-interpolator,_"
-    )
+    micrositeGithubToken := sys.env.get("GITHUB_TOKEN")
   )
   .dependsOn(`fs2-rabbit`, `fs2-rabbit-circe`, `examples`)
 
 // CI build
-addCommandAlias("buildFs2Rabbit", ";clean;+test;tut")
+addCommandAlias("buildFs2Rabbit", ";clean;+test;mdoc")

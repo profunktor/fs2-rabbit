@@ -8,7 +8,7 @@ number: 9
 
 A stream-based `Json Decoder` that can be connected to a stream of `AmqpEnvelope` is provided by the extra dependency `fs2-rabbit-circe`. Implicit decoders for your classes must be on scope. You can use `Circe`'s codec auto derivation for example:
 
-```tut:book:silent
+```scala mdoc:silent
 import cats.effect.IO
 import cats.implicits._
 import dev.profunktor.fs2rabbit.json.Fs2JsonDecoder

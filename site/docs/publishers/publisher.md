@@ -8,7 +8,7 @@ number: 11
 
 A `Publisher` is simply created by specifying an `ExchangeName` and a `RoutingKey`:
 
-```tut:book:silent
+```scala mdoc:silent
 import cats.effect._
 import dev.profunktor.fs2rabbit.model._
 import dev.profunktor.fs2rabbit.interpreter.RabbitClient
@@ -28,7 +28,7 @@ def program(R: RabbitClient[IO]) =
 
 Once you have a `Publisher` you can start publishing messages by simpy calling it:
 
-```tut:book:silent
+```scala mdoc:silent
 import cats.effect.Sync
 import dev.profunktor.fs2rabbit.model._
 

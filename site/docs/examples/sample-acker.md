@@ -1,14 +1,14 @@
 ---
 layout: docs
-title:  "Single AutoAckConsumer"
-number: 15
+title:  "Single AckerConsumer"
+number: 16
 ---
 
-# Single AutoAckConsumer
+# Single AckerConsumer
 
-Here we create a single `AutoAckConsumer`, a single `Publisher` and finally we publish two messages: a simple `String` message and a `Json` message by using the `fs2-rabbit-circe` extension.
+Here we create a single `AckerConsumer`, a single `Publisher` and finally we publish two messages: a simple `String` message and a `Json` message by using the `fs2-rabbit-circe` extension.
 
-```tut:book:silent
+```scala mdoc:silent
 import java.nio.charset.StandardCharsets.UTF_8
 
 import cats.data.Kleisli
@@ -20,10 +20,11 @@ import dev.profunktor.fs2rabbit.json.Fs2JsonEncoder
 import dev.profunktor.fs2rabbit.model.AckResult.Ack
 import dev.profunktor.fs2rabbit.model.AmqpFieldValue.{LongVal, StringVal}
 import dev.profunktor.fs2rabbit.model._
-import fs2._
+import fs2.{Pipe, Pure, Stream}
 
-class AutoAckFlow[F[_]: Concurrent, A](
+class Flow[F[_]: Concurrent, A](
     consumer: Stream[F, AmqpEnvelope[A]],
+    acker: AckResult => F[Unit],
     logger: Pipe[F, AmqpEnvelope[A], AckResult],
     publisher: AmqpMessage[String] => F[Unit]
 ) {
@@ -44,14 +45,14 @@ class AutoAckFlow[F[_]: Concurrent, A](
 
   val flow: Stream[F, Unit] =
     Stream(
-      Stream(simpleMessage).covary[F] evalMap publisher,
-      Stream(classMessage).covary[F] through jsonPipe evalMap publisher,
-      consumer.through(logger).evalMap(ack => Sync[F].delay(println(ack)))
+      Stream(simpleMessage).covary[F].evalMap(publisher),
+      Stream(classMessage).covary[F].through(jsonPipe).evalMap(publisher),
+      consumer.through(logger).evalMap(acker)
     ).parJoin(3)
 
 }
 
-class AutoAckConsumerDemo[F[_]: Concurrent](R: RabbitClient[F]) {
+class AckerConsumerDemo[F[_]: Concurrent: Timer](R: RabbitClient[F]) {
 
   private val queueName    = QueueName("testQ")
   private val exchangeName = ExchangeName("testEX")
@@ -60,35 +61,44 @@ class AutoAckConsumerDemo[F[_]: Concurrent](R: RabbitClient[F]) {
     Kleisli[F, AmqpMessage[String], AmqpMessage[Array[Byte]]](s => s.copy(payload = s.payload.getBytes(UTF_8)).pure[F])
 
   def logPipe: Pipe[F, AmqpEnvelope[String], AckResult] = _.evalMap { amqpMsg =>
-    Sync[F].delay(println(s"Consumed: $amqpMsg")).as(Ack(amqpMsg.deliveryTag))
+    Sync[F].delay(s"Consumed: $amqpMsg").as(Ack(amqpMsg.deliveryTag))
   }
+
+  val publishingFlag: PublishingFlag = PublishingFlag(mandatory = true)
+
+  // Run when there's no consumer for the routing key specified by the publisher and the flag mandatory is true
+  val publishingListener: PublishReturn => F[Unit] = pr => Sync[F].delay(s"Publish listener: $pr")
 
   val program: F[Unit] = R.createConnectionChannel.use { implicit channel =>
     for {
-      _         <- R.declareQueue(DeclarationQueueConfig.default(queueName))
-      _         <- R.declareExchange(exchangeName, ExchangeType.Topic)
-      _         <- R.bindQueue(queueName, exchangeName, routingKey)
-      publisher <- R.createPublisher[AmqpMessage[String]](exchangeName, routingKey)
-      consumer  <- R.createAutoAckConsumer[String](queueName)
-      _         <- new AutoAckFlow[F, String](consumer, logPipe, publisher).flow.compile.drain
+      _ <- R.declareQueue(DeclarationQueueConfig.default(queueName))
+      _ <- R.declareExchange(exchangeName, ExchangeType.Topic)
+      _ <- R.bindQueue(queueName, exchangeName, routingKey)
+      publisher <- R.createPublisherWithListener[AmqpMessage[String]](exchangeName,
+                                                                      routingKey,
+                                                                      publishingFlag,
+                                                                      publishingListener)
+      (acker, consumer) <- R.createAckerConsumer[String](queueName)
+      result            = new Flow[F, String](consumer, acker, logPipe, publisher).flow
+      _                 <- result.compile.drain
     } yield ()
   }
 }
+
 ```
 
-At the edge of out program we define our effect, `monix.eval.Task` in this case, and ask to evaluate the effects:
+At the edge of out program we define our effect, `cats.effect.IO` in this case, and ask to evaluate the effects:
 
-```tut:book:silent
+```scala mdoc:silent
 import cats.data.NonEmptyList
 import cats.effect._
 import cats.syntax.functor._
 import dev.profunktor.fs2rabbit.config.{Fs2RabbitConfig, Fs2RabbitNodeConfig}
 import dev.profunktor.fs2rabbit.interpreter.RabbitClient
 import dev.profunktor.fs2rabbit.resiliency.ResilientStream
-import monix.eval.{Task, TaskApp}
 import java.util.concurrent.Executors
 
-object MonixAutoAckConsumer extends TaskApp {
+object IOAckerConsumer extends IOApp {
 
   private val config: Fs2RabbitConfig = Fs2RabbitConfig(
     virtualHost = "/",
@@ -109,14 +119,14 @@ object MonixAutoAckConsumer extends TaskApp {
 
   val blockerResource =
     Resource
-      .make(Task(Executors.newCachedThreadPool()))(es => Task(es.shutdown()))
+      .make(IO(Executors.newCachedThreadPool()))(es => IO(es.shutdown()))
       .map(Blocker.liftExecutorService)
 
-  override def run(args: List[String]): Task[ExitCode] =
+  override def run(args: List[String]): IO[ExitCode] =
     blockerResource.use { blocker =>
-      RabbitClient[Task](config, blocker).flatMap { client =>
+      RabbitClient[IO](config, blocker).flatMap { client =>
         ResilientStream
-          .runF(new AutoAckConsumerDemo[Task](client).program)
+          .runF(new AckerConsumerDemo[IO](client).program)
           .as(ExitCode.Success)
       }
     }

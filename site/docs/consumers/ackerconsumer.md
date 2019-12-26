@@ -8,7 +8,7 @@ number: 8
 
 An `AckerConsumer` delegates the responsibility to acknowledge messages to the user. You are in total control of telling `RabbitMQ` when and if a message should be marked as consumed. Use this if you can't lose any messages.
 
-```tut:book:silent
+```scala mdoc:silent
 import cats.effect.IO
 import dev.profunktor.fs2rabbit.model._
 import dev.profunktor.fs2rabbit.interpreter.RabbitClient

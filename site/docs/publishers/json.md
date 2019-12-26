@@ -8,7 +8,7 @@ number: 12
 
 A stream-based `Json Encoder` that can be connected to a `Publisher` is provided by the extra dependency `fs2-rabbit-circe`. Implicit encoders for your classes must be on scope. You can use `Circe`'s codec auto derivation for example:
 
-```tut:book:silent
+```scala mdoc:silent
 import cats.effect.IO
 import dev.profunktor.fs2rabbit.json.Fs2JsonEncoder
 import dev.profunktor.fs2rabbit.model._

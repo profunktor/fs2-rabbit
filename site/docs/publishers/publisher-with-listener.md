@@ -20,7 +20,7 @@ The server SHOULD implement the mandatory flag.
 
 It is simply created by specifying `ExchangeName`, `RoutingKey`, `PublishingFlag` and a listener, i.e. a function from `PublishReturn` to `F[Unit]`:
 
-```tut:book:silent
+```scala mdoc:silent
 import cats.effect._
 import dev.profunktor.fs2rabbit.model._
 import dev.profunktor.fs2rabbit.interpreter.RabbitClient
@@ -44,7 +44,7 @@ def program(R: RabbitClient[IO]) =
 
 Once you have a `Publisher` you can start publishing messages by calling it:
 
-```tut:book:silent
+```scala mdoc:silent
 import cats.effect.Sync
 import dev.profunktor.fs2rabbit.model._
 
