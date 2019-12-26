@@ -12,7 +12,7 @@ Before getting into the `Consumers` section there are two things you need to kno
 
 Declaring a `Queue` will either create a new one or, in case a queue of that name was already declared, returns a reference to an existing one.
 
-```tut:book:silent
+```scala mdoc:silent
 import cats.effect.IO
 import cats.implicits._
 import dev.profunktor.fs2rabbit.config.declaration._
@@ -31,7 +31,7 @@ def exchanges(R: RabbitClient[IO]) =
 
 ### Binding a Queue to an Exchange
 
-```tut:book:silent
+```scala mdoc:silent
 val x1  = ExchangeName("x1")
 val rk1 = RoutingKey("rk1")
 val rk2 = RoutingKey("rk2")

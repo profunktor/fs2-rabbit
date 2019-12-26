@@ -8,7 +8,7 @@ number: 2
 
 `RabbitClient` is the main client that wraps the communication  with `RabbitMQ`. The mandatory arguments are a `Fs2RabbitConfig` and a `cats.effect.Blocker` used for publishing (this action is blocking in the underlying Java client). Optionally, you can pass in a custom `SSLContext` and `SaslConfig`.
 
-```tut:book:silent
+```scala mdoc:silent
 import cats.effect._
 import com.rabbitmq.client.{DefaultSaslConfig, SaslConfig}
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
@@ -27,10 +27,9 @@ object RabbitClient {
 
 Its creation is effectful so you need to `flatMap` and pass it as an argument. For example:
 
-```tut:book:silent
+```scala mdoc:silent
 import cats.effect._
 import cats.syntax.functor._
-import dev.profunktor.fs2rabbit.model._
 import dev.profunktor.fs2rabbit.interpreter.RabbitClient
 import java.util.concurrent.Executors
 

@@ -16,7 +16,7 @@ We start by defining three different programs representing each connection, name
 
 We will be consuming messages from `c1` and `c2`, and publishing the result to `p3` concurrently. Thanks to `fs2` this becomes such a simple case:
 
-```tut:book:silent
+```scala mdoc:silent
 import cats.effect._
 import cats.implicits._
 import dev.profunktor.fs2rabbit.config.declaration.DeclarationQueueConfig
@@ -35,7 +35,7 @@ val rk = RoutingKey("RKA")
 
 Here's our program `p1` creating a `Consumer` representing the first `Connection`:
 
-```tut:book:silent
+```scala mdoc:silent
 def p1(R: RabbitClient[IO]) =
   R.createConnectionChannel.use { implicit channel =>
     R.declareExchange(ex, ExchangeType.Topic) *>
@@ -47,7 +47,7 @@ def p1(R: RabbitClient[IO]) =
 
 Here's our program `p2` creating a `Consumer` representing the second `Connection`:
 
-```tut:book:silent
+```scala mdoc:silent
 def p2(R: RabbitClient[IO]) =
   R.createConnectionChannel use { implicit channel =>
     R.declareExchange(ex, ExchangeType.Topic) *>
@@ -59,7 +59,7 @@ def p2(R: RabbitClient[IO]) =
 
 Here's our program `p3` creating a `Publisher` representing the third `Connection`:
 
-```tut:book:silent
+```scala mdoc:silent
 def p3(R: RabbitClient[IO]) =
   R.createConnectionChannel use { implicit channel =>
     R.declareExchange(ex, ExchangeType.Topic) *>
@@ -69,7 +69,7 @@ def p3(R: RabbitClient[IO]) =
 
 And finally we compose all the three programs together:
 
-```tut:book:silent
+```scala mdoc:silent
 val pipe: Pipe[IO, AmqpEnvelope[String], String] = _.map(_.payload)
 
 def program(c: RabbitClient[IO]) =

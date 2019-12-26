@@ -12,7 +12,7 @@ object Dependencies {
     val zio        = "1.0.0-RC17"
     val zioCats    = "2.0.0.0-RC10"
 
-    val kindProjector    = "0.10.3"
+    val kindProjector    = "0.11.0"
     val betterMonadicFor = "0.3.1"
 
     val scalaTest  = "3.0.8"
@@ -27,14 +27,14 @@ object Dependencies {
     lazy val fs2Core    = "co.fs2"        %% "fs2-core"    % Version.fs2
 
     // Compiler
-    lazy val kindProjector    = "org.typelevel" % "kind-projector"      % Version.kindProjector cross CrossVersion.binary
+    lazy val kindProjector    = "org.typelevel" % "kind-projector"      % Version.kindProjector cross CrossVersion.full
     lazy val betterMonadicFor = "com.olegpy"    %% "better-monadic-for" % Version.betterMonadicFor
 
     // Examples
-    lazy val logback = "ch.qos.logback" % "logback-classic" % Version.logback
-    lazy val monix   = "io.monix" %% "monix" % Version.monix
-    lazy val zioCore = "dev.zio" %% "zio" % Version.zio
-    lazy val zioCats = "dev.zio" %% "zio-interop-cats" % Version.zioCats
+    lazy val logback = "ch.qos.logback" % "logback-classic"   % Version.logback
+    lazy val monix   = "io.monix"       %% "monix"            % Version.monix
+    lazy val zioCore = "dev.zio"        %% "zio"              % Version.zio
+    lazy val zioCats = "dev.zio"        %% "zio-interop-cats" % Version.zioCats
 
     // Json libraries
     lazy val circeCore    = circe("circe-core")

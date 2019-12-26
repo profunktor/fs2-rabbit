@@ -8,7 +8,7 @@ number: 1
 
 The main `RabbitMQ` configuration should be defined as `Fs2RabbitConfig`. You choose how to get the information, either from an `application.conf` file, from the environment or provided by an external system. A popular option that fits well the tech stack is [Pure Config](https://pureconfig.github.io/).
 
-```tut:book:silent
+```scala mdoc:silent
 import cats.data.NonEmptyList
 import dev.profunktor.fs2rabbit.config.{Fs2RabbitConfig, Fs2RabbitNodeConfig}
 
