@@ -7,8 +7,7 @@ name := """fs2-rabbit-root"""
 
 organization in ThisBuild := "dev.profunktor"
 
-scalaVersion in ThisBuild := "2.12.9"
-crossScalaVersions in ThisBuild := Seq("2.12.10", "2.13.0")
+crossScalaVersions in ThisBuild := Seq("2.12.10", "2.13.1")
 
 sonatypeProfileName := "dev.profunktor"
 
