@@ -1,7 +1,7 @@
 fs2-rabbit
 ==========
 
-[![CircleCI](https://circleci.com/gh/profunktor/fs2-rabbit.svg?style=svg)](https://circleci.com/gh/profunktor/fs2-rabbit)
+![CI Status](https://github.com/profunktor/fs2-rabbit/workflows/Build/badge.svg)
 [![Gitter Chat](https://badges.gitter.im/profunktor-dev/fs2-rabbit.svg)](https://gitter.im/profunktor-dev/fs2-rabbit)
 [![Maven Central](https://img.shields.io/maven-central/v/dev.profunktor/fs2-rabbit_2.12.svg)](http://search.maven.org/#search%7Cga%7C1%7Cfs2-rabbit) <a href="https://typelevel.org/cats/"><img src="https://typelevel.org/cats/img/cats-badge.svg" height="40px" align="right" alt="Cats friendly" /></a>
 [![MergifyStatus](https://img.shields.io/endpoint.svg?url=https://gh.mergify.io/badges/profunktor/fs2-rabbit&style=flat)](https://mergify.io)
@@ -42,10 +42,10 @@ Check the [official guide](https://fs2-rabbit.profunktor.dev/guide.html) for upd
 
 ## Running tests locally
 
-Start a `RabbitMQ` instance using `docker` (recommended):
+Start a `RabbitMQ` instance using `docker-compose` (recommended):
 
 ```bash
-> docker run -p 5672:5672 rabbitmq:alpine
+> docker-compose up
 > sbt +test
 ```
 
