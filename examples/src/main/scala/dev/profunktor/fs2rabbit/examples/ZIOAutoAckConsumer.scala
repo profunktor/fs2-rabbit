@@ -37,6 +37,7 @@ object ZIOAutoAckConsumer extends CatsApp {
     ssl = false,
     connectionTimeout = 3,
     requeueOnNack = false,
+    requeueOnReject = false,
     internalQueueSize = Some(500)
   )
 

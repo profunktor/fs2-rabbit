@@ -85,6 +85,9 @@ case class WrapperConsumingProgram[F[_]: Effect] private (
   override def basicNack(channel: AMQPChannel, tag: DeliveryTag, multiple: Boolean, requeue: Boolean): F[Unit] =
     consume.basicNack(channel, tag, multiple, requeue)
 
+  override def basicReject(channel: AMQPChannel, tag: DeliveryTag, requeue: Boolean): F[Unit] =
+    consume.basicReject(channel, tag, requeue)
+
   override def basicQos(channel: AMQPChannel, basicQos: BasicQos): F[Unit] =
     consume.basicQos(channel, basicQos)
 

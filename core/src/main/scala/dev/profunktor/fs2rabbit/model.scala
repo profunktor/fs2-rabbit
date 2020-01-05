@@ -79,8 +79,9 @@ object model {
   sealed trait AckResult extends Product with Serializable
 
   object AckResult {
-    final case class Ack(deliveryTag: DeliveryTag)  extends AckResult
-    final case class NAck(deliveryTag: DeliveryTag) extends AckResult
+    final case class Ack(deliveryTag: DeliveryTag)    extends AckResult
+    final case class NAck(deliveryTag: DeliveryTag)   extends AckResult
+    final case class Reject(deliveryTag: DeliveryTag) extends AckResult
   }
 
   /**

@@ -62,6 +62,7 @@ trait DockerRabbit extends BeforeAndAfterAll { self: Suite =>
     username = Some(rabbitUser),
     password = Some(rabbitPassword),
     requeueOnNack = false,
+    requeueOnReject = false,
     internalQueueSize = Some(500)
   )
 

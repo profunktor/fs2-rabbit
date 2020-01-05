@@ -22,11 +22,12 @@ import cats.implicits._
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
 import dev.profunktor.fs2rabbit.config.declaration._
 import dev.profunktor.fs2rabbit.config.deletion.{DeletionExchangeConfig, DeletionQueueConfig}
-import dev.profunktor.fs2rabbit.model.AckResult.{Ack, NAck}
+import dev.profunktor.fs2rabbit.model.AckResult.{Ack, NAck, Reject}
 import dev.profunktor.fs2rabbit.model._
 import dev.profunktor.fs2rabbit.BaseSpec
 import fs2.Stream
 import org.scalatest.Assertion
+
 import scala.concurrent.duration._
 import scala.util.Random
 import scala.concurrent.Future
@@ -239,6 +240,31 @@ trait Fs2RabbitSpec { self: BaseSpec =>
               .drain
       } yield emptyAssertion
     }
+  }
+
+  it should "NOT requeue a message in case of Reject when option 'requeueOnReject = false'" in withRabbit {
+    interpreter =>
+      import interpreter._
+
+      createConnectionChannel.use { implicit channel =>
+        for {
+          (q, x, rk)        <- randomQueueData
+          _                 <- declareExchange(x, ExchangeType.Topic)
+          _                 <- declareQueue(DeclarationQueueConfig.default(q))
+          _                 <- bindQueue(q, x, rk, QueueBindingArgs(Map.empty))
+          publisher         <- createPublisher[String](x, rk)
+          _                 <- publisher("Reject-test")
+          (acker, consumer) <- createAckerConsumer(q)
+          _ <- consumer
+                .take(1)
+                .evalMap { msg =>
+                  IO(msg shouldBe expectedDelivery(msg.deliveryTag, x, rk, "Reject-test")) *>
+                    acker(Reject(msg.deliveryTag))
+                }
+                .compile
+                .drain
+        } yield emptyAssertion
+      }
   }
 
   it should "create a publisher, an auto-ack consumer, publish a message and consume it" in withRabbit { interpreter =>
@@ -477,6 +503,32 @@ trait Fs2RabbitSpec { self: BaseSpec =>
       }
   }
 
+  it should "requeue a message in case of Reject when option 'requeueOnReject = true'" in withStreamRejectRabbit {
+    interpreter =>
+      import interpreter._
+
+      Stream.resource(createConnectionChannel).flatMap { implicit channel =>
+        for {
+          (q, x, rk)        <- Stream.eval(randomQueueData)
+          _                 <- Stream.eval(declareExchange(x, ExchangeType.Topic))
+          _                 <- Stream.eval(declareQueue(DeclarationQueueConfig.default(q)))
+          _                 <- Stream.eval(bindQueue(q, x, rk, QueueBindingArgs(Map.empty)))
+          publisher         <- Stream.eval(createPublisher[String](x, rk))
+          _                 <- Stream.eval(publisher("Reject-test"))
+          (acker, consumer) <- Stream.eval(createAckerConsumer(q))
+          result            <- Stream.eval(consumer.take(1).compile.lastOrError)
+          _                 <- Stream.eval(acker(Reject(result.deliveryTag)))
+          consumer          <- Stream.eval(createAutoAckConsumer(q))
+          result2           <- consumer.take(1) // Message will be re-queued
+        } yield {
+          val expected = expectedDelivery(result.deliveryTag, x, rk, "Reject-test")
+
+          result shouldBe expected
+          result2 shouldBe expected.copy(deliveryTag = result2.deliveryTag, redelivered = true)
+        }
+      }
+  }
+
   it should "create a publisher, two auto-ack consumers with different routing keys and assert the routing is correct" in withRabbit {
     interpreter =>
       import interpreter._
@@ -640,6 +692,14 @@ trait Fs2RabbitSpec { self: BaseSpec =>
     blockerResource
       .use { blocker =>
         RabbitClient[IO](config.copy(requeueOnNack = true), blocker).flatMap(r => fa(r).compile.drain)
+      }
+      .as(emptyAssertion)
+      .unsafeToFuture
+
+  private def withStreamRejectRabbit[A](fa: RabbitClient[IO] => Stream[IO, A]): Future[Assertion] =
+    blockerResource
+      .use { blocker =>
+        RabbitClient[IO](config.copy(requeueOnReject = true), blocker).flatMap(r => fa(r).compile.drain)
       }
       .as(emptyAssertion)
       .unsafeToFuture
