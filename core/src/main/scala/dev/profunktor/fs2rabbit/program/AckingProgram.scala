@@ -21,7 +21,7 @@ import cats.effect.{Effect, Sync}
 import dev.profunktor.fs2rabbit.algebra.{AMQPInternals, Acking, Consume}
 import dev.profunktor.fs2rabbit.arguments.Arguments
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
-import dev.profunktor.fs2rabbit.model.AckResult.{Ack, NAck}
+import dev.profunktor.fs2rabbit.model.AckResult.{Ack, NAck, Reject}
 import dev.profunktor.fs2rabbit.model._
 
 object AckingProgram {
@@ -40,6 +40,8 @@ case class WrapperAckingProgram[F[_]: Effect] private (
     case Ack(tag) => consume.basicAck(channel, tag, multiple = false)
     case NAck(tag) =>
       consume.basicNack(channel, tag, multiple = false, config.requeueOnNack)
+    case Reject(tag) =>
+      consume.basicReject(channel, tag, config.requeueOnReject)
   }
 
   override def basicAck(channel: AMQPChannel, tag: DeliveryTag, multiple: Boolean): F[Unit] =
@@ -47,6 +49,9 @@ case class WrapperAckingProgram[F[_]: Effect] private (
 
   override def basicNack(channel: AMQPChannel, tag: DeliveryTag, multiple: Boolean, requeue: Boolean): F[Unit] =
     consume.basicNack(channel, tag, multiple, requeue)
+
+  override def basicReject(channel: AMQPChannel, tag: DeliveryTag, requeue: Boolean): F[Unit] =
+    consume.basicReject(channel, tag, requeue)
 
   override def basicQos(channel: AMQPChannel, basicQos: BasicQos): F[Unit] =
     consume.basicQos(channel, basicQos)

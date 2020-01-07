@@ -40,6 +40,7 @@ object MonixAutoAckConsumer extends TaskApp {
     ssl = false,
     connectionTimeout = 3,
     requeueOnNack = false,
+    requeueOnReject = false,
     internalQueueSize = Some(500),
     automaticRecovery = true
   )

@@ -50,10 +50,12 @@ object Consume {
                 .unsafeRunAsync(_ => ())
             }
 
-          override def handleDelivery(consumerTag: String,
-                                      envelope: Envelope,
-                                      properties: AMQP.BasicProperties,
-                                      body: Array[Byte]): Unit = {
+          override def handleDelivery(
+              consumerTag: String,
+              envelope: Envelope,
+              properties: AMQP.BasicProperties,
+              body: Array[Byte]
+          ): Unit = {
             def rewrappedError(err: Throwable) =
               Left(
                 new Exception(
@@ -67,7 +69,8 @@ object Consume {
                 $properties
                 """,
                   err
-                ))
+                )
+              )
 
             val amqpPropertiesOrErr =
               Try(AmqpProperties.unsafeFrom(properties)) match {
@@ -114,6 +117,10 @@ object Consume {
           channel.value.basicNack(tag.value, multiple, requeue)
         }
 
+      override def basicReject(channel: AMQPChannel, tag: DeliveryTag, requeue: Boolean): F[Unit] = Sync[F].delay {
+        channel.value.basicReject(tag.value, requeue)
+      }
+
       override def basicQos(channel: AMQPChannel, basicQos: BasicQos): F[Unit] =
         Sync[F].delay {
           channel.value.basicQos(
@@ -157,6 +164,7 @@ object Consume {
 trait Consume[F[_]] {
   def basicAck(channel: AMQPChannel, tag: DeliveryTag, multiple: Boolean): F[Unit]
   def basicNack(channel: AMQPChannel, tag: DeliveryTag, multiple: Boolean, requeue: Boolean): F[Unit]
+  def basicReject(channel: AMQPChannel, tag: DeliveryTag, requeue: Boolean): F[Unit]
   def basicQos(channel: AMQPChannel, basicQos: BasicQos): F[Unit]
   def basicConsume[A](
       channel: AMQPChannel,

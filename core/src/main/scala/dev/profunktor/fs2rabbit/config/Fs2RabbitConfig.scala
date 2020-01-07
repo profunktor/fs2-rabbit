@@ -31,6 +31,7 @@ case class Fs2RabbitConfig(
     username: Option[String],
     password: Option[String],
     requeueOnNack: Boolean,
+    requeueOnReject: Boolean,
     internalQueueSize: Option[Int],
     automaticRecovery: Boolean
 )
@@ -45,6 +46,7 @@ object Fs2RabbitConfig {
       username: Option[String],
       password: Option[String],
       requeueOnNack: Boolean,
+      requeueOnReject: Boolean,
       internalQueueSize: Option[Int],
       automaticRecovery: Boolean = true
   ): Fs2RabbitConfig = Fs2RabbitConfig(
@@ -55,6 +57,7 @@ object Fs2RabbitConfig {
     username = username,
     password = password,
     requeueOnNack = requeueOnNack,
+    requeueOnReject = requeueOnReject,
     internalQueueSize = internalQueueSize,
     automaticRecovery = automaticRecovery
   )
