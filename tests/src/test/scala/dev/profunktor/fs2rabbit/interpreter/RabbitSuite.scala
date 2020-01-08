@@ -17,12 +17,28 @@
 package dev.profunktor.fs2rabbit.interpreter
 
 import cats.effect.{ContextShift, IO}
-import dev.profunktor.fs2rabbit.{BaseSpec, DockerRabbit}
+import cats.implicits._
+import dev.profunktor.fs2rabbit.BaseSpec
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
 
 import scala.concurrent.ExecutionContext
 
-class RabbitSuite extends BaseSpec with DockerRabbit with Fs2RabbitSpec {
+class RabbitSuite extends BaseSpec with Fs2RabbitSpec {
+
   override implicit val cs: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
-  override val config: Fs2RabbitConfig       = rabbitConfig
+
+  override val config: Fs2RabbitConfig =
+    Fs2RabbitConfig(
+      host = "localhost",
+      port = 5672,
+      virtualHost = "/",
+      connectionTimeout = 30,
+      ssl = false,
+      username = "guest".some,
+      password = "guest".some,
+      requeueOnNack = false,
+      requeueOnReject = false,
+      internalQueueSize = 500.some
+    )
+
 }
