@@ -38,8 +38,8 @@ val commonSettings = Seq(
       Libraries.amqpClient,
       Libraries.catsEffect,
       Libraries.fs2Core,
-      Libraries.scalaTest  % "test",
-      Libraries.scalaCheck % "test"
+      Libraries.scalaTest  % Test,
+      Libraries.scalaCheck % Test
     )
   },
   resolvers += "Apache public" at "https://repository.apache.org/content/groups/public/",
@@ -66,7 +66,7 @@ val commonSettings = Seq(
       </developers>
 )
 
-def CoreDependencies(scalaVersionStr: String): Seq[ModuleID] = Seq(Libraries.logback % "test")
+def CoreDependencies(scalaVersionStr: String): Seq[ModuleID] = Seq(Libraries.logback % Test)
 
 def JsonDependencies(scalaVersionStr: String): Seq[ModuleID] =
   Seq(
@@ -92,7 +92,7 @@ lazy val noPublish = Seq(
 
 lazy val `fs2-rabbit-root` = project
   .in(file("."))
-  .aggregate(`fs2-rabbit`, `fs2-rabbit-circe`, `fs2-rabbit-test-support`, tests, examples, microsite)
+  .aggregate(`fs2-rabbit`, `fs2-rabbit-circe`, tests, examples, microsite)
   .settings(noPublish)
 
 lazy val `fs2-rabbit` = project
@@ -110,20 +110,13 @@ lazy val `fs2-rabbit-circe` = project
   .enablePlugins(AutomateHeaderPlugin)
   .dependsOn(`fs2-rabbit`)
 
-lazy val `fs2-rabbit-test-support` = project
-  .in(file("test-support"))
-  .settings(commonSettings: _*)
-  .settings(libraryDependencies += Libraries.scalaTest)
-  .enablePlugins(AutomateHeaderPlugin)
-  .dependsOn(`fs2-rabbit`)
-
 lazy val tests = project
   .in(file("tests"))
   .settings(commonSettings: _*)
   .settings(noPublish)
   .enablePlugins(AutomateHeaderPlugin)
   .settings(parallelExecution in Test := false)
-  .dependsOn(`fs2-rabbit-test-support` % Test)
+  .dependsOn(`fs2-rabbit`)
 
 lazy val examples = project
   .in(file("examples"))
