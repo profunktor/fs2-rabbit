@@ -22,9 +22,11 @@ import java.time.Instant
 import com.rabbitmq.client.impl.{ValueReader, ValueWriter}
 import dev.profunktor.fs2rabbit.model.AmqpFieldValue._
 import dev.profunktor.fs2rabbit.model.{AmqpFieldValue, ShortString}
-import org.scalatest.{Assertion, FlatSpecLike, Matchers}
+import org.scalatest.Assertion
+import org.scalatest.flatspec.AnyFlatSpecLike
+import org.scalatest.matchers.should.Matchers
 
-class AmqpFieldValueSpec extends FlatSpecLike with Matchers with AmqpPropertiesArbitraries {
+class AmqpFieldValueSpec extends AnyFlatSpecLike with Matchers with AmqpPropertiesArbitraries {
 
   it should "convert from and to Java primitive header values" in {
     val intVal    = IntVal(1)
