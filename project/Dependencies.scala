@@ -9,8 +9,8 @@ object Dependencies {
     val amqpClient = "5.8.0"
     val logback    = "1.2.3"
     val monix      = "3.1.0"
-    val zio        = "1.0.0-RC18-1"
-    val zioCats    = "2.0.0.0-RC10"
+    val zio        = "1.0.0-RC17"
+    val zioCats    = "2.0.0.0-RC11"
 
     val kindProjector    = "0.11.0"
     val betterMonadicFor = "0.3.1"
