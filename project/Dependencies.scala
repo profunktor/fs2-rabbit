@@ -10,7 +10,7 @@ object Dependencies {
     val logback    = "1.2.3"
     val monix      = "3.1.0"
     val zio        = "1.0.0-RC19"
-    val zioCats    = "2.0.0.0-RC13"
+    val zioCats    = "2.0.0.0-RC14"
 
     val kindProjector    = "0.11.0"
     val betterMonadicFor = "0.3.1"
