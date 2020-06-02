@@ -71,10 +71,8 @@ case class WrapperConsumingProgram[F[_]: Effect] private (
       }
       .flatMap {
         case (_, queue) =>
-          Stream.repeatEval(
-            queue.dequeue1.rethrow
-              .flatMap(env => decoder(env).map(a => env.copy(payload = a)))
-          )
+          queue.dequeue.rethrow
+            .evalMap(env => decoder(env).map(a => env.copy(payload = a)))
       }
       .pure[F]
   }
@@ -91,13 +89,15 @@ case class WrapperConsumingProgram[F[_]: Effect] private (
   override def basicQos(channel: AMQPChannel, basicQos: BasicQos): F[Unit] =
     consume.basicQos(channel, basicQos)
 
-  override def basicConsume[A](channel: AMQPChannel,
-                               queueName: QueueName,
-                               autoAck: Boolean,
-                               consumerTag: ConsumerTag,
-                               noLocal: Boolean,
-                               exclusive: Boolean,
-                               args: Arguments)(internals: AMQPInternals[F]): F[ConsumerTag] =
+  override def basicConsume[A](
+      channel: AMQPChannel,
+      queueName: QueueName,
+      autoAck: Boolean,
+      consumerTag: ConsumerTag,
+      noLocal: Boolean,
+      exclusive: Boolean,
+      args: Arguments
+  )(internals: AMQPInternals[F]): F[ConsumerTag] =
     consume.basicConsume(channel, queueName, autoAck, consumerTag, noLocal, exclusive, args)(internals)
 
   override def basicCancel(channel: AMQPChannel, consumerTag: ConsumerTag): F[Unit] =
