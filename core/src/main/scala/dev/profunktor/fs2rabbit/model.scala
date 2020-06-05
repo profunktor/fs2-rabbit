@@ -22,15 +22,17 @@ import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.Date
 
-import cats.data.Kleisli
+import cats.data._
 import cats.implicits._
-import cats.{Applicative, ApplicativeError}
+import cats.kernel.CommutativeSemigroup
+import cats._
 import com.rabbitmq.client.{AMQP, Channel, Connection, LongString}
 import dev.profunktor.fs2rabbit.arguments.Arguments
 import dev.profunktor.fs2rabbit.effects.{EnvelopeDecoder, MessageEncoder}
 import dev.profunktor.fs2rabbit.javaConversion._
 import fs2.Stream
 import scodec.bits.ByteVector
+import scodec.interop.cats._
 
 object model {
 
@@ -47,10 +49,27 @@ object model {
   case class RabbitConnection(value: Connection) extends AMQPConnection
 
   case class ExchangeName(value: String) extends AnyVal
-  case class QueueName(value: String)    extends AnyVal
-  case class RoutingKey(value: String)   extends AnyVal
-  case class DeliveryTag(value: Long)    extends AnyVal
-  case class ConsumerTag(value: String)  extends AnyVal
+  object ExchangeName extends (String => ExchangeName) {
+    implicit val exchangeNameOrder: Order[ExchangeName] = Order.by(_.value)
+  }
+  case class QueueName(value: String) extends AnyVal
+  object QueueName extends (String => QueueName) {
+    implicit val queueNameOrder: Order[QueueName] = Order.by(_.value)
+  }
+  case class RoutingKey(value: String) extends AnyVal
+  object RoutingKey extends (String => RoutingKey) {
+    implicit val routingKeyOrder: Order[RoutingKey] = Order.by(_.value)
+  }
+  case class DeliveryTag(value: Long) extends AnyVal
+  object DeliveryTag extends (Long => DeliveryTag) {
+    implicit val deliveryTagOrder: Order[DeliveryTag] = Order.by(_.value)
+    implicit val deliveryTagCommutativeSemigroup: CommutativeSemigroup[DeliveryTag] =
+      CommutativeSemigroup.instance(_ max _)
+  }
+  case class ConsumerTag(value: String) extends AnyVal
+  object ConsumerTag extends (String => ConsumerTag) {
+    implicit val consumerTagOrder: Order[ConsumerTag] = Order.by(_.value)
+  }
 
   case class ConsumerArgs(consumerTag: ConsumerTag, noLocal: Boolean, exclusive: Boolean, args: Arguments)
   case class BasicQos(prefetchSize: Int, prefetchCount: Int, global: Boolean = false)
@@ -74,6 +93,8 @@ object model {
       case 1 => NonPersistent
       case 2 => Persistent
     }
+
+    implicit val deliveryModeOrder: Order[DeliveryMode] = Order.by(_.value)
   }
 
   sealed trait AckResult extends Product with Serializable
@@ -106,6 +127,9 @@ object model {
       * [[MaxByteLength]] (e.g. string literals).
       */
     def unsafeFrom(str: String): ShortString = new ShortString(str) {}
+
+    implicit val shortStringOrder: Order[ShortString]       = Order.by(_.str)
+    implicit val shortStringOrdering: Ordering[ShortString] = Order[ShortString].toOrdering
   }
 
   /**
@@ -157,6 +181,9 @@ object model {
         new TimestampVal(instant.truncatedTo(ChronoUnit.SECONDS)) {}
 
       def from(date: Date): TimestampVal = from(date.toInstant)
+
+      implicit val timestampOrder: Order[TimestampVal] =
+        Order.by[TimestampVal, Instant](_.instantWithOneSecondAccuracy)(instantOrderWithSecondPrecision)
     }
 
     /**
@@ -201,44 +228,80 @@ object model {
         // reporting back an answer that's one bit too small.
         bigDecimal.bigDecimal.unscaledValue.bitLength + 1
 
+      implicit val decimalValOrder: Order[DecimalVal] = Order.by(_.sizeLimitedBigDecimal)
     }
 
     final case class TableVal(value: Map[ShortString, AmqpFieldValue]) extends AmqpFieldValue {
       override def toValueWriterCompatibleJava: java.util.Map[String, AnyRef] =
         value.map { case (key, v) => key.str -> v.toValueWriterCompatibleJava }.asJava
     }
+    object TableVal extends (Map[ShortString, AmqpFieldValue] => TableVal) {
+      implicit val tableValEq: Eq[TableVal] = Eq.by(_.value)
+    }
     final case class ByteVal(value: Byte) extends AmqpFieldValue {
       override def toValueWriterCompatibleJava: java.lang.Byte = Byte.box(value)
+    }
+    object ByteVal extends (Byte => ByteVal) {
+      implicit val byteValOrder: Order[ByteVal] = Order.by(_.value)
     }
     final case class DoubleVal(value: Double) extends AmqpFieldValue {
       override def toValueWriterCompatibleJava: java.lang.Double = Double.box(value)
     }
+    object DoubleVal extends (Double => DoubleVal) {
+      implicit val doubleValOrder: Order[DoubleVal] = Order.by(_.value)
+    }
     final case class FloatVal(value: Float) extends AmqpFieldValue {
       override def toValueWriterCompatibleJava: java.lang.Float = Float.box(value)
+    }
+    object FloatVal extends (Float => FloatVal) {
+      implicit val floatValOrder: Order[FloatVal] = Order.by(_.value)
     }
     final case class ShortVal(value: Short) extends AmqpFieldValue {
       override def toValueWriterCompatibleJava: java.lang.Short = Short.box(value)
     }
+    object ShortVal extends (Short => ShortVal) {
+      implicit val shortValOrder: Order[ShortVal] = Order.by(_.value)
+    }
     final case class ByteArrayVal(value: ByteVector) extends AmqpFieldValue {
       override def toValueWriterCompatibleJava: Array[Byte] = value.toArray
+    }
+    object ByteArrayVal extends (ByteVector => ByteArrayVal) {
+      implicit val byteArrayValEq: Eq[ByteArrayVal] = Eq.by(_.value)
     }
     final case class BooleanVal(value: Boolean) extends AmqpFieldValue {
       override def toValueWriterCompatibleJava: java.lang.Boolean = Boolean.box(value)
     }
+    object BooleanVal extends (Boolean => BooleanVal) {
+      implicit val booleanValOrder: Order[BooleanVal] = Order.by(_.value)
+    }
     final case class IntVal(value: Int) extends AmqpFieldValue {
       override def toValueWriterCompatibleJava: java.lang.Integer = Int.box(value)
+    }
+    object IntVal extends (Int => IntVal) {
+      implicit val intValOrder: Order[IntVal] = Order.by(_.value)
     }
     final case class LongVal(value: Long) extends AmqpFieldValue {
       override def toValueWriterCompatibleJava: java.lang.Long = Long.box(value)
     }
+    object LongVal extends (Long => LongVal) {
+      implicit val longValOrder: Order[LongVal] = Order.by(_.value)
+    }
     final case class StringVal(value: String) extends AmqpFieldValue {
       override def toValueWriterCompatibleJava: String = value
+    }
+    object StringVal extends (String => StringVal) {
+      implicit val stringValOrder: Order[StringVal] = Order.by(_.value)
     }
     final case class ArrayVal(value: Vector[AmqpFieldValue]) extends AmqpFieldValue {
       override def toValueWriterCompatibleJava: java.util.List[AnyRef] = value.map(_.toValueWriterCompatibleJava).asJava
     }
+    object ArrayVal extends (Vector[AmqpFieldValue] => ArrayVal) {
+      implicit val arrayValEq: Eq[ArrayVal] = Eq.by(_.value)
+    }
     case object NullVal extends AmqpFieldValue {
       override def toValueWriterCompatibleJava: Null = null
+
+      implicit val nullValOrder: Order[NullVal.type] = Order.allEqual
     }
 
     /**
@@ -292,6 +355,26 @@ object model {
       case a: java.util.List[AnyRef @unchecked] => ArrayVal(a.asScala.toVector.map(unsafeFrom))
       case null                                 => NullVal
     }
+
+    implicit val amqpFieldValueEq: Eq[AmqpFieldValue] = new Eq[AmqpFieldValue] {
+      override def eqv(x: AmqpFieldValue, y: AmqpFieldValue): Boolean = (x, y) match {
+        case (a: ArrayVal, b: ArrayVal)         => Eq[ArrayVal].eqv(a, b)
+        case (a: BooleanVal, b: BooleanVal)     => Eq[BooleanVal].eqv(a, b)
+        case (a: ByteArrayVal, b: ByteArrayVal) => Eq[ByteArrayVal].eqv(a, b)
+        case (a: ByteVal, b: ByteVal)           => Eq[ByteVal].eqv(a, b)
+        case (a: DecimalVal, b: DecimalVal)     => Eq[DecimalVal].eqv(a, b)
+        case (a: DoubleVal, b: DoubleVal)       => Eq[DoubleVal].eqv(a, b)
+        case (a: FloatVal, b: FloatVal)         => Eq[FloatVal].eqv(a, b)
+        case (a: IntVal, b: IntVal)             => Eq[IntVal].eqv(a, b)
+        case (a: LongVal, b: LongVal)           => Eq[LongVal].eqv(a, b)
+        case (a: NullVal.type, b: NullVal.type) => Eq[NullVal.type].eqv(a, b)
+        case (a: ShortVal, b: ShortVal)         => Eq[ShortVal].eqv(a, b)
+        case (a: StringVal, b: StringVal)       => Eq[StringVal].eqv(a, b)
+        case (a: TableVal, b: TableVal)         => Eq[TableVal].eqv(a, b)
+        case (a: TimestampVal, b: TimestampVal) => Eq[TimestampVal].eqv(a, b)
+        case _                                  => false
+      }
+    }
   }
 
   case class AmqpProperties(
@@ -313,6 +396,29 @@ object model {
 
   object AmqpProperties {
     def empty = AmqpProperties()
+
+    private def tupled(p: AmqpProperties): (Option[String],
+                                            Option[String],
+                                            Option[Int],
+                                            Option[DeliveryMode],
+                                            Option[String],
+                                            Option[String],
+                                            Option[String],
+                                            Option[String],
+                                            Option[String],
+                                            Option[String],
+                                            Option[String],
+                                            Option[String],
+                                            Option[Instant],
+                                            Map[String, AmqpFieldValue]) =
+      p match {
+        case AmqpProperties(a, b, c, d, e, f, g, h, i, j, k, l, m, n) => (a, b, c, d, e, f, g, h, i, j, k, l, m, n)
+      }
+
+    implicit val amqpPropertiesEq: Eq[AmqpProperties] = {
+      implicit val instantOrder: Order[Instant] = instantOrderWithSecondPrecision
+      Eq.by(ap => tupled(ap))
+    }
 
     /**
       * It is possible to construct an [[AMQP.BasicProperties]] that will cause
@@ -388,6 +494,31 @@ object model {
     implicit def stringDecoder[F[_]: ApplicativeError[?[_], Throwable]]: EnvelopeDecoder[F, String] =
       (EnvelopeDecoder.payload[F], encoding[F]).mapN((p, e) => new String(p, e.getOrElse(UTF_8)))
 
+    implicit val amqpEnvelopeTraverse: Traverse[AmqpEnvelope] = new Traverse[AmqpEnvelope] {
+      override def traverse[G[_]: Applicative, A, B](fa: AmqpEnvelope[A])(f: A => G[B]): G[AmqpEnvelope[B]] =
+        f(fa.payload).map(b => fa.copy(payload = b))
+
+      override def foldLeft[A, B](fa: AmqpEnvelope[A], b: B)(f: (B, A) => B): B =
+        f(b, fa.payload)
+
+      override def foldRight[A, B](fa: AmqpEnvelope[A], lb: Eval[B])(f: (A, Eval[B]) => Eval[B]): Eval[B] =
+        f(fa.payload, lb)
+    }
+
+    implicit def eqAmqpEnvelope[A](implicit A: Eq[A]): Eq[AmqpEnvelope[A]] =
+      Eq.and(
+        Eq.by(_.payload),
+        Eq.and(
+          Eq.by(_.deliveryTag),
+          Eq.and(
+            Eq.by(_.properties),
+            Eq.and(
+              Eq.by(_.exchangeName),
+              Eq.and(Eq.by(_.routingKey), Eq.by(_.redelivered))
+            )
+          ),
+        )
+      )
   }
 
   object AmqpMessage {
@@ -425,4 +556,5 @@ object model {
 
   case class PublishingFlag(mandatory: Boolean) extends AnyVal
 
+  val instantOrderWithSecondPrecision: Order[Instant] = Order.by(_.getEpochSecond)
 }

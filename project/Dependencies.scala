@@ -3,6 +3,7 @@ import sbt._
 object Dependencies {
 
   object Version {
+    val cats       = "2.1.1"
     val catsEffect = "2.1.2"
     val fs2        = "2.3.0"
     val circe      = "0.13.0"
@@ -11,13 +12,15 @@ object Dependencies {
     val monix      = "3.1.0"
     val zio        = "1.0.0-RC19-2"
     val zioCats    = "2.0.0.0-RC14"
+    val scodec     = "1.0.0"
 
     val kindProjector    = "0.11.0"
     val betterMonadicFor = "0.3.1"
 
-    val scalaTest  = "3.1.2"
-    val scalaCheck = "1.14.3"
+    val scalaTest               = "3.1.2"
+    val scalaCheck              = "1.14.3"
     val scalaTestPlusScalaCheck = "3.1.2.0"
+    val disciplineScalaCheck    = "1.0.1"
   }
 
   object Libraries {
@@ -26,6 +29,7 @@ object Dependencies {
     lazy val amqpClient = "com.rabbitmq"  % "amqp-client"  % Version.amqpClient
     lazy val catsEffect = "org.typelevel" %% "cats-effect" % Version.catsEffect
     lazy val fs2Core    = "co.fs2"        %% "fs2-core"    % Version.fs2
+    lazy val scodecCats = "org.scodec"    %% "scodec-cats" % Version.scodec
 
     // Compiler
     lazy val kindProjector    = "org.typelevel" % "kind-projector"      % Version.kindProjector cross CrossVersion.full
@@ -43,9 +47,12 @@ object Dependencies {
     lazy val circeParser  = circe("circe-parser")
 
     // Scala test libraries
-    lazy val scalaTest                = "org.scalatest"     %% "scalatest"        % Version.scalaTest
-    lazy val scalaCheck               = "org.scalacheck"    %% "scalacheck"       % Version.scalaCheck
-    lazy val scalaTestPlusScalaCheck  = "org.scalatestplus" %% "scalacheck-1-14"  % Version.scalaTestPlusScalaCheck
+    lazy val scalaTest                = "org.scalatest"     %% "scalatest"            % Version.scalaTest
+    lazy val scalaCheck               = "org.scalacheck"    %% "scalacheck"           % Version.scalaCheck
+    lazy val scalaTestPlusScalaCheck  = "org.scalatestplus" %% "scalacheck-1-14"      % Version.scalaTestPlusScalaCheck
+    lazy val disciplineScalaCheck     = "org.typelevel"     %% "discipline-scalatest" % Version.disciplineScalaCheck
+    lazy val catsLaws                 = "org.typelevel"     %% "cats-laws"            % Version.cats
+    lazy val catsKernelLaws           = "org.typelevel"     %% "cats-kernel-laws"     % Version.cats
   }
 
 }
