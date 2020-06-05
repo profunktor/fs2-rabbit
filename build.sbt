@@ -39,7 +39,8 @@ val commonSettings = Seq(
       Libraries.catsEffect,
       Libraries.fs2Core,
       Libraries.scalaTest  % Test,
-      Libraries.scalaCheck % Test
+      Libraries.scalaCheck % Test,
+      Libraries.scalaTestPlusScalaCheck % Test
     )
   },
   resolvers += "Apache public" at "https://repository.apache.org/content/groups/public/",

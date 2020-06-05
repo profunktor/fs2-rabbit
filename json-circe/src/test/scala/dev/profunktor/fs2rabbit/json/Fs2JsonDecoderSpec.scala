@@ -19,10 +19,11 @@ package dev.profunktor.fs2rabbit.json
 import cats.syntax.functor._
 import dev.profunktor.fs2rabbit.model.{AmqpEnvelope, AmqpProperties, DeliveryTag, ExchangeName, RoutingKey}
 import io.circe._
-import org.scalatest.{FlatSpecLike, Matchers}
+import org.scalatest.flatspec.AnyFlatSpecLike
+import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.scalacheck.{ScalaCheckPropertyChecks => PropertyChecks}
 
-class Fs2JsonDecoderSpec extends Fs2JsonDecoderFixture with FlatSpecLike with Matchers {
+class Fs2JsonDecoderSpec extends Fs2JsonDecoderFixture with AnyFlatSpecLike with Matchers {
 
   import io.circe.generic.auto._
 

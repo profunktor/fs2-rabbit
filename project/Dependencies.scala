@@ -15,8 +15,9 @@ object Dependencies {
     val kindProjector    = "0.11.0"
     val betterMonadicFor = "0.3.1"
 
-    val scalaTest  = "3.0.8"
+    val scalaTest  = "3.1.2"
     val scalaCheck = "1.14.3"
+    val scalaTestPlusScalaCheck = "3.1.2.0"
   }
 
   object Libraries {
@@ -42,8 +43,9 @@ object Dependencies {
     lazy val circeParser  = circe("circe-parser")
 
     // Scala test libraries
-    lazy val scalaTest  = "org.scalatest"  %% "scalatest"  % Version.scalaTest
-    lazy val scalaCheck = "org.scalacheck" %% "scalacheck" % Version.scalaCheck
+    lazy val scalaTest                = "org.scalatest"     %% "scalatest"        % Version.scalaTest
+    lazy val scalaCheck               = "org.scalacheck"    %% "scalacheck"       % Version.scalaCheck
+    lazy val scalaTestPlusScalaCheck  = "org.scalatestplus" %% "scalacheck-1-14"  % Version.scalaTestPlusScalaCheck
   }
 
 }
