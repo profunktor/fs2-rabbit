@@ -39,7 +39,8 @@ val commonSettings = Seq(
       Libraries.catsEffect,
       Libraries.fs2Core,
       Libraries.scalaTest  % Test,
-      Libraries.scalaCheck % Test
+      Libraries.scalaCheck % Test,
+      Libraries.scalaTestPlusScalaCheck % Test
     )
   },
   resolvers += "Apache public" at "https://repository.apache.org/content/groups/public/",
@@ -66,7 +67,11 @@ val commonSettings = Seq(
       </developers>
 )
 
-def CoreDependencies(scalaVersionStr: String): Seq[ModuleID] = Seq(Libraries.logback % Test)
+def CoreDependencies(scalaVersionStr: String): Seq[ModuleID] =
+  Seq(
+    Libraries.scodecCats,
+    Libraries.logback % Test
+  )
 
 def JsonDependencies(scalaVersionStr: String): Seq[ModuleID] =
   Seq(
@@ -82,6 +87,14 @@ def ExamplesDependencies(scalaVersionStr: String): Seq[ModuleID] =
     Libraries.zioCore,
     Libraries.zioCats
   )
+
+def TestKitDependencies(scalaVersionStr: String): Seq[ModuleID] = Seq(Libraries.scalaCheck)
+
+def TestsDependencies(scalaVersionStr: String): Seq[ModuleID] = Seq(
+  Libraries.disciplineScalaCheck % Test,
+  Libraries.catsLaws % Test,
+  Libraries.catsKernelLaws % Test,
+)
 
 lazy val noPublish = Seq(
   publish := {},
@@ -115,8 +128,9 @@ lazy val tests = project
   .settings(commonSettings: _*)
   .settings(noPublish)
   .enablePlugins(AutomateHeaderPlugin)
+  .settings(libraryDependencies ++= TestsDependencies(scalaVersion.value))
   .settings(parallelExecution in Test := false)
-  .dependsOn(`fs2-rabbit`)
+  .dependsOn(`fs2-rabbit`, `fs2-rabbit-testkit`)
 
 lazy val examples = project
   .in(file("examples"))
@@ -125,6 +139,13 @@ lazy val examples = project
   .settings(noPublish)
   .enablePlugins(AutomateHeaderPlugin)
   .dependsOn(`fs2-rabbit`, `fs2-rabbit-circe`)
+
+lazy val `fs2-rabbit-testkit` = project
+  .in(file("testkit"))
+  .settings(commonSettings: _*)
+  .settings(libraryDependencies ++= TestKitDependencies(scalaVersion.value))
+  .enablePlugins(AutomateHeaderPlugin)
+  .dependsOn(`fs2-rabbit`)
 
 lazy val microsite = project
   .in(file("site"))
