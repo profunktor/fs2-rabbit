@@ -3,13 +3,19 @@ import com.scalapenos.sbt.prompt._
 import Dependencies._
 import microsites.ExtraMdFileConfig
 
-name := """fs2-rabbit-root"""
-
-organization in ThisBuild := "dev.profunktor"
-
-crossScalaVersions in ThisBuild := Seq("2.12.10", "2.13.1")
-
-sonatypeProfileName := "dev.profunktor"
+ThisBuild / name := """fs2-rabbit"""
+ThisBuild / crossScalaVersions := List("2.12.10", "2.13.1")
+ThisBuild / organization := "dev.profunktor"
+ThisBuild / homepage := Some(url("https://fs2-rabbit.profunktor.dev/"))
+ThisBuild / licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0"))
+ThisBuild / developers := List(
+  Developer(
+    "gvolpe",
+    "Gabriel Volpe",
+    "volpegabriel@gmail.com",
+    url("https://gvolpe.github.io")
+  )
+)
 
 promptTheme := PromptTheme(
   List(
@@ -18,85 +24,67 @@ promptTheme := PromptTheme(
   )
 )
 
-def maxClassFileName(v: String) = CrossVersion.partialVersion(v) match {
-  case Some((2, 13)) => Seq.empty[String]
-  case _             => Seq("-Xmax-classfile-name", "100")
-}
+def maxClassFileName(v: String) =
+  CrossVersion.partialVersion(v) match {
+    case Some((2, 13)) => List.empty[String]
+    case _             => List("-Xmax-classfile-name", "100")
+  }
 
-val commonSettings = Seq(
+val commonSettings = List(
   organizationName := "ProfunKtor",
   startYear := Some(2017),
   licenses += ("Apache-2.0", new URL("https://www.apache.org/licenses/LICENSE-2.0.txt")),
   homepage := Some(url("https://fs2-rabbit.profunktor.dev/")),
   headerLicense := Some(HeaderLicense.ALv2("2017-2020", "ProfunKtor")),
-  scalacOptions in (Compile, doc) ++= Seq("-no-link-warnings"),
+  scalacOptions in (Compile, doc) ++= List("-no-link-warnings"),
   scalacOptions ++= maxClassFileName(scalaVersion.value),
   libraryDependencies ++= {
-    Seq(
+    List(
       compilerPlugin(Libraries.kindProjector),
       compilerPlugin(Libraries.betterMonadicFor),
       Libraries.amqpClient,
       Libraries.catsEffect,
       Libraries.fs2Core,
-      Libraries.scalaTest  % Test,
-      Libraries.scalaCheck % Test,
+      Libraries.scalaTest               % Test,
+      Libraries.scalaCheck              % Test,
       Libraries.scalaTestPlusScalaCheck % Test
     )
   },
   resolvers += "Apache public" at "https://repository.apache.org/content/groups/public/",
-  scalafmtOnCompile := true,
-  publishTo := {
-    val sonatype = "https://oss.sonatype.org/"
-    if (isSnapshot.value)
-      Some("snapshots" at sonatype + "content/repositories/snapshots")
-    else
-      Some("releases" at sonatype + "service/local/staging/deploy/maven2")
-  },
-  publishMavenStyle := true,
-  publishArtifact in Test := false,
-  pomIncludeRepository := { _ =>
-    false
-  },
-  pomExtra :=
-    <developers>
-        <developer>
-          <id>gvolpe</id>
-          <name>Gabriel Volpe</name>
-          <url>https://github.com/gvolpe</url>
-        </developer>
-      </developers>
+  scalafmtOnCompile := true
 )
 
-def CoreDependencies(scalaVersionStr: String): Seq[ModuleID] =
-  Seq(
+def CoreDependencies(scalaVersionStr: String): List[ModuleID] =
+  List(
     Libraries.scodecCats,
     Libraries.logback % Test
   )
 
-def JsonDependencies(scalaVersionStr: String): Seq[ModuleID] =
-  Seq(
+def JsonDependencies(scalaVersionStr: String): List[ModuleID] =
+  List(
     Libraries.circeCore,
     Libraries.circeGeneric,
     Libraries.circeParser
   )
 
-def ExamplesDependencies(scalaVersionStr: String): Seq[ModuleID] =
-  Seq(
+def ExamplesDependencies(scalaVersionStr: String): List[ModuleID] =
+  List(
     Libraries.logback % "runtime",
     Libraries.monix,
     Libraries.zioCore,
     Libraries.zioCats
   )
 
-def TestKitDependencies(scalaVersionStr: String): Seq[ModuleID] = Seq(Libraries.scalaCheck)
+def TestKitDependencies(scalaVersionStr: String): List[ModuleID] = List(Libraries.scalaCheck)
 
-def TestsDependencies(scalaVersionStr: String): Seq[ModuleID] = Seq(
-  Libraries.disciplineScalaCheck % Test,
-  Libraries.catsLaws % Test,
-  Libraries.catsKernelLaws % Test,
-)
+def TestsDependencies(scalaVersionStr: String): List[ModuleID] =
+  List(
+    Libraries.disciplineScalaCheck % Test,
+    Libraries.catsLaws             % Test,
+    Libraries.catsKernelLaws       % Test
+  )
 
-lazy val noPublish = Seq(
+lazy val noPublish = List(
   publish := {},
   publishLocal := {},
   publishArtifact := false,
@@ -160,7 +148,7 @@ lazy val microsite = project
     micrositeGithubRepo := "fs2-rabbit",
     micrositeBaseUrl := "",
     micrositeExtraMdFiles := Map(
-      file("README.md") -> ExtraMdFileConfig(
+      file("README.md")          -> ExtraMdFileConfig(
         "index.md",
         "home",
         Map("title" -> "Home", "position" -> "0")
@@ -176,14 +164,14 @@ lazy val microsite = project
     micrositeGitterChannelUrl := "profunktor-dev/fs2-rabbit",
     micrositePushSiteWith := GitHub4s,
     micrositeGithubToken := sys.env.get("GITHUB_TOKEN"),
-    scalacOptions --= Seq(
-          "-Werror",
-          "-Xfatal-warnings",
-          "-Ywarn-unused-import",
-          "-Ywarn-numeric-widen",
-          "-Ywarn-dead-code",
-          "-Xlint:-missing-interpolator,_"
-        )
+    scalacOptions --= List(
+      "-Werror",
+      "-Xfatal-warnings",
+      "-Ywarn-unused-import",
+      "-Ywarn-numeric-widen",
+      "-Ywarn-dead-code",
+      "-Xlint:-missing-interpolator,_"
+    )
   )
   .dependsOn(`fs2-rabbit`, `fs2-rabbit-circe`, `examples`)
 
