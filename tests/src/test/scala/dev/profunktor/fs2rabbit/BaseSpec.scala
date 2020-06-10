@@ -18,7 +18,10 @@ package dev.profunktor.fs2rabbit
 
 import cats.effect.{ContextShift, IO, Timer}
 import dev.profunktor.fs2rabbit.effects.Log
-import org.scalatest.{AsyncFlatSpecLike, EitherValues, Matchers}
+import org.scalatest.EitherValues
+import org.scalatest.flatspec.AsyncFlatSpecLike
+import org.scalatest.matchers.should.Matchers
+
 import scala.concurrent.ExecutionContext
 
 trait BaseSpec extends AsyncFlatSpecLike with Matchers with EitherValues {

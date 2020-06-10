@@ -23,11 +23,12 @@ import dev.profunktor.fs2rabbit.model.AmqpFieldValue._
 import dev.profunktor.fs2rabbit.model.{AmqpFieldValue, AmqpProperties, DeliveryMode, ShortString}
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck._
-import org.scalatest.{FlatSpecLike, Matchers}
+import org.scalatest.flatspec.AnyFlatSpecLike
+import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.scalacheck.{ScalaCheckPropertyChecks => PropertyChecks}
 import scodec.bits.ByteVector
 
-class AmqpPropertiesSpec extends FlatSpecLike with Matchers with AmqpPropertiesArbitraries {
+class AmqpPropertiesSpec extends AnyFlatSpecLike with Matchers with AmqpPropertiesArbitraries {
 
   it should s"convert from and to Java AMQP.BasicProperties" in {
     forAll { amqpProperties: AmqpProperties =>
