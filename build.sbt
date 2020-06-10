@@ -93,7 +93,7 @@ lazy val noPublish = List(
 
 lazy val `fs2-rabbit-root` = project
   .in(file("."))
-  .aggregate(`fs2-rabbit`, `fs2-rabbit-circe`, tests, examples, microsite)
+  .aggregate(`fs2-rabbit`, `fs2-rabbit-circe`, tests, examples, microsite, `fs2-rabbit-testkit`)
   .settings(noPublish)
 
 lazy val `fs2-rabbit` = project
