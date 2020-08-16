@@ -7,7 +7,7 @@ number: 18
 # Client Metrics
 
 RabbitMQ Java Client supports metrics collection via [Dropwizard](https://www.rabbitmq.com/blog/2016/11/30/metrics-support-in-rabbitmq-java-client-4-0/) or [Micrometer](https://www.rabbitmq.com/blog/2018/04/10/rabbitmq-java-client-metrics-with-micrometer-and-datadog/).
-At the moment of writing both providers are in the `amqp-client` 5.9.0. Just instantiate one as it is shown below.
+At the moment of writing both providers are in the `amqp-client` 5.9.0. You can instantiate one as shown below.
 
 ```scala
 val registry            = new MetricRegistry
