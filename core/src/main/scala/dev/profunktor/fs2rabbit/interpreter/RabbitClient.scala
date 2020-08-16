@@ -151,10 +151,9 @@ class RabbitClient[F[_]: Concurrent] private[fs2rabbit] (
       listener
     )
 
-  def createRoutingPublisher[A](exchangeName: ExchangeName)(
-      implicit
-      channel: AMQPChannel,
-      encoder: MessageEncoder[F, A]): F[RoutingKey => A => F[Unit]] =
+  def createRoutingPublisher[A](
+      exchangeName: ExchangeName
+  )(implicit channel: AMQPChannel, encoder: MessageEncoder[F, A]): F[RoutingKey => A => F[Unit]] =
     publishingProgram.createRoutingPublisher(channel, exchangeName)
 
   def createRoutingPublisherWithListener[A](
@@ -286,8 +285,7 @@ class RabbitClient[F[_]: Concurrent] private[fs2rabbit] (
       ExchangeUnbindArgs(Map.empty)
     )
 
-  def declareExchange(exchangeName: ExchangeName, exchangeType: ExchangeType)(implicit
-                                                                              channel: AMQPChannel): F[Unit] =
+  def declareExchange(exchangeName: ExchangeName, exchangeType: ExchangeType)(implicit channel: AMQPChannel): F[Unit] =
     declareExchange(
       DeclarationExchangeConfig.default(exchangeName, exchangeType)
     )
