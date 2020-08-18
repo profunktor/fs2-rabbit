@@ -18,7 +18,7 @@ package dev.profunktor.fs2rabbit.interpreter
 
 import cats.effect._
 import cats.implicits._
-import com.rabbitmq.client.{DefaultSaslConfig, SaslConfig}
+import com.rabbitmq.client.{DefaultSaslConfig, MetricsCollector, SaslConfig}
 import dev.profunktor.fs2rabbit.algebra._
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
 import dev.profunktor.fs2rabbit.config.declaration.{DeclarationExchangeConfig, DeclarationQueueConfig}
@@ -39,11 +39,12 @@ object RabbitClient {
       sslContext: Option[SSLContext] = None,
       // Unlike SSLContext, SaslConfig is not optional because it is always set
       // by the underlying Java library, even if the user doesn't set it.
-      saslConfig: SaslConfig = DefaultSaslConfig.PLAIN
+      saslConfig: SaslConfig = DefaultSaslConfig.PLAIN,
+      metricsCollector: Option[MetricsCollector] = None
   ): F[RabbitClient[F]] = {
 
     val internalQ         = new LiveInternalQueue[F](config.internalQueueSize.getOrElse(500))
-    val connection        = ConnectionResource.make(config, sslContext, saslConfig)
+    val connection        = ConnectionResource.make(config, sslContext, saslConfig, metricsCollector)
     val consumingProgram  = AckConsumingProgram.make[F](config, internalQ)
     val publishingProgram = PublishingProgram.make[F](blocker)
 
@@ -93,10 +94,9 @@ class RabbitClient[F[_]: Concurrent] private[fs2rabbit] (
       queueName: QueueName,
       basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
       consumerArgs: Option[ConsumerArgs] = None
-  )(
-      implicit channel: AMQPChannel,
-      decoder: EnvelopeDecoder[F, A]
-  ): F[(AckResult => F[Unit], Stream[F, AmqpEnvelope[A]])] =
+  )(implicit
+    channel: AMQPChannel,
+    decoder: EnvelopeDecoder[F, A]): F[(AckResult => F[Unit], Stream[F, AmqpEnvelope[A]])] =
     consumingProgram.createAckerConsumer(
       channel,
       queueName,
@@ -117,9 +117,9 @@ class RabbitClient[F[_]: Concurrent] private[fs2rabbit] (
     )
 
   def createPublisher[A](exchangeName: ExchangeName, routingKey: RoutingKey)(
-      implicit channel: AMQPChannel,
-      encoder: MessageEncoder[F, A]
-  ): F[A => F[Unit]] =
+      implicit
+      channel: AMQPChannel,
+      encoder: MessageEncoder[F, A]): F[A => F[Unit]] =
     publishingProgram.createPublisher(channel, exchangeName, routingKey)
 
   def createPublisherWithListener[A](
@@ -136,26 +136,24 @@ class RabbitClient[F[_]: Concurrent] private[fs2rabbit] (
       listener
     )
 
-  def createBasicPublisher[A](
-      implicit channel: AMQPChannel,
-      encoder: MessageEncoder[F, A]
-  ): F[(ExchangeName, RoutingKey, A) => F[Unit]] =
+  def createBasicPublisher[A](implicit
+                              channel: AMQPChannel,
+                              encoder: MessageEncoder[F, A]): F[(ExchangeName, RoutingKey, A) => F[Unit]] =
     publishingProgram.createBasicPublisher(channel)
 
   def createBasicPublisherWithListener[A](flag: PublishingFlag, listener: PublishReturn => F[Unit])(
-      implicit channel: AMQPChannel,
-      encoder: MessageEncoder[F, A]
-  ): F[(ExchangeName, RoutingKey, A) => F[Unit]] =
+      implicit
+      channel: AMQPChannel,
+      encoder: MessageEncoder[F, A]): F[(ExchangeName, RoutingKey, A) => F[Unit]] =
     publishingProgram.createBasicPublisherWithListener(
       channel,
       flag,
       listener
     )
 
-  def createRoutingPublisher[A](exchangeName: ExchangeName)(
-      implicit channel: AMQPChannel,
-      encoder: MessageEncoder[F, A]
-  ): F[RoutingKey => A => F[Unit]] =
+  def createRoutingPublisher[A](
+      exchangeName: ExchangeName
+  )(implicit channel: AMQPChannel, encoder: MessageEncoder[F, A]): F[RoutingKey => A => F[Unit]] =
     publishingProgram.createRoutingPublisher(channel, exchangeName)
 
   def createRoutingPublisherWithListener[A](
@@ -287,9 +285,7 @@ class RabbitClient[F[_]: Concurrent] private[fs2rabbit] (
       ExchangeUnbindArgs(Map.empty)
     )
 
-  def declareExchange(exchangeName: ExchangeName, exchangeType: ExchangeType)(
-      implicit channel: AMQPChannel
-  ): F[Unit] =
+  def declareExchange(exchangeName: ExchangeName, exchangeType: ExchangeType)(implicit channel: AMQPChannel): F[Unit] =
     declareExchange(
       DeclarationExchangeConfig.default(exchangeName, exchangeType)
     )

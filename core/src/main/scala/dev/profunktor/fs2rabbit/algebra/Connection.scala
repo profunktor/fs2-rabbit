@@ -19,7 +19,7 @@ package dev.profunktor.fs2rabbit.algebra
 import cats.data.NonEmptyList
 import cats.effect.{Resource, Sync}
 import cats.implicits._
-import com.rabbitmq.client.{Address, ConnectionFactory, DefaultSaslConfig, SaslConfig}
+import com.rabbitmq.client.{Address, ConnectionFactory, DefaultSaslConfig, MetricsCollector, SaslConfig}
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
 import dev.profunktor.fs2rabbit.effects.Log
 import dev.profunktor.fs2rabbit.javaConversion._
@@ -33,7 +33,8 @@ object ConnectionResource {
       sslCtx: Option[SSLContext] = None,
       // Unlike SSLContext, SaslConfig is not optional because it is always set
       // by the underlying Java library, even if the user doesn't set it.
-      saslConf: SaslConfig = DefaultSaslConfig.PLAIN
+      saslConf: SaslConfig = DefaultSaslConfig.PLAIN,
+      metricsCollector: Option[MetricsCollector] = None
   ): F[Connection[Resource[F, ?]]] =
     Sync[F].delay {
       new Connection[Resource[F, ?]] {
@@ -47,12 +48,12 @@ object ConnectionResource {
             factory.setVirtualHost(conf.virtualHost)
             factory.setConnectionTimeout(conf.connectionTimeout)
             factory.setAutomaticRecoveryEnabled(conf.automaticRecovery)
-            if (conf.ssl) {
+            if (conf.ssl)
               sslCtx.fold(factory.useSslProtocol())(factory.useSslProtocol)
-            }
             factory.setSaslConfig(saslConf)
             conf.username.foreach(factory.setUsername)
             conf.password.foreach(factory.setPassword)
+            metricsCollector.foreach(factory.setMetricsCollector)
             val addresses = conf.nodes.map(node => new Address(node.host, node.port))
             (factory, addresses)
           }

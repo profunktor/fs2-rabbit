@@ -72,7 +72,9 @@ def ExamplesDependencies(scalaVersionStr: String): List[ModuleID] =
     Libraries.logback % "runtime",
     Libraries.monix,
     Libraries.zioCore,
-    Libraries.zioCats
+    Libraries.zioCats,
+    Libraries.dropwizard,
+    Libraries.dropwizardJmx
   )
 
 def TestKitDependencies(scalaVersionStr: String): List[ModuleID] = List(Libraries.scalaCheck)
