@@ -38,9 +38,10 @@ class AckerConsumerDemo[F[_]: Concurrent: Timer](fs2Rabbit: RabbitClient[F]) {
   implicit val stringMessageEncoder =
     Kleisli[F, AmqpMessage[String], AmqpMessage[Array[Byte]]](s => s.copy(payload = s.payload.getBytes(UTF_8)).pure[F])
 
-  def logPipe: Pipe[F, AmqpEnvelope[String], AckResult] = _.evalMap { amqpMsg =>
-    putStrLn(s"Consumed: $amqpMsg").as(Ack(amqpMsg.deliveryTag))
-  }
+  def logPipe: Pipe[F, AmqpEnvelope[String], AckResult] =
+    _.evalMap { amqpMsg =>
+      putStrLn(s"Consumed: $amqpMsg").as(Ack(amqpMsg.deliveryTag))
+    }
 
   val publishingFlag: PublishingFlag = PublishingFlag(mandatory = true)
 
@@ -91,7 +92,7 @@ class Flow[F[_]: Concurrent, A](
   val flow: Stream[F, Unit] =
     Stream(
       Stream(simpleMessage).covary[F].evalMap(publisher),
-      Stream(classMessage).covary[F].through(jsonPipe).evalMap(publisher),
+      Stream(classMessage).through(jsonPipe).covary[F].evalMap(publisher),
       consumer.through(logger).evalMap(acker)
     ).parJoin(3)
 

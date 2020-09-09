@@ -115,9 +115,7 @@ trait Fs2RabbitSpec { self: BaseSpec =>
       for {
         queue  <- mkRandomString.map(QueueName)
         result <- declareQueuePassive(queue).attempt
-      } yield {
-        result.left.value shouldBe a[java.io.IOException]
-      }
+      } yield result.left.value shouldBe a[java.io.IOException]
     }
   }
 
@@ -129,9 +127,7 @@ trait Fs2RabbitSpec { self: BaseSpec =>
         for {
           exchange <- mkRandomString.map(ExchangeName)
           result   <- declareExchangePassive(exchange).attempt
-        } yield {
-          result.left.value shouldBe a[java.io.IOException]
-        }
+        } yield result.left.value shouldBe a[java.io.IOException]
       }
   }
 
@@ -188,9 +184,7 @@ trait Fs2RabbitSpec { self: BaseSpec =>
         _          <- bindQueue(q, x, rk, QueueBindingArgs(Map.empty))
         ct         <- mkRandomString.map(ConsumerTag)
         result     <- basicCancel(ct).attempt
-      } yield {
-        result.left.value shouldBe a[java.io.IOException]
-      }
+      } yield result.left.value shouldBe a[java.io.IOException]
     }
   }
 
@@ -686,7 +680,7 @@ trait Fs2RabbitSpec { self: BaseSpec =>
         RabbitClient[IO](config, blocker).flatMap(r => fa(r).compile.drain)
       }
       .as(emptyAssertion)
-      .unsafeToFuture
+      .unsafeToFuture()
 
   private def withStreamNackRabbit[A](fa: RabbitClient[IO] => Stream[IO, A]): Future[Assertion] =
     blockerResource
@@ -694,7 +688,7 @@ trait Fs2RabbitSpec { self: BaseSpec =>
         RabbitClient[IO](config.copy(requeueOnNack = true), blocker).flatMap(r => fa(r).compile.drain)
       }
       .as(emptyAssertion)
-      .unsafeToFuture
+      .unsafeToFuture()
 
   private def withStreamRejectRabbit[A](fa: RabbitClient[IO] => Stream[IO, A]): Future[Assertion] =
     blockerResource
@@ -702,12 +696,14 @@ trait Fs2RabbitSpec { self: BaseSpec =>
         RabbitClient[IO](config.copy(requeueOnReject = true), blocker).flatMap(r => fa(r).compile.drain)
       }
       .as(emptyAssertion)
-      .unsafeToFuture
+      .unsafeToFuture()
 
   private def withRabbit[A](fa: RabbitClient[IO] => IO[A]): Future[A] =
-    blockerResource.use { blocker =>
-      RabbitClient[IO](config, blocker).flatMap(r => fa(r))
-    }.unsafeToFuture
+    blockerResource
+      .use { blocker =>
+        RabbitClient[IO](config, blocker).flatMap(r => fa(r))
+      }
+      .unsafeToFuture()
 
   private def randomQueueData: IO[(QueueName, ExchangeName, RoutingKey)] =
     (mkRandomString, mkRandomString, mkRandomString).mapN {
