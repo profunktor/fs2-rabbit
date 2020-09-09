@@ -46,7 +46,7 @@ object ZIOAutoAckConsumer extends CatsApp {
       .make(Task(Executors.newCachedThreadPool()))(es => Task(es.shutdown()))
       .map(Blocker.liftExecutorService)
 
-  override def run(args: List[String]): UIO[Int] =
+  override def run(args: List[String]): URIO[ZEnv, ExitCode] =
     blockerResource
       .use { blocker =>
         RabbitClient[Task](config, blocker).flatMap { client =>
@@ -54,7 +54,7 @@ object ZIOAutoAckConsumer extends CatsApp {
             .runF(new AutoAckConsumerDemo[Task](client).program)
         }
       }
-      .run
-      .map(_ => 0)
+      .orDie
+      .as(ExitCode.success)
 
 }

@@ -4,14 +4,14 @@ object Dependencies {
 
   object Version {
     val cats       = "2.2.0"
-    val catsEffect = "2.1.2"
-    val fs2        = "2.3.0"
+    val catsEffect = "2.2.0"
+    val fs2        = "2.4.4"
     val circe      = "0.13.0"
     val amqpClient = "5.9.0"
     val logback    = "1.2.3"
-    val monix      = "3.1.0"
-    val zio        = "1.0.0-RC19-2"
-    val zioCats    = "2.0.0.0-RC14"
+    val monix      = "3.2.2"
+    val zio        = "1.0.1"
+    val zioCats    = "2.1.4.0"
     val scodec     = "1.0.0"
     val dropwizard = "4.1.12.1"
 

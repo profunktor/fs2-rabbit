@@ -33,7 +33,7 @@ class ResilientStreamSpec extends BaseSpec {
 
   it should "run a stream until it's finished" in {
     val program = Stream(1, 2, 3).covary[IO].through(sink)
-    ResilientStream.run(program).as(emptyAssertion).unsafeToFuture
+    ResilientStream.run(program).as(emptyAssertion).unsafeToFuture()
   }
 
   it should "run a stream and recover in case of failure" in {
@@ -47,7 +47,7 @@ class ResilientStreamSpec extends BaseSpec {
         }
       }
 
-    Ref.of[IO, Int](2).flatMap(r => ResilientStream.run(p(r), 1.second)).as(emptyAssertion).unsafeToFuture
+    Ref.of[IO, Int](2).flatMap(r => ResilientStream.run(p(r), 1.second)).as(emptyAssertion).unsafeToFuture()
   }
 
 }
