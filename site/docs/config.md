@@ -27,9 +27,11 @@ val config = Fs2RabbitConfig(
   requeueOnNack = false,
   requeueOnReject = false,
   internalQueueSize = Some(500),
+  requestedHeartbeat = Some(30),
   automaticRecovery = true
 )
 ```
 
 The `internalQueueSize` indicates the size of the fs2's bounded queue used internally to communicate with the AMQP Java driver.
 The `automaticRecovery` indicates whether the AMQP Java driver should try to [recover broken connections](https://www.rabbitmq.com/api-guide.html#recovery).
+The `requestedHeartbeat` indicates [heartbeat timeout](https://www.rabbitmq.com/heartbeats.html#using-heartbeats-in-java). Should be non-zero and lower than 60.
