@@ -113,6 +113,7 @@ object IOAckerConsumer extends IOApp {
     requeueOnNack = false,
     requeueOnReject = false,
     internalQueueSize = Some(500),
+    requestedHeartbeat = Some(60),
     automaticRecovery = true
   )
 
