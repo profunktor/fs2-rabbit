@@ -49,7 +49,7 @@ object Fs2RabbitConfig {
       requeueOnNack: Boolean,
       requeueOnReject: Boolean,
       internalQueueSize: Option[Int],
-      requestedHeartbeat: Option[Int] = Some(60),
+      requestedHeartbeat: Option[Int] = None,
       automaticRecovery: Boolean = true
   ): Fs2RabbitConfig = Fs2RabbitConfig(
     nodes = NonEmptyList.one(Fs2RabbitNodeConfig(host, port)),
