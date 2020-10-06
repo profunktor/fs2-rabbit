@@ -38,6 +38,7 @@ class RabbitSuite extends BaseSpec with Fs2RabbitSpec {
       password = "guest".some,
       requeueOnNack = false,
       requeueOnReject = false,
+      requestedHeartbeat = 60.some,
       internalQueueSize = 500.some
     )
 
