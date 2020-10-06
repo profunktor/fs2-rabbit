@@ -17,6 +17,7 @@
 package dev.profunktor.fs2rabbit.config
 
 import cats.data.NonEmptyList
+import com.rabbitmq.client.ConnectionFactory
 
 case class Fs2RabbitNodeConfig(
     host: String,
@@ -33,7 +34,7 @@ case class Fs2RabbitConfig(
     requeueOnNack: Boolean,
     requeueOnReject: Boolean,
     internalQueueSize: Option[Int],
-    requestedHeartbeat: Option[Int],
+    requestedHeartbeat: Int,
     automaticRecovery: Boolean
 )
 
@@ -49,7 +50,7 @@ object Fs2RabbitConfig {
       requeueOnNack: Boolean,
       requeueOnReject: Boolean,
       internalQueueSize: Option[Int],
-      requestedHeartbeat: Option[Int] = None,
+      requestedHeartbeat: Int = ConnectionFactory.DEFAULT_HEARTBEAT,
       automaticRecovery: Boolean = true
   ): Fs2RabbitConfig = Fs2RabbitConfig(
     nodes = NonEmptyList.one(Fs2RabbitNodeConfig(host, port)),

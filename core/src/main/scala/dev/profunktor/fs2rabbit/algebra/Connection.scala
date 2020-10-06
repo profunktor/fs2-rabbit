@@ -47,7 +47,7 @@ object ConnectionResource {
             factory.setPort(firstNode.port)
             factory.setVirtualHost(conf.virtualHost)
             factory.setConnectionTimeout(conf.connectionTimeout)
-            factory.setRequestedHeartbeat(conf.requestedHeartbeat.getOrElse(ConnectionFactory.DEFAULT_HEARTBEAT))
+            factory.setRequestedHeartbeat(conf.requestedHeartbeat)
             factory.setAutomaticRecoveryEnabled(conf.automaticRecovery)
             if (conf.ssl)
               sslCtx.fold(factory.useSslProtocol())(factory.useSslProtocol)
