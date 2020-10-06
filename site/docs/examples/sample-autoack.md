@@ -103,7 +103,7 @@ object MonixAutoAckConsumer extends TaskApp {
     requeueOnNack = false,
     requeueOnReject = false,
     internalQueueSize = Some(500),
-    requestedHeartbeat = Some(60),
+    requestedHeartbeat = 60,
     automaticRecovery = true
   )
 

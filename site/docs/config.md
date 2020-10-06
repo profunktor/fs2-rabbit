@@ -27,7 +27,7 @@ val config = Fs2RabbitConfig(
   requeueOnNack = false,
   requeueOnReject = false,
   internalQueueSize = Some(500),
-  requestedHeartbeat = Some(30),
+  requestedHeartbeat = 30,
   automaticRecovery = true
 )
 ```
