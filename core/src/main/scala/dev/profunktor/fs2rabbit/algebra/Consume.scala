@@ -87,7 +87,7 @@ object Consume {
             import cats.instances.either._
 
             val envelopeOrErr =
-              Functor[Either[Throwable, ?]].map(amqpPropertiesOrErr) { props =>
+              Functor[Either[Throwable, *]].map(amqpPropertiesOrErr) { props =>
                 AmqpEnvelope(
                   DeliveryTag(tag),
                   body,

@@ -45,28 +45,28 @@ object EnvelopeDecoder {
   def optHeader[F[_]: Applicative](name: String): EnvelopeDecoder[F, Option[AmqpFieldValue]] =
     Kleisli(_.properties.headers.get(name).pure[F])
 
-  def stringHeader[F[_]: ApplicativeError[?[_], Throwable]](name: String): EnvelopeDecoder[F, String] =
+  def stringHeader[F[_]: ApplicativeError[*[_], Throwable]](name: String): EnvelopeDecoder[F, String] =
     headerPF[F, String](name) { case StringVal(a) => a }
 
-  def intHeader[F[_]: ApplicativeError[?[_], Throwable]](name: String): EnvelopeDecoder[F, Int] =
+  def intHeader[F[_]: ApplicativeError[*[_], Throwable]](name: String): EnvelopeDecoder[F, Int] =
     headerPF[F, Int](name) { case IntVal(a) => a }
 
-  def longHeader[F[_]: ApplicativeError[?[_], Throwable]](name: String): EnvelopeDecoder[F, Long] =
+  def longHeader[F[_]: ApplicativeError[*[_], Throwable]](name: String): EnvelopeDecoder[F, Long] =
     headerPF[F, Long](name) { case LongVal(a) => a }
 
-  def arrayHeader[F[_]: ApplicativeError[?[_], Throwable]](name: String): EnvelopeDecoder[F, collection.Seq[Any]] =
+  def arrayHeader[F[_]: ApplicativeError[*[_], Throwable]](name: String): EnvelopeDecoder[F, collection.Seq[Any]] =
     headerPF[F, collection.Seq[Any]](name) { case ArrayVal(a) => a }
 
-  def optStringHeader[F[_]: ApplicativeError[?[_], Throwable]](name: String): EnvelopeDecoder[F, Option[String]] =
+  def optStringHeader[F[_]: ApplicativeError[*[_], Throwable]](name: String): EnvelopeDecoder[F, Option[String]] =
     optHeaderPF[F, String](name) { case StringVal(a) => a }
 
-  def optIntHeader[F[_]: ApplicativeError[?[_], Throwable]](name: String): EnvelopeDecoder[F, Option[Int]] =
+  def optIntHeader[F[_]: ApplicativeError[*[_], Throwable]](name: String): EnvelopeDecoder[F, Option[Int]] =
     optHeaderPF[F, Int](name) { case IntVal(a) => a }
 
-  def optLongHeader[F[_]: ApplicativeError[?[_], Throwable]](name: String): EnvelopeDecoder[F, Option[Long]] =
+  def optLongHeader[F[_]: ApplicativeError[*[_], Throwable]](name: String): EnvelopeDecoder[F, Option[Long]] =
     optHeaderPF[F, Long](name) { case LongVal(a) => a }
 
-  def optArrayHeader[F[_]: ApplicativeError[?[_], Throwable]](
+  def optArrayHeader[F[_]: ApplicativeError[*[_], Throwable]](
       name: String): EnvelopeDecoder[F, Option[collection.Seq[Any]]] =
     optHeaderPF[F, collection.Seq[Any]](name) { case ArrayVal(a) => a }
 

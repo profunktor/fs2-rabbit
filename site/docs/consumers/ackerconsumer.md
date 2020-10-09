@@ -26,4 +26,4 @@ def program(R: RabbitClient[IO]) =
   }
 ```
 
-When creating a consumer, you can tune the configuration by using `BasicQos` and `ConsumerArgs`. By default, the `basic QOS` is set to a prefetch size of 0, a prefetch count of 1 and `global` is set to false. `ConsumerArgs` is by `None` by default since it's optional. When defined, you can indicate `consumerTag` (default is ""), `noLocal` (default is false), `exclusive` (default is false) and `args` (default is an empty `Map[String, ?]`).
+When creating a consumer, you can tune the configuration by using `BasicQos` and `ConsumerArgs`. By default, the `basic QOS` is set to a prefetch size of 0, a prefetch count of 1 and `global` is set to false. `ConsumerArgs` is by `None` by default since it's optional. When defined, you can indicate `consumerTag` (default is ""), `noLocal` (default is false), `exclusive` (default is false) and `args` (default is an empty `Map[String, *]`).

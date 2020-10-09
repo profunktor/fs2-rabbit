@@ -35,7 +35,7 @@ You can write all your `EnvelopeDecoder` instances this way, but it's usually ea
 
 ```scala mdoc:silent
 case class Foo(s: String)
-implicit def fooDecoder[F[_]: ApplicativeError[?[_], Throwable]]: EnvelopeDecoder[F, Foo] =
+implicit def fooDecoder[F[_]: ApplicativeError[*[_], Throwable]]: EnvelopeDecoder[F, Foo] =
   EnvelopeDecoder[F, String].map(Foo.apply)
 ```
 

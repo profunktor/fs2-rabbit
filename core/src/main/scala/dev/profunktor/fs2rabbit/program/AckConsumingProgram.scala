@@ -34,7 +34,7 @@ object AckConsumingProgram {
     }
 }
 
-trait AckConsumingProgram[F[_]] extends AckConsuming[F, Stream[F, ?]] with Acking[F] with ConsumingStream[F]
+trait AckConsumingProgram[F[_]] extends AckConsuming[F, Stream[F, *]] with Acking[F] with ConsumingStream[F]
 
 case class WrapperAckConsumingProgram[F[_]: Effect] private (
     ackingProgram: AckingProgram[F],

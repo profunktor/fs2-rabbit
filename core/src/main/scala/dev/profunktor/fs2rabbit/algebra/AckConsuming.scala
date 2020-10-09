@@ -21,7 +21,7 @@ import dev.profunktor.fs2rabbit.model._
 import fs2.Stream
 
 object AckConsumingStream {
-  type AckConsumingStream[F[_]] = AckConsuming[F, Stream[F, ?]]
+  type AckConsumingStream[F[_]] = AckConsuming[F, Stream[F, *]]
 }
 
 trait AckConsuming[F[_], R[_]] {

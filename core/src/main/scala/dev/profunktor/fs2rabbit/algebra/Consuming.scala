@@ -22,7 +22,7 @@ import dev.profunktor.fs2rabbit.model._
 import fs2.Stream
 
 object ConsumingStream {
-  type ConsumingStream[F[_]] = Consuming[F, Stream[F, ?]]
+  type ConsumingStream[F[_]] = Consuming[F, Stream[F, *]]
 }
 
 trait Consuming[F[_], R[_]] {
