@@ -30,9 +30,9 @@ import scala.util.Try
 class EnvelopeDecoderSpec extends AsyncFunSuite {
 
   // Available instances of EnvelopeDecoder for any ApplicativeError[F, Throwable]
-  EnvelopeDecoder[Either[Throwable, ?], String]
+  EnvelopeDecoder[Either[Throwable, *], String]
   EnvelopeDecoder[SyncIO, String]
-  EnvelopeDecoder[EitherT[IO, String, ?], String]
+  EnvelopeDecoder[EitherT[IO, String, *], String]
   EnvelopeDecoder[Try, String]
 
   test("should decode a UTF-8 string") {

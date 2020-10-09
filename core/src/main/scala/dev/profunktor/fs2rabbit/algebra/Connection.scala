@@ -27,7 +27,7 @@ import dev.profunktor.fs2rabbit.model.{AMQPChannel, AMQPConnection, RabbitChanne
 import javax.net.ssl.SSLContext
 
 object ConnectionResource {
-  type ConnectionResource[F[_]] = Connection[Resource[F, ?]]
+  type ConnectionResource[F[_]] = Connection[Resource[F, *]]
   def make[F[_]: Sync: Log](
       conf: Fs2RabbitConfig,
       sslCtx: Option[SSLContext] = None,
@@ -35,9 +35,9 @@ object ConnectionResource {
       // by the underlying Java library, even if the user doesn't set it.
       saslConf: SaslConfig = DefaultSaslConfig.PLAIN,
       metricsCollector: Option[MetricsCollector] = None
-  ): F[Connection[Resource[F, ?]]] =
+  ): F[Connection[Resource[F, *]]] =
     Sync[F].delay {
-      new Connection[Resource[F, ?]] {
+      new Connection[Resource[F, *]] {
 
         private[fs2rabbit] def mkConnectionFactory: F[(ConnectionFactory, NonEmptyList[Address])] =
           Sync[F].delay {
