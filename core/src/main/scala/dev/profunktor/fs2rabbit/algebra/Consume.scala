@@ -155,7 +155,7 @@ object Consume {
         } yield ConsumerTag(rs)
 
       override def basicCancel(channel: AMQPChannel, consumerTag: ConsumerTag): F[Unit] =
-        Sync[F].delay {
+        blocker.delay {
           channel.value.basicCancel(consumerTag.value)
         }
     }
