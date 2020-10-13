@@ -16,19 +16,19 @@
 
 package dev.profunktor.fs2rabbit.algebra
 
-import cats.effect.Sync
+import cats.effect.{Blocker, ContextShift, Sync}
 import cats.syntax.functor._
 import dev.profunktor.fs2rabbit.arguments._
 import dev.profunktor.fs2rabbit.model._
 
 object Binding {
-  def make[F[_]: Sync]: Binding[F] =
+  def make[F[_]: Sync: ContextShift](blocker: Blocker): Binding[F] =
     new Binding[F] {
       override def bindQueue(channel: AMQPChannel,
                              queueName: QueueName,
                              exchangeName: ExchangeName,
                              routingKey: RoutingKey): F[Unit] =
-        Sync[F].delay {
+        blocker.delay {
           channel.value.queueBind(
             queueName.value,
             exchangeName.value,
@@ -41,7 +41,7 @@ object Binding {
                              exchangeName: ExchangeName,
                              routingKey: RoutingKey,
                              args: QueueBindingArgs): F[Unit] =
-        Sync[F].delay {
+        blocker.delay {
           channel.value.queueBind(
             queueName.value,
             exchangeName.value,
@@ -55,7 +55,7 @@ object Binding {
                                    exchangeName: ExchangeName,
                                    routingKey: RoutingKey,
                                    args: QueueBindingArgs): F[Unit] =
-        Sync[F].delay {
+        blocker.delay {
           channel.value.queueBindNoWait(
             queueName.value,
             exchangeName.value,
@@ -83,7 +83,7 @@ object Binding {
                                exchangeName: ExchangeName,
                                routingKey: RoutingKey,
                                args: QueueUnbindArgs): F[Unit] =
-        Sync[F].delay {
+        blocker.delay {
           channel.value.queueUnbind(
             queueName.value,
             exchangeName.value,
@@ -97,7 +97,7 @@ object Binding {
                                 source: ExchangeName,
                                 routingKey: RoutingKey,
                                 args: ExchangeBindingArgs): F[Unit] =
-        Sync[F].delay {
+        blocker.delay {
           channel.value.exchangeBind(
             destination.value,
             source.value,
@@ -111,7 +111,7 @@ object Binding {
                                       source: ExchangeName,
                                       routingKey: RoutingKey,
                                       args: ExchangeBindingArgs): F[Unit] =
-        Sync[F].delay {
+        blocker.delay {
           channel.value.exchangeBindNoWait(
             destination.value,
             source.value,
@@ -125,7 +125,7 @@ object Binding {
                                   source: ExchangeName,
                                   routingKey: RoutingKey,
                                   args: ExchangeUnbindArgs): F[Unit] =
-        Sync[F].delay {
+        blocker.delay {
           channel.value.exchangeUnbind(
             destination.value,
             source.value,

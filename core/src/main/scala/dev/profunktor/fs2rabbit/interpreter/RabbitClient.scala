@@ -45,16 +45,16 @@ object RabbitClient {
 
     val internalQ         = new LiveInternalQueue[F](config.internalQueueSize.getOrElse(500))
     val connection        = ConnectionResource.make(config, sslContext, saslConfig, metricsCollector)
-    val consumingProgram  = AckConsumingProgram.make[F](config, internalQ)
+    val consumingProgram  = AckConsumingProgram.make[F](config, internalQ, blocker)
     val publishingProgram = PublishingProgram.make[F](blocker)
 
     (connection, consumingProgram, publishingProgram).mapN {
       case (conn, consuming, publish) =>
-        val consumeClient     = Consume.make[F]
+        val consumeClient     = Consume.make[F](blocker)
         val publishClient     = Publish.make[F](blocker)
-        val bindingClient     = Binding.make[F]
-        val declarationClient = Declaration.make[F]
-        val deletionClient    = Deletion.make[F]
+        val bindingClient     = Binding.make[F](blocker)
+        val declarationClient = Declaration.make[F](blocker)
+        val deletionClient    = Deletion.make[F](blocker)
 
         new RabbitClient[F](
           conn,

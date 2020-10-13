@@ -17,7 +17,7 @@
 package dev.profunktor.fs2rabbit.program
 
 import cats.Applicative
-import cats.effect.{Effect, Sync}
+import cats.effect.{Blocker, ContextShift, Effect, Sync}
 import dev.profunktor.fs2rabbit.algebra.{AMQPInternals, Acking, Consume}
 import dev.profunktor.fs2rabbit.arguments.Arguments
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
@@ -25,8 +25,8 @@ import dev.profunktor.fs2rabbit.model.AckResult.{Ack, NAck, Reject}
 import dev.profunktor.fs2rabbit.model._
 
 object AckingProgram {
-  def make[F[_]: Effect](config: Fs2RabbitConfig): F[AckingProgram[F]] = Sync[F].delay {
-    WrapperAckingProgram(config, Consume.make)
+  def make[F[_]: Effect: ContextShift](config: Fs2RabbitConfig, blocker: Blocker): F[AckingProgram[F]] = Sync[F].delay {
+    WrapperAckingProgram(config, Consume.make(blocker))
   }
 }
 
