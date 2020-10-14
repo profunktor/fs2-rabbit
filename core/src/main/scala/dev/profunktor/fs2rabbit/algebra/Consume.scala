@@ -17,7 +17,7 @@
 package dev.profunktor.fs2rabbit.algebra
 
 import cats.effect.syntax.effect._
-import cats.effect.{Effect, Sync}
+import cats.effect.{Blocker, ContextShift, Effect, Sync}
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.{Applicative, Functor}
@@ -28,7 +28,7 @@ import dev.profunktor.fs2rabbit.model._
 import scala.util.{Failure, Success, Try}
 
 object Consume {
-  def make[F[_]: Effect]: Consume[F] =
+  def make[F[_]: Effect: ContextShift](blocker: Blocker): Consume[F] =
     new Consume[F] {
       private[fs2rabbit] def defaultConsumer[A](
           channel: AMQPChannel,
@@ -108,21 +108,21 @@ object Consume {
         }
       }
 
-      override def basicAck(channel: AMQPChannel, tag: DeliveryTag, multiple: Boolean): F[Unit] = Sync[F].delay {
+      override def basicAck(channel: AMQPChannel, tag: DeliveryTag, multiple: Boolean): F[Unit] = blocker.delay {
         channel.value.basicAck(tag.value, multiple)
       }
 
       override def basicNack(channel: AMQPChannel, tag: DeliveryTag, multiple: Boolean, requeue: Boolean): F[Unit] =
-        Sync[F].delay {
+        blocker.delay {
           channel.value.basicNack(tag.value, multiple, requeue)
         }
 
-      override def basicReject(channel: AMQPChannel, tag: DeliveryTag, requeue: Boolean): F[Unit] = Sync[F].delay {
+      override def basicReject(channel: AMQPChannel, tag: DeliveryTag, requeue: Boolean): F[Unit] = blocker.delay {
         channel.value.basicReject(tag.value, requeue)
       }
 
       override def basicQos(channel: AMQPChannel, basicQos: BasicQos): F[Unit] =
-        Sync[F].delay {
+        blocker.delay {
           channel.value.basicQos(
             basicQos.prefetchSize,
             basicQos.prefetchCount,
@@ -141,7 +141,7 @@ object Consume {
       )(internals: AMQPInternals[F]): F[ConsumerTag] =
         for {
           dc <- defaultConsumer(channel, internals)
-          rs <- Sync[F].delay(
+          rs <- blocker.delay(
                  channel.value.basicConsume(
                    queueName.value,
                    autoAck,
@@ -155,7 +155,7 @@ object Consume {
         } yield ConsumerTag(rs)
 
       override def basicCancel(channel: AMQPChannel, consumerTag: ConsumerTag): F[Unit] =
-        Sync[F].delay {
+        blocker.delay {
           channel.value.basicCancel(consumerTag.value)
         }
     }

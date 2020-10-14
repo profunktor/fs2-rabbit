@@ -16,7 +16,7 @@
 
 package dev.profunktor.fs2rabbit.algebra
 
-import cats.effect.Sync
+import cats.effect.{Blocker, ContextShift, Sync}
 import cats.syntax.functor._
 import dev.profunktor.fs2rabbit.arguments._
 import dev.profunktor.fs2rabbit.config.declaration.{DeclarationExchangeConfig, DeclarationQueueConfig}
@@ -24,9 +24,9 @@ import dev.profunktor.fs2rabbit.effects.BoolValue.syntax._
 import dev.profunktor.fs2rabbit.model.{AMQPChannel, ExchangeName, QueueName}
 
 object Declaration {
-  def make[F[_]: Sync]: Declaration[F] = new Declaration[F] {
+  def make[F[_]: Sync: ContextShift](blocker: Blocker): Declaration[F] = new Declaration[F] {
     override def declareExchange(channel: AMQPChannel, config: DeclarationExchangeConfig): F[Unit] =
-      Sync[F].delay {
+      blocker.delay {
         channel.value.exchangeDeclare(
           config.exchangeName.value,
           config.exchangeType.toString.toLowerCase,
@@ -41,7 +41,7 @@ object Declaration {
         channel: AMQPChannel,
         config: DeclarationExchangeConfig
     ): F[Unit] =
-      Sync[F].delay {
+      blocker.delay {
         channel.value.exchangeDeclareNoWait(
           config.exchangeName.value,
           config.exchangeType.toString.toLowerCase,
@@ -53,17 +53,17 @@ object Declaration {
       }.void
 
     override def declareExchangePassive(channel: AMQPChannel, exchangeName: ExchangeName): F[Unit] =
-      Sync[F].delay {
+      blocker.delay {
         channel.value.exchangeDeclarePassive(exchangeName.value)
       }.void
 
     override def declareQueue(channel: AMQPChannel): F[QueueName] =
-      Sync[F].delay {
+      blocker.delay {
         QueueName(channel.value.queueDeclare().getQueue)
       }
 
     override def declareQueue(channel: AMQPChannel, config: DeclarationQueueConfig): F[Unit] =
-      Sync[F].delay {
+      blocker.delay {
         channel.value.queueDeclare(
           config.queueName.value,
           config.durable.isTrue,
@@ -74,7 +74,7 @@ object Declaration {
       }.void
 
     override def declareQueueNoWait(channel: AMQPChannel, config: DeclarationQueueConfig): F[Unit] =
-      Sync[F].delay {
+      blocker.delay {
         channel.value.queueDeclareNoWait(
           config.queueName.value,
           config.durable.isTrue,
@@ -85,7 +85,7 @@ object Declaration {
       }.void
 
     override def declareQueuePassive(channel: AMQPChannel, queueName: QueueName): F[Unit] =
-      Sync[F].delay {
+      blocker.delay {
         channel.value.queueDeclarePassive(queueName.value)
       }.void
   }
