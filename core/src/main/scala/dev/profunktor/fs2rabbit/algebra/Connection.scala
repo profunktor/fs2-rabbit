@@ -35,58 +35,58 @@ object ConnectionResource {
       saslConf: SaslConfig = DefaultSaslConfig.PLAIN,
       metricsCollector: Option[MetricsCollector] = None
   ): F[Connection[Resource[F, *]]] =
-    Sync[F].delay {
-      new Connection[Resource[F, *]] {
-
-        private[fs2rabbit] val connectionFactory = {
-          val factory   = new ConnectionFactory()
-          val firstNode = conf.nodes.head
-          factory.setHost(firstNode.host)
-          factory.setPort(firstNode.port)
-          factory.setVirtualHost(conf.virtualHost)
-          factory.setConnectionTimeout(conf.connectionTimeout)
-          factory.setRequestedHeartbeat(conf.requestedHeartbeat)
-          factory.setAutomaticRecoveryEnabled(conf.automaticRecovery)
-          if (conf.ssl) sslCtx.fold(factory.useSslProtocol())(factory.useSslProtocol)
-          factory.setSaslConfig(saslConf)
-          conf.username.foreach(factory.setUsername)
-          conf.password.foreach(factory.setPassword)
-          metricsCollector.foreach(factory.setMetricsCollector)
-          factory
-        }
-
-        private[fs2rabbit] val addresses = conf.nodes.map(node => new Address(node.host, node.port))
-
-        private[fs2rabbit] val acquireConnection: F[AMQPConnection] =
-          Sync[F]
-            .delay(connectionFactory.newConnection(addresses.toList.asJava))
-            .flatTap(c => Log[F].info(s"Acquired connection: $c"))
-            .map(RabbitConnection)
-
-        private[fs2rabbit] def acquireChannel(connection: AMQPConnection): F[AMQPChannel] =
-          Sync[F]
-            .delay(connection.value.createChannel)
-            .flatTap(c => Log[F].info(s"Acquired channel: $c"))
-            .map(RabbitChannel)
-
-        override def createConnection: Resource[F, AMQPConnection] =
-          Resource.make(acquireConnection) {
-            case RabbitConnection(conn) =>
-              Log[F].info(s"Releasing connection: $conn previously acquired.") *>
-                Sync[F].delay {
-                  if (conn.isOpen) conn.close()
-                }
-          }
-
-        override def createChannel(connection: AMQPConnection): Resource[F, AMQPChannel] =
-          Resource.make(acquireChannel(connection)) {
-            case RabbitChannel(channel) =>
-              Sync[F].delay {
-                if (channel.isOpen) channel.close()
-              }
-          }
+    Sync[F]
+      .delay {
+        val factory   = new ConnectionFactory()
+        val firstNode = conf.nodes.head
+        factory.setHost(firstNode.host)
+        factory.setPort(firstNode.port)
+        factory.setVirtualHost(conf.virtualHost)
+        factory.setConnectionTimeout(conf.connectionTimeout)
+        factory.setRequestedHeartbeat(conf.requestedHeartbeat)
+        factory.setAutomaticRecoveryEnabled(conf.automaticRecovery)
+        if (conf.ssl) sslCtx.fold(factory.useSslProtocol())(factory.useSslProtocol)
+        factory.setSaslConfig(saslConf)
+        conf.username.foreach(factory.setUsername)
+        conf.password.foreach(factory.setPassword)
+        metricsCollector.foreach(factory.setMetricsCollector)
+        factory
       }
-    }
+      .map { connectionFactory =>
+        new Connection[Resource[F, *]] {
+
+          private[fs2rabbit] val addresses = conf.nodes.map(node => new Address(node.host, node.port))
+
+          private[fs2rabbit] val acquireConnection: F[AMQPConnection] =
+            Sync[F]
+              .delay(connectionFactory.newConnection(addresses.toList.asJava))
+              .flatTap(c => Log[F].info(s"Acquired connection: $c"))
+              .map(RabbitConnection)
+
+          private[fs2rabbit] def acquireChannel(connection: AMQPConnection): F[AMQPChannel] =
+            Sync[F]
+              .delay(connection.value.createChannel)
+              .flatTap(c => Log[F].info(s"Acquired channel: $c"))
+              .map(RabbitChannel)
+
+          override def createConnection: Resource[F, AMQPConnection] =
+            Resource.make(acquireConnection) {
+              case RabbitConnection(conn) =>
+                Log[F].info(s"Releasing connection: $conn previously acquired.") *>
+                  Sync[F].delay {
+                    if (conn.isOpen) conn.close()
+                  }
+            }
+
+          override def createChannel(connection: AMQPConnection): Resource[F, AMQPChannel] =
+            Resource.make(acquireChannel(connection)) {
+              case RabbitChannel(channel) =>
+                Sync[F].delay {
+                  if (channel.isOpen) channel.close()
+                }
+            }
+        }
+      }
 }
 
 trait Connection[F[_]] {
