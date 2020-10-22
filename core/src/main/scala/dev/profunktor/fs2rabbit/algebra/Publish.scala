@@ -29,7 +29,7 @@ object Publish {
                                 exchangeName: ExchangeName,
                                 routingKey: RoutingKey,
                                 msg: AmqpMessage[Array[Byte]]): F[Unit] =
-        Sync[F].delay {
+        Sync[F].blocking {
           channel.value.basicPublish(
             exchangeName.value,
             routingKey.value,
@@ -43,7 +43,7 @@ object Publish {
                                         routingKey: RoutingKey,
                                         flag: PublishingFlag,
                                         msg: AmqpMessage[Array[Byte]]): F[Unit] =
-        Sync[F].delay {
+        Sync[F].blocking {
           channel.value.basicPublish(
             exchangeName.value,
             routingKey.value,

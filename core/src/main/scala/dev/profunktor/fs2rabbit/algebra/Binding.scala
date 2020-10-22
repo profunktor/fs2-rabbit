@@ -28,7 +28,7 @@ object Binding {
                              queueName: QueueName,
                              exchangeName: ExchangeName,
                              routingKey: RoutingKey): F[Unit] =
-        Sync[F].delay {
+        Sync[F].blocking {
           channel.value.queueBind(
             queueName.value,
             exchangeName.value,
@@ -41,7 +41,7 @@ object Binding {
                              exchangeName: ExchangeName,
                              routingKey: RoutingKey,
                              args: QueueBindingArgs): F[Unit] =
-        Sync[F].delay {
+        Sync[F].blocking {
           channel.value.queueBind(
             queueName.value,
             exchangeName.value,
@@ -55,7 +55,7 @@ object Binding {
                                    exchangeName: ExchangeName,
                                    routingKey: RoutingKey,
                                    args: QueueBindingArgs): F[Unit] =
-        Sync[F].delay {
+        Sync[F].blocking {
           channel.value.queueBindNoWait(
             queueName.value,
             exchangeName.value,
@@ -68,7 +68,7 @@ object Binding {
                                queueName: QueueName,
                                exchangeName: ExchangeName,
                                routingKey: RoutingKey): F[Unit] =
-        Sync[F].delay {
+        Sync[F].blocking {
           unbindQueue(
             channel,
             queueName,
@@ -83,7 +83,7 @@ object Binding {
                                exchangeName: ExchangeName,
                                routingKey: RoutingKey,
                                args: QueueUnbindArgs): F[Unit] =
-        Sync[F].delay {
+        Sync[F].blocking {
           channel.value.queueUnbind(
             queueName.value,
             exchangeName.value,
@@ -97,7 +97,7 @@ object Binding {
                                 source: ExchangeName,
                                 routingKey: RoutingKey,
                                 args: ExchangeBindingArgs): F[Unit] =
-        Sync[F].delay {
+        Sync[F].blocking {
           channel.value.exchangeBind(
             destination.value,
             source.value,
@@ -111,7 +111,7 @@ object Binding {
                                       source: ExchangeName,
                                       routingKey: RoutingKey,
                                       args: ExchangeBindingArgs): F[Unit] =
-        Sync[F].delay {
+        Sync[F].blocking {
           channel.value.exchangeBindNoWait(
             destination.value,
             source.value,
@@ -125,7 +125,7 @@ object Binding {
                                   source: ExchangeName,
                                   routingKey: RoutingKey,
                                   args: ExchangeUnbindArgs): F[Unit] =
-        Sync[F].delay {
+        Sync[F].blocking {
           channel.value.exchangeUnbind(
             destination.value,
             source.value,

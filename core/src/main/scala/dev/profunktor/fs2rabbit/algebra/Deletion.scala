@@ -26,7 +26,7 @@ import dev.profunktor.fs2rabbit.model.AMQPChannel
 object Deletion {
   def make[F[_]: Sync]: Deletion[F] = new Deletion[F] {
     override def deleteQueue(channel: AMQPChannel, config: DeletionQueueConfig): F[Unit] =
-      Sync[F].delay {
+      Sync[F].blocking {
         channel.value.queueDelete(
           config.queueName.value,
           config.ifUnused.isTrue,
@@ -35,7 +35,7 @@ object Deletion {
       }.void
 
     override def deleteQueueNoWait(channel: AMQPChannel, config: DeletionQueueConfig): F[Unit] =
-      Sync[F].delay {
+      Sync[F].blocking {
         channel.value.queueDeleteNoWait(
           config.queueName.value,
           config.ifUnused.isTrue,
@@ -47,7 +47,7 @@ object Deletion {
         channel: AMQPChannel,
         config: deletion.DeletionExchangeConfig
     ): F[Unit] =
-      Sync[F].delay {
+      Sync[F].blocking {
         channel.value.exchangeDelete(config.exchangeName.value, config.ifUnused.isTrue)
       }.void
 
@@ -55,7 +55,7 @@ object Deletion {
         channel: AMQPChannel,
         config: deletion.DeletionExchangeConfig
     ): F[Unit] =
-      Sync[F].delay {
+      Sync[F].blocking {
         channel.value.exchangeDeleteNoWait(
           config.exchangeName.value,
           config.ifUnused.isTrue
