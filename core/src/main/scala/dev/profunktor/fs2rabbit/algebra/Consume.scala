@@ -108,21 +108,21 @@ object Consume {
         }
       }
 
-      override def basicAck(channel: AMQPChannel, tag: DeliveryTag, multiple: Boolean): F[Unit] = Sync[F].delay {
+      override def basicAck(channel: AMQPChannel, tag: DeliveryTag, multiple: Boolean): F[Unit] = Sync[F].blocking {
         channel.value.basicAck(tag.value, multiple)
       }
 
       override def basicNack(channel: AMQPChannel, tag: DeliveryTag, multiple: Boolean, requeue: Boolean): F[Unit] =
-        Sync[F].delay {
+        Sync[F].blocking {
           channel.value.basicNack(tag.value, multiple, requeue)
         }
 
-      override def basicReject(channel: AMQPChannel, tag: DeliveryTag, requeue: Boolean): F[Unit] = Sync[F].delay {
+      override def basicReject(channel: AMQPChannel, tag: DeliveryTag, requeue: Boolean): F[Unit] = Sync[F].blocking {
         channel.value.basicReject(tag.value, requeue)
       }
 
       override def basicQos(channel: AMQPChannel, basicQos: BasicQos): F[Unit] =
-        Sync[F].delay {
+        Sync[F].blocking {
           channel.value.basicQos(
             basicQos.prefetchSize,
             basicQos.prefetchCount,
@@ -141,7 +141,7 @@ object Consume {
       )(internals: AMQPInternals[F]): F[ConsumerTag] =
         for {
           dc <- defaultConsumer(channel, internals)
-          rs <- Sync[F].delay(
+          rs <- Sync[F].blocking(
                  channel.value.basicConsume(
                    queueName.value,
                    autoAck,
@@ -155,7 +155,7 @@ object Consume {
         } yield ConsumerTag(rs)
 
       override def basicCancel(channel: AMQPChannel, consumerTag: ConsumerTag): F[Unit] =
-        Sync[F].delay {
+        Sync[F].blocking {
           channel.value.basicCancel(consumerTag.value)
         }
     }

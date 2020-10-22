@@ -26,7 +26,7 @@ import dev.profunktor.fs2rabbit.model.{AMQPChannel, ExchangeName, QueueName}
 object Declaration {
   def make[F[_]: Sync]: Declaration[F] = new Declaration[F] {
     override def declareExchange(channel: AMQPChannel, config: DeclarationExchangeConfig): F[Unit] =
-      Sync[F].delay {
+      Sync[F].blocking {
         channel.value.exchangeDeclare(
           config.exchangeName.value,
           config.exchangeType.toString.toLowerCase,
@@ -41,7 +41,7 @@ object Declaration {
         channel: AMQPChannel,
         config: DeclarationExchangeConfig
     ): F[Unit] =
-      Sync[F].delay {
+      Sync[F].blocking {
         channel.value.exchangeDeclareNoWait(
           config.exchangeName.value,
           config.exchangeType.toString.toLowerCase,
@@ -53,17 +53,17 @@ object Declaration {
       }.void
 
     override def declareExchangePassive(channel: AMQPChannel, exchangeName: ExchangeName): F[Unit] =
-      Sync[F].delay {
+      Sync[F].blocking {
         channel.value.exchangeDeclarePassive(exchangeName.value)
       }.void
 
     override def declareQueue(channel: AMQPChannel): F[QueueName] =
-      Sync[F].delay {
+      Sync[F].blocking {
         QueueName(channel.value.queueDeclare().getQueue)
       }
 
     override def declareQueue(channel: AMQPChannel, config: DeclarationQueueConfig): F[Unit] =
-      Sync[F].delay {
+      Sync[F].blocking {
         channel.value.queueDeclare(
           config.queueName.value,
           config.durable.isTrue,
@@ -74,7 +74,7 @@ object Declaration {
       }.void
 
     override def declareQueueNoWait(channel: AMQPChannel, config: DeclarationQueueConfig): F[Unit] =
-      Sync[F].delay {
+      Sync[F].blocking {
         channel.value.queueDeclareNoWait(
           config.queueName.value,
           config.durable.isTrue,
@@ -85,7 +85,7 @@ object Declaration {
       }.void
 
     override def declareQueuePassive(channel: AMQPChannel, queueName: QueueName): F[Unit] =
-      Sync[F].delay {
+      Sync[F].blocking {
         channel.value.queueDeclarePassive(queueName.value)
       }.void
   }
