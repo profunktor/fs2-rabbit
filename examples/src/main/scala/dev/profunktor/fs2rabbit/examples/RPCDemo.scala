@@ -28,7 +28,6 @@ import dev.profunktor.fs2rabbit.effects.MessageEncoder
 import dev.profunktor.fs2rabbit.interpreter.RabbitClient
 import dev.profunktor.fs2rabbit.model._
 import fs2.Stream
-import java.util.concurrent.Executors
 
 object RPCDemo extends IOApp {
 
@@ -51,17 +50,10 @@ object RPCDemo extends IOApp {
     automaticRecovery = true
   )
 
-  val blockerResource =
-    Resource
-      .make(IO(Executors.newCachedThreadPool()))(es => IO(es.shutdown()))
-      .map(Blocker.liftExecutorService)
-
   override def run(args: List[String]): IO[ExitCode] =
-    blockerResource.use { blocker =>
-      RabbitClient[IO](config, blocker).flatMap { implicit client =>
-        val queue = QueueName("rpc_queue")
-        runServer[IO](queue).concurrently(runClient[IO](queue)).compile.drain.as(ExitCode.Success)
-      }
+    RabbitClient[IO](config).flatMap { implicit client =>
+      val queue = QueueName("rpc_queue")
+      runServer[IO](queue).concurrently(runClient[IO](queue)).compile.drain.as(ExitCode.Success)
     }
 
   def runServer[F[_]: Sync](rpcQueue: QueueName)(implicit R: RabbitClient[F]): Stream[F, Unit] =
@@ -69,7 +61,7 @@ object RPCDemo extends IOApp {
       new RPCServer[F](rpcQueue).serve
     }
 
-  def runClient[F[_]: Concurrent](rpcQueue: QueueName)(implicit R: RabbitClient[F]): Stream[F, Unit] =
+  def runClient[F[_]: Async](rpcQueue: QueueName)(implicit R: RabbitClient[F]): Stream[F, Unit] =
     Stream.resource(R.createConnectionChannel).flatMap { implicit channel =>
       val client = new RPCClient[F](rpcQueue)
 

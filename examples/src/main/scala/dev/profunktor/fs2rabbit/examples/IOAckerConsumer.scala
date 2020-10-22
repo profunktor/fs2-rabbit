@@ -16,8 +16,6 @@
 
 package dev.profunktor.fs2rabbit.examples
 
-import java.util.concurrent.Executors
-
 import cats.data.NonEmptyList
 import cats.effect._
 import dev.profunktor.fs2rabbit.config.{Fs2RabbitConfig, Fs2RabbitNodeConfig}
@@ -40,17 +38,10 @@ object IOAckerConsumer extends IOApp {
     automaticRecovery = true
   )
 
-  val blockerResource =
-    Resource
-      .make(IO(Executors.newCachedThreadPool()))(es => IO(es.shutdown()))
-      .map(Blocker.liftExecutorService)
-
   override def run(args: List[String]): IO[ExitCode] =
-    blockerResource.use { blocker =>
-      RabbitClient[IO](config, blocker).flatMap { client =>
-        ResilientStream
-          .runF(new AckerConsumerDemo[IO](client).program)
-          .as(ExitCode.Success)
-      }
+    RabbitClient[IO](config).flatMap { client =>
+      ResilientStream
+        .runF(new AckerConsumerDemo[IO](client).program)
+        .as(ExitCode.Success)
     }
 }

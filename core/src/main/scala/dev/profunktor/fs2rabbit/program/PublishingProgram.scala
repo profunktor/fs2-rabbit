@@ -17,21 +17,22 @@
 package dev.profunktor.fs2rabbit.program
 
 import cats.Applicative
-import cats.effect.{Blocker, ContextShift, Effect, Sync}
+import cats.effect.unsafe.UnsafeRun
+import cats.effect.Sync
 import cats.implicits._
 import dev.profunktor.fs2rabbit.algebra.{Publish, Publishing}
 import dev.profunktor.fs2rabbit.effects.MessageEncoder
 import dev.profunktor.fs2rabbit.model._
 
 object PublishingProgram {
-  def make[F[_]: Effect: ContextShift](blocker: Blocker): F[PublishingProgram[F]] = Sync[F].delay {
-    WrapperPublishingProgram(Publish.make(blocker))
+  def make[F[_]: Sync: UnsafeRun]: F[PublishingProgram[F]] = Sync[F].delay {
+    WrapperPublishingProgram(Publish.make)
   }
 }
 
 trait PublishingProgram[F[_]] extends Publishing[F] with Publish[F]
 
-case class WrapperPublishingProgram[F[_]: Effect: ContextShift] private (
+case class WrapperPublishingProgram[F[_]: Sync] private (
     publish: Publish[F]
 ) extends PublishingProgram[F] {
   override def createPublisher[A](
