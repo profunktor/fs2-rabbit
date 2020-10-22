@@ -17,6 +17,7 @@
 package dev.profunktor.fs2rabbit.interpreter
 
 import cats.effect._
+import cats.effect.unsafe.UnsafeRun
 import cats.implicits._
 import com.rabbitmq.client.{DefaultSaslConfig, MetricsCollector, SaslConfig}
 import dev.profunktor.fs2rabbit.algebra._
@@ -33,9 +34,8 @@ import javax.net.ssl.SSLContext
 
 object RabbitClient {
 
-  def apply[F[_]: ConcurrentEffect: ContextShift](
+  def apply[F[_]: Async: UnsafeRun](
       config: Fs2RabbitConfig,
-      blocker: Blocker,
       sslContext: Option[SSLContext] = None,
       // Unlike SSLContext, SaslConfig is not optional because it is always set
       // by the underlying Java library, even if the user doesn't set it.
@@ -45,16 +45,16 @@ object RabbitClient {
 
     val internalQ         = new LiveInternalQueue[F](config.internalQueueSize.getOrElse(500))
     val connection        = ConnectionResource.make(config, sslContext, saslConfig, metricsCollector)
-    val consumingProgram  = AckConsumingProgram.make[F](config, internalQ, blocker)
-    val publishingProgram = PublishingProgram.make[F](blocker)
+    val consumingProgram  = AckConsumingProgram.make[F](config, internalQ)
+    val publishingProgram = PublishingProgram.make[F]
 
     (connection, consumingProgram, publishingProgram).mapN {
       case (conn, consuming, publish) =>
-        val consumeClient     = Consume.make[F](blocker)
-        val publishClient     = Publish.make[F](blocker)
-        val bindingClient     = Binding.make[F](blocker)
-        val declarationClient = Declaration.make[F](blocker)
-        val deletionClient    = Deletion.make[F](blocker)
+        val consumeClient     = Consume.make[F]
+        val publishClient     = Publish.make[F]
+        val bindingClient     = Binding.make[F]
+        val declarationClient = Declaration.make[F]
+        val deletionClient    = Deletion.make[F]
 
         new RabbitClient[F](
           conn,

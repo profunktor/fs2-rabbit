@@ -16,19 +16,14 @@
 
 package dev.profunktor.fs2rabbit
 
-import cats.effect.{ContextShift, IO, Timer}
+import cats.effect.IO
 import dev.profunktor.fs2rabbit.effects.Log
 import org.scalatest.EitherValues
 import org.scalatest.flatspec.AsyncFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 
-import scala.concurrent.ExecutionContext
-
 trait BaseSpec extends AsyncFlatSpecLike with Matchers with EitherValues {
   def putStrLn[A](a: A): IO[Unit] = IO(println(a))
-
-  implicit val timer: Timer[IO]     = IO.timer(ExecutionContext.global)
-  implicit val cs: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
 
   implicit val logger: Log[IO] = new Log[IO] {
     override def info(value: => String): IO[Unit]  = putStrLn(value)
