@@ -16,8 +16,8 @@
 
 package dev.profunktor.fs2rabbit.algebra
 
-import cats.effect.unsafe.UnsafeRun
-import cats.effect.Sync
+import cats.effect.kernel.Sync
+import cats.effect.std.Dispatcher
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.{Applicative, Functor}
@@ -28,7 +28,7 @@ import dev.profunktor.fs2rabbit.model._
 import scala.util.{Failure, Success, Try}
 
 object Consume {
-  def make[F[_]: Sync: UnsafeRun]: Consume[F] =
+  def make[F[_]: Sync](dispatcher: Dispatcher[F]): Consume[F] =
     new Consume[F] {
       private[fs2rabbit] def defaultConsumer[A](
           channel: AMQPChannel,
@@ -38,7 +38,7 @@ object Consume {
 
           override def handleCancel(consumerTag: String): Unit =
             internals.queue.fold(()) { internalQ =>
-              UnsafeRun[F].unsafeRunAndForget {
+              dispatcher.unsafeRunAndForget {
                 internalQ
                   .enqueue1(
                     Left(
@@ -98,7 +98,7 @@ object Consume {
                 )
               }
 
-            UnsafeRun[F].unsafeRunAndForget {
+            dispatcher.unsafeRunAndForget {
               internals.queue
                 .fold(Applicative[F].unit) { internalQ =>
                   internalQ.enqueue1(envelopeOrErr)

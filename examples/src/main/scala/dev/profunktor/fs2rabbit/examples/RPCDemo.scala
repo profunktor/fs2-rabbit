@@ -29,7 +29,7 @@ import dev.profunktor.fs2rabbit.interpreter.RabbitClient
 import dev.profunktor.fs2rabbit.model._
 import fs2.Stream
 
-object RPCDemo extends IOApp {
+object RPCDemo extends IOApp.Simple {
 
   private val config: Fs2RabbitConfig = Fs2RabbitConfig(
     virtualHost = "/",
@@ -50,10 +50,10 @@ object RPCDemo extends IOApp {
     automaticRecovery = true
   )
 
-  override def run(args: List[String]): IO[ExitCode] =
-    RabbitClient[IO](config).flatMap { implicit client =>
+  def run: IO[Unit] =
+    RabbitClient.resource[IO](config).use { implicit client =>
       val queue = QueueName("rpc_queue")
-      runServer[IO](queue).concurrently(runClient[IO](queue)).compile.drain.as(ExitCode.Success)
+      runServer[IO](queue).concurrently(runClient[IO](queue)).compile.drain
     }
 
   def runServer[F[_]: Sync](rpcQueue: QueueName)(implicit R: RabbitClient[F]): Stream[F, Unit] =

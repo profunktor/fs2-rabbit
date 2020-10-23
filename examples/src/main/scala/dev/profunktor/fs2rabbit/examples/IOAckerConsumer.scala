@@ -22,7 +22,7 @@ import dev.profunktor.fs2rabbit.config.{Fs2RabbitConfig, Fs2RabbitNodeConfig}
 import dev.profunktor.fs2rabbit.interpreter.RabbitClient
 import dev.profunktor.fs2rabbit.resiliency.ResilientStream
 
-object IOAckerConsumer extends IOApp {
+object IOAckerConsumer extends IOApp.Simple {
 
   private val config: Fs2RabbitConfig = Fs2RabbitConfig(
     virtualHost = "/",
@@ -38,10 +38,9 @@ object IOAckerConsumer extends IOApp {
     automaticRecovery = true
   )
 
-  override def run(args: List[String]): IO[ExitCode] =
-    RabbitClient[IO](config).flatMap { client =>
+  override def run: IO[Unit] =
+    RabbitClient.resource[IO](config).use { client =>
       ResilientStream
         .runF(new AckerConsumerDemo[IO](client).program)
-        .as(ExitCode.Success)
     }
 }
