@@ -17,8 +17,8 @@
 package dev.profunktor.fs2rabbit.program
 
 import cats.Applicative
-import cats.effect.unsafe.UnsafeRun
 import cats.effect.Sync
+import cats.effect.std.Dispatcher
 import dev.profunktor.fs2rabbit.algebra.{AMQPInternals, Acking, Consume}
 import dev.profunktor.fs2rabbit.arguments.Arguments
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
@@ -26,8 +26,8 @@ import dev.profunktor.fs2rabbit.model.AckResult.{Ack, NAck, Reject}
 import dev.profunktor.fs2rabbit.model._
 
 object AckingProgram {
-  def make[F[_]: Sync: UnsafeRun](config: Fs2RabbitConfig): F[AckingProgram[F]] = Sync[F].delay {
-    WrapperAckingProgram(config, Consume.make)
+  def make[F[_]: Sync](config: Fs2RabbitConfig, dispatcher: Dispatcher[F]): F[AckingProgram[F]] = Sync[F].delay {
+    WrapperAckingProgram(config, Consume.make(dispatcher))
   }
 }
 

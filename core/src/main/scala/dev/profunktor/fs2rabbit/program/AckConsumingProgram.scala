@@ -17,7 +17,7 @@
 package dev.profunktor.fs2rabbit.program
 
 import cats.effect._
-import cats.effect.unsafe.UnsafeRun
+import cats.effect.std.Dispatcher
 import cats.implicits._
 import dev.profunktor.fs2rabbit.algebra.ConsumingStream.ConsumingStream
 import dev.profunktor.fs2rabbit.algebra.{AckConsuming, Acking, InternalQueue}
@@ -28,9 +28,10 @@ import dev.profunktor.fs2rabbit.model._
 import fs2.Stream
 
 object AckConsumingProgram {
-  def make[F[_]: Sync: UnsafeRun](configuration: Fs2RabbitConfig,
-                                  internalQueue: InternalQueue[F]): F[AckConsumingProgram[F]] =
-    (AckingProgram.make(configuration), ConsumingProgram.make(internalQueue)).mapN {
+  def make[F[_]: Sync](configuration: Fs2RabbitConfig,
+                       internalQueue: InternalQueue[F],
+                       dispatcher: Dispatcher[F]): F[AckConsumingProgram[F]] =
+    (AckingProgram.make(configuration, dispatcher), ConsumingProgram.make(internalQueue, dispatcher)).mapN {
       case (ap, cp) =>
         WrapperAckConsumingProgram(ap, cp)
     }

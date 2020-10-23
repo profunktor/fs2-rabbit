@@ -51,12 +51,10 @@
 //      .map(Blocker.liftExecutorService)
 //
 //  override def run(args: List[String]): Task[ExitCode] =
-//    blockerResource.use { blocker =>
-//      RabbitClient[Task](config, blocker).flatMap { client =>
-//        ResilientStream
-//          .runF(new AutoAckConsumerDemo[Task](client).program)
-//          .as(ExitCode.Success)
-//      }
+//    RabbitClient.resource[Task](config).use { client =>
+//      ResilientStream
+//        .runF(new AutoAckConsumerDemo[Task](client).program)
+//        .as(ExitCode.Success)
 //    }
 //
 //}

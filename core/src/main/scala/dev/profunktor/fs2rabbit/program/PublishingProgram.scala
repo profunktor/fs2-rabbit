@@ -17,16 +17,16 @@
 package dev.profunktor.fs2rabbit.program
 
 import cats.Applicative
-import cats.effect.unsafe.UnsafeRun
 import cats.effect.Sync
+import cats.effect.std.Dispatcher
 import cats.implicits._
 import dev.profunktor.fs2rabbit.algebra.{Publish, Publishing}
 import dev.profunktor.fs2rabbit.effects.MessageEncoder
 import dev.profunktor.fs2rabbit.model._
 
 object PublishingProgram {
-  def make[F[_]: Sync: UnsafeRun]: F[PublishingProgram[F]] = Sync[F].delay {
-    WrapperPublishingProgram(Publish.make)
+  def make[F[_]: Sync](dispatcher: Dispatcher[F]): F[PublishingProgram[F]] = Sync[F].delay {
+    WrapperPublishingProgram(Publish.make(dispatcher))
   }
 }
 

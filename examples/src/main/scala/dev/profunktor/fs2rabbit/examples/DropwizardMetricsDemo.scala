@@ -19,7 +19,7 @@ package dev.profunktor.fs2rabbit.examples
 import java.nio.charset.StandardCharsets.UTF_8
 
 import cats.data.{Kleisli, NonEmptyList}
-import cats.effect.{ExitCode, IO, IOApp, Resource, Sync}
+import cats.effect.{IO, IOApp, Resource, Sync}
 import cats.implicits._
 import com.codahale.metrics.MetricRegistry
 import com.codahale.metrics.jmx.JmxReporter
@@ -34,7 +34,7 @@ import fs2._
 
 import scala.concurrent.duration._
 
-object DropwizardMetricsDemo extends IOApp {
+object DropwizardMetricsDemo extends IOApp.Simple {
 
   private val config: Fs2RabbitConfig = Fs2RabbitConfig(
     virtualHost = "/",
@@ -61,13 +61,13 @@ object DropwizardMetricsDemo extends IOApp {
       s.copy(payload = s.payload.getBytes(UTF_8)).pure[IO]
     }
 
-  override def run(args: List[String]): IO[ExitCode] = {
+  override def run: IO[Unit] = {
     val registry            = new MetricRegistry
     val dropwizardCollector = new StandardMetricsCollector(registry)
 
     val resources = for {
       _       <- JmxReporterResource.make[IO](registry)
-      client  <- Resource.liftF(RabbitClient[IO](config, metricsCollector = Some(dropwizardCollector)))
+      client  <- RabbitClient.resource[IO](config, metricsCollector = Some(dropwizardCollector))
       channel <- client.createConnection.flatMap(client.createChannel)
     } yield (channel, client)
 
@@ -97,7 +97,7 @@ object DropwizardMetricsDemo extends IOApp {
           .drain
     }
 
-    program.as(ExitCode.Success)
+    program
   }
 
   def logPipe[F[_]: Sync]: Pipe[F, AmqpEnvelope[String], AckResult] =
