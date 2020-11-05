@@ -68,15 +68,13 @@ object Binding {
                                queueName: QueueName,
                                exchangeName: ExchangeName,
                                routingKey: RoutingKey): F[Unit] =
-        Sync[F].delay {
-          unbindQueue(
-            channel,
-            queueName,
-            exchangeName,
-            routingKey,
-            QueueUnbindArgs(Map.empty)
-          )
-        }.void
+        unbindQueue(
+          channel,
+          queueName,
+          exchangeName,
+          routingKey,
+          QueueUnbindArgs(Map.empty)
+        )
 
       override def unbindQueue(channel: AMQPChannel,
                                queueName: QueueName,
