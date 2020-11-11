@@ -7,9 +7,11 @@ number: 2
 # Fs2 Rabbit Client
 
 `RabbitClient` is the main client that wraps the communication  with `RabbitMQ`. The mandatory arguments are a `Fs2RabbitConfig` and a `cats.effect.Dispatcher` for running effects under the hood. Optionally, you can pass in a custom `SSLContext` and `SaslConfig`.
+An alternative constructor is provided for creating a `cats.effect.Resource[F, Rabbit[F]]` without directly handling the `Dispatcher`.
 
 ```scala mdoc:silent
 import cats.effect._
+import cats.effect.std.Dispatcher
 import com.rabbitmq.client.{DefaultSaslConfig, SaslConfig}
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
 import dev.profunktor.fs2rabbit.interpreter.RabbitClient
@@ -22,6 +24,12 @@ object RabbitClient {
     sslContext: Option[SSLContext] = None,
     saslConfig: SaslConfig = DefaultSaslConfig.PLAIN
   ): F[RabbitClient[F]] = ???
+
+  def resource[F[_]: Async](
+    config: Fs2RabbitConfig,
+    sslContext: Option[SSLContext] = None,
+    saslConfig: SaslConfig = DefaultSaslConfig.PLAIN
+  ): Resource[F, RabbitClient[F]] = ???
 }
 ```
 
@@ -29,6 +37,7 @@ Its creation is effectful so you need to `flatMap` and pass it as an argument. F
 
 ```scala mdoc:silent
 import cats.effect._
+import cats.effect.std.Dispatcher
 import cats.syntax.functor._
 import dev.profunktor.fs2rabbit.interpreter.RabbitClient
 import java.util.concurrent.Executors
@@ -59,23 +68,5 @@ class Demo extends IOApp {
       }
     }
 
-}
-```
-
-An alternative constructor is provided for creating a `cats.effect.Resource[F, Rabbit[F]]` without directly handling the `Dispatcher`:
-
-```scala mdoc:silent
-import cats.effect._
-import com.rabbitmq.client.{DefaultSaslConfig, SaslConfig}
-import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
-import dev.profunktor.fs2rabbit.interpreter.RabbitClient
-import javax.net.ssl.SSLContext
-
-object RabbitClient {
-  def resource[F[_]: Async](
-    config: Fs2RabbitConfig,
-    sslContext: Option[SSLContext] = None,
-    saslConfig: SaslConfig = DefaultSaslConfig.PLAIN
-  ): Resource[F, RabbitClient[F]] = ???
 }
 ```
