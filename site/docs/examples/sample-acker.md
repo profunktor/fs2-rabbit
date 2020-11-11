@@ -52,7 +52,7 @@ class Flow[F[_]: Concurrent, A](
 
 }
 
-class AckerConsumerDemo[F[_]: Concurrent: Timer](R: RabbitClient[F]) {
+class AckerConsumerDemo[F[_]: Temporal](R: RabbitClient[F]) {
 
   private val queueName    = QueueName("testQ")
   private val exchangeName = ExchangeName("testEX")
@@ -117,19 +117,12 @@ object IOAckerConsumer extends IOApp {
     automaticRecovery = true
   )
 
-  val blockerResource =
-    Resource
-      .make(IO(Executors.newCachedThreadPool()))(es => IO(es.shutdown()))
-      .map(Blocker.liftExecutorService)
-
   override def run(args: List[String]): IO[ExitCode] =
-    blockerResource.use { blocker =>
-      RabbitClient[IO](config, blocker).flatMap { client =>
+      RabbitClient.resource[IO](config).use { client =>
         ResilientStream
           .runF(new AckerConsumerDemo[IO](client).program)
           .as(ExitCode.Success)
       }
-    }
 
 }
 ```
