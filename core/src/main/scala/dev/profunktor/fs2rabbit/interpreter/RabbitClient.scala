@@ -186,7 +186,7 @@ class RabbitClient[F[_]: Concurrent] private[fs2rabbit] (
       exchangeName: ExchangeName,
       routingKey: RoutingKey
   )(implicit channel: AMQPChannel): F[Unit] =
-    binding.bindQueue(channel, queueName, exchangeName, routingKey)
+    bindQueue(queueName, exchangeName, routingKey, QueueBindingArgs(Map.empty))
 
   def bindQueue(
       queueName: QueueName,

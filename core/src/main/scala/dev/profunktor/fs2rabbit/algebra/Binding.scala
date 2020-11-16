@@ -27,18 +27,6 @@ object Binding {
       override def bindQueue(channel: AMQPChannel,
                              queueName: QueueName,
                              exchangeName: ExchangeName,
-                             routingKey: RoutingKey): F[Unit] =
-        blocker.delay {
-          channel.value.queueBind(
-            queueName.value,
-            exchangeName.value,
-            routingKey.value
-          )
-        }.void
-
-      override def bindQueue(channel: AMQPChannel,
-                             queueName: QueueName,
-                             exchangeName: ExchangeName,
                              routingKey: RoutingKey,
                              args: QueueBindingArgs): F[Unit] =
         blocker.delay {
@@ -61,20 +49,6 @@ object Binding {
             exchangeName.value,
             routingKey.value,
             args.value
-          )
-        }.void
-
-      override def unbindQueue(channel: AMQPChannel,
-                               queueName: QueueName,
-                               exchangeName: ExchangeName,
-                               routingKey: RoutingKey): F[Unit] =
-        Sync[F].delay {
-          unbindQueue(
-            channel,
-            queueName,
-            exchangeName,
-            routingKey,
-            QueueUnbindArgs(Map.empty)
           )
         }.void
 
@@ -137,7 +111,6 @@ object Binding {
 }
 
 trait Binding[F[_]] {
-  def bindQueue(channel: AMQPChannel, queueName: QueueName, exchangeName: ExchangeName, routingKey: RoutingKey): F[Unit]
   def bindQueue(channel: AMQPChannel,
                 queueName: QueueName,
                 exchangeName: ExchangeName,
@@ -148,10 +121,6 @@ trait Binding[F[_]] {
                       exchangeName: ExchangeName,
                       routingKey: RoutingKey,
                       args: QueueBindingArgs): F[Unit]
-  def unbindQueue(channel: AMQPChannel,
-                  queueName: QueueName,
-                  exchangeName: ExchangeName,
-                  routingKey: RoutingKey): F[Unit]
   def unbindQueue(channel: AMQPChannel,
                   queueName: QueueName,
                   exchangeName: ExchangeName,
