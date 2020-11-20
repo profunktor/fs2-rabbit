@@ -5,7 +5,7 @@ jobs:
     steps:
       - uses: "actions/checkout@v2.1.0"
       - name: java 11 setup
-        uses: "olafurpg/setup-java@v10"
+        uses: "olafurpg/setup-scala@v10"
         with:
           java-version: '11'
       - uses: "olafurpg/setup-gpg@v3"
