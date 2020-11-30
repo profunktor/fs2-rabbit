@@ -3,19 +3,19 @@ import sbt._
 object Dependencies {
 
   object Version {
-    val cats       = "2.2.0"
-    val catsEffect = "2.2.0"
-    val fs2        = "2.4.5"
+    val cats       = "2.3.0"
+    val catsEffect = "2.3.0"
+    val fs2        = "2.4.6"
     val circe      = "0.13.0"
     val amqpClient = "5.10.0"
     val logback    = "1.2.3"
-    val monix      = "3.2.2"
+    val monix      = "3.3.0"
     val zio        = "1.0.3"
     val zioCats    = "2.2.0.1"
     val scodec     = "1.0.0"
-    val dropwizard = "4.1.15"
+    val dropwizard = "4.1.16"
 
-    val kindProjector    = "0.11.0"
+    val kindProjector    = "0.11.1"
     val betterMonadicFor = "0.3.1"
 
     val scalaTest               = "3.2.3"
