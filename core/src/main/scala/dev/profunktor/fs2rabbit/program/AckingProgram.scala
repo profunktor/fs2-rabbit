@@ -19,7 +19,6 @@ package dev.profunktor.fs2rabbit.program
 import cats.Applicative
 import cats.effect.{Blocker, ContextShift, Effect, Sync}
 import dev.profunktor.fs2rabbit.algebra.{AMQPInternals, Acking, Consume}
-import dev.profunktor.fs2rabbit.arguments.Arguments
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
 import dev.profunktor.fs2rabbit.model.AckResult.{Ack, NAck, Reject}
 import dev.profunktor.fs2rabbit.model._
@@ -59,11 +58,8 @@ case class WrapperAckingProgram[F[_]: Effect] private (
   override def basicConsume[A](channel: AMQPChannel,
                                queueName: QueueName,
                                autoAck: Boolean,
-                               consumerTag: ConsumerTag,
-                               noLocal: Boolean,
-                               exclusive: Boolean,
-                               args: Arguments)(internals: AMQPInternals[F]): F[ConsumerTag] =
-    consume.basicConsume(channel, queueName, autoAck, consumerTag, noLocal, exclusive, args)(internals)
+                               consumerArgs: ConsumerArgs)(internals: AMQPInternals[F]): F[ConsumerTag] =
+    consume.basicConsume(channel, queueName, autoAck, consumerArgs)(internals)
 
   override def basicCancel(channel: AMQPChannel, consumerTag: ConsumerTag): F[Unit] =
     consume.basicCancel(channel, consumerTag)

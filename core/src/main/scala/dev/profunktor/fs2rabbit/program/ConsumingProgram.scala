@@ -20,7 +20,6 @@ import cats.effect.{Blocker, ContextShift, Effect, Sync}
 import cats.implicits._
 import dev.profunktor.fs2rabbit.algebra.ConsumingStream._
 import dev.profunktor.fs2rabbit.algebra.{AMQPInternals, Consume, InternalQueue}
-import dev.profunktor.fs2rabbit.arguments.Arguments
 import dev.profunktor.fs2rabbit.effects.EnvelopeDecoder
 import dev.profunktor.fs2rabbit.model._
 import fs2.Stream
@@ -43,11 +42,8 @@ case class WrapperConsumingProgram[F[_]: Effect] private (
       queueName: QueueName,
       channel: AMQPChannel,
       basicQos: BasicQos,
-      autoAck: Boolean = false,
-      noLocal: Boolean = false,
-      exclusive: Boolean = false,
-      consumerTag: ConsumerTag = ConsumerTag(""),
-      args: Arguments = Map.empty
+      autoAck: Boolean,
+      consumerArgs: ConsumerArgs
   )(implicit decoder: EnvelopeDecoder[F, A]): F[Stream[F, AmqpEnvelope[A]]] = {
 
     val setup = for {
@@ -58,10 +54,7 @@ case class WrapperConsumingProgram[F[_]: Effect] private (
                       channel,
                       queueName,
                       autoAck,
-                      consumerTag,
-                      noLocal,
-                      exclusive,
-                      args
+                      consumerArgs
                     )(internals)
     } yield (consumerTag, internalQ)
 
@@ -94,12 +87,9 @@ case class WrapperConsumingProgram[F[_]: Effect] private (
       channel: AMQPChannel,
       queueName: QueueName,
       autoAck: Boolean,
-      consumerTag: ConsumerTag,
-      noLocal: Boolean,
-      exclusive: Boolean,
-      args: Arguments
+      consumerArgs: ConsumerArgs
   )(internals: AMQPInternals[F]): F[ConsumerTag] =
-    consume.basicConsume(channel, queueName, autoAck, consumerTag, noLocal, exclusive, args)(internals)
+    consume.basicConsume(channel, queueName, autoAck, consumerArgs)(internals)
 
   override def basicCancel(channel: AMQPChannel, consumerTag: ConsumerTag): F[Unit] =
     consume.basicCancel(channel, consumerTag)

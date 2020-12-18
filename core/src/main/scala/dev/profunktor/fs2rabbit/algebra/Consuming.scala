@@ -26,6 +26,7 @@ object ConsumingStream {
 }
 
 trait Consuming[F[_], R[_]] {
+  @deprecated(message = "Use createConsumer with ConsumerArgs", since = "3.0.2")
   def createConsumer[A](
       queueName: QueueName,
       channel: AMQPChannel,
@@ -35,5 +36,25 @@ trait Consuming[F[_], R[_]] {
       exclusive: Boolean = false,
       consumerTag: ConsumerTag = ConsumerTag(""),
       args: Arguments = Map.empty
+  )(implicit decoder: EnvelopeDecoder[F, A]): F[R[AmqpEnvelope[A]]] =
+    createConsumer(
+      queueName = queueName,
+      channel = channel,
+      basicQos = basicQos,
+      autoAck = autoAck,
+      consumerArgs = ConsumerArgs(
+        noLocal = noLocal,
+        exclusive = exclusive,
+        consumerTag = consumerTag,
+        args = args
+      )
+    )
+
+  def createConsumer[A](
+      queueName: QueueName,
+      channel: AMQPChannel,
+      basicQos: BasicQos,
+      autoAck: Boolean,
+      consumerArgs: ConsumerArgs
   )(implicit decoder: EnvelopeDecoder[F, A]): F[R[AmqpEnvelope[A]]]
 }

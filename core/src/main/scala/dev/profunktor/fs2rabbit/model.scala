@@ -22,10 +22,10 @@ import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.Date
 
+import cats._
 import cats.data._
 import cats.implicits._
 import cats.kernel.CommutativeSemigroup
-import cats._
 import com.rabbitmq.client.{AMQP, Channel, Connection, LongString}
 import dev.profunktor.fs2rabbit.arguments.Arguments
 import dev.profunktor.fs2rabbit.effects.{EnvelopeDecoder, MessageEncoder}
@@ -72,6 +72,15 @@ object model {
   }
 
   case class ConsumerArgs(consumerTag: ConsumerTag, noLocal: Boolean, exclusive: Boolean, args: Arguments)
+  object ConsumerArgs {
+    val default: ConsumerArgs =
+      ConsumerArgs(
+        noLocal = false,
+        exclusive = false,
+        consumerTag = ConsumerTag(""),
+        args = Map.empty
+      )
+  }
   case class BasicQos(prefetchSize: Int, prefetchCount: Int, global: Boolean = false)
 
   sealed trait ExchangeType extends Product with Serializable

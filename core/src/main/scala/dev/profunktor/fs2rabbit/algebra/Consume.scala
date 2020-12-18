@@ -22,7 +22,7 @@ import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.{Applicative, Functor}
 import com.rabbitmq.client.{AMQP, Consumer, DefaultConsumer, Envelope}
-import dev.profunktor.fs2rabbit.arguments.{Arguments, _}
+import dev.profunktor.fs2rabbit.arguments._
 import dev.profunktor.fs2rabbit.model._
 
 import scala.util.{Failure, Success, Try}
@@ -134,10 +134,7 @@ object Consume {
           channel: AMQPChannel,
           queueName: QueueName,
           autoAck: Boolean,
-          consumerTag: ConsumerTag,
-          noLocal: Boolean,
-          exclusive: Boolean,
-          args: Arguments
+          consumerArgs: ConsumerArgs
       )(internals: AMQPInternals[F]): F[ConsumerTag] =
         for {
           dc <- defaultConsumer(channel, internals)
@@ -145,10 +142,10 @@ object Consume {
                  channel.value.basicConsume(
                    queueName.value,
                    autoAck,
-                   consumerTag.value,
-                   noLocal,
-                   exclusive,
-                   args,
+                   consumerArgs.consumerTag.value,
+                   consumerArgs.noLocal,
+                   consumerArgs.exclusive,
+                   consumerArgs.args,
                    dc
                  )
                )
@@ -170,10 +167,28 @@ trait Consume[F[_]] {
       channel: AMQPChannel,
       queueName: QueueName,
       autoAck: Boolean,
+      consumerArgs: ConsumerArgs
+  )(internals: AMQPInternals[F]): F[ConsumerTag]
+  @deprecated(message = "Use basicConsume with ConsumerArgs", since = "3.0.2")
+  def basicConsume[A](
+      channel: AMQPChannel,
+      queueName: QueueName,
+      autoAck: Boolean,
       consumerTag: ConsumerTag,
       noLocal: Boolean,
       exclusive: Boolean,
       args: Arguments
-  )(internals: AMQPInternals[F]): F[ConsumerTag]
+  )(internals: AMQPInternals[F]): F[ConsumerTag] =
+    basicConsume(
+      channel = channel,
+      queueName = queueName,
+      autoAck = autoAck,
+      consumerArgs = ConsumerArgs(
+        consumerTag = consumerTag,
+        noLocal = noLocal,
+        exclusive = exclusive,
+        args = args
+      )
+    )(internals)
   def basicCancel(channel: AMQPChannel, consumerTag: ConsumerTag): F[Unit]
 }
