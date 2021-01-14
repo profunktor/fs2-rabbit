@@ -58,6 +58,7 @@ val commonSettings = List(
 def CoreDependencies(scalaVersionStr: String): List[ModuleID] =
   List(
     Libraries.scodecCats,
+    Libraries.catsTagless,
     Libraries.logback % Test
   )
 

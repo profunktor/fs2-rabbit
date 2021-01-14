@@ -14,6 +14,7 @@ object Dependencies {
     val zioCats    = "2.2.0.1"
     val scodec     = "1.0.0"
     val dropwizard = "4.1.17"
+    val catsTagless = "0.12"
 
     val kindProjector    = "0.11.2"
     val betterMonadicFor = "0.3.1"
@@ -27,10 +28,11 @@ object Dependencies {
   object Libraries {
     def circe(artifact: String): ModuleID = "io.circe" %% artifact % Version.circe
 
-    lazy val amqpClient = "com.rabbitmq"   % "amqp-client" % Version.amqpClient
-    lazy val catsEffect = "org.typelevel" %% "cats-effect" % Version.catsEffect
-    lazy val fs2Core    = "co.fs2"        %% "fs2-core"    % Version.fs2
-    lazy val scodecCats = "org.scodec"    %% "scodec-cats" % Version.scodec
+    lazy val amqpClient  = "com.rabbitmq"   % "amqp-client"         % Version.amqpClient
+    lazy val catsEffect  = "org.typelevel" %% "cats-effect"         % Version.catsEffect
+    lazy val fs2Core     = "co.fs2"        %% "fs2-core"            % Version.fs2
+    lazy val scodecCats  = "org.scodec"    %% "scodec-cats"         % Version.scodec
+    lazy val catsTagless = "org.typelevel" %% "cats-tagless-macros" % Version.catsTagless
 
     // Compiler
     lazy val kindProjector    = "org.typelevel" % "kind-projector"     % Version.kindProjector cross CrossVersion.full

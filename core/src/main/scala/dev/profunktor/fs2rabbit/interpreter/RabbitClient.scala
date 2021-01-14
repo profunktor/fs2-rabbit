@@ -18,6 +18,7 @@ package dev.profunktor.fs2rabbit.interpreter
 
 import cats.effect._
 import cats.implicits._
+import cats.tagless._
 import com.rabbitmq.client.{DefaultSaslConfig, MetricsCollector, SaslConfig}
 import dev.profunktor.fs2rabbit.algebra._
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
@@ -29,9 +30,11 @@ import dev.profunktor.fs2rabbit.algebra.ConnectionResource.ConnectionResource
 import dev.profunktor.fs2rabbit.model._
 import dev.profunktor.fs2rabbit.program._
 import fs2.Stream
+
 import javax.net.ssl.SSLContext
 
 object RabbitClient {
+  implicit val functorK: FunctorK[RabbitClient] = Derive.functorK
 
   def apply[F[_]: ConcurrentEffect: ContextShift](
       config: Fs2RabbitConfig,
@@ -126,14 +129,14 @@ class RabbitClient[F[_]: Concurrent] private[fs2rabbit] (
       exchangeName: ExchangeName,
       routingKey: RoutingKey,
       flags: PublishingFlag,
-      listener: PublishReturn => F[Unit]
+      listener: PublishListener[F]
   )(implicit channel: AMQPChannel, encoder: MessageEncoder[F, A]): F[A => F[Unit]] =
     publishingProgram.createPublisherWithListener(
       channel,
       exchangeName,
       routingKey,
       flags,
-      listener
+      listener.publish
     )
 
   def createBasicPublisher[A](implicit
@@ -141,14 +144,14 @@ class RabbitClient[F[_]: Concurrent] private[fs2rabbit] (
                               encoder: MessageEncoder[F, A]): F[(ExchangeName, RoutingKey, A) => F[Unit]] =
     publishingProgram.createBasicPublisher(channel)
 
-  def createBasicPublisherWithListener[A](flag: PublishingFlag, listener: PublishReturn => F[Unit])(
+  def createBasicPublisherWithListener[A](flag: PublishingFlag, listener: PublishListener[F])(
       implicit
       channel: AMQPChannel,
       encoder: MessageEncoder[F, A]): F[(ExchangeName, RoutingKey, A) => F[Unit]] =
     publishingProgram.createBasicPublisherWithListener(
       channel,
       flag,
-      listener
+      listener.publish
     )
 
   def createRoutingPublisher[A](
@@ -159,19 +162,19 @@ class RabbitClient[F[_]: Concurrent] private[fs2rabbit] (
   def createRoutingPublisherWithListener[A](
       exchangeName: ExchangeName,
       flags: PublishingFlag,
-      listener: PublishReturn => F[Unit]
+      listener: PublishListener[F]
   )(implicit channel: AMQPChannel, encoder: MessageEncoder[F, A]): F[RoutingKey => A => F[Unit]] =
     publishingProgram.createRoutingPublisherWithListener(
       channel,
       exchangeName,
       flags,
-      listener
+      listener.publish
     )
 
   def addPublishingListener(
-      listener: PublishReturn => F[Unit]
+      listener: PublishListener[F]
   )(implicit channel: AMQPChannel): F[Unit] =
-    publish.addPublishingListener(channel, listener)
+    publish.addPublishingListener(channel, listener.publish)
 
   def clearPublishingListeners(implicit channel: AMQPChannel): F[Unit] =
     publish.clearPublishingListeners(channel)
