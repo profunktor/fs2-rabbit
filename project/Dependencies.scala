@@ -3,7 +3,7 @@ import sbt._
 object Dependencies {
 
   object Version {
-    val cats       = "2.3.0"
+    val cats       = "2.3.1"
     val catsEffect = "3.0.0-M5"
     val catsTagless = "0.12"
     val fs2        = "3.0.0-M7"
@@ -16,13 +16,13 @@ object Dependencies {
     val scodec     = "1.0.0"
     val dropwizard = "4.1.16"
 
-    val kindProjector    = "0.11.1"
+    val kindProjector    = "0.11.2"
     val betterMonadicFor = "0.3.1"
 
     val scalaTest               = "3.2.3"
-    val scalaCheck              = "1.15.1"
+    val scalaCheck              = "1.15.2"
     val scalaTestPlusScalaCheck = "3.2.2.0"
-    val disciplineScalaCheck    = "2.1.0"
+    val disciplineScalaCheck    = "2.1.1"
   }
 
   object Libraries {

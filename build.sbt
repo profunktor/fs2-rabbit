@@ -52,7 +52,8 @@ val commonSettings = List(
     )
   },
   resolvers += "Apache public" at "https://repository.apache.org/content/groups/public/",
-  scalafmtOnCompile := true
+  scalafmtOnCompile := true,
+  mimaPreviousArtifacts := Set(organization.value %% moduleName.value % "3.0.1"),
 )
 
 def CoreDependencies(scalaVersionStr: String): List[ModuleID] =
@@ -96,6 +97,7 @@ lazy val noPublish = List(
 
 lazy val `fs2-rabbit-root` = project
   .in(file("."))
+  .disablePlugins(MimaPlugin)
   .aggregate(`fs2-rabbit`, `fs2-rabbit-circe`, tests, examples, microsite, `fs2-rabbit-testkit`)
   .settings(noPublish)
 
@@ -119,6 +121,7 @@ lazy val tests = project
   .settings(commonSettings: _*)
   .settings(noPublish)
   .enablePlugins(AutomateHeaderPlugin)
+  .disablePlugins(MimaPlugin)
   .settings(libraryDependencies ++= TestsDependencies(scalaVersion.value))
   .settings(parallelExecution in Test := false)
   .dependsOn(`fs2-rabbit`, `fs2-rabbit-testkit`)
@@ -129,6 +132,7 @@ lazy val examples = project
   .settings(libraryDependencies ++= ExamplesDependencies(scalaVersion.value))
   .settings(noPublish)
   .enablePlugins(AutomateHeaderPlugin)
+  .disablePlugins(MimaPlugin)
   .dependsOn(`fs2-rabbit`, `fs2-rabbit-circe`)
 
 lazy val `fs2-rabbit-testkit` = project
@@ -141,6 +145,7 @@ lazy val `fs2-rabbit-testkit` = project
 lazy val microsite = project
   .in(file("site"))
   .enablePlugins(MicrositesPlugin)
+  .disablePlugins(MimaPlugin)
   .settings(commonSettings: _*)
   .settings(noPublish)
   .settings(
@@ -179,4 +184,4 @@ lazy val microsite = project
   .dependsOn(`fs2-rabbit`, `fs2-rabbit-circe`, `examples`)
 
 // CI build
-addCommandAlias("buildFs2Rabbit", ";clean;+test;mdoc")
+addCommandAlias("buildFs2Rabbit", ";clean;+mimaReportBinaryIssues;+test;mdoc")
