@@ -16,11 +16,10 @@
 
 package dev.profunktor.fs2rabbit.algebra
 
-import cats.effect.kernel.Sync
 import cats.effect.std.Dispatcher
-import cats.syntax.flatMap._
-import cats.syntax.functor._
-import cats.{Applicative, Functor}
+import cats.effect.kernel.Sync
+import cats.implicits._
+import cats.{Applicative, Functor, ~>}
 import com.rabbitmq.client.{AMQP, Consumer, DefaultConsumer, Envelope}
 import dev.profunktor.fs2rabbit.arguments.{Arguments, _}
 import dev.profunktor.fs2rabbit.model._
@@ -159,6 +158,29 @@ object Consume {
           channel.value.basicCancel(consumerTag.value)
         }
     }
+
+  implicit class ConsumeOps[F[_]](val consume: Consume[F]) extends AnyVal {
+    def mapK[G[_]](fk: F ~> G): Consume[G] = new Consume[G] {
+      def basicAck(channel: AMQPChannel, tag: DeliveryTag, multiple: Boolean): G[Unit] =
+        fk(consume.basicAck(channel, tag, multiple))
+      def basicNack(channel: AMQPChannel, tag: DeliveryTag, multiple: Boolean, requeue: Boolean): G[Unit] =
+        fk(consume.basicNack(channel, tag, multiple, requeue))
+      def basicReject(channel: AMQPChannel, tag: DeliveryTag, requeue: Boolean): G[Unit] =
+        fk(consume.basicReject(channel, tag, requeue))
+      def basicQos(channel: AMQPChannel, basicQos: BasicQos): G[Unit] =
+        fk(consume.basicQos(channel, basicQos))
+      def basicConsume[A](channel: AMQPChannel,
+                          queueName: QueueName,
+                          autoAck: Boolean,
+                          consumerTag: ConsumerTag,
+                          noLocal: Boolean,
+                          exclusive: Boolean,
+                          args: Arguments)(internals: AMQPInternals[G]): G[ConsumerTag] =
+        fk(consume.basicConsume(channel, queueName, autoAck, consumerTag, noLocal, exclusive, args)(internals))
+      def basicCancel(channel: AMQPChannel, consumerTag: ConsumerTag): G[Unit] =
+        fk(consume.basicCancel(channel, consumerTag))
+    }
+  }
 }
 
 trait Consume[F[_]] {

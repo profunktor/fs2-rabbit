@@ -18,6 +18,7 @@ package dev.profunktor.fs2rabbit.program
 
 import cats.effect.Sync
 import cats.effect.std.Dispatcher
+import cats.effect.{Blocker, ContextShift, Effect, IO, LiftIO, Sync}
 import cats.implicits._
 import dev.profunktor.fs2rabbit.algebra.ConsumingStream._
 import dev.profunktor.fs2rabbit.algebra.{AMQPInternals, Consume, InternalQueue}
@@ -25,6 +26,7 @@ import dev.profunktor.fs2rabbit.arguments.Arguments
 import dev.profunktor.fs2rabbit.effects.EnvelopeDecoder
 import dev.profunktor.fs2rabbit.model._
 import fs2.Stream
+import fs2.concurrent.Queue
 
 object ConsumingProgram {
   def make[F[_]: Sync](internalQueue: InternalQueue[F], dispatcher: Dispatcher[F]): F[ConsumingProgram[F]] =
@@ -51,9 +53,9 @@ case class WrapperConsumingProgram[F[_]: Sync] private (
       args: Arguments = Map.empty
   )(implicit decoder: EnvelopeDecoder[F, A]): F[Stream[F, AmqpEnvelope[A]]] = {
 
-    val setup = for {
+    val setup: F[(ConsumerTag, Queue[IO, Either[Throwable, AmqpEnvelope[Array[Byte]]]])] = for {
       internalQ <- internalQueue.create
-      internals = AMQPInternals[F](Some(internalQ))
+      internals = AMQPInternals(Some(internalQ))
       _         <- consume.basicQos(channel, basicQos)
       consumerTag <- consume.basicConsume(
                       channel,
@@ -74,6 +76,7 @@ case class WrapperConsumingProgram[F[_]: Sync] private (
       .flatMap {
         case (_, queue) =>
           queue.dequeue.rethrow
+            .translate(LiftIO.liftK)
             .evalMap(env => decoder(env).map(a => env.copy(payload = a)))
       }
       .pure[F]
@@ -99,7 +102,7 @@ case class WrapperConsumingProgram[F[_]: Sync] private (
       noLocal: Boolean,
       exclusive: Boolean,
       args: Arguments
-  )(internals: AMQPInternals[F]): F[ConsumerTag] =
+  )(internals: AMQPInternals): F[ConsumerTag] =
     consume.basicConsume(channel, queueName, autoAck, consumerTag, noLocal, exclusive, args)(internals)
 
   override def basicCancel(channel: AMQPChannel, consumerTag: ConsumerTag): F[Unit] =

@@ -19,14 +19,15 @@ package dev.profunktor.fs2rabbit.interpreter
 import cats.effect._
 import cats.effect.std.Dispatcher
 import cats.implicits._
+import cats.tagless.implicits._
+import cats.{Defer, ~>}
 import com.rabbitmq.client.{DefaultSaslConfig, MetricsCollector, SaslConfig}
 import dev.profunktor.fs2rabbit.algebra._
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
 import dev.profunktor.fs2rabbit.config.declaration.{DeclarationExchangeConfig, DeclarationQueueConfig}
 import dev.profunktor.fs2rabbit.config.deletion.{DeletionExchangeConfig, DeletionQueueConfig}
 import dev.profunktor.fs2rabbit.effects.{EnvelopeDecoder, MessageEncoder}
-import dev.profunktor.fs2rabbit.algebra.AckConsumingStream.AckConsumingStream
-import dev.profunktor.fs2rabbit.algebra.ConnectionResource.ConnectionResource
+import dev.profunktor.fs2rabbit.algebra.ConnectionResource._
 import dev.profunktor.fs2rabbit.model._
 import dev.profunktor.fs2rabbit.program._
 import fs2.Stream
@@ -78,18 +79,30 @@ object RabbitClient {
       metricsCollector: Option[MetricsCollector] = None
   ): Resource[F, RabbitClient[F]] = Dispatcher[F].evalMap { dispatcher =>
     apply[F](config, dispatcher, sslContext, saslConfig, metricsCollector)
+
+  implicit class ClientOps[F[_]](val client: RabbitClient[F]) extends AnyVal {
+    def imapK[G[_]: Concurrent: Defer](af: F ~> G)(ag: G ~> F): RabbitClient[G] = new RabbitClient[G](
+      client.connection.mapK(af),
+      client.consume.mapK(af),
+      client.publish.imapK(af)(ag),
+      client.binding.mapK(af),
+      client.declaration.mapK(af),
+      client.deletion.mapK(af),
+      client.consumingProgram.imapK(af)(ag),
+      client.publishingProgram.imapK(af)(ag)
+    )
   }
 }
 
 class RabbitClient[F[_]: Concurrent] private[fs2rabbit] (
-    connection: ConnectionResource[F],
-    consume: Consume[F],
-    publish: Publish[F],
-    binding: Binding[F],
-    declaration: Declaration[F],
-    deletion: Deletion[F],
-    consumingProgram: AckConsumingStream[F],
-    publishingProgram: Publishing[F]
+    val connection: ConnectionResource[F],
+    val consume: Consume[F],
+    val publish: Publish[F],
+    val binding: Binding[F],
+    val declaration: Declaration[F],
+    val deletion: Deletion[F],
+    val consumingProgram: AckConsumingProgram[F],
+    val publishingProgram: Publishing[F]
 ) {
 
   def createChannel(conn: AMQPConnection): Resource[F, AMQPChannel] =

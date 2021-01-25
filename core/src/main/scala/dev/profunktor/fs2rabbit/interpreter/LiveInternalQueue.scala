@@ -16,14 +16,15 @@
 
 package dev.profunktor.fs2rabbit.interpreter
 
-import cats.effect.Concurrent
+import cats.effect.{Concurrent, IO}
 import dev.profunktor.fs2rabbit.algebra.InternalQueue
 import dev.profunktor.fs2rabbit.model.AmqpEnvelope
 import fs2.concurrent.Queue
 
-class LiveInternalQueue[F[_]: Concurrent](queueSize: Int) extends InternalQueue[F] {
+class LiveInternalQueue[F[_]: Concurrent](queueSize: Int)
+    extends InternalQueue[F] {
 
-  override def create: F[Queue[F, Either[Throwable, AmqpEnvelope[Array[Byte]]]]] =
-    Queue.bounded[F, Either[Throwable, AmqpEnvelope[Array[Byte]]]](queueSize)
-
+  override def create: F[Queue[F, Either[Throwable, AmqpEnvelope[Array[Byte]]]]] = {
+    Queue.in[F].bounded[F, Either[Throwable, AmqpEnvelope[Array[Byte]]]](queueSize)
+  }
 }

@@ -16,6 +16,7 @@
 
 package dev.profunktor.fs2rabbit.program
 
+import cats.{Functor, ~>}
 import cats.effect._
 import cats.effect.std.Dispatcher
 import cats.implicits._
@@ -35,6 +36,47 @@ object AckConsumingProgram {
       case (ap, cp) =>
         WrapperAckConsumingProgram(ap, cp)
     }
+
+  private[fs2rabbit] implicit class AckConsumingStreamOps[F[_]](val stream: AckConsumingProgram[F]) extends AnyVal {
+    def imapK[G[_]: Functor](af: F ~> G)(ag: G ~> F): AckConsumingProgram[G] = new AckConsumingProgram[G] {
+      def createAckerConsumer[A](
+          channel: AMQPChannel,
+          queueName: QueueName,
+          basicQos: BasicQos,
+          consumerArgs: Option[ConsumerArgs]
+      )(implicit decoder: EnvelopeDecoder[G, A]): G[(AckResult => G[Unit], Stream[G, AmqpEnvelope[A]])] =
+        af(stream.createAckerConsumer(channel, queueName, basicQos, consumerArgs)(decoder.mapK(ag))).map {
+          case (ackFunction, envelopeStream) =>
+            (ackFunction.andThen(af.apply), envelopeStream.translate(af))
+        }
+
+      def createAutoAckConsumer[A](
+          channel: AMQPChannel,
+          queueName: QueueName,
+          basicQos: BasicQos,
+          consumerArgs: Option[ConsumerArgs]
+      )(implicit decoder: EnvelopeDecoder[G, A]): G[Stream[G, AmqpEnvelope[A]]] =
+        af(stream.createAutoAckConsumer(channel, queueName, basicQos, consumerArgs)(decoder.mapK(ag)))
+          .map(_.translate(af))
+
+      def createConsumer[A](
+          queueName: QueueName,
+          channel: AMQPChannel,
+          basicQos: BasicQos,
+          autoAck: Boolean,
+          noLocal: Boolean,
+          exclusive: Boolean,
+          consumerTag: ConsumerTag,
+          args: Arguments
+      )(implicit decoder: EnvelopeDecoder[G, A]): G[Stream[G, AmqpEnvelope[A]]] =
+        af(
+          stream.createConsumer(queueName, channel, basicQos, autoAck, noLocal, exclusive, consumerTag, args)(
+            decoder.mapK(ag))).map(_.translate(af))
+
+      def createAcker(channel: AMQPChannel): G[AckResult => G[Unit]] =
+        af(stream.createAcker(channel)).map(_.andThen(af.apply))
+    }
+  }
 }
 
 trait AckConsumingProgram[F[_]] extends AckConsuming[F, Stream[F, *]] with Acking[F] with ConsumingStream[F]

@@ -16,7 +16,10 @@
 
 package dev.profunktor.fs2rabbit.algebra
 
+import cats.~>
 import dev.profunktor.fs2rabbit.model.AmqpEnvelope
 import fs2.concurrent.Queue
 
-case class AMQPInternals[F[_]](queue: Option[Queue[F, Either[Throwable, AmqpEnvelope[Array[Byte]]]]])
+case class AMQPInternals[F[_]](queue: Option[Queue[F, Either[Throwable, AmqpEnvelope[Array[Byte]]]]]) {
+  def mapK[G[_]](fK: F ~> G): AMQPInternals[G] = AMQPInternals(queue.map(_.ma))
+}

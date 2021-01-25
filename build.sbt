@@ -44,6 +44,7 @@ val commonSettings = List(
       compilerPlugin(Libraries.betterMonadicFor),
       Libraries.amqpClient,
       Libraries.catsEffect,
+      Libraries.catsTagless,
       Libraries.fs2Core,
       Libraries.scalaTest               % Test,
       Libraries.scalaCheck              % Test,

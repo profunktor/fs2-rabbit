@@ -18,7 +18,11 @@ package dev.profunktor.fs2rabbit.algebra
 
 import cats.effect._
 import cats.effect.std.Dispatcher
+import cats.effect.syntax.effect._
+import cats.effect.{Blocker, ContextShift, Effect, Sync}
+import cats.tagless.InvariantK
 import cats.syntax.functor._
+import cats.~>
 import com.rabbitmq.client.{AMQP, ReturnListener}
 import dev.profunktor.fs2rabbit.model._
 
@@ -86,6 +90,29 @@ object Publish {
           channel.value.clearReturnListeners()
         }.void
     }
+
+  implicit val iK: InvariantK[Publish] = new InvariantK[Publish] {
+    def imapK[F[_], G[_]](af: Publish[F])(fk: F ~> G)(gK: G ~> F): Publish[G] = new Publish[G] {
+      def basicPublish(channel: AMQPChannel,
+                       exchangeName: ExchangeName,
+                       routingKey: RoutingKey,
+                       msg: AmqpMessage[Array[Byte]]): G[Unit] =
+        fk(af.basicPublish(channel, exchangeName, routingKey, msg))
+
+      def basicPublishWithFlag(channel: AMQPChannel,
+                               exchangeName: ExchangeName,
+                               routingKey: RoutingKey,
+                               flag: PublishingFlag,
+                               msg: AmqpMessage[Array[Byte]]): G[Unit] =
+        fk(af.basicPublishWithFlag(channel, exchangeName, routingKey, flag, msg))
+
+      def addPublishingListener(channel: AMQPChannel, listener: PublishReturn => G[Unit]): G[Unit] =
+        fk(af.addPublishingListener(channel, listener.andThen(gK.apply)))
+
+      def clearPublishingListeners(channel: AMQPChannel): G[Unit] =
+        fk(af.clearPublishingListeners(channel))
+    }
+  }
 }
 
 trait Publish[F[_]] {
