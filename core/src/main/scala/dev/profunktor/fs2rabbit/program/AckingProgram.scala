@@ -63,7 +63,7 @@ case class WrapperAckingProgram[F[_]: Sync] private (
                                consumerTag: ConsumerTag,
                                noLocal: Boolean,
                                exclusive: Boolean,
-                               args: Arguments)(internals: AMQPInternals): F[ConsumerTag] =
+                               args: Arguments)(internals: AMQPInternals[F]): F[ConsumerTag] =
     consume.basicConsume(channel, queueName, autoAck, consumerTag, noLocal, exclusive, args)(internals)
 
   override def basicCancel(channel: AMQPChannel, consumerTag: ConsumerTag): F[Unit] =

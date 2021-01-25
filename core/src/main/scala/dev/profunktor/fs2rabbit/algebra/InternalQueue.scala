@@ -16,10 +16,9 @@
 
 package dev.profunktor.fs2rabbit.algebra
 
-import cats.effect.IO
+import cats.effect.std.Queue
 import dev.profunktor.fs2rabbit.model.AmqpEnvelope
-import fs2.concurrent.Queue
 
 trait InternalQueue[F[_]] {
-  def create: F[Queue[IO, Either[Throwable, AmqpEnvelope[Array[Byte]]]]]
+  def create: F[Queue[F, Either[Throwable, AmqpEnvelope[Array[Byte]]]]]
 }

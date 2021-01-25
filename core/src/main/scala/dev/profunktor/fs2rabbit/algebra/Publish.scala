@@ -16,10 +16,8 @@
 
 package dev.profunktor.fs2rabbit.algebra
 
-import cats.effect._
+import cats.effect.kernel.Sync
 import cats.effect.std.Dispatcher
-import cats.effect.syntax.effect._
-import cats.effect.{Blocker, ContextShift, Effect, Sync}
 import cats.tagless.InvariantK
 import cats.syntax.functor._
 import cats.~>

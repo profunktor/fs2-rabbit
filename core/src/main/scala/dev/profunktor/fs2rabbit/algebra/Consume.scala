@@ -39,7 +39,7 @@ object Consume {
             internals.queue.fold(()) { internalQ =>
               dispatcher.unsafeRunAndForget {
                 internalQ
-                  .enqueue1(
+                  .offer(
                     Left(
                       new Exception(
                         s"Queue might have been DELETED! $consumerTag"
@@ -100,7 +100,7 @@ object Consume {
             dispatcher.unsafeRunAndForget {
               internals.queue
                 .fold(Applicative[F].unit) { internalQ =>
-                  internalQ.enqueue1(envelopeOrErr)
+                  internalQ.offer(envelopeOrErr)
                 }
             }
           }
@@ -160,7 +160,7 @@ object Consume {
     }
 
   implicit class ConsumeOps[F[_]](val consume: Consume[F]) extends AnyVal {
-    def mapK[G[_]](fk: F ~> G): Consume[G] = new Consume[G] {
+    def imapK[G[_]](fk: F ~> G)(gK: G ~> F): Consume[G] = new Consume[G] {
       def basicAck(channel: AMQPChannel, tag: DeliveryTag, multiple: Boolean): G[Unit] =
         fk(consume.basicAck(channel, tag, multiple))
       def basicNack(channel: AMQPChannel, tag: DeliveryTag, multiple: Boolean, requeue: Boolean): G[Unit] =
@@ -176,7 +176,7 @@ object Consume {
                           noLocal: Boolean,
                           exclusive: Boolean,
                           args: Arguments)(internals: AMQPInternals[G]): G[ConsumerTag] =
-        fk(consume.basicConsume(channel, queueName, autoAck, consumerTag, noLocal, exclusive, args)(internals))
+        fk(consume.basicConsume(channel, queueName, autoAck, consumerTag, noLocal, exclusive, args)(internals.mapK(gK)))
       def basicCancel(channel: AMQPChannel, consumerTag: ConsumerTag): G[Unit] =
         fk(consume.basicCancel(channel, consumerTag))
     }

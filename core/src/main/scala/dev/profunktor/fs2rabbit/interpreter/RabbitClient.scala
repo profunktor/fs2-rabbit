@@ -20,7 +20,7 @@ import cats.effect._
 import cats.effect.std.Dispatcher
 import cats.implicits._
 import cats.tagless.implicits._
-import cats.{Defer, ~>}
+import cats.~>
 import com.rabbitmq.client.{DefaultSaslConfig, MetricsCollector, SaslConfig}
 import dev.profunktor.fs2rabbit.algebra._
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
@@ -79,18 +79,20 @@ object RabbitClient {
       metricsCollector: Option[MetricsCollector] = None
   ): Resource[F, RabbitClient[F]] = Dispatcher[F].evalMap { dispatcher =>
     apply[F](config, dispatcher, sslContext, saslConfig, metricsCollector)
+  }
 
   implicit class ClientOps[F[_]](val client: RabbitClient[F]) extends AnyVal {
-    def imapK[G[_]: Concurrent: Defer](af: F ~> G)(ag: G ~> F): RabbitClient[G] = new RabbitClient[G](
-      client.connection.mapK(af),
-      client.consume.mapK(af),
-      client.publish.imapK(af)(ag),
-      client.binding.mapK(af),
-      client.declaration.mapK(af),
-      client.deletion.mapK(af),
-      client.consumingProgram.imapK(af)(ag),
-      client.publishingProgram.imapK(af)(ag)
-    )
+    def imapK[G[_]: Concurrent](fK: F ~> G)(gK: G ~> F)(implicit F: MonadCancel[F, _]): RabbitClient[G] =
+      new RabbitClient[G](
+        client.connection.mapK(fK),
+        client.consume.imapK(fK)(gK),
+        client.publish.imapK(fK)(gK),
+        client.binding.mapK(fK),
+        client.declaration.mapK(fK),
+        client.deletion.mapK(fK),
+        client.consumingProgram.imapK(fK)(gK),
+        client.publishingProgram.imapK(fK)(gK)
+      )
   }
 }
 
