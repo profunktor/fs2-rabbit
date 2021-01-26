@@ -17,9 +17,9 @@
 package dev.profunktor.fs2rabbit.interpreter
 
 import cats.effect.Concurrent
+import cats.effect.std.Queue
 import dev.profunktor.fs2rabbit.algebra.InternalQueue
 import dev.profunktor.fs2rabbit.model.AmqpEnvelope
-import fs2.concurrent.Queue
 
 class LiveInternalQueue[F[_]: Concurrent](queueSize: Int) extends InternalQueue[F] {
 

@@ -72,9 +72,10 @@ case class WrapperConsumingProgram[F[_]: Sync] private (
           consume.basicCancel(channel, tag)
       }
       .flatMap {
-        case (_, queue) =>
-          queue.dequeue.rethrow
-            .evalMap(env => decoder(env).map(a => env.copy(payload = a)))
+        case (_, queue) => ???
+        //Waiting for Stream.fromQueueUnterminated in latest fs2
+//          queue.dequeue.rethrow
+//            .evalMap(env => decoder(env).map(a => env.copy(payload = a)))
       }
       .pure[F]
   }

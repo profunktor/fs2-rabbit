@@ -40,7 +40,7 @@ object Consume {
             internals.queue.fold(()) { internalQ =>
               dispatcher.unsafeRunAndForget {
                 internalQ
-                  .enqueue1(
+                  .offer(
                     Left(
                       new Exception(
                         s"Queue might have been DELETED! $consumerTag"
@@ -101,7 +101,7 @@ object Consume {
             dispatcher.unsafeRunAndForget {
               internals.queue
                 .fold(Applicative[F].unit) { internalQ =>
-                  internalQ.enqueue1(envelopeOrErr)
+                  internalQ.offer(envelopeOrErr)
                 }
             }
           }
