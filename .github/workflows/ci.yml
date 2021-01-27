@@ -38,3 +38,31 @@ jobs:
 
     - name: Shutting down RabbitMQ
       run: docker-compose down
+
+  migration-check:
+    runs-on: ubuntu-latest
+
+    needs: [build]
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: olafurpg/setup-scala@v10
+
+    - name: Cache Coursier dependencies
+      uses: actions/cache@v1
+      with:
+       path: ~/.cache/coursier
+       key: ${{ runner.os }}-${{ github.ref }}-coursier
+       restore-keys: |
+        ${{ runner.os }}-${{ github.ref }}-coursier
+
+    - name: Cache Ivy dependencies
+      uses: actions/cache@v1
+      with:
+        path: ~/.ivy2/cache
+        key: ${{ runner.os }}-${{ github.ref }}-ivy2
+        restore-keys: |
+         ${{ runner.os }}-${{ github.ref }}-ivy2
+
+    - name: Tests
+      run: sbt -J-Xms4G -J-Xmx4G +mimaReportBinaryIssues

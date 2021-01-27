@@ -16,9 +16,10 @@
 
 package dev.profunktor.fs2rabbit.algebra
 
-import cats.effect.std.Dispatcher
 import cats.effect.kernel.Sync
-import cats.implicits._
+import cats.effect.std.Dispatcher
+import cats.syntax.flatMap._
+import cats.syntax.functor._
 import cats.{Applicative, Functor, ~>}
 import com.rabbitmq.client.{AMQP, Consumer, DefaultConsumer, Envelope}
 import dev.profunktor.fs2rabbit.arguments.{Arguments, _}
