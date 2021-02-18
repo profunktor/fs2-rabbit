@@ -4,8 +4,8 @@ object Dependencies {
 
   object Version {
     val cats       = "2.3.1"
-    val catsEffect = "2.3.1"
-    val fs2        = "2.5.0"
+    val catsEffect = "2.3.3"
+    val fs2        = "2.5.1"
     val circe      = "0.13.0"
     val amqpClient = "5.10.0"
     val logback    = "1.2.3"
@@ -18,8 +18,8 @@ object Dependencies {
     val kindProjector    = "0.11.3"
     val betterMonadicFor = "0.3.1"
 
-    val scalaTest               = "3.2.3"
-    val scalaCheck              = "1.15.3"
+    val scalaTest               = "3.2.4"
+    val scalaCheck              = "1.15.2"
     val scalaTestPlusScalaCheck = "3.2.2.0"
     val disciplineScalaCheck    = "2.1.1"
   }
