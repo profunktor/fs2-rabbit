@@ -20,6 +20,8 @@ import cats.implicits._
 import dev.profunktor.fs2rabbit.BaseSpec
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
 
+import scala.concurrent.duration.DurationInt
+
 class RabbitSuite extends BaseSpec with Fs2RabbitSpec {
 
   override val config: Fs2RabbitConfig =
@@ -27,13 +29,13 @@ class RabbitSuite extends BaseSpec with Fs2RabbitSpec {
       host = "localhost",
       port = 5672,
       virtualHost = "/",
-      connectionTimeout = 30,
+      connectionTimeout = 30.seconds,
       ssl = false,
       username = "guest".some,
       password = "guest".some,
       requeueOnNack = false,
       requeueOnReject = false,
-      requestedHeartbeat = 60,
+      requestedHeartbeat = 60.seconds,
       internalQueueSize = 500.some
     )
 

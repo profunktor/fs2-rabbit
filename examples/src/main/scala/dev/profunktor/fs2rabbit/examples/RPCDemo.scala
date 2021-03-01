@@ -29,6 +29,8 @@ import dev.profunktor.fs2rabbit.interpreter.RabbitClient
 import dev.profunktor.fs2rabbit.model._
 import fs2.Stream
 
+import scala.concurrent.duration.DurationInt
+
 object RPCDemo extends IOApp.Simple {
 
   private val config: Fs2RabbitConfig = Fs2RabbitConfig(
@@ -42,11 +44,11 @@ object RPCDemo extends IOApp.Simple {
     username = Some("guest"),
     password = Some("guest"),
     ssl = false,
-    connectionTimeout = 3,
+    connectionTimeout = 3.seconds,
     requeueOnNack = false,
     requeueOnReject = false,
     internalQueueSize = Some(500),
-    requestedHeartbeat = 60,
+    requestedHeartbeat = 60.seconds,
     automaticRecovery = true
   )
 
