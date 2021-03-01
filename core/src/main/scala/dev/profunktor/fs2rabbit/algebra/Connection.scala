@@ -40,8 +40,8 @@ object ConnectionResource {
   ): F[Connection[Resource[F, *]]] = {
     val addThreadFactory: F[ConnectionFactory => Unit] =
       threadFactory.fold(Sync[F].pure((_: ConnectionFactory) => ())) { threadFact =>
-        threadFact.map { tf =>
-          (cf: ConnectionFactory) => cf.setThreadFactory(tf)
+        threadFact.map { tf => (cf: ConnectionFactory) =>
+          cf.setThreadFactory(tf)
         }
       }
     addThreadFactory.flatMap { fn =>
@@ -56,12 +56,12 @@ object ConnectionResource {
   }
 
   private def _make[F[_]: Sync: Log](
-                                      conf: Fs2RabbitConfig,
-                                      sslCtx: Option[SSLContext],
-                                      saslConf: SaslConfig,
-                                      metricsCollector: Option[MetricsCollector],
-                                      addThreadFactory: ConnectionFactory => Unit
-                                    ): F[Connection[Resource[F, *]]] = {
+      conf: Fs2RabbitConfig,
+      sslCtx: Option[SSLContext],
+      saslConf: SaslConfig,
+      metricsCollector: Option[MetricsCollector],
+      addThreadFactory: ConnectionFactory => Unit
+  ): F[Connection[Resource[F, *]]] =
     Sync[F]
       .delay {
         val factory   = new ConnectionFactory()
@@ -115,7 +115,6 @@ object ConnectionResource {
             }
         }
       }
-  }
 }
 
 trait Connection[F[_]] {

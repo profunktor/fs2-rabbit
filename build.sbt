@@ -4,7 +4,7 @@ import Dependencies._
 import microsites.ExtraMdFileConfig
 
 ThisBuild / name := """fs2-rabbit"""
-ThisBuild / crossScalaVersions := List("2.12.12", "2.13.3")
+ThisBuild / crossScalaVersions := List("2.12.12", "2.13.5")
 ThisBuild / organization := "dev.profunktor"
 ThisBuild / homepage := Some(url("https://fs2-rabbit.profunktor.dev/"))
 ThisBuild / licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0"))
@@ -38,6 +38,7 @@ val commonSettings = List(
   headerLicense := Some(HeaderLicense.ALv2("2017-2020", "ProfunKtor")),
   scalacOptions in (Compile, doc) ++= List("-no-link-warnings"),
   scalacOptions ++= maxClassFileName(scalaVersion.value),
+  scalacOptions in (Compile, compile) --= List("-Wunused:params"),
   libraryDependencies ++= {
     List(
       compilerPlugin(Libraries.kindProjector),
@@ -52,7 +53,7 @@ val commonSettings = List(
   },
   resolvers += "Apache public" at "https://repository.apache.org/content/groups/public/",
   scalafmtOnCompile := true,
-  mimaPreviousArtifacts := Set(organization.value %% moduleName.value % "3.0.1"),
+  mimaPreviousArtifacts := Set(organization.value %% moduleName.value % "3.0.1")
 )
 
 def CoreDependencies(scalaVersionStr: String): List[ModuleID] =

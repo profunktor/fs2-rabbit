@@ -21,11 +21,10 @@ import dev.profunktor.fs2rabbit.javaConversion._
 
 object arguments {
 
-  /**
-    * [[SafeArg]] makes sure the arguments passed to any of the functions are compliant with the AMQP Protocol.
+  /** [[SafeArg]] makes sure the arguments passed to any of the functions are compliant with the AMQP Protocol.
     *
     * This library only supports String, Boolean, Int, Long, Float, Short, BigDecimal, Date, Byte, List and Map.
-    * */
+    */
   type SafeArg   = Evidence[SafeArgument]
   type Arguments = Map[String, SafeArg]
 
