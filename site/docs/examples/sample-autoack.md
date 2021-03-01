@@ -51,7 +51,7 @@ class AutoAckFlow[F[_]: Async, A](
 
 }
 
-class AutoAckConsumerDemo[F[_]: Concurrent](R: RabbitClient[F]) {
+class AutoAckConsumerDemo[F[_]: Async](R: RabbitClient[F]) {
 
   private val queueName    = QueueName("testQ")
   private val exchangeName = ExchangeName("testEX")
