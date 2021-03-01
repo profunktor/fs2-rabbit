@@ -47,7 +47,7 @@ object RabbitClient {
       threadFactory: Option[F[ThreadFactory]] = None
   ): F[RabbitClient[F]] = {
     val internalQ         = new LiveInternalQueue[F](config.internalQueueSize.getOrElse(500))
-    val connection        = ConnectionResource.make(config, sslContext, saslConfig, metricsCollector)
+    val connection        = ConnectionResource.make(config, sslContext, saslConfig, metricsCollector, threadFactory)
     val consumingProgram  = AckConsumingProgram.make[F](config, internalQ, dispatcher)
     val publishingProgram = PublishingProgram.make[F](dispatcher)
 
