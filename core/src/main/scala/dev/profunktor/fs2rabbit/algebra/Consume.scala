@@ -16,8 +16,8 @@
 
 package dev.profunktor.fs2rabbit.algebra
 
-import cats.effect.syntax.effect._
-import cats.effect.{Blocker, ContextShift, Effect, Sync}
+import cats.effect.kernel.Sync
+import cats.effect.std.Dispatcher
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.{Applicative, Functor}
@@ -28,7 +28,7 @@ import dev.profunktor.fs2rabbit.model._
 import scala.util.{Failure, Success, Try}
 
 object Consume {
-  def make[F[_]: Effect: ContextShift](blocker: Blocker): Consume[F] =
+  def make[F[_]: Sync](dispatcher: Dispatcher[F]): Consume[F] =
     new Consume[F] {
       private[fs2rabbit] def defaultConsumer[A](
           channel: AMQPChannel,
@@ -38,16 +38,16 @@ object Consume {
 
           override def handleCancel(consumerTag: String): Unit =
             internals.queue.fold(()) { internalQ =>
-              internalQ
-                .enqueue1(
-                  Left(
-                    new Exception(
-                      s"Queue might have been DELETED! $consumerTag"
+              dispatcher.unsafeRunAndForget {
+                internalQ
+                  .offer(
+                    Left(
+                      new Exception(
+                        s"Queue might have been DELETED! $consumerTag"
+                      )
                     )
                   )
-                )
-                .toIO
-                .unsafeRunAsync(_ => ())
+              }
             }
 
           override def handleDelivery(
@@ -98,31 +98,31 @@ object Consume {
                 )
               }
 
-            internals.queue
-              .fold(Applicative[F].unit) { internalQ =>
-                internalQ.enqueue1(envelopeOrErr)
-              }
-              .toIO
-              .unsafeRunAsync(_ => ())
+            dispatcher.unsafeRunAndForget {
+              internals.queue
+                .fold(Applicative[F].unit) { internalQ =>
+                  internalQ.offer(envelopeOrErr)
+                }
+            }
           }
         }
       }
 
-      override def basicAck(channel: AMQPChannel, tag: DeliveryTag, multiple: Boolean): F[Unit] = blocker.delay {
+      override def basicAck(channel: AMQPChannel, tag: DeliveryTag, multiple: Boolean): F[Unit] = Sync[F].blocking {
         channel.value.basicAck(tag.value, multiple)
       }
 
       override def basicNack(channel: AMQPChannel, tag: DeliveryTag, multiple: Boolean, requeue: Boolean): F[Unit] =
-        blocker.delay {
+        Sync[F].blocking {
           channel.value.basicNack(tag.value, multiple, requeue)
         }
 
-      override def basicReject(channel: AMQPChannel, tag: DeliveryTag, requeue: Boolean): F[Unit] = blocker.delay {
+      override def basicReject(channel: AMQPChannel, tag: DeliveryTag, requeue: Boolean): F[Unit] = Sync[F].blocking {
         channel.value.basicReject(tag.value, requeue)
       }
 
       override def basicQos(channel: AMQPChannel, basicQos: BasicQos): F[Unit] =
-        blocker.delay {
+        Sync[F].blocking {
           channel.value.basicQos(
             basicQos.prefetchSize,
             basicQos.prefetchCount,
@@ -141,7 +141,7 @@ object Consume {
       )(internals: AMQPInternals[F]): F[ConsumerTag] =
         for {
           dc <- defaultConsumer(channel, internals)
-          rs <- blocker.delay(
+          rs <- Sync[F].blocking(
                  channel.value.basicConsume(
                    queueName.value,
                    autoAck,
@@ -155,7 +155,7 @@ object Consume {
         } yield ConsumerTag(rs)
 
       override def basicCancel(channel: AMQPChannel, consumerTag: ConsumerTag): F[Unit] =
-        blocker.delay {
+        Sync[F].blocking {
           channel.value.basicCancel(consumerTag.value)
         }
     }

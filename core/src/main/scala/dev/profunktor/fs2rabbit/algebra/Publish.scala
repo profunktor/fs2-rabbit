@@ -16,22 +16,20 @@
 
 package dev.profunktor.fs2rabbit.algebra
 
-import cats.effect.syntax.effect._
-import cats.effect.{Blocker, ContextShift, Effect, Sync}
+import cats.effect._
+import cats.effect.std.Dispatcher
 import cats.syntax.functor._
 import com.rabbitmq.client.{AMQP, ReturnListener}
 import dev.profunktor.fs2rabbit.model._
 
 object Publish {
-  def make[F[_]: Effect: ContextShift](
-      blocker: Blocker
-  ): Publish[F] =
+  def make[F[_]: Sync](dispatcher: Dispatcher[F]): Publish[F] =
     new Publish[F] {
       override def basicPublish(channel: AMQPChannel,
                                 exchangeName: ExchangeName,
                                 routingKey: RoutingKey,
                                 msg: AmqpMessage[Array[Byte]]): F[Unit] =
-        blocker.delay {
+        Sync[F].blocking {
           channel.value.basicPublish(
             exchangeName.value,
             routingKey.value,
@@ -45,7 +43,7 @@ object Publish {
                                         routingKey: RoutingKey,
                                         flag: PublishingFlag,
                                         msg: AmqpMessage[Array[Byte]]): F[Unit] =
-        blocker.delay {
+        Sync[F].blocking {
           channel.value.basicPublish(
             exchangeName.value,
             routingKey.value,
@@ -76,8 +74,7 @@ object Publish {
                   AmqpProperties.unsafeFrom(properties),
                   AmqpBody(body)
                 )
-
-              listener(publishReturn).toIO.unsafeRunAsync(_ => ())
+              dispatcher.unsafeRunAndForget(listener(publishReturn))
             }
           }
 

@@ -27,6 +27,8 @@ import org.scalatest.funsuite.AsyncFunSuite
 
 import scala.util.Try
 
+import cats.effect.unsafe.implicits.global
+
 class EnvelopeDecoderSpec extends AsyncFunSuite {
 
   // Available instances of EnvelopeDecoder for any ApplicativeError[F, Throwable]

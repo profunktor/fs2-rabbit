@@ -16,16 +16,11 @@
 
 package dev.profunktor.fs2rabbit.interpreter
 
-import cats.effect.{ContextShift, IO}
 import cats.implicits._
 import dev.profunktor.fs2rabbit.BaseSpec
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
 
-import scala.concurrent.ExecutionContext
-
 class RabbitSuite extends BaseSpec with Fs2RabbitSpec {
-
-  override implicit val cs: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
 
   override val config: Fs2RabbitConfig =
     Fs2RabbitConfig(

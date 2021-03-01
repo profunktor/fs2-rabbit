@@ -17,10 +17,10 @@
 package dev.profunktor.fs2rabbit.resiliency
 
 import cats.effect.IO
-import cats.effect.concurrent.Ref
-import cats.implicits._
+import cats.effect.kernel.Ref
 import dev.profunktor.fs2rabbit.BaseSpec
 import fs2._
+import cats.effect.unsafe.implicits.global
 
 import scala.concurrent.duration._
 import org.scalatest.compatible.Assertion
