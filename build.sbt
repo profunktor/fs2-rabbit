@@ -38,7 +38,7 @@ val commonSettings = List(
   headerLicense := Some(HeaderLicense.ALv2("2017-2020", "ProfunKtor")),
   scalacOptions in (Compile, doc) ++= List("-no-link-warnings"),
   scalacOptions ++= maxClassFileName(scalaVersion.value),
-  scalacOptions in (Compile, compile) --= List("-Wunused:params"),
+  scalacOptions --= List("-Wunused:params"),
   libraryDependencies ++= {
     List(
       compilerPlugin(Libraries.kindProjector),
