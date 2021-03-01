@@ -104,11 +104,11 @@ object DropwizardMetricsDemo extends IOApp {
     username = Some("guest"),
     password = Some("guest"),
     ssl = false,
-    connectionTimeout = 3,
+    connectionTimeout = 3.seconds,
     requeueOnNack = false,
     requeueOnReject = false,
     internalQueueSize = Some(500),
-    requestedHeartbeat = 60,
+    requestedHeartbeat = 60.seconds,
     automaticRecovery = true
   )
 
