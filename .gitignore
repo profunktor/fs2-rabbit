@@ -51,3 +51,4 @@ tags
 .metals/
 .bloop/
 .sbtopts
+.bsp

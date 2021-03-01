@@ -15,10 +15,6 @@ import dev.profunktor.fs2rabbit.interpreter.RabbitClient
 import dev.profunktor.fs2rabbit.model._
 import fs2._
 
-import scala.concurrent.ExecutionContext
-
-implicit val cs = IO.contextShift(ExecutionContext.global)
-
 val q1  = QueueName("q1")
 val q2  = QueueName("q2")
 val ex  = ExchangeName("testEX")

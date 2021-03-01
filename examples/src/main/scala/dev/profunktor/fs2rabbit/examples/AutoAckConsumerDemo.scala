@@ -30,7 +30,7 @@ import dev.profunktor.fs2rabbit.model._
 import fs2.{Pipe, Pure, Stream}
 import io.circe.Encoder
 
-class AutoAckConsumerDemo[F[_]: Concurrent](R: RabbitClient[F]) {
+class AutoAckConsumerDemo[F[_]: Async](R: RabbitClient[F]) {
   private val queueName    = QueueName("testQ")
   private val exchangeName = ExchangeName("testEX")
   private val routingKey   = RoutingKey("testRK")
@@ -54,7 +54,7 @@ class AutoAckConsumerDemo[F[_]: Concurrent](R: RabbitClient[F]) {
 
 }
 
-class AutoAckFlow[F[_]: Concurrent, A](
+class AutoAckFlow[F[_]: Async, A](
     consumer: Stream[F, AmqpEnvelope[A]],
     logger: Pipe[F, AmqpEnvelope[A], AckResult],
     publisher: AmqpMessage[String] => F[Unit]
