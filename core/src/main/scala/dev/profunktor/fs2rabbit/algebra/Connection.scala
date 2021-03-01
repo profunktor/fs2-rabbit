@@ -16,6 +16,8 @@
 
 package dev.profunktor.fs2rabbit.algebra
 
+import java.util.concurrent.ThreadFactory
+
 import cats.effect.{Resource, Sync}
 import cats.implicits._
 import com.rabbitmq.client.{Address, ConnectionFactory, DefaultSaslConfig, MetricsCollector, SaslConfig}
@@ -33,8 +35,33 @@ object ConnectionResource {
       // Unlike SSLContext, SaslConfig is not optional because it is always set
       // by the underlying Java library, even if the user doesn't set it.
       saslConf: SaslConfig = DefaultSaslConfig.PLAIN,
-      metricsCollector: Option[MetricsCollector] = None
-  ): F[Connection[Resource[F, *]]] =
+      metricsCollector: Option[MetricsCollector] = None,
+      threadFactory: Option[F[ThreadFactory]] = None
+  ): F[Connection[Resource[F, *]]] = {
+    val addThreadFactory: F[ConnectionFactory => Unit] =
+      threadFactory.fold(Sync[F].pure((_: ConnectionFactory) => ())) { threadFact =>
+        threadFact.map { tf =>
+          (cf: ConnectionFactory) => cf.setThreadFactory(tf)
+        }
+      }
+    addThreadFactory.flatMap { fn =>
+      _make(
+        conf,
+        sslCtx,
+        saslConf,
+        metricsCollector,
+        fn
+      )
+    }
+  }
+
+  private def _make[F[_]: Sync: Log](
+                                      conf: Fs2RabbitConfig,
+                                      sslCtx: Option[SSLContext],
+                                      saslConf: SaslConfig,
+                                      metricsCollector: Option[MetricsCollector],
+                                      addThreadFactory: ConnectionFactory => Unit
+                                    ): F[Connection[Resource[F, *]]] = {
     Sync[F]
       .delay {
         val factory   = new ConnectionFactory()
@@ -50,6 +77,7 @@ object ConnectionResource {
         conf.username.foreach(factory.setUsername)
         conf.password.foreach(factory.setPassword)
         metricsCollector.foreach(factory.setMetricsCollector)
+        addThreadFactory(factory)
         factory
       }
       .map { connectionFactory =>
@@ -87,6 +115,7 @@ object ConnectionResource {
             }
         }
       }
+  }
 }
 
 trait Connection[F[_]] {
