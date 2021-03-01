@@ -51,24 +51,23 @@ object RabbitClient {
     val consumingProgram  = AckConsumingProgram.make[F](config, internalQ, dispatcher)
     val publishingProgram = PublishingProgram.make[F](dispatcher)
 
-    (connection, consumingProgram, publishingProgram).mapN {
-      case (conn, consuming, publish) =>
-        val consumeClient     = Consume.make[F](dispatcher)
-        val publishClient     = Publish.make[F](dispatcher)
-        val bindingClient     = Binding.make[F]
-        val declarationClient = Declaration.make[F]
-        val deletionClient    = Deletion.make[F]
+    (connection, consumingProgram, publishingProgram).mapN { case (conn, consuming, publish) =>
+      val consumeClient     = Consume.make[F](dispatcher)
+      val publishClient     = Publish.make[F](dispatcher)
+      val bindingClient     = Binding.make[F]
+      val declarationClient = Declaration.make[F]
+      val deletionClient    = Deletion.make[F]
 
-        new RabbitClient[F](
-          conn,
-          consumeClient,
-          publishClient,
-          bindingClient,
-          declarationClient,
-          deletionClient,
-          consuming,
-          publish
-        )
+      new RabbitClient[F](
+        conn,
+        consumeClient,
+        publishClient,
+        bindingClient,
+        declarationClient,
+        deletionClient,
+        consuming,
+        publish
+      )
     }
   }
 
@@ -78,9 +77,10 @@ object RabbitClient {
       // Unlike SSLContext, SaslConfig is not optional because it is always set
       // by the underlying Java library, even if the user doesn't set it.
       saslConfig: SaslConfig = DefaultSaslConfig.PLAIN,
-      metricsCollector: Option[MetricsCollector] = None
+      metricsCollector: Option[MetricsCollector] = None,
+      threadFactory: Option[F[ThreadFactory]] = None
   ): Resource[F, RabbitClient[F]] = Dispatcher[F].evalMap { dispatcher =>
-    apply[F](config, dispatcher, sslContext, saslConfig, metricsCollector)
+    apply[F](config, dispatcher, sslContext, saslConfig, metricsCollector, threadFactory)
   }
 }
 
@@ -109,8 +109,9 @@ class RabbitClient[F[_]] private[fs2rabbit] (
       basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
       consumerArgs: Option[ConsumerArgs] = None
   )(implicit
-    channel: AMQPChannel,
-    decoder: EnvelopeDecoder[F, A]): F[(AckResult => F[Unit], Stream[F, AmqpEnvelope[A]])] =
+      channel: AMQPChannel,
+      decoder: EnvelopeDecoder[F, A]
+  ): F[(AckResult => F[Unit], Stream[F, AmqpEnvelope[A]])] =
     consumingProgram.createAckerConsumer(
       channel,
       queueName,
@@ -130,10 +131,10 @@ class RabbitClient[F[_]] private[fs2rabbit] (
       consumerArgs
     )
 
-  def createPublisher[A](exchangeName: ExchangeName, routingKey: RoutingKey)(
-      implicit
+  def createPublisher[A](exchangeName: ExchangeName, routingKey: RoutingKey)(implicit
       channel: AMQPChannel,
-      encoder: MessageEncoder[F, A]): F[A => F[Unit]] =
+      encoder: MessageEncoder[F, A]
+  ): F[A => F[Unit]] =
     publishingProgram.createPublisher(channel, exchangeName, routingKey)
 
   def createPublisherWithListener[A](
@@ -151,14 +152,15 @@ class RabbitClient[F[_]] private[fs2rabbit] (
     )
 
   def createBasicPublisher[A](implicit
-                              channel: AMQPChannel,
-                              encoder: MessageEncoder[F, A]): F[(ExchangeName, RoutingKey, A) => F[Unit]] =
+      channel: AMQPChannel,
+      encoder: MessageEncoder[F, A]
+  ): F[(ExchangeName, RoutingKey, A) => F[Unit]] =
     publishingProgram.createBasicPublisher(channel)
 
-  def createBasicPublisherWithListener[A](flag: PublishingFlag, listener: PublishReturn => F[Unit])(
-      implicit
+  def createBasicPublisherWithListener[A](flag: PublishingFlag, listener: PublishReturn => F[Unit])(implicit
       channel: AMQPChannel,
-      encoder: MessageEncoder[F, A]): F[(ExchangeName, RoutingKey, A) => F[Unit]] =
+      encoder: MessageEncoder[F, A]
+  ): F[(ExchangeName, RoutingKey, A) => F[Unit]] =
     publishingProgram.createBasicPublisherWithListener(
       channel,
       flag,
