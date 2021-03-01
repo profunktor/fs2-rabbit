@@ -42,6 +42,8 @@ import cats.syntax.functor._
 import dev.profunktor.fs2rabbit.interpreter.RabbitClient
 import java.util.concurrent.Executors
 
+import scala.concurrent.duration._
+
 object Program {
   def foo[F[_]](client: RabbitClient[F]): F[Unit] = ???
 }
@@ -55,7 +57,7 @@ class Demo extends IOApp {
     password = Some("guest"),
     port = 5672,
     ssl = false,
-    connectionTimeout = 3,
+    connectionTimeout = 3.seconds,
     requeueOnNack = false,
     requeueOnReject = false,
     internalQueueSize = Some(500)

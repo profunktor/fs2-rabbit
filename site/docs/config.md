@@ -12,6 +12,8 @@ The main `RabbitMQ` configuration should be defined as `Fs2RabbitConfig`. You ch
 import cats.data.NonEmptyList
 import dev.profunktor.fs2rabbit.config.{Fs2RabbitConfig, Fs2RabbitNodeConfig}
 
+import scala.concurrent.duration._
+
 val config = Fs2RabbitConfig(
   virtualHost = "/",
   nodes = NonEmptyList.one(
@@ -23,11 +25,11 @@ val config = Fs2RabbitConfig(
   username = Some("guest"),
   password = Some("guest"),
   ssl = false,
-  connectionTimeout = 3,
+  connectionTimeout = 3.seconds,
   requeueOnNack = false,
   requeueOnReject = false,
   internalQueueSize = Some(500),
-  requestedHeartbeat = 30,
+  requestedHeartbeat = 30.seconds,
   automaticRecovery = true
 )
 ```
