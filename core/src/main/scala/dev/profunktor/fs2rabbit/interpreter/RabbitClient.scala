@@ -16,6 +16,8 @@
 
 package dev.profunktor.fs2rabbit.interpreter
 
+import java.util.concurrent.ThreadFactory
+
 import cats.effect._
 import cats.effect.std.Dispatcher
 import cats.implicits._
@@ -41,7 +43,8 @@ object RabbitClient {
       // Unlike SSLContext, SaslConfig is not optional because it is always set
       // by the underlying Java library, even if the user doesn't set it.
       saslConfig: SaslConfig = DefaultSaslConfig.PLAIN,
-      metricsCollector: Option[MetricsCollector] = None
+      metricsCollector: Option[MetricsCollector] = None,
+      threadFactory: Option[F[ThreadFactory]] = None
   ): F[RabbitClient[F]] = {
     val internalQ         = new LiveInternalQueue[F](config.internalQueueSize.getOrElse(500))
     val connection        = ConnectionResource.make(config, sslContext, saslConfig, metricsCollector)
