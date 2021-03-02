@@ -16,7 +16,7 @@
 
 package dev.profunktor.fs2rabbit
 
-import scala.annotation.{implicitNotFound, nowarn}
+import scala.annotation.implicitNotFound
 import dev.profunktor.fs2rabbit.javaConversion._
 
 object arguments {
