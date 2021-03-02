@@ -16,7 +16,7 @@
 
 package dev.profunktor.fs2rabbit
 
-import scala.annotation.implicitNotFound
+import scala.annotation.{implicitNotFound, nowarn}
 import dev.profunktor.fs2rabbit.javaConversion._
 
 object arguments {
@@ -49,7 +49,7 @@ object arguments {
   }
 
   object SafeArgument {
-    private[fs2rabbit] def apply[A](implicit ev: SafeArgument[A]): SafeArgument[A] = ev
+    private[fs2rabbit] def apply[A](implicit ev: SafeArgument[A]): SafeArgument[A]      = ev
     private[fs2rabbit] def instance[A, J >: Null <: AnyRef](f: A => J): SafeArgument[A] =
       new SafeArgument[A] {
         type JavaType = J

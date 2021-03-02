@@ -20,7 +20,7 @@ import cats.effect._
 import cats.effect.std.Dispatcher
 import cats.implicits._
 import dev.profunktor.fs2rabbit.algebra.ConsumingStream.ConsumingStream
-import dev.profunktor.fs2rabbit.algebra.{AckConsuming, Acking, InternalQueue}
+import dev.profunktor.fs2rabbit.algebra.{AckConsuming, Acking, Cancel, Consume, InternalQueue}
 import dev.profunktor.fs2rabbit.arguments.Arguments
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
 import dev.profunktor.fs2rabbit.effects.EnvelopeDecoder
@@ -28,16 +28,22 @@ import dev.profunktor.fs2rabbit.model._
 import fs2.Stream
 
 object AckConsumingProgram {
-  def make[F[_]: Sync](configuration: Fs2RabbitConfig,
-                       internalQueue: InternalQueue[F],
-                       dispatcher: Dispatcher[F]): F[AckConsumingProgram[F]] =
-    (AckingProgram.make(configuration, dispatcher), ConsumingProgram.make(internalQueue, dispatcher)).mapN {
-      case (ap, cp) =>
-        WrapperAckConsumingProgram(ap, cp)
-    }
+  def make[F[_]: Sync](
+      configuration: Fs2RabbitConfig,
+      internalQueue: InternalQueue[F],
+      dispatcher: Dispatcher[F]
+  ): AckConsumingProgram[F] =
+    WrapperAckConsumingProgram(
+      AckingProgram.make(configuration, dispatcher),
+      ConsumingProgram.make(internalQueue, Consume.make[F](dispatcher))
+    )
 }
 
-trait AckConsumingProgram[F[_]] extends AckConsuming[F, Stream[F, *]] with Acking[F] with ConsumingStream[F]
+trait AckConsumingProgram[F[_]]
+    extends AckConsuming[F, Stream[F, *]]
+    with Acking[F]
+    with ConsumingStream[F]
+    with Cancel[F]
 
 case class WrapperAckConsumingProgram[F[_]: Sync] private (
     ackingProgram: AckingProgram[F],
@@ -92,9 +98,13 @@ case class WrapperAckConsumingProgram[F[_]: Sync] private (
       noLocal: Boolean,
       exclusive: Boolean,
       consumerTag: ConsumerTag,
-      args: Arguments)(implicit decoder: EnvelopeDecoder[F, A]): F[Stream[F, AmqpEnvelope[A]]] =
+      args: Arguments
+  )(implicit decoder: EnvelopeDecoder[F, A]): F[Stream[F, AmqpEnvelope[A]]] =
     consumingProgram.createConsumer(queueName, channel, basicQos, autoAck, noLocal, exclusive, consumerTag, args)
 
   override def createAcker(channel: AMQPChannel): F[AckResult => F[Unit]] =
     ackingProgram.createAcker(channel)
+
+  def basicCancel(channel: AMQPChannel, consumerTag: ConsumerTag): F[Unit] =
+    consumingProgram.basicCancel(channel, consumerTag)
 }

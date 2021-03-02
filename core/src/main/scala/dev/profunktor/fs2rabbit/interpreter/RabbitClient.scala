@@ -27,7 +27,6 @@ import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
 import dev.profunktor.fs2rabbit.config.declaration.{DeclarationExchangeConfig, DeclarationQueueConfig}
 import dev.profunktor.fs2rabbit.config.deletion.{DeletionExchangeConfig, DeletionQueueConfig}
 import dev.profunktor.fs2rabbit.effects.{EnvelopeDecoder, MessageEncoder}
-import dev.profunktor.fs2rabbit.algebra.AckConsumingStream.AckConsumingStream
 import dev.profunktor.fs2rabbit.algebra.ConnectionResource.ConnectionResource
 import dev.profunktor.fs2rabbit.model._
 import dev.profunktor.fs2rabbit.program._
@@ -50,23 +49,18 @@ object RabbitClient {
     val connection        = ConnectionResource.make(config, sslContext, saslConfig, metricsCollector, threadFactory)
     val consumingProgram  = AckConsumingProgram.make[F](config, internalQ, dispatcher)
     val publishingProgram = PublishingProgram.make[F](dispatcher)
+    val bindingClient     = Binding.make[F]
+    val declarationClient = Declaration.make[F]
+    val deletionClient    = Deletion.make[F]
 
-    (connection, consumingProgram, publishingProgram).mapN { case (conn, consuming, publish) =>
-      val consumeClient     = Consume.make[F](dispatcher)
-      val publishClient     = Publish.make[F](dispatcher)
-      val bindingClient     = Binding.make[F]
-      val declarationClient = Declaration.make[F]
-      val deletionClient    = Deletion.make[F]
-
+    connection.map { conn =>
       new RabbitClient[F](
         conn,
-        consumeClient,
-        publishClient,
         bindingClient,
         declarationClient,
         deletionClient,
-        consuming,
-        publish
+        consumingProgram,
+        publishingProgram
       )
     }
   }
@@ -86,13 +80,11 @@ object RabbitClient {
 
 class RabbitClient[F[_]] private[fs2rabbit] (
     connection: ConnectionResource[F],
-    consume: Consume[F],
-    publish: Publish[F],
     binding: Binding[F],
     declaration: Declaration[F],
     deletion: Deletion[F],
-    consumingProgram: AckConsumingStream[F],
-    publishingProgram: Publishing[F]
+    consumingProgram: AckConsumingProgram[F],
+    publishingProgram: PublishingProgram[F]
 ) {
 
   def createChannel(conn: AMQPConnection): Resource[F, AMQPChannel] =
@@ -109,9 +101,8 @@ class RabbitClient[F[_]] private[fs2rabbit] (
       basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
       consumerArgs: Option[ConsumerArgs] = None
   )(implicit
-      channel: AMQPChannel,
-      decoder: EnvelopeDecoder[F, A]
-  ): F[(AckResult => F[Unit], Stream[F, AmqpEnvelope[A]])] =
+    channel: AMQPChannel,
+    decoder: EnvelopeDecoder[F, A]): F[(AckResult => F[Unit], Stream[F, AmqpEnvelope[A]])] =
     consumingProgram.createAckerConsumer(
       channel,
       queueName,
@@ -131,10 +122,10 @@ class RabbitClient[F[_]] private[fs2rabbit] (
       consumerArgs
     )
 
-  def createPublisher[A](exchangeName: ExchangeName, routingKey: RoutingKey)(implicit
+  def createPublisher[A](exchangeName: ExchangeName, routingKey: RoutingKey)(
+      implicit
       channel: AMQPChannel,
-      encoder: MessageEncoder[F, A]
-  ): F[A => F[Unit]] =
+      encoder: MessageEncoder[F, A]): F[A => F[Unit]] =
     publishingProgram.createPublisher(channel, exchangeName, routingKey)
 
   def createPublisherWithListener[A](
@@ -152,15 +143,14 @@ class RabbitClient[F[_]] private[fs2rabbit] (
     )
 
   def createBasicPublisher[A](implicit
-      channel: AMQPChannel,
-      encoder: MessageEncoder[F, A]
-  ): F[(ExchangeName, RoutingKey, A) => F[Unit]] =
+                              channel: AMQPChannel,
+                              encoder: MessageEncoder[F, A]): F[(ExchangeName, RoutingKey, A) => F[Unit]] =
     publishingProgram.createBasicPublisher(channel)
 
-  def createBasicPublisherWithListener[A](flag: PublishingFlag, listener: PublishReturn => F[Unit])(implicit
+  def createBasicPublisherWithListener[A](flag: PublishingFlag, listener: PublishReturn => F[Unit])(
+      implicit
       channel: AMQPChannel,
-      encoder: MessageEncoder[F, A]
-  ): F[(ExchangeName, RoutingKey, A) => F[Unit]] =
+      encoder: MessageEncoder[F, A]): F[(ExchangeName, RoutingKey, A) => F[Unit]] =
     publishingProgram.createBasicPublisherWithListener(
       channel,
       flag,
@@ -187,15 +177,15 @@ class RabbitClient[F[_]] private[fs2rabbit] (
   def addPublishingListener(
       listener: PublishReturn => F[Unit]
   )(implicit channel: AMQPChannel): F[Unit] =
-    publish.addPublishingListener(channel, listener)
+    publishingProgram.addPublishingListener(channel, listener)
 
   def clearPublishingListeners(implicit channel: AMQPChannel): F[Unit] =
-    publish.clearPublishingListeners(channel)
+    publishingProgram.clearPublishingListeners(channel)
 
   def basicCancel(
       consumerTag: ConsumerTag
   )(implicit channel: AMQPChannel): F[Unit] =
-    consume.basicCancel(channel, consumerTag)
+    consumingProgram.basicCancel(channel, consumerTag)
 
   def bindQueue(
       queueName: QueueName,

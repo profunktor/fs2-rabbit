@@ -161,7 +161,7 @@ object Consume {
     }
 }
 
-trait Consume[F[_]] {
+trait Consume[F[_]] extends Cancel[F] {
   def basicAck(channel: AMQPChannel, tag: DeliveryTag, multiple: Boolean): F[Unit]
   def basicNack(channel: AMQPChannel, tag: DeliveryTag, multiple: Boolean, requeue: Boolean): F[Unit]
   def basicReject(channel: AMQPChannel, tag: DeliveryTag, requeue: Boolean): F[Unit]
@@ -175,5 +175,4 @@ trait Consume[F[_]] {
       exclusive: Boolean,
       args: Arguments
   )(internals: AMQPInternals[F]): F[ConsumerTag]
-  def basicCancel(channel: AMQPChannel, consumerTag: ConsumerTag): F[Unit]
 }
