@@ -18,6 +18,8 @@ package dev.profunktor.fs2rabbit.algebra
 
 import dev.profunktor.fs2rabbit.model.{AMQPChannel, ConsumerTag}
 
+/** A trait that represents the ability to cancel a consumer
+  */
 trait Cancel[F[_]] {
   def basicCancel(channel: AMQPChannel, consumerTag: ConsumerTag): F[Unit]
 }
