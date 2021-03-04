@@ -17,7 +17,6 @@
 package dev.profunktor.fs2rabbit.program
 
 import cats.effect.Sync
-import cats.effect.std.Dispatcher
 import cats.implicits._
 import dev.profunktor.fs2rabbit.algebra.ConsumingStream._
 import dev.profunktor.fs2rabbit.algebra.{AMQPInternals, Consume, InternalQueue}
@@ -27,10 +26,8 @@ import dev.profunktor.fs2rabbit.model._
 import fs2.Stream
 
 object ConsumingProgram {
-  def make[F[_]: Sync](internalQueue: InternalQueue[F], dispatcher: Dispatcher[F]): F[ConsumingProgram[F]] =
-    Sync[F].delay {
-      WrapperConsumingProgram(internalQueue, Consume.make(dispatcher))
-    }
+  def make[F[_]: Sync](internalQueue: InternalQueue[F], consume: Consume[F]): ConsumingProgram[F] =
+    WrapperConsumingProgram(internalQueue, consume)
 }
 
 trait ConsumingProgram[F[_]] extends ConsumingStream[F] with Consume[F]

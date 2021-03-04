@@ -26,9 +26,8 @@ import dev.profunktor.fs2rabbit.model.AckResult.{Ack, NAck, Reject}
 import dev.profunktor.fs2rabbit.model._
 
 object AckingProgram {
-  def make[F[_]: Sync](config: Fs2RabbitConfig, dispatcher: Dispatcher[F]): F[AckingProgram[F]] = Sync[F].delay {
+  def make[F[_]: Sync](config: Fs2RabbitConfig, dispatcher: Dispatcher[F]): AckingProgram[F] =
     WrapperAckingProgram(config, Consume.make(dispatcher))
-  }
 }
 
 trait AckingProgram[F[_]] extends Acking[F] with Consume[F]
@@ -57,13 +56,15 @@ case class WrapperAckingProgram[F[_]: Sync] private (
   override def basicQos(channel: AMQPChannel, basicQos: BasicQos): F[Unit] =
     consume.basicQos(channel, basicQos)
 
-  override def basicConsume[A](channel: AMQPChannel,
-                               queueName: QueueName,
-                               autoAck: Boolean,
-                               consumerTag: ConsumerTag,
-                               noLocal: Boolean,
-                               exclusive: Boolean,
-                               args: Arguments)(internals: AMQPInternals[F]): F[ConsumerTag] =
+  override def basicConsume[A](
+      channel: AMQPChannel,
+      queueName: QueueName,
+      autoAck: Boolean,
+      consumerTag: ConsumerTag,
+      noLocal: Boolean,
+      exclusive: Boolean,
+      args: Arguments
+  )(internals: AMQPInternals[F]): F[ConsumerTag] =
     consume.basicConsume(channel, queueName, autoAck, consumerTag, noLocal, exclusive, args)(internals)
 
   override def basicCancel(channel: AMQPChannel, consumerTag: ConsumerTag): F[Unit] =
