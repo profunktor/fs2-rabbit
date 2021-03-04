@@ -209,6 +209,31 @@ trait Fs2RabbitSpec { self: BaseSpec =>
     }
   }
 
+  it should "create an acker consumer with ack multiple flag and verify both envelope and ack result" in withRabbit {
+    interpreter =>
+      import interpreter._
+
+      createConnectionChannel.use { implicit channel =>
+        for {
+          (q, x, rk)        <- randomQueueData
+          _                 <- declareExchange(x, ExchangeType.Topic)
+          _                 <- declareQueue(DeclarationQueueConfig.default(q))
+          _                 <- bindQueue(q, x, rk, QueueBindingArgs(Map.empty))
+          publisher         <- createPublisher[String](x, rk)
+          _                 <- publisher("acker-test")
+          (acker, consumer) <- createAckerConsumerWithMultipleFlag(q)
+          _ <- consumer
+                .take(1)
+                .evalMap { msg =>
+                  IO(msg shouldBe expectedDelivery(msg.deliveryTag, x, rk, "acker-test")) *>
+                    acker(Ack(msg.deliveryTag), AckMultiple(true))
+                }
+                .compile
+                .drain
+        } yield emptyAssertion
+      }
+  }
+
   it should "NOT requeue a message in case of NAck when option 'requeueOnNack = false'" in withRabbit { interpreter =>
     import interpreter._
 

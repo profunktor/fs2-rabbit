@@ -36,13 +36,22 @@ case class WrapperAckingProgram[F[_]: Sync] private (
     config: Fs2RabbitConfig,
     consume: Consume[F]
 ) extends AckingProgram[F] {
-  override def createAcker(channel: AMQPChannel): F[AckResult => F[Unit]] = Applicative[F].pure {
-    case Ack(tag) => consume.basicAck(channel, tag, multiple = false)
+  override def createAcker(channel: AMQPChannel, multiple: AckMultiple): F[AckResult => F[Unit]] = Applicative[F].pure {
+    case Ack(tag) => consume.basicAck(channel, tag, multiple = multiple.multiple)
     case NAck(tag) =>
-      consume.basicNack(channel, tag, multiple = false, config.requeueOnNack)
+      consume.basicNack(channel, tag, multiple = multiple.multiple, config.requeueOnNack)
     case Reject(tag) =>
       consume.basicReject(channel, tag, config.requeueOnReject)
   }
+
+  override def createAckerWithMultipleFlag(channel: AMQPChannel): F[(AckResult, AckMultiple) => F[Unit]] =
+    Applicative[F].pure {
+      case (Ack(tag), flag) => consume.basicAck(channel, tag, multiple = flag.multiple)
+      case (NAck(tag), flag) =>
+        consume.basicNack(channel, tag, multiple = flag.multiple, config.requeueOnNack)
+      case (Reject(tag), _) =>
+        consume.basicReject(channel, tag, config.requeueOnReject)
+    }
 
   override def basicAck(channel: AMQPChannel, tag: DeliveryTag, multiple: Boolean): F[Unit] =
     consume.basicAck(channel, tag, multiple)

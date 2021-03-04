@@ -49,7 +49,7 @@ object arguments {
   }
 
   object SafeArgument {
-    private[fs2rabbit] def apply[A](implicit ev: SafeArgument[A]): SafeArgument[A]      = ev
+    private[fs2rabbit] def apply[A](implicit ev: SafeArgument[A]): SafeArgument[A] = ev
     private[fs2rabbit] def instance[A, J >: Null <: AnyRef](f: A => J): SafeArgument[A] =
       new SafeArgument[A] {
         type JavaType = J
