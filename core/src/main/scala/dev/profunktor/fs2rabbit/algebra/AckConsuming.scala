@@ -25,7 +25,6 @@ object AckConsumingStream {
 }
 
 trait AckConsuming[F[_], R[_]] {
-
   def createAckerConsumer[A](
       channel: AMQPChannel,
       queueName: QueueName,
@@ -39,5 +38,4 @@ trait AckConsuming[F[_], R[_]] {
       basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
       consumerArgs: Option[ConsumerArgs] = None
   )(implicit decoder: EnvelopeDecoder[F, A]): F[R[AmqpEnvelope[A]]]
-
 }

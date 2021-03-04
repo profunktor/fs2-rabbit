@@ -53,7 +53,7 @@ object arguments {
     private[fs2rabbit] def instance[A, J >: Null <: AnyRef](f: A => J): SafeArgument[A] =
       new SafeArgument[A] {
         type JavaType = J
-        def toJavaType(a: A) = f(a)
+        def toJavaType(a: A): J = f(a)
       }
 
     implicit val stringInstance: SafeArgument[String]         = instance(identity)

@@ -37,6 +37,9 @@ object AckConsumingProgram {
       AckingProgram.make(configuration, dispatcher),
       ConsumingProgram.make(internalQueue, Consume.make[F](dispatcher))
     )
+
+  implicit def toAckConsumingProgramOps[F[_]](prog: AckConsumingProgram[F]): AckConsumingProgramOps[F] =
+    new AckConsumingProgramOps[F](prog)
 }
 
 trait AckConsumingProgram[F[_]]
