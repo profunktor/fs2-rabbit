@@ -103,9 +103,8 @@ class RabbitClient[F[_]] private[fs2rabbit] (
       basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
       consumerArgs: Option[ConsumerArgs] = None
   )(implicit
-      channel: AMQPChannel,
-      decoder: EnvelopeDecoder[F, A]
-  ): F[(AckResult => F[Unit], Stream[F, AmqpEnvelope[A]])] =
+    channel: AMQPChannel,
+    decoder: EnvelopeDecoder[F, A]): F[(AckResult => F[Unit], Stream[F, AmqpEnvelope[A]])] =
     consumingProgram.createAckerConsumer(
       channel,
       queueName,
@@ -125,10 +124,10 @@ class RabbitClient[F[_]] private[fs2rabbit] (
       consumerArgs
     )
 
-  def createPublisher[A](exchangeName: ExchangeName, routingKey: RoutingKey)(implicit
+  def createPublisher[A](exchangeName: ExchangeName, routingKey: RoutingKey)(
+      implicit
       channel: AMQPChannel,
-      encoder: MessageEncoder[F, A]
-  ): F[A => F[Unit]] =
+      encoder: MessageEncoder[F, A]): F[A => F[Unit]] =
     publishingProgram.createPublisher(channel, exchangeName, routingKey)
 
   def createPublisherWithListener[A](
@@ -146,15 +145,14 @@ class RabbitClient[F[_]] private[fs2rabbit] (
     )
 
   def createBasicPublisher[A](implicit
-      channel: AMQPChannel,
-      encoder: MessageEncoder[F, A]
-  ): F[(ExchangeName, RoutingKey, A) => F[Unit]] =
+                              channel: AMQPChannel,
+                              encoder: MessageEncoder[F, A]): F[(ExchangeName, RoutingKey, A) => F[Unit]] =
     publishingProgram.createBasicPublisher(channel)
 
-  def createBasicPublisherWithListener[A](flag: PublishingFlag, listener: PublishReturn => F[Unit])(implicit
+  def createBasicPublisherWithListener[A](flag: PublishingFlag, listener: PublishReturn => F[Unit])(
+      implicit
       channel: AMQPChannel,
-      encoder: MessageEncoder[F, A]
-  ): F[(ExchangeName, RoutingKey, A) => F[Unit]] =
+      encoder: MessageEncoder[F, A]): F[(ExchangeName, RoutingKey, A) => F[Unit]] =
     publishingProgram.createBasicPublisherWithListener(
       channel,
       flag,
