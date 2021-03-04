@@ -25,10 +25,12 @@ import dev.profunktor.fs2rabbit.model._
 object Publish {
   def make[F[_]: Sync](dispatcher: Dispatcher[F]): Publish[F] =
     new Publish[F] {
-      override def basicPublish(channel: AMQPChannel,
-                                exchangeName: ExchangeName,
-                                routingKey: RoutingKey,
-                                msg: AmqpMessage[Array[Byte]]): F[Unit] =
+      override def basicPublish(
+          channel: AMQPChannel,
+          exchangeName: ExchangeName,
+          routingKey: RoutingKey,
+          msg: AmqpMessage[Array[Byte]]
+      ): F[Unit] =
         Sync[F].blocking {
           channel.value.basicPublish(
             exchangeName.value,
@@ -38,11 +40,13 @@ object Publish {
           )
         }
 
-      override def basicPublishWithFlag(channel: AMQPChannel,
-                                        exchangeName: ExchangeName,
-                                        routingKey: RoutingKey,
-                                        flag: PublishingFlag,
-                                        msg: AmqpMessage[Array[Byte]]): F[Unit] =
+      override def basicPublishWithFlag(
+          channel: AMQPChannel,
+          exchangeName: ExchangeName,
+          routingKey: RoutingKey,
+          flag: PublishingFlag,
+          msg: AmqpMessage[Array[Byte]]
+      ): F[Unit] =
         Sync[F].blocking {
           channel.value.basicPublish(
             exchangeName.value,
@@ -59,12 +63,14 @@ object Publish {
       ): F[Unit] =
         Sync[F].delay {
           val returnListener = new ReturnListener {
-            override def handleReturn(replyCode: Int,
-                                      replyText: String,
-                                      exchange: String,
-                                      routingKey: String,
-                                      properties: AMQP.BasicProperties,
-                                      body: Array[Byte]): Unit = {
+            override def handleReturn(
+                replyCode: Int,
+                replyText: String,
+                exchange: String,
+                routingKey: String,
+                properties: AMQP.BasicProperties,
+                body: Array[Byte]
+            ): Unit = {
               val publishReturn =
                 PublishReturn(
                   ReplyCode(replyCode),
@@ -89,15 +95,19 @@ object Publish {
 }
 
 trait Publish[F[_]] {
-  def basicPublish(channel: AMQPChannel,
-                   exchangeName: ExchangeName,
-                   routingKey: RoutingKey,
-                   msg: AmqpMessage[Array[Byte]]): F[Unit]
-  def basicPublishWithFlag(channel: AMQPChannel,
-                           exchangeName: ExchangeName,
-                           routingKey: RoutingKey,
-                           flag: PublishingFlag,
-                           msg: AmqpMessage[Array[Byte]]): F[Unit]
+  def basicPublish(
+      channel: AMQPChannel,
+      exchangeName: ExchangeName,
+      routingKey: RoutingKey,
+      msg: AmqpMessage[Array[Byte]]
+  ): F[Unit]
+  def basicPublishWithFlag(
+      channel: AMQPChannel,
+      exchangeName: ExchangeName,
+      routingKey: RoutingKey,
+      flag: PublishingFlag,
+      msg: AmqpMessage[Array[Byte]]
+  ): F[Unit]
   def addPublishingListener(channel: AMQPChannel, listener: PublishReturn => F[Unit]): F[Unit]
   def clearPublishingListeners(channel: AMQPChannel): F[Unit]
 }

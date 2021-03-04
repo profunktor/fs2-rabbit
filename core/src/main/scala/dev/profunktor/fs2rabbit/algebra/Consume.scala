@@ -142,16 +142,16 @@ object Consume {
         for {
           dc <- defaultConsumer(channel, internals)
           rs <- Sync[F].blocking(
-                 channel.value.basicConsume(
-                   queueName.value,
-                   autoAck,
-                   consumerTag.value,
-                   noLocal,
-                   exclusive,
-                   args,
-                   dc
-                 )
-               )
+                  channel.value.basicConsume(
+                    queueName.value,
+                    autoAck,
+                    consumerTag.value,
+                    noLocal,
+                    exclusive,
+                    args,
+                    dc
+                  )
+                )
         } yield ConsumerTag(rs)
 
       override def basicCancel(channel: AMQPChannel, consumerTag: ConsumerTag): F[Unit] =
