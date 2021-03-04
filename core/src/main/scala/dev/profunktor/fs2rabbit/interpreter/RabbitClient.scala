@@ -98,14 +98,39 @@ class RabbitClient[F[_]] private[fs2rabbit] (
   def createConnectionChannel: Resource[F, AMQPChannel] =
     createConnection.flatMap(createChannel)
 
+  /** @param ackMultiple configures the behaviour of the returned acking function.
+    * If true (n)acks all messages up to and including the supplied delivery tag,
+    * if false (n)acks just the supplied delivery tag.
+    */
   def createAckerConsumer[A](
+      queueName: QueueName,
+      basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
+      consumerArgs: Option[ConsumerArgs] = None,
+      ackMultiple: AckMultiple = AckMultiple(false)
+  )(implicit
+    channel: AMQPChannel,
+    decoder: EnvelopeDecoder[F, A]): F[(AckResult => F[Unit], Stream[F, AmqpEnvelope[A]])] =
+    consumingProgram.createAckerConsumer(
+      channel,
+      queueName,
+      basicQos,
+      consumerArgs,
+      ackMultiple
+    )
+
+  /** Returns an acking function and a stream of messages.
+    * The acking function takes two arguments - the first is the {@link AckResult} that wraps a delivery tag,
+    * the second is a {@link AckMultiple} flag that if true (n)acks all messages up to and including the supplied delivery tag,
+    * if false (n)acks just the supplied delivery tag.
+    */
+  def createAckerConsumerWithMultipleFlag[A](
       queueName: QueueName,
       basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
       consumerArgs: Option[ConsumerArgs] = None
   )(implicit
     channel: AMQPChannel,
-    decoder: EnvelopeDecoder[F, A]): F[(AckResult => F[Unit], Stream[F, AmqpEnvelope[A]])] =
-    consumingProgram.createAckerConsumer(
+    decoder: EnvelopeDecoder[F, A]): F[((AckResult, AckMultiple) => F[Unit], Stream[F, AmqpEnvelope[A]])] =
+    consumingProgram.createAckerConsumerWithMultipleFlag(
       channel,
       queueName,
       basicQos,

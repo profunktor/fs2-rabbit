@@ -57,7 +57,8 @@ case class WrapperAckConsumingProgram[F[_]: Sync] private (
       channel: AMQPChannel,
       queueName: QueueName,
       basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
-      consumerArgs: Option[ConsumerArgs] = None
+      consumerArgs: Option[ConsumerArgs] = None,
+      ackMultiple: AckMultiple = AckMultiple(false)
   )(implicit decoder: EnvelopeDecoder[F, A]): F[(AckResult => F[Unit], Stream[F, AmqpEnvelope[A]])] = {
     val makeConsumer =
       consumerArgs.fold(consumingProgram.createConsumer(queueName, channel, basicQos)) { args =>
@@ -71,7 +72,7 @@ case class WrapperAckConsumingProgram[F[_]: Sync] private (
           args = args.args
         )
       }
-    (ackingProgram.createAcker(channel), makeConsumer).tupled
+    (ackingProgram.createAcker(channel, ackMultiple), makeConsumer).tupled
   }
 
   override def createAutoAckConsumer[A](
@@ -105,9 +106,33 @@ case class WrapperAckConsumingProgram[F[_]: Sync] private (
   )(implicit decoder: EnvelopeDecoder[F, A]): F[Stream[F, AmqpEnvelope[A]]] =
     consumingProgram.createConsumer(queueName, channel, basicQos, autoAck, noLocal, exclusive, consumerTag, args)
 
-  override def createAcker(channel: AMQPChannel): F[AckResult => F[Unit]] =
-    ackingProgram.createAcker(channel)
+  override def createAcker(channel: AMQPChannel, ackMultiple: AckMultiple): F[AckResult => F[Unit]] =
+    ackingProgram.createAcker(channel, ackMultiple)
 
   def basicCancel(channel: AMQPChannel, consumerTag: ConsumerTag): F[Unit] =
     consumingProgram.basicCancel(channel, consumerTag)
+
+  def createAckerWithMultipleFlag(channel: AMQPChannel): F[(AckResult, AckMultiple) => F[Unit]] =
+    ackingProgram.createAckerWithMultipleFlag(channel)
+
+  def createAckerConsumerWithMultipleFlag[A](
+      channel: AMQPChannel,
+      queueName: QueueName,
+      basicQos: BasicQos,
+      consumerArgs: Option[ConsumerArgs]
+  )(implicit decoder: EnvelopeDecoder[F, A]): F[((AckResult, AckMultiple) => F[Unit], Stream[F, AmqpEnvelope[A]])] = {
+    val makeConsumer =
+      consumerArgs.fold(consumingProgram.createConsumer(queueName, channel, basicQos)) { args =>
+        consumingProgram.createConsumer[A](
+          queueName = queueName,
+          channel = channel,
+          basicQos = basicQos,
+          noLocal = args.noLocal,
+          exclusive = args.exclusive,
+          consumerTag = args.consumerTag,
+          args = args.args
+        )
+      }
+    (ackingProgram.createAckerWithMultipleFlag(channel), makeConsumer).tupled
+  }
 }
