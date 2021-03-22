@@ -68,7 +68,7 @@ object DropwizardMetricsDemo extends IOApp {
     val resources = for {
       blocker <- Blocker[IO]
       _       <- JmxReporterResource.make[IO](registry)
-      client  <- Resource.liftF(RabbitClient[IO](config, blocker, metricsCollector = Some(dropwizardCollector)))
+      client  <- Resource.eval(RabbitClient[IO](config, blocker, metricsCollector = Some(dropwizardCollector)))
       channel <- client.createConnection.flatMap(client.createChannel)
     } yield (channel, client)
 
