@@ -35,7 +35,6 @@ object RabbitClient {
 
   def apply[F[_]: ConcurrentEffect: ContextShift](
       config: Fs2RabbitConfig,
-      blocker: Blocker,
       sslContext: Option[SSLContext] = None,
       // Unlike SSLContext, SaslConfig is not optional because it is always set
       // by the underlying Java library, even if the user doesn't set it.

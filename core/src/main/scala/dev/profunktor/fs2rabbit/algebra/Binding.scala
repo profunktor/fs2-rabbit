@@ -16,13 +16,13 @@
 
 package dev.profunktor.fs2rabbit.algebra
 
-import cats.effect.{Blocker, ContextShift, Sync}
+import cats.effect.Sync
 import cats.syntax.functor._
 import dev.profunktor.fs2rabbit.arguments._
 import dev.profunktor.fs2rabbit.model._
 
 object Binding {
-  def make[F[_]: Sync: ContextShift](blocker: Blocker): Binding[F] =
+  def make[F[_]: Sync: ContextShift]: Binding[F] =
     new Binding[F] {
       override def bindQueue(channel: AMQPChannel,
                              queueName: QueueName,

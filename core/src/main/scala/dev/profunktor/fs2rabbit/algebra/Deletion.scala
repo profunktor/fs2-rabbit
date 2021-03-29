@@ -16,7 +16,7 @@
 
 package dev.profunktor.fs2rabbit.algebra
 
-import cats.effect.{Blocker, ContextShift, Sync}
+import cats.effect.Sync
 import cats.syntax.functor._
 import dev.profunktor.fs2rabbit.config.deletion
 import dev.profunktor.fs2rabbit.config.deletion.{DeletionExchangeConfig, DeletionQueueConfig}
@@ -24,7 +24,7 @@ import dev.profunktor.fs2rabbit.effects.BoolValue.syntax._
 import dev.profunktor.fs2rabbit.model.AMQPChannel
 
 object Deletion {
-  def make[F[_]: Sync: ContextShift](blocker: Blocker): Deletion[F] = new Deletion[F] {
+  def make[F[_]: Sync: ContextShift]: Deletion[F] = new Deletion[F] {
     override def deleteQueue(channel: AMQPChannel, config: DeletionQueueConfig): F[Unit] =
       blocker.delay {
         channel.value.queueDelete(
