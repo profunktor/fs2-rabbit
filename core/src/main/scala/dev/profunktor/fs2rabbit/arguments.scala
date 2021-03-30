@@ -67,8 +67,14 @@ object arguments {
     implicit val byteInstance: SafeArgument[Byte]             = instance(Byte.box)
     implicit val dateInstance: SafeArgument[java.util.Date]   = instance(identity)
 
-    implicit def listInstance[A: SafeArgument]: SafeArgument[List[A]]                   = instance(_.asJava)
-    implicit def mapInstance[K: SafeArgument, V: SafeArgument]: SafeArgument[Map[K, V]] = instance(_.asJava)
+    implicit def listInstance[A: SafeArgument]: SafeArgument[List[A]] = {
+      val _ = implicitly[SafeArgument[A]]
+      instance(_.asJava)
+    }
+    implicit def mapInstance[K: SafeArgument, V: SafeArgument]: SafeArgument[Map[K, V]] = {
+      val _ = (implicitly[SafeArgument[K]], implicitly[SafeArgument[V]])
+      instance(_.asJava)
+    }
   }
 
 }

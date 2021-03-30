@@ -58,7 +58,7 @@ object RPCDemo extends IOApp.Simple {
       runServer[IO](queue).concurrently(runClient[IO](queue)).compile.drain
     }
 
-  def runServer[F[_]: Sync: MonadCancelThrow](rpcQueue: QueueName)(implicit R: RabbitClient[F]): Stream[F, Unit] =
+  def runServer[F[_]: Sync](rpcQueue: QueueName)(implicit R: RabbitClient[F]): Stream[F, Unit] =
     Stream.resource(R.createConnectionChannel).flatMap { implicit channel =>
       new RPCServer[F](rpcQueue).serve
     }
@@ -102,10 +102,9 @@ class RPCClient[F[_]: Sync](rpcQueue: QueueName)(implicit R: RabbitClient[F], ch
 
 }
 
-class RPCServer[F[_]: Sync](rpcQueue: QueueName)(
-    implicit R: RabbitClient[F],
-    channel: AMQPChannel
-) {
+class RPCServer[F[_]: Sync](rpcQueue: QueueName)(implicit
+                                                 R: RabbitClient[F],
+                                                 channel: AMQPChannel) {
 
   private val EmptyExchange = ExchangeName("")
 
