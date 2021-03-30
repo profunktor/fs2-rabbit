@@ -17,13 +17,13 @@
 package dev.profunktor.fs2rabbit.resiliency
 
 import cats.effect.IO
-import cats.effect.concurrent.Ref
 import cats.implicits._
 import dev.profunktor.fs2rabbit.BaseSpec
 import fs2._
 
 import scala.concurrent.duration._
 import org.scalatest.compatible.Assertion
+import cats.effect.Ref
 
 class ResilientStreamSpec extends BaseSpec {
 

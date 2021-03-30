@@ -16,7 +16,6 @@
 
 package dev.profunktor.fs2rabbit.interpreter
 
-import cats.effect.concurrent.Deferred
 import cats.effect._
 import cats.implicits._
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
@@ -32,6 +31,7 @@ import scala.concurrent.duration._
 import scala.util.Random
 import scala.concurrent.Future
 import java.util.concurrent.Executors
+import cats.effect.Deferred
 
 trait Fs2RabbitSpec { self: BaseSpec =>
 

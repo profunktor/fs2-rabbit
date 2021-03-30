@@ -16,7 +16,7 @@
 
 package dev.profunktor.fs2rabbit.algebra
 
-import cats.effect.{Blocker, ContextShift, Sync}
+import cats.effect.Sync
 import cats.syntax.functor._
 import dev.profunktor.fs2rabbit.arguments._
 import dev.profunktor.fs2rabbit.config.declaration.{DeclarationExchangeConfig, DeclarationQueueConfig}
@@ -24,7 +24,7 @@ import dev.profunktor.fs2rabbit.effects.BoolValue.syntax._
 import dev.profunktor.fs2rabbit.model.{AMQPChannel, ExchangeName, QueueName}
 
 object Declaration {
-  def make[F[_]: Sync: ContextShift](blocker: Blocker): Declaration[F] = new Declaration[F] {
+  def make[F[_]: Sync: ContextShift]: Declaration[F] = new Declaration[F] {
     override def declareExchange(channel: AMQPChannel, config: DeclarationExchangeConfig): F[Unit] =
       blocker.delay {
         channel.value.exchangeDeclare(
