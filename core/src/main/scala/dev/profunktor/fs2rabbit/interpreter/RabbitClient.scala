@@ -81,7 +81,7 @@ object RabbitClient {
   }
 }
 
-class RabbitClient[F[_]: Concurrent] private[fs2rabbit] (
+class RabbitClient[F[_]] private[fs2rabbit] (
     connection: ConnectionResource[F],
     consume: Consume[F],
     publish: Publish[F],
