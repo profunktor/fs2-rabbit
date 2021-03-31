@@ -29,7 +29,8 @@ trait AckConsuming[F[_], R[_]] {
       channel: AMQPChannel,
       queueName: QueueName,
       basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
-      consumerArgs: Option[ConsumerArgs] = None
+      consumerArgs: Option[ConsumerArgs] = None,
+      ackMultiple: AckMultiple = AckMultiple(false)
   )(implicit decoder: EnvelopeDecoder[F, A]): F[(AckResult => F[Unit], R[AmqpEnvelope[A]])]
 
   def createAutoAckConsumer[A](
@@ -38,4 +39,11 @@ trait AckConsuming[F[_], R[_]] {
       basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
       consumerArgs: Option[ConsumerArgs] = None
   )(implicit decoder: EnvelopeDecoder[F, A]): F[R[AmqpEnvelope[A]]]
+
+  def createAckerConsumerWithMultipleFlag[A](
+      channel: AMQPChannel,
+      queueName: QueueName,
+      basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
+      consumerArgs: Option[ConsumerArgs] = None
+  )(implicit decoder: EnvelopeDecoder[F, A]): F[((AckResult, AckMultiple) => F[Unit], R[AmqpEnvelope[A]])]
 }

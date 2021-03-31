@@ -44,22 +44,24 @@ final class AckConsumingProgramOps[F[_]](val prog: AckConsumingProgram[F]) exten
             .map(_.translate(fk))
         )
 
-      def createAcker(channel: AMQPChannel): G[AckResult => G[Unit]] =
-        fk(prog.createAcker(channel).map(_.andThen(fk.apply)))
+      def createAcker(channel: AMQPChannel, ackMultiple: AckMultiple): G[AckResult => G[Unit]] =
+        fk(prog.createAcker(channel, ackMultiple).map(_.andThen(fk.apply)))
 
       def createAckerConsumer[A](
           channel: AMQPChannel,
           queueName: QueueName,
           basicQos: BasicQos,
-          consumerArgs: Option[ConsumerArgs]
+          consumerArgs: Option[ConsumerArgs],
+          ackMultiple: AckMultiple
       )(implicit decoder: EnvelopeDecoder[G, A]): G[(AckResult => G[Unit], Stream[G, AmqpEnvelope[A]])] =
         fk(
           prog
-            .createAckerConsumer[A](channel, queueName, basicQos, consumerArgs)(
+            .createAckerConsumer[A](channel, queueName, basicQos, consumerArgs, ackMultiple)(
               decoder.mapK(gk)
             )
-            .map { case (acker, stream) =>
-              (acker.andThen(fk.apply), stream.translate(fk))
+            .map {
+              case (acker, stream) =>
+                (acker.andThen(fk.apply), stream.translate(fk))
             }
         )
 
@@ -79,5 +81,31 @@ final class AckConsumingProgramOps[F[_]](val prog: AckConsumingProgram[F]) exten
 
       def basicCancel(channel: AMQPChannel, consumerTag: ConsumerTag): G[Unit] =
         fk(prog.basicCancel(channel, consumerTag))
+
+      def createAckerWithMultipleFlag(channel: AMQPChannel): G[(AckResult, AckMultiple) => G[Unit]] =
+        fk(prog.createAckerWithMultipleFlag(channel).map { acker =>
+          {
+            case (result, flag) =>
+              fk(acker(result, flag))
+          }
+        })
+
+      def createAckerConsumerWithMultipleFlag[A](
+          channel: AMQPChannel,
+          queueName: QueueName,
+          basicQos: BasicQos,
+          consumerArgs: Option[ConsumerArgs]
+      )(implicit decoder: EnvelopeDecoder[G, A]): G[((AckResult, AckMultiple) => G[Unit], Stream[G, AmqpEnvelope[A]])] =
+        fk(
+          prog
+            .createAckerConsumerWithMultipleFlag[A](channel, queueName, basicQos, consumerArgs)(
+              decoder.mapK(gk)
+            )
+            .map {
+              case (acker, stream) =>
+                val gAcker: (AckResult, AckMultiple) => G[Unit] = { case (result, flag) => fk(acker(result, flag)) }
+                (gAcker, stream.translate(fk))
+            }
+        )
     }
 }

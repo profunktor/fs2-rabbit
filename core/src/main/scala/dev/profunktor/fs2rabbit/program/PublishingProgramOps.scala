@@ -23,9 +23,9 @@ import dev.profunktor.fs2rabbit.model._
 
 final class PublishingProgramOps[F[_]](val prog: PublishingProgram[F]) extends AnyVal {
   def imapK[G[_]](fk: F ~> G)(gk: G ~> F)(implicit F: Functor[F]): PublishingProgram[G] = new PublishingProgram[G] {
-    def createPublisher[A](channel: AMQPChannel, exchangeName: ExchangeName, routingKey: RoutingKey)(implicit
-        encoder: MessageEncoder[G, A]
-    ): G[A => G[Unit]] =
+    def createPublisher[A](channel: AMQPChannel, exchangeName: ExchangeName, routingKey: RoutingKey)(
+        implicit
+        encoder: MessageEncoder[G, A]): G[A => G[Unit]] =
       fk(
         prog.createPublisher[A](channel, exchangeName, routingKey)(encoder.mapK(gk)).map(_.andThen(fk.apply))
       )
@@ -45,9 +45,9 @@ final class PublishingProgramOps[F[_]](val prog: PublishingProgram[F]) extends A
           .map(_.andThen(fk.apply))
       )
 
-    def createRoutingPublisher[A](channel: AMQPChannel, exchangeName: ExchangeName)(implicit
-        encoder: MessageEncoder[G, A]
-    ): G[RoutingKey => A => G[Unit]] =
+    def createRoutingPublisher[A](channel: AMQPChannel, exchangeName: ExchangeName)(
+        implicit
+        encoder: MessageEncoder[G, A]): G[RoutingKey => A => G[Unit]] =
       fk(
         prog.createRoutingPublisher[A](channel, exchangeName)(encoder.mapK(gk)).map {
           f => (routingKey: RoutingKey) => (a: A) =>
@@ -75,8 +75,9 @@ final class PublishingProgramOps[F[_]](val prog: PublishingProgram[F]) extends A
         channel: AMQPChannel
     )(implicit encoder: MessageEncoder[G, A]): G[(ExchangeName, RoutingKey, A) => G[Unit]] =
       fk(prog.createBasicPublisher[A](channel)(encoder.mapK(gk)).map { f =>
-        { case (e, r, a) =>
-          fk(f(e, r, a))
+        {
+          case (e, r, a) =>
+            fk(f(e, r, a))
         }
       })
 
@@ -89,8 +90,9 @@ final class PublishingProgramOps[F[_]](val prog: PublishingProgram[F]) extends A
         prog
           .createBasicPublisherWithListener[A](channel, flags, listener.andThen(gk.apply))(encoder.mapK(gk))
           .map { f =>
-            { case (e, r, a) =>
-              fk(f(e, r, a))
+            {
+              case (e, r, a) =>
+                fk(f(e, r, a))
             }
           }
       )
