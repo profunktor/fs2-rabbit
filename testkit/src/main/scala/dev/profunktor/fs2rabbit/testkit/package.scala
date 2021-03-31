@@ -43,7 +43,6 @@ package object testkit {
     }
 
   implicit val arbAmqpProperties: Arbitrary[AmqpProperties] = Arbitrary {
-    import InstantArbitraries._
     for {
       contentType     <- Gen.option(Gen.const("application/json"))
       contentEncoding <- Gen.option(Gen.const("UTF-8"))
@@ -74,7 +73,7 @@ package object testkit {
         replyTo = replyTo,
         clusterId = clusterId,
         timestamp = timestamp,
-        headers = headers,
+        headers = headers
       )
   }
   implicit val cogenAmqpProperties: Cogen[AmqpProperties] =
@@ -114,7 +113,8 @@ package object testkit {
   implicit val cogenTableVal: Cogen[TableVal] = Cogen[Map[ShortString, AmqpFieldValue]].contramap(_.value)
 
   implicit val arbByteArrayVal: Arbitrary[ByteArrayVal] = Arbitrary(
-    arbitrary[Array[Byte]].map(ByteVector(_)).map(ByteArrayVal(_)))
+    arbitrary[Array[Byte]].map(ByteVector(_)).map(ByteArrayVal(_))
+  )
   implicit val cogenByteArrayVal: Cogen[ByteArrayVal] = Cogen[Array[Byte]].contramap(_.value.toArray)
 
   implicit val arbArrayVal: Arbitrary[ArrayVal] = Arbitrary {
@@ -123,7 +123,8 @@ package object testkit {
   implicit val cogenArrayVal: Cogen[ArrayVal] = Cogen[Vector[AmqpFieldValue]].contramap(_.value)
 
   implicit val arbDeliveryMode: Arbitrary[DeliveryMode] = Arbitrary(
-    Gen.oneOf(DeliveryMode.NonPersistent, DeliveryMode.Persistent))
+    Gen.oneOf(DeliveryMode.NonPersistent, DeliveryMode.Persistent)
+  )
   implicit val cogenDeliveryMode: Cogen[DeliveryMode] = Cogen[Int].contramap(_.value)
 
   implicit val arbTimestampVal: Arbitrary[TimestampVal] = Arbitrary(arbitrary[Date].map(TimestampVal.from))
@@ -187,7 +188,7 @@ package object testkit {
             arbIntVal.arbitrary,
             arbLongVal.arbitrary,
             arbStringVal.arbitrary,
-            arbNullVal.arbitrary,
+            arbNullVal.arbitrary
           )
         }
       )
@@ -213,15 +214,4 @@ package object testkit {
         case a: NullVal.type => Cogen[NullVal.type].perturb(seed, a)
       }
     }
-}
-
-package testkit {
-  trait InstantArbitraries {
-    implicit val arbInstantWithSecondPrecision: Arbitrary[Instant] = Arbitrary {
-      Gen.choose(Instant.MIN, Instant.MAX)(Gen.Choose.xmap[Long, Instant](Instant.ofEpochSecond, _.getEpochSecond))
-    }
-    implicit val cogenInstantWithSecondPrecision: Cogen[Instant] = Cogen[Long].contramap(_.getEpochSecond)
-  }
-
-  object InstantArbitraries extends InstantArbitraries
 }
