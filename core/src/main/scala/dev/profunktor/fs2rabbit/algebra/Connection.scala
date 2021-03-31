@@ -18,8 +18,10 @@ package dev.profunktor.fs2rabbit.algebra
 
 import java.util.concurrent.ThreadFactory
 
+import cats.effect.kernel.MonadCancel
 import cats.effect.{Resource, Sync}
 import cats.implicits._
+import cats.~>
 import com.rabbitmq.client.{Address, ConnectionFactory, DefaultSaslConfig, MetricsCollector, SaslConfig}
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
 import dev.profunktor.fs2rabbit.effects.Log
@@ -115,6 +117,14 @@ object ConnectionResource {
             }
         }
       }
+
+  implicit class ConnectionResourceOps[F[_]](val cf: ConnectionResource[F]) extends AnyVal {
+    def mapK[G[_]](fk: F ~> G)(implicit F: MonadCancel[F, _], G: MonadCancel[G, _]): ConnectionResource[G] =
+      new Connection[Resource[G, *]] {
+        def createConnection: Resource[G, AMQPConnection]                       = cf.createConnection.mapK(fk)
+        def createChannel(connection: AMQPConnection): Resource[G, AMQPChannel] = cf.createChannel(connection).mapK(fk)
+      }
+  }
 }
 
 trait Connection[F[_]] {

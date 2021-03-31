@@ -27,6 +27,9 @@ import dev.profunktor.fs2rabbit.model._
 object PublishingProgram {
   def make[F[_]: Sync](dispatcher: Dispatcher[F]): PublishingProgram[F] =
     WrapperPublishingProgram(Publish.make(dispatcher))
+
+  implicit def toPublishingProgramOps[F[_]](prog: PublishingProgram[F]): PublishingProgramOps[F] =
+    new PublishingProgramOps[F](prog)
 }
 
 trait PublishingProgram[F[_]] extends Publishing[F] with Publish[F]
@@ -65,9 +68,9 @@ case class WrapperPublishingProgram[F[_]: Sync] private (
   )(implicit encoder: MessageEncoder[F, A]): F[RoutingKey => A => F[Unit]] =
     createBasicPublisherWithListener(channel, flag, listener).map(pub => key => msg => pub(exchangeName, key, msg))
 
-  override def createBasicPublisher[A](channel: AMQPChannel)(
-      implicit
-      encoder: MessageEncoder[F, A]): F[(ExchangeName, RoutingKey, A) => F[Unit]] =
+  override def createBasicPublisher[A](
+      channel: AMQPChannel
+  )(implicit encoder: MessageEncoder[F, A]): F[(ExchangeName, RoutingKey, A) => F[Unit]] =
     Applicative[F].pure {
       case (
           exchangeName: ExchangeName,
@@ -83,8 +86,7 @@ case class WrapperPublishingProgram[F[_]: Sync] private (
       channel: AMQPChannel,
       flag: PublishingFlag,
       listener: PublishReturn => F[Unit]
-  )(implicit
-    encoder: MessageEncoder[F, A]): F[(ExchangeName, RoutingKey, A) => F[Unit]] =
+  )(implicit encoder: MessageEncoder[F, A]): F[(ExchangeName, RoutingKey, A) => F[Unit]] =
     publish.addPublishingListener(channel, listener).as {
       case (
           exchangeName: ExchangeName,

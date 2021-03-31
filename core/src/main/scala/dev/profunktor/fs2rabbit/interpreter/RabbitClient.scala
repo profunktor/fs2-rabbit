@@ -76,15 +76,17 @@ object RabbitClient {
   ): Resource[F, RabbitClient[F]] = Dispatcher[F].evalMap { dispatcher =>
     apply[F](config, dispatcher, sslContext, saslConfig, metricsCollector, threadFactory)
   }
+
+  implicit def toRabbitClientOps[F[_]](client: RabbitClient[F]): RabbitClientOps[F] = new RabbitClientOps[F](client)
 }
 
 class RabbitClient[F[_]] private[fs2rabbit] (
-    connection: ConnectionResource[F],
-    binding: Binding[F],
-    declaration: Declaration[F],
-    deletion: Deletion[F],
-    consumingProgram: AckConsumingProgram[F],
-    publishingProgram: PublishingProgram[F]
+    val connection: ConnectionResource[F],
+    val binding: Binding[F],
+    val declaration: Declaration[F],
+    val deletion: Deletion[F],
+    val consumingProgram: AckConsumingProgram[F],
+    val publishingProgram: PublishingProgram[F]
 ) {
 
   def createChannel(conn: AMQPConnection): Resource[F, AMQPChannel] =
