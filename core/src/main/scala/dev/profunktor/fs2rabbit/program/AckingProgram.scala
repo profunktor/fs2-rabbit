@@ -37,21 +37,21 @@ case class WrapperAckingProgram[F[_]: Sync] private (
     consume: Consume[F]
 ) extends AckingProgram[F] {
   override def createAcker(channel: AMQPChannel, multiple: AckMultiple): F[AckResult => F[Unit]] = Applicative[F].pure {
-    case Ack(tag) => consume.basicAck(channel, tag, multiple = multiple.multiple)
-    case NAck(tag) =>
-      consume.basicNack(channel, tag, multiple = multiple.multiple, config.requeueOnNack)
-    case Reject(tag) =>
-      consume.basicReject(channel, tag, config.requeueOnReject)
+    ackResult => _createAckerWithMultipleFlag(channel)(ackResult, multiple)
   }
 
   override def createAckerWithMultipleFlag(channel: AMQPChannel): F[(AckResult, AckMultiple) => F[Unit]] =
     Applicative[F].pure {
-      case (Ack(tag), flag) => consume.basicAck(channel, tag, multiple = flag.multiple)
-      case (NAck(tag), flag) =>
-        consume.basicNack(channel, tag, multiple = flag.multiple, config.requeueOnNack)
-      case (Reject(tag), _) =>
-        consume.basicReject(channel, tag, config.requeueOnReject)
+      _createAckerWithMultipleFlag(channel)
     }
+
+  private def _createAckerWithMultipleFlag(channel: AMQPChannel): (AckResult, AckMultiple) => F[Unit] = {
+    case (Ack(tag), flag)  => consume.basicAck(channel, tag, multiple = flag.multiple)
+    case (NAck(tag), flag) =>
+      consume.basicNack(channel, tag, multiple = flag.multiple, config.requeueOnNack)
+    case (Reject(tag), _)  =>
+      consume.basicReject(channel, tag, config.requeueOnReject)
+  }
 
   override def basicAck(channel: AMQPChannel, tag: DeliveryTag, multiple: Boolean): F[Unit] =
     consume.basicAck(channel, tag, multiple)
