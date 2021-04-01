@@ -19,7 +19,7 @@ object Dependencies {
     val betterMonadicFor = "0.3.1"
 
     val scalaTest               = "3.2.7"
-    val scalaCheck              = "1.15.2"
+    val scalaCheck              = "1.15.3"
     val scalaTestPlusScalaCheck = "3.2.2.0"
     val disciplineScalaCheck    = "2.1.1"
   }
