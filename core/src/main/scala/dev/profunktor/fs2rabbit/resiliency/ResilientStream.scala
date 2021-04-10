@@ -16,13 +16,14 @@
 
 package dev.profunktor.fs2rabbit.resiliency
 
-import cats.effect.{Sync, Timer}
+import cats.effect.Sync
 import cats.syntax.apply._
 import dev.profunktor.fs2rabbit.effects.Log
 import fs2.Stream
 
 import scala.concurrent.duration._
 import scala.util.control.NonFatal
+import cats.effect.Temporal
 
 /**
   * It provides a resilient run method for an effectful `fs2.Stream` that will run forever with
@@ -37,16 +38,16 @@ import scala.util.control.NonFatal
   * */
 object ResilientStream {
 
-  def runF[F[_]: Log: Sync: Timer](program: F[Unit], retry: FiniteDuration = 5.seconds): F[Unit] =
+  def runF[F[_]: Log: Sync: Temporal](program: F[Unit], retry: FiniteDuration = 5.seconds): F[Unit] =
     run(Stream.eval(program), retry)
 
-  def run[F[_]: Log: Sync: Timer](
+  def run[F[_]: Log: Sync: Temporal](
       program: Stream[F, Unit],
       retry: FiniteDuration = 5.seconds
   ): F[Unit] =
     loop(program, retry, 1).compile.drain
 
-  private def loop[F[_]: Log: Sync: Timer](
+  private def loop[F[_]: Log: Sync: Temporal](
       program: Stream[F, Unit],
       retry: FiniteDuration,
       count: Int

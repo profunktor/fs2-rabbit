@@ -28,8 +28,7 @@ import fs2.Stream
 
 object AckConsumingProgram {
   def make[F[_]: Effect: ContextShift](configuration: Fs2RabbitConfig,
-                                       internalQueue: InternalQueue[F],
-                                       blocker: Blocker): F[AckConsumingProgram[F]] =
+                                       internalQueue: InternalQueue[F]): F[AckConsumingProgram[F]] =
     (AckingProgram.make(configuration, blocker), ConsumingProgram.make(internalQueue, blocker)).mapN {
       case (ap, cp) =>
         WrapperAckConsumingProgram(ap, cp)

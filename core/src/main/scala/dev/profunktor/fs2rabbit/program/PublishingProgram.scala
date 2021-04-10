@@ -17,14 +17,14 @@
 package dev.profunktor.fs2rabbit.program
 
 import cats.Applicative
-import cats.effect.{Blocker, ContextShift, Effect, Sync}
+import cats.effect.{Effect, Sync}
 import cats.implicits._
 import dev.profunktor.fs2rabbit.algebra.{Publish, Publishing}
 import dev.profunktor.fs2rabbit.effects.MessageEncoder
 import dev.profunktor.fs2rabbit.model._
 
 object PublishingProgram {
-  def make[F[_]: Effect: ContextShift](blocker: Blocker): F[PublishingProgram[F]] = Sync[F].delay {
+  def make[F[_]: Effect: ContextShift]: F[PublishingProgram[F]] = Sync[F].delay {
     WrapperPublishingProgram(Publish.make(blocker))
   }
 }

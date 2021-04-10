@@ -17,15 +17,13 @@
 package dev.profunktor.fs2rabbit.algebra
 
 import cats.effect.syntax.effect._
-import cats.effect.{Blocker, ContextShift, Effect, Sync}
+import cats.effect.{Effect, Sync}
 import cats.syntax.functor._
 import com.rabbitmq.client.{AMQP, ReturnListener}
 import dev.profunktor.fs2rabbit.model._
 
 object Publish {
-  def make[F[_]: Effect: ContextShift](
-      blocker: Blocker
-  ): Publish[F] =
+  def make[F[_]: Effect: ContextShift]: Publish[F] =
     new Publish[F] {
       override def basicPublish(channel: AMQPChannel,
                                 exchangeName: ExchangeName,

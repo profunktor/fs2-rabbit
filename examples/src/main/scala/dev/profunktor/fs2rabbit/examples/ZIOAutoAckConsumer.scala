@@ -19,7 +19,7 @@ package dev.profunktor.fs2rabbit.examples
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
 import dev.profunktor.fs2rabbit.interpreter.RabbitClient
 
-import cats.effect.{Blocker, Resource}
+import cats.effect.Resource
 import zio._
 import zio.interop.catz._
 import zio.interop.catz.implicits._

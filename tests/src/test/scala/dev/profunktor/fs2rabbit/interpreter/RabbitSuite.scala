@@ -16,7 +16,7 @@
 
 package dev.profunktor.fs2rabbit.interpreter
 
-import cats.effect.{ContextShift, IO}
+import cats.effect.IO
 import cats.implicits._
 import dev.profunktor.fs2rabbit.BaseSpec
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig

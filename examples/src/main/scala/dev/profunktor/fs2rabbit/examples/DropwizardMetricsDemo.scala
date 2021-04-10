@@ -19,7 +19,7 @@ package dev.profunktor.fs2rabbit.examples
 import java.nio.charset.StandardCharsets.UTF_8
 
 import cats.data.{Kleisli, NonEmptyList}
-import cats.effect.{Blocker, ExitCode, IO, IOApp, Resource, Sync}
+import cats.effect.{ExitCode, IO, IOApp, Resource, Sync}
 import cats.implicits._
 import com.codahale.metrics.MetricRegistry
 import com.codahale.metrics.jmx.JmxReporter
@@ -66,7 +66,7 @@ object DropwizardMetricsDemo extends IOApp {
     val dropwizardCollector = new StandardMetricsCollector(registry)
 
     val resources = for {
-      blocker <- Blocker[IO]
+      blocker <- Resource.unit[IO]
       _       <- JmxReporterResource.make[IO](registry)
       client  <- Resource.eval(RabbitClient[IO](config, blocker, metricsCollector = Some(dropwizardCollector)))
       channel <- client.createConnection.flatMap(client.createChannel)
