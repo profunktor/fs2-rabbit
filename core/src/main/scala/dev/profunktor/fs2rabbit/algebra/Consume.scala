@@ -17,7 +17,7 @@
 package dev.profunktor.fs2rabbit.algebra
 
 import cats.effect.syntax.effect._
-import cats.effect.{Blocker, ContextShift, Effect, Sync}
+import cats.effect.{Effect, Sync}
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.{Applicative, Functor}
@@ -28,7 +28,7 @@ import dev.profunktor.fs2rabbit.model._
 import scala.util.{Failure, Success, Try}
 
 object Consume {
-  def make[F[_]: Effect: ContextShift](blocker: Blocker): Consume[F] =
+  def make[F[_]: Effect: ContextShift]: Consume[F] =
     new Consume[F] {
       private[fs2rabbit] def defaultConsumer[A](
           channel: AMQPChannel,
