@@ -349,6 +349,7 @@ object model {
       // This makes us safe from ClassCastExceptions down the road.
       case a: java.util.List[AnyRef @unchecked] => ArrayVal(a.asScala.toVector.map(unsafeFrom))
       case null                                 => NullVal
+      case _                                    => throw new IllegalArgumentException()
     }
 
     implicit val amqpFieldValueEq: Eq[AmqpFieldValue] = new Eq[AmqpFieldValue] {

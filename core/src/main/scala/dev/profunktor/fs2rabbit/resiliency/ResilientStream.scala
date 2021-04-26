@@ -24,8 +24,7 @@ import fs2.Stream
 import scala.concurrent.duration._
 import scala.util.control.NonFatal
 
-/**
-  * It provides a resilient run method for an effectful `fs2.Stream` that will run forever with
+/** It provides a resilient run method for an effectful `fs2.Stream` that will run forever with
   * automatic error recovery.
   *
   * In case of failure, the entire stream will be restarted after the specified retry time with an
@@ -34,7 +33,7 @@ import scala.util.control.NonFatal
   * By default the program will be restarted in 5 seconds, then 10, then 15, etc.
   *
   * @see ResilientStreamSpec for more.
-  * */
+  */
 object ResilientStream {
 
   def runF[F[_]: Log: Temporal](program: F[Unit], retry: FiniteDuration = 5.seconds): F[Unit] =
@@ -55,6 +54,7 @@ object ResilientStream {
       case NonFatal(err) =>
         Stream.eval(Log[F].error(err.getMessage) *> Log[F].info(s"Restarting in ${retry.toSeconds * count}...")) >>
           loop[F](Stream.sleep(retry) >> program, retry, count + 1)
+      case _             => ???
     }
 
 }

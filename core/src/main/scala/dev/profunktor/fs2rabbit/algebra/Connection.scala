@@ -100,20 +100,18 @@ object ConnectionResource {
               .map(RabbitChannel)
 
           override def createConnection: Resource[F, AMQPConnection] =
-            Resource.make(acquireConnection) {
-              case RabbitConnection(conn) =>
-                Log[F].info(s"Releasing connection: $conn previously acquired.") *>
-                  Sync[F].delay {
-                    if (conn.isOpen) conn.close()
-                  }
+            Resource.make(acquireConnection) { amqpConn =>
+              Log[F].info(s"Releasing connection: ${amqpConn.value} previously acquired.") *>
+                Sync[F].delay {
+                  if (amqpConn.value.isOpen) amqpConn.value.close()
+                }
             }
 
           override def createChannel(connection: AMQPConnection): Resource[F, AMQPChannel] =
-            Resource.make(acquireChannel(connection)) {
-              case RabbitChannel(channel) =>
-                Sync[F].delay {
-                  if (channel.isOpen) channel.close()
-                }
+            Resource.make(acquireChannel(connection)) { amqpChannel =>
+              Sync[F].delay {
+                if (amqpChannel.value.isOpen) amqpChannel.value.close()
+              }
             }
         }
       }
