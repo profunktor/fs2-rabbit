@@ -18,7 +18,6 @@ package dev.profunktor.fs2rabbit.algebra
 
 import cats.effect.Sync
 import cats.syntax.functor._
-import cats.tagless.{Derive, FunctorK}
 import dev.profunktor.fs2rabbit.arguments._
 import dev.profunktor.fs2rabbit.model._
 
@@ -122,7 +121,7 @@ object Binding {
         }.void
     }
 
-  implicit val functorK: FunctorK[Binding] = Derive.functorK
+  implicit def toBindingOps[F[_]](binding: Binding[F]): BindingOps[F] = new BindingOps[F](binding)
 }
 
 trait Binding[F[_]] {

@@ -20,7 +20,6 @@ import cats.data.EitherT
 import cats.effect.kernel.MonadCancel
 import cats.~>
 import cats.implicits._
-import cats.tagless.implicits.toFunctorKOps
 import dev.profunktor.fs2rabbit.algebra.ConnectionResource
 
 final class RabbitClientOps[F[_]](val client: RabbitClient[F]) extends AnyVal {

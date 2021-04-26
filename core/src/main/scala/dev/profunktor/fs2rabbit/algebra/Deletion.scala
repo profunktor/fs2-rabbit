@@ -18,7 +18,6 @@ package dev.profunktor.fs2rabbit.algebra
 
 import cats.effect.Sync
 import cats.syntax.functor._
-import cats.tagless.{Derive, FunctorK}
 import dev.profunktor.fs2rabbit.config.deletion
 import dev.profunktor.fs2rabbit.config.deletion.{DeletionExchangeConfig, DeletionQueueConfig}
 import dev.profunktor.fs2rabbit.effects.BoolValue.syntax._
@@ -64,7 +63,7 @@ object Deletion {
       }.void
   }
 
-  implicit val functorK: FunctorK[Deletion] = Derive.functorK
+  implicit def toDeletionOps[F[_]](deletion: Deletion[F]): DeletionOps[F] = new DeletionOps[F](deletion)
 }
 
 trait Deletion[F[_]] {

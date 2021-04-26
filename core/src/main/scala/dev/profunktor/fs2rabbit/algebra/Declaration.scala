@@ -18,7 +18,6 @@ package dev.profunktor.fs2rabbit.algebra
 
 import cats.effect.Sync
 import cats.syntax.functor._
-import cats.tagless.{Derive, FunctorK}
 import dev.profunktor.fs2rabbit.arguments._
 import dev.profunktor.fs2rabbit.config.declaration.{DeclarationExchangeConfig, DeclarationQueueConfig}
 import dev.profunktor.fs2rabbit.effects.BoolValue.syntax._
@@ -91,7 +90,7 @@ object Declaration {
       }.void
   }
 
-  implicit val functorK: FunctorK[Declaration] = Derive.functorK
+  implicit def toDeclarationOps[F[_]](declaration: Declaration[F]): DeclarationOps[F] = new DeclarationOps(declaration)
 }
 
 trait Declaration[F[_]] {
