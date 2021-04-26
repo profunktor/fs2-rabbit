@@ -14,35 +14,39 @@
  * limitations under the License.
  */
 
-//package dev.profunktor.fs2rabbit.examples
-//
-//import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
-//import dev.profunktor.fs2rabbit.interpreter.RabbitClient
-//
-//import zio._
-//import zio.interop.catz._
-//import zio.interop.catz.implicits._
-//import dev.profunktor.fs2rabbit.resiliency.ResilientStream
-//
-//object ZIOAutoAckConsumer extends CatsApp {
-//
-//  val config = Fs2RabbitConfig(
-//    virtualHost = "/",
-//    host = "127.0.0.1",
-//    username = Some("guest"),
-//    password = Some("guest"),
-//    port = 5672,
-//    ssl = false,
-//    connectionTimeout = 3,
-//    requeueOnNack = false,
-//    requeueOnReject = false,
-//    internalQueueSize = Some(500)
-//  )
-//
-//  override def run(args: List[String]): URIO[ZEnv, ExitCode] =
-//    RabbitClient[Task](config).flatMap { client =>
-//      ResilientStream
-//        .runF(new AutoAckConsumerDemo[Task](client).program)
-//    }.orDie.as(ExitCode.success)
-//
-//}
+package dev.profunktor.fs2rabbit.examples
+
+import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
+import dev.profunktor.fs2rabbit.interpreter.RabbitClient
+import zio._
+import zio.interop.catz._
+import dev.profunktor.fs2rabbit.resiliency.ResilientStream
+
+import scala.concurrent.duration.DurationInt
+
+object ZIOAutoAckConsumer extends CatsApp {
+
+  val config = Fs2RabbitConfig(
+    virtualHost = "/",
+    host = "127.0.0.1",
+    username = Some("guest"),
+    password = Some("guest"),
+    port = 5672,
+    ssl = false,
+    connectionTimeout = 3.seconds,
+    requeueOnNack = false,
+    requeueOnReject = false,
+    internalQueueSize = Some(500)
+  )
+
+  override def run(args: List[String]): URIO[ZEnv, ExitCode] =
+    RabbitClient
+      .resource[Task](config)
+      .use { client =>
+        ResilientStream
+          .runF(new AutoAckConsumerDemo[Task](client).program)
+      }
+      .orDie
+      .as(ExitCode.success)
+
+}
