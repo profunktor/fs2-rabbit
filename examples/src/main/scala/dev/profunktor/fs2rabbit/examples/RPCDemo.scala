@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2020 ProfunKtor
+ * Copyright 2017-2021 ProfunKtor
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,9 +28,10 @@ import dev.profunktor.fs2rabbit.effects.MessageEncoder
 import dev.profunktor.fs2rabbit.interpreter.RabbitClient
 import dev.profunktor.fs2rabbit.model._
 import fs2.Stream
-import java.util.concurrent.Executors
 
-object RPCDemo extends IOApp {
+import scala.concurrent.duration.DurationInt
+
+object RPCDemo extends IOApp.Simple {
 
   private val config: Fs2RabbitConfig = Fs2RabbitConfig(
     virtualHost = "/",
@@ -43,25 +44,18 @@ object RPCDemo extends IOApp {
     username = Some("guest"),
     password = Some("guest"),
     ssl = false,
-    connectionTimeout = 3,
+    connectionTimeout = 3.seconds,
     requeueOnNack = false,
     requeueOnReject = false,
     internalQueueSize = Some(500),
-    requestedHeartbeat = 60,
+    requestedHeartbeat = 60.seconds,
     automaticRecovery = true
   )
 
-  val blockerResource =
-    Resource
-      .make(IO(Executors.newCachedThreadPool()))(es => IO(es.shutdown()))
-      .map(Blocker.liftExecutorService)
-
-  override def run(args: List[String]): IO[ExitCode] =
-    blockerResource.use { blocker =>
-      RabbitClient[IO](config, blocker).flatMap { implicit client =>
-        val queue = QueueName("rpc_queue")
-        runServer[IO](queue).concurrently(runClient[IO](queue)).compile.drain.as(ExitCode.Success)
-      }
+  def run: IO[Unit] =
+    RabbitClient.resource[IO](config).use { implicit client =>
+      val queue = QueueName("rpc_queue")
+      runServer[IO](queue).concurrently(runClient[IO](queue)).compile.drain
     }
 
   def runServer[F[_]: Sync](rpcQueue: QueueName)(implicit R: RabbitClient[F]): Stream[F, Unit] =
@@ -69,7 +63,7 @@ object RPCDemo extends IOApp {
       new RPCServer[F](rpcQueue).serve
     }
 
-  def runClient[F[_]: Concurrent](rpcQueue: QueueName)(implicit R: RabbitClient[F]): Stream[F, Unit] =
+  def runClient[F[_]: Async](rpcQueue: QueueName)(implicit R: RabbitClient[F]): Stream[F, Unit] =
     Stream.resource(R.createConnectionChannel).flatMap { implicit channel =>
       val client = new RPCClient[F](rpcQueue)
 
@@ -108,10 +102,9 @@ class RPCClient[F[_]: Sync](rpcQueue: QueueName)(implicit R: RabbitClient[F], ch
 
 }
 
-class RPCServer[F[_]: Sync](rpcQueue: QueueName)(
-    implicit R: RabbitClient[F],
-    channel: AMQPChannel
-) {
+class RPCServer[F[_]: Sync](rpcQueue: QueueName)(implicit
+                                                 R: RabbitClient[F],
+                                                 channel: AMQPChannel) {
 
   private val EmptyExchange = ExchangeName("")
 

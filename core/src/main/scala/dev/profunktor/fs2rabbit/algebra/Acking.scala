@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2020 ProfunKtor
+ * Copyright 2017-2021 ProfunKtor
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,9 @@
 
 package dev.profunktor.fs2rabbit.algebra
 
-import dev.profunktor.fs2rabbit.model.{AMQPChannel, AckResult}
+import dev.profunktor.fs2rabbit.model.{AMQPChannel, AckMultiple, AckResult}
 
 trait Acking[F[_]] {
-  def createAcker(channel: AMQPChannel): F[AckResult => F[Unit]]
+  def createAcker(channel: AMQPChannel, ackMultiple: AckMultiple): F[AckResult => F[Unit]]
+  def createAckerWithMultipleFlag(channel: AMQPChannel): F[(AckResult, AckMultiple) => F[Unit]]
 }

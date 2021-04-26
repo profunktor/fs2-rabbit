@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2020 ProfunKtor
+ * Copyright 2017-2021 ProfunKtor
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -105,8 +105,9 @@ object model {
     final case class Reject(deliveryTag: DeliveryTag) extends AckResult
   }
 
-  /**
-    * A string whose UTF-8 encoded representation is 255 bytes or less.
+  final case class AckMultiple(multiple: Boolean) extends AnyVal
+
+  /** A string whose UTF-8 encoded representation is 255 bytes or less.
     *
     * Parts of the AMQP spec call for the use of such strings.
     */
@@ -121,8 +122,7 @@ object model {
         None
       }
 
-    /**
-      * This bypasses the safety check that [[from]] has. This is meant only for
+    /** This bypasses the safety check that [[from]] has. This is meant only for
       * situations where you are certain the string cannot be larger than
       * [[MaxByteLength]] (e.g. string literals).
       */
@@ -132,8 +132,7 @@ object model {
     implicit val shortStringOrdering: Ordering[ShortString] = Order[ShortString].toOrdering
   }
 
-  /**
-    * This hierarchy is meant to reflect the output of
+  /** This hierarchy is meant to reflect the output of
     * [[com.rabbitmq.client.impl.ValueReader.readFieldValue]] in a type-safe
     * way.
     *
@@ -157,8 +156,7 @@ object model {
     */
   sealed trait AmqpFieldValue extends Product with Serializable {
 
-    /**
-      * The opposite of [[AmqpFieldValue.unsafeFrom]]. Turns an [[AmqpFieldValue]]
+    /** The opposite of [[AmqpFieldValue.unsafeFrom]]. Turns an [[AmqpFieldValue]]
       * into something that can be processed by
       * [[com.rabbitmq.client.impl.ValueWriter]].
       */
@@ -167,8 +165,7 @@ object model {
 
   object AmqpFieldValue {
 
-    /**
-      * A type for AMQP timestamps.
+    /** A type for AMQP timestamps.
       *
       * Note that this is only accurate to the second (as supported by the AMQP
       * spec and the underlying RabbitMQ implementation).
@@ -186,8 +183,7 @@ object model {
         Order.by[TimestampVal, Instant](_.instantWithOneSecondAccuracy)(instantOrderWithSecondPrecision)
     }
 
-    /**
-      * A type for precise decimal values. Note that while it is backed by a
+    /** A type for precise decimal values. Note that while it is backed by a
       * [[BigDecimal]] (just like the underlying Java library), there is a limit
       * on the size and precision of the decimal: its unscaled representation cannot
       * exceed 4 bytes due to the AMQP spec and its scale component must be an octet.
@@ -200,21 +196,21 @@ object model {
 
       val MaxScaleValue: Int = 255
 
-      /**
-        * The AMQP 0.9.1 standard specifies that the scale component of a
+      /** The AMQP 0.9.1 standard specifies that the scale component of a
         * decimal must be an octet (i.e. between 0 and 255) and that its
         * unscaled component must be a 32-bit integer. If those criteria are
         * not met, then we get back None.
         */
       def from(bigDecimal: BigDecimal): Option[DecimalVal] =
-        if (getFullBitLengthOfUnscaled(bigDecimal) > MaxUnscaledBits || bigDecimal.scale > MaxScaleValue || bigDecimal.scale < 0) {
+        if (getFullBitLengthOfUnscaled(bigDecimal) > MaxUnscaledBits ||
+            bigDecimal.scale > MaxScaleValue ||
+            bigDecimal.scale < 0) {
           None
         } else {
           Some(new DecimalVal(bigDecimal) {})
         }
 
-      /**
-        * Only use if you're certain that the [[BigDecimal]]'s representation
+      /** Only use if you're certain that the [[BigDecimal]]'s representation
         * meets the requirements of a [[ DecimalVal ]] (e.g. you are
         * constructing one using literals).
         *
@@ -304,8 +300,7 @@ object model {
       implicit val nullValOrder: Order[NullVal.type] = Order.allEqual
     }
 
-    /**
-      * This method is meant purely to translate the output of
+    /** This method is meant purely to translate the output of
       * [[com.rabbitmq.client.impl.ValueReader.readFieldValue]]. As such it is
       * NOT total and will blow up if you pass it a class which
       * [[com.rabbitmq.client.impl.ValueReader.readFieldValue]] does not output.
@@ -354,6 +349,7 @@ object model {
       // This makes us safe from ClassCastExceptions down the road.
       case a: java.util.List[AnyRef @unchecked] => ArrayVal(a.asScala.toVector.map(unsafeFrom))
       case null                                 => NullVal
+      case _                                    => throw new IllegalArgumentException()
     }
 
     implicit val amqpFieldValueEq: Eq[AmqpFieldValue] = new Eq[AmqpFieldValue] {
@@ -397,20 +393,22 @@ object model {
   object AmqpProperties {
     def empty = AmqpProperties()
 
-    private def tupled(p: AmqpProperties): (Option[String],
-                                            Option[String],
-                                            Option[Int],
-                                            Option[DeliveryMode],
-                                            Option[String],
-                                            Option[String],
-                                            Option[String],
-                                            Option[String],
-                                            Option[String],
-                                            Option[String],
-                                            Option[String],
-                                            Option[String],
-                                            Option[Instant],
-                                            Map[String, AmqpFieldValue]) =
+    private def tupled(p: AmqpProperties): (
+        Option[String],
+        Option[String],
+        Option[Int],
+        Option[DeliveryMode],
+        Option[String],
+        Option[String],
+        Option[String],
+        Option[String],
+        Option[String],
+        Option[String],
+        Option[String],
+        Option[String],
+        Option[Instant],
+        Map[String, AmqpFieldValue]
+    ) =
       p match {
         case AmqpProperties(a, b, c, d, e, f, g, h, i, j, k, l, m, n) => (a, b, c, d, e, f, g, h, i, j, k, l, m, n)
       }
@@ -420,8 +418,7 @@ object model {
       Eq.by(ap => tupled(ap))
     }
 
-    /**
-      * It is possible to construct an [[AMQP.BasicProperties]] that will cause
+    /** It is possible to construct an [[AMQP.BasicProperties]] that will cause
       * this method to crash, hence it is unsafe. It is meant to be passed
       * values that are created by the underlying RabbitMQ Java client library
       * or other values that you are certain are well-formed (that is they
@@ -448,7 +445,8 @@ object model {
         headers = Option(basicProps.getHeaders)
           .fold(Map.empty[String, Object])(_.asScala.toMap)
           .map {
-            case (k, v) => k -> AmqpFieldValue.unsafeFrom(v)
+            case (k, v) =>
+              k -> AmqpFieldValue.unsafeFrom(v)
           }
       )
 
@@ -516,7 +514,7 @@ object model {
               Eq.by(_.exchangeName),
               Eq.and(Eq.by(_.routingKey), Eq.by(_.redelivered))
             )
-          ),
+          )
         )
       )
   }

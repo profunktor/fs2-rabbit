@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2020 ProfunKtor
+ * Copyright 2017-2021 ProfunKtor
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 
 package dev.profunktor.fs2rabbit.algebra
 
-import cats.effect.{Blocker, ContextShift, Sync}
+import cats.effect.Sync
 import cats.syntax.functor._
 import dev.profunktor.fs2rabbit.config.deletion
 import dev.profunktor.fs2rabbit.config.deletion.{DeletionExchangeConfig, DeletionQueueConfig}
@@ -24,9 +24,9 @@ import dev.profunktor.fs2rabbit.effects.BoolValue.syntax._
 import dev.profunktor.fs2rabbit.model.AMQPChannel
 
 object Deletion {
-  def make[F[_]: Sync: ContextShift](blocker: Blocker): Deletion[F] = new Deletion[F] {
+  def make[F[_]: Sync]: Deletion[F] = new Deletion[F] {
     override def deleteQueue(channel: AMQPChannel, config: DeletionQueueConfig): F[Unit] =
-      blocker.delay {
+      Sync[F].blocking {
         channel.value.queueDelete(
           config.queueName.value,
           config.ifUnused.isTrue,
@@ -35,7 +35,7 @@ object Deletion {
       }.void
 
     override def deleteQueueNoWait(channel: AMQPChannel, config: DeletionQueueConfig): F[Unit] =
-      blocker.delay {
+      Sync[F].blocking {
         channel.value.queueDeleteNoWait(
           config.queueName.value,
           config.ifUnused.isTrue,
@@ -47,7 +47,7 @@ object Deletion {
         channel: AMQPChannel,
         config: deletion.DeletionExchangeConfig
     ): F[Unit] =
-      blocker.delay {
+      Sync[F].blocking {
         channel.value.exchangeDelete(config.exchangeName.value, config.ifUnused.isTrue)
       }.void
 
@@ -55,13 +55,15 @@ object Deletion {
         channel: AMQPChannel,
         config: deletion.DeletionExchangeConfig
     ): F[Unit] =
-      blocker.delay {
+      Sync[F].blocking {
         channel.value.exchangeDeleteNoWait(
           config.exchangeName.value,
           config.ifUnused.isTrue
         )
       }.void
   }
+
+  implicit def toDeletionOps[F[_]](deletion: Deletion[F]): DeletionOps[F] = new DeletionOps[F](deletion)
 }
 
 trait Deletion[F[_]] {

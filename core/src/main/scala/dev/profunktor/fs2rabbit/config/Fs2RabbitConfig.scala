@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2020 ProfunKtor
+ * Copyright 2017-2021 ProfunKtor
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,12 @@
 
 package dev.profunktor.fs2rabbit.config
 
+import java.util.concurrent.TimeUnit
+
 import cats.data.NonEmptyList
 import com.rabbitmq.client.ConnectionFactory
+
+import scala.concurrent.duration.FiniteDuration
 
 case class Fs2RabbitNodeConfig(
     host: String,
@@ -27,14 +31,14 @@ case class Fs2RabbitNodeConfig(
 case class Fs2RabbitConfig(
     nodes: NonEmptyList[Fs2RabbitNodeConfig],
     virtualHost: String,
-    connectionTimeout: Int,
+    connectionTimeout: FiniteDuration,
     ssl: Boolean,
     username: Option[String],
     password: Option[String],
     requeueOnNack: Boolean,
     requeueOnReject: Boolean,
     internalQueueSize: Option[Int],
-    requestedHeartbeat: Int,
+    requestedHeartbeat: FiniteDuration,
     automaticRecovery: Boolean
 )
 
@@ -43,14 +47,14 @@ object Fs2RabbitConfig {
       host: String,
       port: Int,
       virtualHost: String,
-      connectionTimeout: Int,
+      connectionTimeout: FiniteDuration,
       ssl: Boolean,
       username: Option[String],
       password: Option[String],
       requeueOnNack: Boolean,
       requeueOnReject: Boolean,
       internalQueueSize: Option[Int],
-      requestedHeartbeat: Int = ConnectionFactory.DEFAULT_HEARTBEAT,
+      requestedHeartbeat: FiniteDuration = FiniteDuration(ConnectionFactory.DEFAULT_HEARTBEAT, TimeUnit.SECONDS),
       automaticRecovery: Boolean = true
   ): Fs2RabbitConfig = Fs2RabbitConfig(
     nodes = NonEmptyList.one(Fs2RabbitNodeConfig(host, port)),

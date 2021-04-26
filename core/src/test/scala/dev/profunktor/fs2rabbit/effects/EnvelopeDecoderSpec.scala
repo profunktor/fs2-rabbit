@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2020 ProfunKtor
+ * Copyright 2017-2021 ProfunKtor
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,6 +26,8 @@ import dev.profunktor.fs2rabbit.model.{AmqpEnvelope, AmqpProperties, DeliveryTag
 import org.scalatest.funsuite.AsyncFunSuite
 
 import scala.util.Try
+
+import cats.effect.unsafe.implicits.global
 
 class EnvelopeDecoderSpec extends AsyncFunSuite {
 

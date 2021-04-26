@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2020 ProfunKtor
+ * Copyright 2017-2021 ProfunKtor
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,11 +21,10 @@ import dev.profunktor.fs2rabbit.javaConversion._
 
 object arguments {
 
-  /**
-    * [[SafeArg]] makes sure the arguments passed to any of the functions are compliant with the AMQP Protocol.
+  /** [[SafeArg]] makes sure the arguments passed to any of the functions are compliant with the AMQP Protocol.
     *
     * This library only supports String, Boolean, Int, Long, Float, Short, BigDecimal, Date, Byte, List and Map.
-    * */
+    */
   type SafeArg   = Evidence[SafeArgument]
   type Arguments = Map[String, SafeArg]
 
@@ -54,7 +53,7 @@ object arguments {
     private[fs2rabbit] def instance[A, J >: Null <: AnyRef](f: A => J): SafeArgument[A] =
       new SafeArgument[A] {
         type JavaType = J
-        def toJavaType(a: A) = f(a)
+        def toJavaType(a: A): J = f(a)
       }
 
     implicit val stringInstance: SafeArgument[String]         = instance(identity)
@@ -68,8 +67,14 @@ object arguments {
     implicit val byteInstance: SafeArgument[Byte]             = instance(Byte.box)
     implicit val dateInstance: SafeArgument[java.util.Date]   = instance(identity)
 
-    implicit def listInstance[A: SafeArgument]: SafeArgument[List[A]]                   = instance(_.asJava)
-    implicit def mapInstance[K: SafeArgument, V: SafeArgument]: SafeArgument[Map[K, V]] = instance(_.asJava)
+    implicit def listInstance[A: SafeArgument]: SafeArgument[List[A]] = {
+      val _ = implicitly[SafeArgument[A]]
+      instance(_.asJava)
+    }
+    implicit def mapInstance[K: SafeArgument, V: SafeArgument]: SafeArgument[Map[K, V]] = {
+      val _ = (implicitly[SafeArgument[K]], implicitly[SafeArgument[V]])
+      instance(_.asJava)
+    }
   }
 
 }

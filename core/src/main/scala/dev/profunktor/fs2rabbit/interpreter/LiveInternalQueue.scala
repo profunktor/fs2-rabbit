@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2020 ProfunKtor
+ * Copyright 2017-2021 ProfunKtor
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,9 +17,9 @@
 package dev.profunktor.fs2rabbit.interpreter
 
 import cats.effect.Concurrent
+import cats.effect.std.Queue
 import dev.profunktor.fs2rabbit.algebra.InternalQueue
 import dev.profunktor.fs2rabbit.model.AmqpEnvelope
-import fs2.concurrent.Queue
 
 class LiveInternalQueue[F[_]: Concurrent](queueSize: Int) extends InternalQueue[F] {
 

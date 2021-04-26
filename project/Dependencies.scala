@@ -3,9 +3,9 @@ import sbt._
 object Dependencies {
 
   object Version {
-    val cats       = "2.3.1"
-    val catsEffect = "2.5.0"
-    val fs2        = "2.5.5"
+    val cats       = "2.6.0"
+    val catsEffect = "3.1.0"
+    val fs2        = "3.0.2"
     val circe      = "0.13.0"
     val amqpClient = "5.12.0"
     val logback    = "1.2.3"
@@ -19,7 +19,7 @@ object Dependencies {
     val betterMonadicFor = "0.3.1"
 
     val scalaTest               = "3.2.8"
-    val scalaCheck              = "1.15.2"
+    val scalaCheck              = "1.15.3"
     val scalaTestPlusScalaCheck = "3.2.2.0"
     val disciplineScalaCheck    = "2.1.4"
   }
