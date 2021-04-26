@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2020 ProfunKtor
+ * Copyright 2017-2021 ProfunKtor
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,11 +29,7 @@ import org.scalatest.funspec.AnyFunSpec
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import org.typelevel.discipline.scalatest.FunSpecDiscipline
 
-class OrderInstancesSpec
-    extends AnyFunSpec
-    with FunSpecDiscipline
-    with ScalaCheckPropertyChecks
-    with InstantArbitraries {
+class OrderInstancesSpec extends AnyFunSpec with FunSpecDiscipline with ScalaCheckPropertyChecks {
   implicit val orderInstant: Order[Instant] = Order.by(_.getEpochSecond)
 
   checkAll("ExchangeName.OrderLaws", OrderTests[ExchangeName].order)

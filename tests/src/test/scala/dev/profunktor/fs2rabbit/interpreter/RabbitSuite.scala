@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2020 ProfunKtor
+ * Copyright 2017-2021 ProfunKtor
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,29 +16,26 @@
 
 package dev.profunktor.fs2rabbit.interpreter
 
-import cats.effect.{ContextShift, IO}
 import cats.implicits._
 import dev.profunktor.fs2rabbit.BaseSpec
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.DurationInt
 
 class RabbitSuite extends BaseSpec with Fs2RabbitSpec {
-
-  override implicit val cs: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
 
   override val config: Fs2RabbitConfig =
     Fs2RabbitConfig(
       host = "localhost",
       port = 5672,
       virtualHost = "/",
-      connectionTimeout = 30,
+      connectionTimeout = 30.seconds,
       ssl = false,
       username = "guest".some,
       password = "guest".some,
       requeueOnNack = false,
       requeueOnReject = false,
-      requestedHeartbeat = 60,
+      requestedHeartbeat = 60.seconds,
       internalQueueSize = 500.some
     )
 

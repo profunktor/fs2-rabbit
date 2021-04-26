@@ -17,7 +17,7 @@ val dropwizardCollector = new StandardMetricsCollector(registry)
 Now it is ready to use.
 
 ```scala
-RabbitClient[IO](config, blocker, metricsCollector = Some(dropwizardCollector))
+RabbitClient.resource[IO](config, metricsCollector = Some(dropwizardCollector))
 ```
 
 ## Expose via JMX
@@ -53,9 +53,8 @@ Let's initialise the FS2 RabbitMQ client and AMQP channel with metrics.
 
 ```scala
 val resources = for {
-  blocker <- Blocker[IO]
   _       <- JmxReporterResource.make[IO](registry)
-  client  <- Resource.liftF(RabbitClient[IO](config, blocker, metricsCollector = Some(dropwizardCollector)))
+  client  <- RabbitClient.resource[IO](config, metricsCollector = Some(dropwizardCollector))
   channel <- client.createConnection.flatMap(client.createChannel)
 } yield (channel, client)
 
@@ -81,7 +80,7 @@ Let's create an application that publishes and consumes messages with exposed JM
 import java.nio.charset.StandardCharsets.UTF_8
 
 import cats.data.{Kleisli, NonEmptyList}
-import cats.effect.{Blocker, ExitCode, IO, IOApp, Resource, Sync}
+import cats.effect.{ExitCode, IO, IOApp, Resource, Sync}
 import cats.implicits._
 import com.codahale.metrics.MetricRegistry
 import com.codahale.metrics.jmx.JmxReporter
@@ -105,11 +104,11 @@ object DropwizardMetricsDemo extends IOApp {
     username = Some("guest"),
     password = Some("guest"),
     ssl = false,
-    connectionTimeout = 3,
+    connectionTimeout = 3.seconds,
     requeueOnNack = false,
     requeueOnReject = false,
     internalQueueSize = Some(500),
-    requestedHeartbeat = 60,
+    requestedHeartbeat = 60.seconds,
     automaticRecovery = true
   )
 
@@ -129,9 +128,8 @@ object DropwizardMetricsDemo extends IOApp {
     val dropwizardCollector = new StandardMetricsCollector(registry)
 
     val resources = for {
-      blocker <- Blocker[IO]
       _       <- JmxReporterResource.make[IO](registry)
-      client  <- Resource.liftF(RabbitClient[IO](config, blocker, metricsCollector = Some(dropwizardCollector)))
+      client  <- RabbitClient.resource[IO](config, metricsCollector = Some(dropwizardCollector))
       channel <- client.createConnection.flatMap(client.createChannel)
     } yield (channel, client)
 

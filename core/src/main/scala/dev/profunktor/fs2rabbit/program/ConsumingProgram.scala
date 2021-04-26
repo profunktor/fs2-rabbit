@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2020 ProfunKtor
+ * Copyright 2017-2021 ProfunKtor
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 
 package dev.profunktor.fs2rabbit.program
 
-import cats.effect.{Blocker, ContextShift, Effect, Sync}
+import cats.effect.Sync
 import cats.implicits._
 import dev.profunktor.fs2rabbit.algebra.ConsumingStream._
 import dev.profunktor.fs2rabbit.algebra.{AMQPInternals, Consume, InternalQueue}
@@ -26,15 +26,13 @@ import dev.profunktor.fs2rabbit.model._
 import fs2.Stream
 
 object ConsumingProgram {
-  def make[F[_]: Effect: ContextShift](internalQueue: InternalQueue[F], blocker: Blocker): F[ConsumingProgram[F]] =
-    Sync[F].delay {
-      WrapperConsumingProgram(internalQueue, Consume.make(blocker))
-    }
+  def make[F[_]: Sync](internalQueue: InternalQueue[F], consume: Consume[F]): ConsumingProgram[F] =
+    WrapperConsumingProgram(internalQueue, consume)
 }
 
 trait ConsumingProgram[F[_]] extends ConsumingStream[F] with Consume[F]
 
-case class WrapperConsumingProgram[F[_]: Effect] private (
+case class WrapperConsumingProgram[F[_]: Sync] private (
     internalQueue: InternalQueue[F],
     consume: Consume[F]
 ) extends ConsumingProgram[F] {
@@ -72,7 +70,9 @@ case class WrapperConsumingProgram[F[_]: Effect] private (
       }
       .flatMap {
         case (_, queue) =>
-          queue.dequeue.rethrow
+          Stream
+            .fromQueueUnterminated(queue)
+            .rethrow
             .evalMap(env => decoder(env).map(a => env.copy(payload = a)))
       }
       .pure[F]

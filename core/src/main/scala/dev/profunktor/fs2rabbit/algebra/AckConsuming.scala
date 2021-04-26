@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2020 ProfunKtor
+ * Copyright 2017-2021 ProfunKtor
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,12 +25,12 @@ object AckConsumingStream {
 }
 
 trait AckConsuming[F[_], R[_]] {
-
   def createAckerConsumer[A](
       channel: AMQPChannel,
       queueName: QueueName,
       basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
-      consumerArgs: Option[ConsumerArgs] = None
+      consumerArgs: Option[ConsumerArgs] = None,
+      ackMultiple: AckMultiple = AckMultiple(false)
   )(implicit decoder: EnvelopeDecoder[F, A]): F[(AckResult => F[Unit], R[AmqpEnvelope[A]])]
 
   def createAutoAckConsumer[A](
@@ -40,4 +40,10 @@ trait AckConsuming[F[_], R[_]] {
       consumerArgs: Option[ConsumerArgs] = None
   )(implicit decoder: EnvelopeDecoder[F, A]): F[R[AmqpEnvelope[A]]]
 
+  def createAckerConsumerWithMultipleFlag[A](
+      channel: AMQPChannel,
+      queueName: QueueName,
+      basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
+      consumerArgs: Option[ConsumerArgs] = None
+  )(implicit decoder: EnvelopeDecoder[F, A]): F[((AckResult, AckMultiple) => F[Unit], R[AmqpEnvelope[A]])]
 }

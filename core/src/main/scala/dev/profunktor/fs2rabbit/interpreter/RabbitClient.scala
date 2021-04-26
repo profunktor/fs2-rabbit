@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2020 ProfunKtor
+ * Copyright 2017-2021 ProfunKtor
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,10 @@
 
 package dev.profunktor.fs2rabbit.interpreter
 
+import java.util.concurrent.ThreadFactory
+
 import cats.effect._
+import cats.effect.std.Dispatcher
 import cats.implicits._
 import com.rabbitmq.client.{DefaultSaslConfig, MetricsCollector, SaslConfig}
 import dev.profunktor.fs2rabbit.algebra._
@@ -24,7 +27,6 @@ import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
 import dev.profunktor.fs2rabbit.config.declaration.{DeclarationExchangeConfig, DeclarationQueueConfig}
 import dev.profunktor.fs2rabbit.config.deletion.{DeletionExchangeConfig, DeletionQueueConfig}
 import dev.profunktor.fs2rabbit.effects.{EnvelopeDecoder, MessageEncoder}
-import dev.profunktor.fs2rabbit.algebra.AckConsumingStream.AckConsumingStream
 import dev.profunktor.fs2rabbit.algebra.ConnectionResource.ConnectionResource
 import dev.profunktor.fs2rabbit.model._
 import dev.profunktor.fs2rabbit.program._
@@ -33,52 +35,58 @@ import javax.net.ssl.SSLContext
 
 object RabbitClient {
 
-  def apply[F[_]: ConcurrentEffect: ContextShift](
+  def apply[F[_]: Async](
       config: Fs2RabbitConfig,
-      blocker: Blocker,
+      dispatcher: Dispatcher[F],
       sslContext: Option[SSLContext] = None,
       // Unlike SSLContext, SaslConfig is not optional because it is always set
       // by the underlying Java library, even if the user doesn't set it.
       saslConfig: SaslConfig = DefaultSaslConfig.PLAIN,
-      metricsCollector: Option[MetricsCollector] = None
+      metricsCollector: Option[MetricsCollector] = None,
+      threadFactory: Option[F[ThreadFactory]] = None
   ): F[RabbitClient[F]] = {
-
     val internalQ         = new LiveInternalQueue[F](config.internalQueueSize.getOrElse(500))
-    val connection        = ConnectionResource.make(config, sslContext, saslConfig, metricsCollector)
-    val consumingProgram  = AckConsumingProgram.make[F](config, internalQ, blocker)
-    val publishingProgram = PublishingProgram.make[F](blocker)
+    val connection        = ConnectionResource.make(config, sslContext, saslConfig, metricsCollector, threadFactory)
+    val consumingProgram  = AckConsumingProgram.make[F](config, internalQ, dispatcher)
+    val publishingProgram = PublishingProgram.make[F](dispatcher)
+    val bindingClient     = Binding.make[F]
+    val declarationClient = Declaration.make[F]
+    val deletionClient    = Deletion.make[F]
 
-    (connection, consumingProgram, publishingProgram).mapN {
-      case (conn, consuming, publish) =>
-        val consumeClient     = Consume.make[F](blocker)
-        val publishClient     = Publish.make[F](blocker)
-        val bindingClient     = Binding.make[F](blocker)
-        val declarationClient = Declaration.make[F](blocker)
-        val deletionClient    = Deletion.make[F](blocker)
-
-        new RabbitClient[F](
-          conn,
-          consumeClient,
-          publishClient,
-          bindingClient,
-          declarationClient,
-          deletionClient,
-          consuming,
-          publish
-        )
+    connection.map { conn =>
+      new RabbitClient[F](
+        conn,
+        bindingClient,
+        declarationClient,
+        deletionClient,
+        consumingProgram,
+        publishingProgram
+      )
     }
   }
+
+  def resource[F[_]: Async](
+      config: Fs2RabbitConfig,
+      sslContext: Option[SSLContext] = None,
+      // Unlike SSLContext, SaslConfig is not optional because it is always set
+      // by the underlying Java library, even if the user doesn't set it.
+      saslConfig: SaslConfig = DefaultSaslConfig.PLAIN,
+      metricsCollector: Option[MetricsCollector] = None,
+      threadFactory: Option[F[ThreadFactory]] = None
+  ): Resource[F, RabbitClient[F]] = Dispatcher[F].evalMap { dispatcher =>
+    apply[F](config, dispatcher, sslContext, saslConfig, metricsCollector, threadFactory)
+  }
+
+  implicit def toRabbitClientOps[F[_]](client: RabbitClient[F]): RabbitClientOps[F] = new RabbitClientOps[F](client)
 }
 
-class RabbitClient[F[_]: Concurrent] private[fs2rabbit] (
-    connection: ConnectionResource[F],
-    consume: Consume[F],
-    publish: Publish[F],
-    binding: Binding[F],
-    declaration: Declaration[F],
-    deletion: Deletion[F],
-    consumingProgram: AckConsumingStream[F],
-    publishingProgram: Publishing[F]
+class RabbitClient[F[_]] private[fs2rabbit] (
+    val connection: ConnectionResource[F],
+    val binding: Binding[F],
+    val declaration: Declaration[F],
+    val deletion: Deletion[F],
+    val consumingProgram: AckConsumingProgram[F],
+    val publishingProgram: PublishingProgram[F]
 ) {
 
   def createChannel(conn: AMQPConnection): Resource[F, AMQPChannel] =
@@ -90,14 +98,39 @@ class RabbitClient[F[_]: Concurrent] private[fs2rabbit] (
   def createConnectionChannel: Resource[F, AMQPChannel] =
     createConnection.flatMap(createChannel)
 
+  /** @param ackMultiple configures the behaviour of the returned acking function.
+    * If true (n)acks all messages up to and including the supplied delivery tag,
+    * if false (n)acks just the supplied delivery tag.
+    */
   def createAckerConsumer[A](
+      queueName: QueueName,
+      basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
+      consumerArgs: Option[ConsumerArgs] = None,
+      ackMultiple: AckMultiple = AckMultiple(false)
+  )(implicit
+    channel: AMQPChannel,
+    decoder: EnvelopeDecoder[F, A]): F[(AckResult => F[Unit], Stream[F, AmqpEnvelope[A]])] =
+    consumingProgram.createAckerConsumer(
+      channel,
+      queueName,
+      basicQos,
+      consumerArgs,
+      ackMultiple
+    )
+
+  /** Returns an acking function and a stream of messages.
+    * The acking function takes two arguments - the first is the {@link AckResult} that wraps a delivery tag,
+    * the second is a {@link AckMultiple} flag that if true (n)acks all messages up to and including the supplied delivery tag,
+    * if false (n)acks just the supplied delivery tag.
+    */
+  def createAckerConsumerWithMultipleFlag[A](
       queueName: QueueName,
       basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
       consumerArgs: Option[ConsumerArgs] = None
   )(implicit
     channel: AMQPChannel,
-    decoder: EnvelopeDecoder[F, A]): F[(AckResult => F[Unit], Stream[F, AmqpEnvelope[A]])] =
-    consumingProgram.createAckerConsumer(
+    decoder: EnvelopeDecoder[F, A]): F[((AckResult, AckMultiple) => F[Unit], Stream[F, AmqpEnvelope[A]])] =
+    consumingProgram.createAckerConsumerWithMultipleFlag(
       channel,
       queueName,
       basicQos,
@@ -171,22 +204,22 @@ class RabbitClient[F[_]: Concurrent] private[fs2rabbit] (
   def addPublishingListener(
       listener: PublishReturn => F[Unit]
   )(implicit channel: AMQPChannel): F[Unit] =
-    publish.addPublishingListener(channel, listener)
+    publishingProgram.addPublishingListener(channel, listener)
 
   def clearPublishingListeners(implicit channel: AMQPChannel): F[Unit] =
-    publish.clearPublishingListeners(channel)
+    publishingProgram.clearPublishingListeners(channel)
 
   def basicCancel(
       consumerTag: ConsumerTag
   )(implicit channel: AMQPChannel): F[Unit] =
-    consume.basicCancel(channel, consumerTag)
+    consumingProgram.basicCancel(channel, consumerTag)
 
   def bindQueue(
       queueName: QueueName,
       exchangeName: ExchangeName,
       routingKey: RoutingKey
   )(implicit channel: AMQPChannel): F[Unit] =
-    binding.bindQueue(channel, queueName, exchangeName, routingKey)
+    bindQueue(queueName, exchangeName, routingKey, QueueBindingArgs(Map.empty))
 
   def bindQueue(
       queueName: QueueName,

@@ -4,7 +4,8 @@ import Dependencies._
 import microsites.ExtraMdFileConfig
 
 ThisBuild / name := """fs2-rabbit"""
-ThisBuild / crossScalaVersions := List("2.12.12", "2.13.3")
+ThisBuild / scalaVersion := "2.13.5"
+ThisBuild / crossScalaVersions := List("2.12.13", "2.13.5")
 ThisBuild / organization := "dev.profunktor"
 ThisBuild / homepage := Some(url("https://fs2-rabbit.profunktor.dev/"))
 ThisBuild / licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0"))
@@ -24,35 +25,44 @@ promptTheme := PromptTheme(
   )
 )
 
-def maxClassFileName(v: String) =
+def scalaOptions(v: String) =
   CrossVersion.partialVersion(v) match {
     case Some((2, 13)) => List.empty[String]
+    case Some((3, _))  => List("-Ykind-projector")
     case _             => List("-Xmax-classfile-name", "100")
   }
+
+def commonDependencies(v: String) =
+  List(
+    Libraries.amqpClient,
+    Libraries.catsEffect,
+    Libraries.fs2Core,
+    Libraries.scalaTest               % Test,
+    Libraries.scalaCheck              % Test,
+    Libraries.scalaTestPlusScalaCheck % Test
+  ) ++
+    (CrossVersion.partialVersion(v) match {
+      case Some((3, _)) => List.empty
+      case _            =>
+        List(
+          compilerPlugin(Libraries.kindProjector),
+          compilerPlugin(Libraries.betterMonadicFor)
+        )
+    })
 
 val commonSettings = List(
   organizationName := "ProfunKtor",
   startYear := Some(2017),
   licenses += ("Apache-2.0", new URL("https://www.apache.org/licenses/LICENSE-2.0.txt")),
   homepage := Some(url("https://fs2-rabbit.profunktor.dev/")),
-  headerLicense := Some(HeaderLicense.ALv2("2017-2020", "ProfunKtor")),
-  scalacOptions in (Compile, doc) ++= List("-no-link-warnings"),
-  scalacOptions ++= maxClassFileName(scalaVersion.value),
-  libraryDependencies ++= {
-    List(
-      compilerPlugin(Libraries.kindProjector),
-      compilerPlugin(Libraries.betterMonadicFor),
-      Libraries.amqpClient,
-      Libraries.catsEffect,
-      Libraries.fs2Core,
-      Libraries.scalaTest               % Test,
-      Libraries.scalaCheck              % Test,
-      Libraries.scalaTestPlusScalaCheck % Test
-    )
-  },
+  headerLicense := Some(HeaderLicense.ALv2(s"${startYear.value.get}-${java.time.Year.now}", "ProfunKtor")),
+  Compile / doc / scalacOptions ++= List("-no-link-warnings"),
+  scalacOptions ++= scalaOptions(scalaVersion.value),
+  scalacOptions --= List("-Wunused:params"),
+  libraryDependencies ++= commonDependencies(scalaVersion.value),
   resolvers += "Apache public" at "https://repository.apache.org/content/groups/public/",
   scalafmtOnCompile := true,
-  mimaPreviousArtifacts := Set(organization.value %% moduleName.value % "3.0.1"),
+  mimaPreviousArtifacts := Set(organization.value %% moduleName.value % "4.0.0")
 )
 
 def CoreDependencies(scalaVersionStr: String): List[ModuleID] =
@@ -71,9 +81,9 @@ def JsonDependencies(scalaVersionStr: String): List[ModuleID] =
 def ExamplesDependencies(scalaVersionStr: String): List[ModuleID] =
   List(
     Libraries.logback % "runtime",
-    Libraries.monix,
-    Libraries.zioCore,
-    Libraries.zioCats,
+//    Libraries.monix,
+//    Libraries.zioCore,
+//    Libraries.zioCats,
     Libraries.dropwizard,
     Libraries.dropwizardJmx
   )
@@ -91,7 +101,7 @@ lazy val noPublish = List(
   publish := {},
   publishLocal := {},
   publishArtifact := false,
-  skip in publish := true
+  publish / skip := true
 )
 
 lazy val `fs2-rabbit-root` = project
@@ -104,14 +114,14 @@ lazy val `fs2-rabbit` = project
   .in(file("core"))
   .settings(commonSettings: _*)
   .settings(libraryDependencies ++= CoreDependencies(scalaVersion.value))
-  .settings(parallelExecution in Test := false)
+  .settings(Test / parallelExecution := false)
   .enablePlugins(AutomateHeaderPlugin)
 
 lazy val `fs2-rabbit-circe` = project
   .in(file("json-circe"))
   .settings(commonSettings: _*)
   .settings(libraryDependencies ++= JsonDependencies(scalaVersion.value))
-  .settings(parallelExecution in Test := false)
+  .settings(Test / parallelExecution := false)
   .enablePlugins(AutomateHeaderPlugin)
   .dependsOn(`fs2-rabbit`)
 
@@ -122,7 +132,7 @@ lazy val tests = project
   .enablePlugins(AutomateHeaderPlugin)
   .disablePlugins(MimaPlugin)
   .settings(libraryDependencies ++= TestsDependencies(scalaVersion.value))
-  .settings(parallelExecution in Test := false)
+  .settings(Test / parallelExecution := false)
   .dependsOn(`fs2-rabbit`, `fs2-rabbit-testkit`)
 
 lazy val examples = project
@@ -166,7 +176,7 @@ lazy val microsite = project
         Map("title" -> "Code of Conduct")
       )
     ),
-    micrositeExtraMdFilesOutput := (resourceManaged in Compile).value / "jekyll",
+    micrositeExtraMdFilesOutput := (Compile / resourceManaged).value / "jekyll",
     micrositeGitterChannel := true,
     micrositeGitterChannelUrl := "profunktor-dev/fs2-rabbit",
     micrositePushSiteWith := GitHub4s,

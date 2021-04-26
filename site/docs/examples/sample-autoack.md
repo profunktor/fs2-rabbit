@@ -22,7 +22,7 @@ import dev.profunktor.fs2rabbit.model.AmqpFieldValue.{LongVal, StringVal}
 import dev.profunktor.fs2rabbit.model._
 import fs2._
 
-class AutoAckFlow[F[_]: Concurrent, A](
+class AutoAckFlow[F[_]: Async, A](
     consumer: Stream[F, AmqpEnvelope[A]],
     logger: Pipe[F, AmqpEnvelope[A], AckResult],
     publisher: AmqpMessage[String] => F[Unit]
@@ -51,7 +51,7 @@ class AutoAckFlow[F[_]: Concurrent, A](
 
 }
 
-class AutoAckConsumerDemo[F[_]: Concurrent](R: RabbitClient[F]) {
+class AutoAckConsumerDemo[F[_]: Async](R: RabbitClient[F]) {
 
   private val queueName    = QueueName("testQ")
   private val exchangeName = ExchangeName("testEX")
@@ -76,50 +76,50 @@ class AutoAckConsumerDemo[F[_]: Concurrent](R: RabbitClient[F]) {
 }
 ```
 
-At the edge of out program we define our effect, `monix.eval.Task` in this case, and ask to evaluate the effects:
+At the edge of out program we define our effect, `monix.eval.Task` in this case, and ask to evaluate the effects (MONIX UNAVAILABLE):
 
 ```scala mdoc:silent
-import cats.data.NonEmptyList
-import dev.profunktor.fs2rabbit.config.{Fs2RabbitConfig, Fs2RabbitNodeConfig}
-import dev.profunktor.fs2rabbit.interpreter.RabbitClient
-import dev.profunktor.fs2rabbit.resiliency.ResilientStream
-import monix.eval.{Task, TaskApp}
-import java.util.concurrent.Executors
-
-object MonixAutoAckConsumer extends TaskApp {
-
-  private val config: Fs2RabbitConfig = Fs2RabbitConfig(
-    virtualHost = "/",
-    nodes = NonEmptyList.one(
-      Fs2RabbitNodeConfig(
-        host = "127.0.0.1",
-        port = 5672
-      )
-    ),
-    username = Some("guest"),
-    password = Some("guest"),
-    ssl = false,
-    connectionTimeout = 3,
-    requeueOnNack = false,
-    requeueOnReject = false,
-    internalQueueSize = Some(500),
-    requestedHeartbeat = 60,
-    automaticRecovery = true
-  )
-
-  val blockerResource =
-    Resource
-      .make(Task(Executors.newCachedThreadPool()))(es => Task(es.shutdown()))
-      .map(Blocker.liftExecutorService)
-
-  override def run(args: List[String]): Task[ExitCode] =
-    blockerResource.use { blocker =>
-      RabbitClient[Task](config, blocker).flatMap { client =>
-        ResilientStream
-          .runF(new AutoAckConsumerDemo[Task](client).program)
-          .as(ExitCode.Success)
-      }
-    }
-
-}
+//import cats.data.NonEmptyList
+//import dev.profunktor.fs2rabbit.config.{Fs2RabbitConfig, Fs2RabbitNodeConfig}
+//import dev.profunktor.fs2rabbit.interpreter.RabbitClient
+//import dev.profunktor.fs2rabbit.resiliency.ResilientStream
+//import monix.eval.{Task, TaskApp}
+//import java.util.concurrent.Executors
+//
+//object MonixAutoAckConsumer extends TaskApp {
+//
+//  private val config: Fs2RabbitConfig = Fs2RabbitConfig(
+//    virtualHost = "/",
+//    nodes = NonEmptyList.one(
+//      Fs2RabbitNodeConfig(
+//        host = "127.0.0.1",
+//        port = 5672
+//      )
+//    ),
+//    username = Some("guest"),
+//    password = Some("guest"),
+//    ssl = false,
+//    connectionTimeout = 3,
+//    requeueOnNack = false,
+//    requeueOnReject = false,
+//    internalQueueSize = Some(500),
+//    requestedHeartbeat = 60,
+//    automaticRecovery = true
+//  )
+//
+//  val blockerResource =
+//    Resource
+//      .make(Task(Executors.newCachedThreadPool()))(es => Task(es.shutdown()))
+//      .map(Blocker.liftExecutorService)
+//
+//  override def run(args: List[String]): Task[ExitCode] =
+//    blockerResource.use { blocker =>
+//      RabbitClient[Task](config, blocker).flatMap { client =>
+//        ResilientStream
+//          .runF(new AutoAckConsumerDemo[Task](client).program)
+//          .as(ExitCode.Success)
+//      }
+//    }
+//
+//}
 ```

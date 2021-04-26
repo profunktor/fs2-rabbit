@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2020 ProfunKtor
+ * Copyright 2017-2021 ProfunKtor
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,22 +16,22 @@
 
 package dev.profunktor.fs2rabbit.algebra
 
-import cats.effect.syntax.effect._
-import cats.effect.{Blocker, ContextShift, Effect, Sync}
+import cats.effect._
+import cats.effect.std.Dispatcher
 import cats.syntax.functor._
 import com.rabbitmq.client.{AMQP, ReturnListener}
 import dev.profunktor.fs2rabbit.model._
 
 object Publish {
-  def make[F[_]: Effect: ContextShift](
-      blocker: Blocker
-  ): Publish[F] =
+  def make[F[_]: Sync](dispatcher: Dispatcher[F]): Publish[F] =
     new Publish[F] {
-      override def basicPublish(channel: AMQPChannel,
-                                exchangeName: ExchangeName,
-                                routingKey: RoutingKey,
-                                msg: AmqpMessage[Array[Byte]]): F[Unit] =
-        blocker.delay {
+      override def basicPublish(
+          channel: AMQPChannel,
+          exchangeName: ExchangeName,
+          routingKey: RoutingKey,
+          msg: AmqpMessage[Array[Byte]]
+      ): F[Unit] =
+        Sync[F].blocking {
           channel.value.basicPublish(
             exchangeName.value,
             routingKey.value,
@@ -40,12 +40,14 @@ object Publish {
           )
         }
 
-      override def basicPublishWithFlag(channel: AMQPChannel,
-                                        exchangeName: ExchangeName,
-                                        routingKey: RoutingKey,
-                                        flag: PublishingFlag,
-                                        msg: AmqpMessage[Array[Byte]]): F[Unit] =
-        blocker.delay {
+      override def basicPublishWithFlag(
+          channel: AMQPChannel,
+          exchangeName: ExchangeName,
+          routingKey: RoutingKey,
+          flag: PublishingFlag,
+          msg: AmqpMessage[Array[Byte]]
+      ): F[Unit] =
+        Sync[F].blocking {
           channel.value.basicPublish(
             exchangeName.value,
             routingKey.value,
@@ -61,12 +63,14 @@ object Publish {
       ): F[Unit] =
         Sync[F].delay {
           val returnListener = new ReturnListener {
-            override def handleReturn(replyCode: Int,
-                                      replyText: String,
-                                      exchange: String,
-                                      routingKey: String,
-                                      properties: AMQP.BasicProperties,
-                                      body: Array[Byte]): Unit = {
+            override def handleReturn(
+                replyCode: Int,
+                replyText: String,
+                exchange: String,
+                routingKey: String,
+                properties: AMQP.BasicProperties,
+                body: Array[Byte]
+            ): Unit = {
               val publishReturn =
                 PublishReturn(
                   ReplyCode(replyCode),
@@ -76,8 +80,7 @@ object Publish {
                   AmqpProperties.unsafeFrom(properties),
                   AmqpBody(body)
                 )
-
-              listener(publishReturn).toIO.unsafeRunAsync(_ => ())
+              dispatcher.unsafeRunAndForget(listener(publishReturn))
             }
           }
 
@@ -92,15 +95,19 @@ object Publish {
 }
 
 trait Publish[F[_]] {
-  def basicPublish(channel: AMQPChannel,
-                   exchangeName: ExchangeName,
-                   routingKey: RoutingKey,
-                   msg: AmqpMessage[Array[Byte]]): F[Unit]
-  def basicPublishWithFlag(channel: AMQPChannel,
-                           exchangeName: ExchangeName,
-                           routingKey: RoutingKey,
-                           flag: PublishingFlag,
-                           msg: AmqpMessage[Array[Byte]]): F[Unit]
+  def basicPublish(
+      channel: AMQPChannel,
+      exchangeName: ExchangeName,
+      routingKey: RoutingKey,
+      msg: AmqpMessage[Array[Byte]]
+  ): F[Unit]
+  def basicPublishWithFlag(
+      channel: AMQPChannel,
+      exchangeName: ExchangeName,
+      routingKey: RoutingKey,
+      flag: PublishingFlag,
+      msg: AmqpMessage[Array[Byte]]
+  ): F[Unit]
   def addPublishingListener(channel: AMQPChannel, listener: PublishReturn => F[Unit]): F[Unit]
   def clearPublishingListeners(channel: AMQPChannel): F[Unit]
 }

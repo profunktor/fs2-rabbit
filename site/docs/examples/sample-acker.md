@@ -52,7 +52,7 @@ class Flow[F[_]: Concurrent, A](
 
 }
 
-class AckerConsumerDemo[F[_]: Concurrent: Timer](R: RabbitClient[F]) {
+class AckerConsumerDemo[F[_]: Async](R: RabbitClient[F]) {
 
   private val queueName    = QueueName("testQ")
   private val exchangeName = ExchangeName("testEX")
@@ -96,6 +96,8 @@ import dev.profunktor.fs2rabbit.interpreter.RabbitClient
 import dev.profunktor.fs2rabbit.resiliency.ResilientStream
 import java.util.concurrent.Executors
 
+import scala.concurrent.duration.DurationInt
+
 object IOAckerConsumer extends IOApp {
 
   private val config: Fs2RabbitConfig = Fs2RabbitConfig(
@@ -109,27 +111,20 @@ object IOAckerConsumer extends IOApp {
     username = Some("guest"),
     password = Some("guest"),
     ssl = false,
-    connectionTimeout = 3,
+    connectionTimeout = 3.seconds,
     requeueOnNack = false,
     requeueOnReject = false,
     internalQueueSize = Some(500),
-    requestedHeartbeat = 60,
+    requestedHeartbeat = 60.seconds,
     automaticRecovery = true
   )
 
-  val blockerResource =
-    Resource
-      .make(IO(Executors.newCachedThreadPool()))(es => IO(es.shutdown()))
-      .map(Blocker.liftExecutorService)
-
   override def run(args: List[String]): IO[ExitCode] =
-    blockerResource.use { blocker =>
-      RabbitClient[IO](config, blocker).flatMap { client =>
+      RabbitClient.resource[IO](config).use { client =>
         ResilientStream
           .runF(new AckerConsumerDemo[IO](client).program)
           .as(ExitCode.Success)
       }
-    }
 
 }
 ```

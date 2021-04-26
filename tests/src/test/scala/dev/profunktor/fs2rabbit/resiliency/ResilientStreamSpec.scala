@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2020 ProfunKtor
+ * Copyright 2017-2021 ProfunKtor
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,10 +17,10 @@
 package dev.profunktor.fs2rabbit.resiliency
 
 import cats.effect.IO
-import cats.effect.concurrent.Ref
-import cats.implicits._
+import cats.effect.kernel.Ref
 import dev.profunktor.fs2rabbit.BaseSpec
 import fs2._
+import cats.effect.unsafe.implicits.global
 
 import scala.concurrent.duration._
 import org.scalatest.compatible.Assertion

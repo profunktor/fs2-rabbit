@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2020 ProfunKtor
+ * Copyright 2017-2021 ProfunKtor
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@
 
 package dev.profunktor.fs2rabbit.interpreter
 
-import cats.effect.concurrent.Deferred
 import cats.effect._
 import cats.implicits._
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
@@ -31,18 +30,16 @@ import org.scalatest.Assertion
 import scala.concurrent.duration._
 import scala.util.Random
 import scala.concurrent.Future
-import java.util.concurrent.Executors
+
+import cats.effect.unsafe.implicits.global
+
+import cats.effect.kernel.Deferred
 
 trait Fs2RabbitSpec { self: BaseSpec =>
 
   def config: Fs2RabbitConfig
 
   val emptyAssertion: Assertion = true shouldBe true
-
-  val blockerResource =
-    Resource
-      .make(IO(Executors.newCachedThreadPool()))(es => IO(es.shutdown()))
-      .map(Blocker.liftExecutorService)
 
   it should "create a connection and a queue with default arguments" in withRabbit { interpreter =>
     import interpreter._
@@ -210,6 +207,31 @@ trait Fs2RabbitSpec { self: BaseSpec =>
               .drain
       } yield emptyAssertion
     }
+  }
+
+  it should "create an acker consumer with ack multiple flag and verify both envelope and ack result" in withRabbit {
+    interpreter =>
+      import interpreter._
+
+      createConnectionChannel.use { implicit channel =>
+        for {
+          (q, x, rk)        <- randomQueueData
+          _                 <- declareExchange(x, ExchangeType.Topic)
+          _                 <- declareQueue(DeclarationQueueConfig.default(q))
+          _                 <- bindQueue(q, x, rk, QueueBindingArgs(Map.empty))
+          publisher         <- createPublisher[String](x, rk)
+          _                 <- publisher("acker-test")
+          (acker, consumer) <- createAckerConsumerWithMultipleFlag(q)
+          _ <- consumer
+                .take(1)
+                .evalMap { msg =>
+                  IO(msg shouldBe expectedDelivery(msg.deliveryTag, x, rk, "acker-test")) *>
+                    acker(Ack(msg.deliveryTag), AckMultiple(true))
+                }
+                .compile
+                .drain
+        } yield emptyAssertion
+      }
   }
 
   it should "NOT requeue a message in case of NAck when option 'requeueOnNack = false'" in withRabbit { interpreter =>
@@ -675,35 +697,28 @@ trait Fs2RabbitSpec { self: BaseSpec =>
   }
 
   private def withStreamRabbit[A](fa: RabbitClient[IO] => Stream[IO, A]): Future[Assertion] =
-    blockerResource
-      .use { blocker =>
-        RabbitClient[IO](config, blocker).flatMap(r => fa(r).compile.drain)
-      }
+    RabbitClient
+      .resource[IO](config)
+      .use(r => fa(r).compile.drain)
       .as(emptyAssertion)
       .unsafeToFuture()
 
   private def withStreamNackRabbit[A](fa: RabbitClient[IO] => Stream[IO, A]): Future[Assertion] =
-    blockerResource
-      .use { blocker =>
-        RabbitClient[IO](config.copy(requeueOnNack = true), blocker).flatMap(r => fa(r).compile.drain)
-      }
+    RabbitClient
+      .resource[IO](config.copy(requeueOnNack = true))
+      .use(r => fa(r).compile.drain)
       .as(emptyAssertion)
       .unsafeToFuture()
 
   private def withStreamRejectRabbit[A](fa: RabbitClient[IO] => Stream[IO, A]): Future[Assertion] =
-    blockerResource
-      .use { blocker =>
-        RabbitClient[IO](config.copy(requeueOnReject = true), blocker).flatMap(r => fa(r).compile.drain)
-      }
+    RabbitClient
+      .resource[IO](config.copy(requeueOnReject = true))
+      .use(r => fa(r).compile.drain)
       .as(emptyAssertion)
       .unsafeToFuture()
 
   private def withRabbit[A](fa: RabbitClient[IO] => IO[A]): Future[A] =
-    blockerResource
-      .use { blocker =>
-        RabbitClient[IO](config, blocker).flatMap(r => fa(r))
-      }
-      .unsafeToFuture()
+    RabbitClient.resource[IO](config).use(r => fa(r)).unsafeToFuture()
 
   private def randomQueueData: IO[(QueueName, ExchangeName, RoutingKey)] =
     (mkRandomString, mkRandomString, mkRandomString).mapN {
@@ -726,6 +741,6 @@ trait Fs2RabbitSpec { self: BaseSpec =>
   private def takeWithTimeOut[A](stream: Stream[IO, A], timeout: FiniteDuration): Stream[IO, Option[A]] =
     stream.last.mergeHaltR(Stream.sleep[IO](timeout).as(None))
 
-  private def listener(promise: Deferred[IO, PublishReturn]): PublishReturn => IO[Unit] = promise.complete
+  private def listener(promise: Deferred[IO, PublishReturn]): PublishReturn => IO[Unit] = promise.complete(_).void
 
 }

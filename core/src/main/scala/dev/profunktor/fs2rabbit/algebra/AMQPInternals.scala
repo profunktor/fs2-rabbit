@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2020 ProfunKtor
+ * Copyright 2017-2021 ProfunKtor
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,10 @@
 
 package dev.profunktor.fs2rabbit.algebra
 
+import cats.effect.std.Queue
+import cats.~>
 import dev.profunktor.fs2rabbit.model.AmqpEnvelope
-import fs2.concurrent.Queue
 
-case class AMQPInternals[F[_]](queue: Option[Queue[F, Either[Throwable, AmqpEnvelope[Array[Byte]]]]])
+case class AMQPInternals[F[_]](queue: Option[Queue[F, Either[Throwable, AmqpEnvelope[Array[Byte]]]]]) {
+  def mapK[G[_]](fK: F ~> G): AMQPInternals[G] = AMQPInternals(queue.map(_.mapK(fK)))
+}

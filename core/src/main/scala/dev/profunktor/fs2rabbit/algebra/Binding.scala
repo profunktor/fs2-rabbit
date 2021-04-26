@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2020 ProfunKtor
+ * Copyright 2017-2021 ProfunKtor
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,32 +16,22 @@
 
 package dev.profunktor.fs2rabbit.algebra
 
-import cats.effect.{Blocker, ContextShift, Sync}
+import cats.effect.Sync
 import cats.syntax.functor._
 import dev.profunktor.fs2rabbit.arguments._
 import dev.profunktor.fs2rabbit.model._
 
 object Binding {
-  def make[F[_]: Sync: ContextShift](blocker: Blocker): Binding[F] =
+  def make[F[_]: Sync]: Binding[F] =
     new Binding[F] {
-      override def bindQueue(channel: AMQPChannel,
-                             queueName: QueueName,
-                             exchangeName: ExchangeName,
-                             routingKey: RoutingKey): F[Unit] =
-        blocker.delay {
-          channel.value.queueBind(
-            queueName.value,
-            exchangeName.value,
-            routingKey.value
-          )
-        }.void
-
-      override def bindQueue(channel: AMQPChannel,
-                             queueName: QueueName,
-                             exchangeName: ExchangeName,
-                             routingKey: RoutingKey,
-                             args: QueueBindingArgs): F[Unit] =
-        blocker.delay {
+      override def bindQueue(
+          channel: AMQPChannel,
+          queueName: QueueName,
+          exchangeName: ExchangeName,
+          routingKey: RoutingKey,
+          args: QueueBindingArgs
+      ): F[Unit] =
+        Sync[F].blocking {
           channel.value.queueBind(
             queueName.value,
             exchangeName.value,
@@ -50,12 +40,14 @@ object Binding {
           )
         }.void
 
-      override def bindQueueNoWait(channel: AMQPChannel,
-                                   queueName: QueueName,
-                                   exchangeName: ExchangeName,
-                                   routingKey: RoutingKey,
-                                   args: QueueBindingArgs): F[Unit] =
-        blocker.delay {
+      override def bindQueueNoWait(
+          channel: AMQPChannel,
+          queueName: QueueName,
+          exchangeName: ExchangeName,
+          routingKey: RoutingKey,
+          args: QueueBindingArgs
+      ): F[Unit] =
+        Sync[F].blocking {
           channel.value.queueBindNoWait(
             queueName.value,
             exchangeName.value,
@@ -64,26 +56,14 @@ object Binding {
           )
         }.void
 
-      override def unbindQueue(channel: AMQPChannel,
-                               queueName: QueueName,
-                               exchangeName: ExchangeName,
-                               routingKey: RoutingKey): F[Unit] =
-        Sync[F].delay {
-          unbindQueue(
-            channel,
-            queueName,
-            exchangeName,
-            routingKey,
-            QueueUnbindArgs(Map.empty)
-          )
-        }.void
-
-      override def unbindQueue(channel: AMQPChannel,
-                               queueName: QueueName,
-                               exchangeName: ExchangeName,
-                               routingKey: RoutingKey,
-                               args: QueueUnbindArgs): F[Unit] =
-        blocker.delay {
+      override def unbindQueue(
+          channel: AMQPChannel,
+          queueName: QueueName,
+          exchangeName: ExchangeName,
+          routingKey: RoutingKey,
+          args: QueueUnbindArgs
+      ): F[Unit] =
+        Sync[F].blocking {
           channel.value.queueUnbind(
             queueName.value,
             exchangeName.value,
@@ -92,12 +72,14 @@ object Binding {
           )
         }.void
 
-      override def bindExchange(channel: AMQPChannel,
-                                destination: ExchangeName,
-                                source: ExchangeName,
-                                routingKey: RoutingKey,
-                                args: ExchangeBindingArgs): F[Unit] =
-        blocker.delay {
+      override def bindExchange(
+          channel: AMQPChannel,
+          destination: ExchangeName,
+          source: ExchangeName,
+          routingKey: RoutingKey,
+          args: ExchangeBindingArgs
+      ): F[Unit] =
+        Sync[F].blocking {
           channel.value.exchangeBind(
             destination.value,
             source.value,
@@ -106,12 +88,14 @@ object Binding {
           )
         }.void
 
-      override def bindExchangeNoWait(channel: AMQPChannel,
-                                      destination: ExchangeName,
-                                      source: ExchangeName,
-                                      routingKey: RoutingKey,
-                                      args: ExchangeBindingArgs): F[Unit] =
-        blocker.delay {
+      override def bindExchangeNoWait(
+          channel: AMQPChannel,
+          destination: ExchangeName,
+          source: ExchangeName,
+          routingKey: RoutingKey,
+          args: ExchangeBindingArgs
+      ): F[Unit] =
+        Sync[F].blocking {
           channel.value.exchangeBindNoWait(
             destination.value,
             source.value,
@@ -120,12 +104,14 @@ object Binding {
           )
         }.void
 
-      override def unbindExchange(channel: AMQPChannel,
-                                  destination: ExchangeName,
-                                  source: ExchangeName,
-                                  routingKey: RoutingKey,
-                                  args: ExchangeUnbindArgs): F[Unit] =
-        blocker.delay {
+      override def unbindExchange(
+          channel: AMQPChannel,
+          destination: ExchangeName,
+          source: ExchangeName,
+          routingKey: RoutingKey,
+          args: ExchangeUnbindArgs
+      ): F[Unit] =
+        Sync[F].blocking {
           channel.value.exchangeUnbind(
             destination.value,
             source.value,
@@ -134,42 +120,51 @@ object Binding {
           )
         }.void
     }
+
+  implicit def toBindingOps[F[_]](binding: Binding[F]): BindingOps[F] = new BindingOps[F](binding)
 }
 
 trait Binding[F[_]] {
-  def bindQueue(channel: AMQPChannel, queueName: QueueName, exchangeName: ExchangeName, routingKey: RoutingKey): F[Unit]
-  def bindQueue(channel: AMQPChannel,
-                queueName: QueueName,
-                exchangeName: ExchangeName,
-                routingKey: RoutingKey,
-                args: QueueBindingArgs): F[Unit]
-  def bindQueueNoWait(channel: AMQPChannel,
-                      queueName: QueueName,
-                      exchangeName: ExchangeName,
-                      routingKey: RoutingKey,
-                      args: QueueBindingArgs): F[Unit]
-  def unbindQueue(channel: AMQPChannel,
-                  queueName: QueueName,
-                  exchangeName: ExchangeName,
-                  routingKey: RoutingKey): F[Unit]
-  def unbindQueue(channel: AMQPChannel,
-                  queueName: QueueName,
-                  exchangeName: ExchangeName,
-                  routingKey: RoutingKey,
-                  args: QueueUnbindArgs): F[Unit]
-  def bindExchange(channel: AMQPChannel,
-                   destination: ExchangeName,
-                   source: ExchangeName,
-                   routingKey: RoutingKey,
-                   args: ExchangeBindingArgs): F[Unit]
-  def bindExchangeNoWait(channel: AMQPChannel,
-                         destination: ExchangeName,
-                         source: ExchangeName,
-                         routingKey: RoutingKey,
-                         args: ExchangeBindingArgs): F[Unit]
-  def unbindExchange(channel: AMQPChannel,
-                     destination: ExchangeName,
-                     source: ExchangeName,
-                     routingKey: RoutingKey,
-                     args: ExchangeUnbindArgs): F[Unit]
+  def bindQueue(
+      channel: AMQPChannel,
+      queueName: QueueName,
+      exchangeName: ExchangeName,
+      routingKey: RoutingKey,
+      args: QueueBindingArgs
+  ): F[Unit]
+  def bindQueueNoWait(
+      channel: AMQPChannel,
+      queueName: QueueName,
+      exchangeName: ExchangeName,
+      routingKey: RoutingKey,
+      args: QueueBindingArgs
+  ): F[Unit]
+  def unbindQueue(
+      channel: AMQPChannel,
+      queueName: QueueName,
+      exchangeName: ExchangeName,
+      routingKey: RoutingKey,
+      args: QueueUnbindArgs
+  ): F[Unit]
+  def bindExchange(
+      channel: AMQPChannel,
+      destination: ExchangeName,
+      source: ExchangeName,
+      routingKey: RoutingKey,
+      args: ExchangeBindingArgs
+  ): F[Unit]
+  def bindExchangeNoWait(
+      channel: AMQPChannel,
+      destination: ExchangeName,
+      source: ExchangeName,
+      routingKey: RoutingKey,
+      args: ExchangeBindingArgs
+  ): F[Unit]
+  def unbindExchange(
+      channel: AMQPChannel,
+      destination: ExchangeName,
+      source: ExchangeName,
+      routingKey: RoutingKey,
+      args: ExchangeUnbindArgs
+  ): F[Unit]
 }
