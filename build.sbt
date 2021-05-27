@@ -4,8 +4,8 @@ import Dependencies._
 import microsites.ExtraMdFileConfig
 
 ThisBuild / name := """fs2-rabbit"""
-ThisBuild / scalaVersion := "2.13.5"
-ThisBuild / crossScalaVersions := List("2.12.13", "2.13.5")
+ThisBuild / scalaVersion := "2.13.6"
+ThisBuild / crossScalaVersions := List("2.12.13", "2.13.6", "3.0.0")
 ThisBuild / organization := "dev.profunktor"
 ThisBuild / homepage := Some(url("https://fs2-rabbit.profunktor.dev/"))
 ThisBuild / licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0"))
@@ -28,7 +28,7 @@ promptTheme := PromptTheme(
 def scalaOptions(v: String) =
   CrossVersion.partialVersion(v) match {
     case Some((2, 13)) => List.empty[String]
-    case Some((3, _))  => List("-Ykind-projector")
+    case Some((3, _))  => List("-source:3.0-migration")
     case _             => List("-Xmax-classfile-name", "100")
   }
 
@@ -58,7 +58,7 @@ val commonSettings = List(
   headerLicense := Some(HeaderLicense.ALv2(s"${startYear.value.get}-${java.time.Year.now}", "ProfunKtor")),
   Compile / doc / scalacOptions ++= List("-no-link-warnings"),
   scalacOptions ++= scalaOptions(scalaVersion.value),
-  scalacOptions --= List("-Wunused:params"),
+  scalacOptions --= List("-Wunused:params", "-Xfatal-warnings"),
   libraryDependencies ++= commonDependencies(scalaVersion.value),
   resolvers += "Apache public" at "https://repository.apache.org/content/groups/public/",
   scalafmtOnCompile := true,

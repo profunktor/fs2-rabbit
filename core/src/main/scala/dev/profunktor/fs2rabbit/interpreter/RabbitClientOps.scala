@@ -17,6 +17,7 @@
 package dev.profunktor.fs2rabbit.interpreter
 
 import cats.data.EitherT
+import cats.effect.MonadCancelThrow
 import cats.effect.kernel.MonadCancel
 import cats.~>
 import cats.implicits._
@@ -37,7 +38,7 @@ final class RabbitClientOps[F[_]](val client: RabbitClient[F]) extends AnyVal {
   /** *
     * Transforms the rabbit client into one where all errors from the effect are caught and lifted into EitherT's error channel
     */
-  def liftAttemptK(implicit F: MonadCancel[F, Throwable]): RabbitClient[EitherT[F, Throwable, *]] =
+  def liftAttemptK(implicit F: MonadCancelThrow[F]): RabbitClient[EitherT[F, Throwable, *]] =
     imapK[EitherT[F, Throwable, *]](EitherT.liftAttemptK)(
       new (EitherT[F, Throwable, *] ~> F) {
         def apply[A](fa: EitherT[F, Throwable, A]): F[A] = fa.value.flatMap {

@@ -64,7 +64,7 @@ object model {
   object DeliveryTag extends (Long => DeliveryTag) {
     implicit val deliveryTagOrder: Order[DeliveryTag] = Order.by(_.value)
     implicit val deliveryTagCommutativeSemigroup: CommutativeSemigroup[DeliveryTag] =
-      CommutativeSemigroup.instance(_ max _)
+      CommutativeSemigroup.instance(deliveryTagOrder.max)
   }
   case class ConsumerTag(value: String) extends AnyVal
   object ConsumerTag extends (String => ConsumerTag) {
@@ -484,12 +484,12 @@ object model {
   case class AmqpMessage[A](payload: A, properties: AmqpProperties)
 
   object AmqpEnvelope {
-    private def encoding[F[_]](implicit F: ApplicativeError[F, Throwable]): EnvelopeDecoder[F, Option[Charset]] =
+    private def encoding[F[_]](implicit F: ApplicativeThrow[F]): EnvelopeDecoder[F, Option[Charset]] =
       Kleisli(_.properties.contentEncoding.traverse(n => F.catchNonFatal(Charset.forName(n))))
 
     // usually this would go in the EnvelopeDecoder companion object, but since that's only a type alias,
     // we need to put it here for the compiler to find it during implicit search
-    implicit def stringDecoder[F[_]: ApplicativeError[*[_], Throwable]]: EnvelopeDecoder[F, String] =
+    implicit def stringDecoder[F[_]: ApplicativeThrow]: EnvelopeDecoder[F, String] =
       (EnvelopeDecoder.payload[F], encoding[F]).mapN((p, e) => new String(p, e.getOrElse(UTF_8)))
 
     implicit val amqpEnvelopeTraverse: Traverse[AmqpEnvelope] = new Traverse[AmqpEnvelope] {

@@ -34,7 +34,7 @@ object PublishingProgram {
 
 trait PublishingProgram[F[_]] extends Publishing[F] with Publish[F]
 
-case class WrapperPublishingProgram[F[_]: Sync] private (
+case class WrapperPublishingProgram[F[_]: Sync] private[program] (
     publish: Publish[F]
 ) extends PublishingProgram[F] {
   override def createPublisher[A](

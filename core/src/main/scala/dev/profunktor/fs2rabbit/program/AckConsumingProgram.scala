@@ -48,7 +48,7 @@ trait AckConsumingProgram[F[_]]
     with ConsumingStream[F]
     with Cancel[F]
 
-case class WrapperAckConsumingProgram[F[_]: Sync] private (
+case class WrapperAckConsumingProgram[F[_]: Sync] private[program] (
     ackingProgram: AckingProgram[F],
     consumingProgram: ConsumingProgram[F]
 ) extends AckConsumingProgram[F] {

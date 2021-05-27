@@ -32,7 +32,7 @@ object ConsumingProgram {
 
 trait ConsumingProgram[F[_]] extends ConsumingStream[F] with Consume[F]
 
-case class WrapperConsumingProgram[F[_]: Sync] private (
+case class WrapperConsumingProgram[F[_]: Sync] private[program] (
     internalQueue: InternalQueue[F],
     consume: Consume[F]
 ) extends ConsumingProgram[F] {

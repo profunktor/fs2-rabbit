@@ -15,7 +15,7 @@
  */
 
 package dev.profunktor.fs2rabbit.effects
-import cats.{Applicative, ApplicativeError}
+import cats.{Applicative, ApplicativeThrow}
 import cats.data.Kleisli
 import dev.profunktor.fs2rabbit.model.{AmqpFieldValue, AmqpProperties, ExchangeName, RoutingKey}
 import dev.profunktor.fs2rabbit.model.AmqpFieldValue._
@@ -39,44 +39,43 @@ object EnvelopeDecoder {
   def redelivered[F[_]: Applicative]: EnvelopeDecoder[F, Boolean] =
     Kleisli(e => e.redelivered.pure[F])
 
-  def header[F[_]](name: String)(implicit F: ApplicativeError[F, Throwable]): EnvelopeDecoder[F, AmqpFieldValue] =
+  def header[F[_]](name: String)(implicit F: ApplicativeThrow[F]): EnvelopeDecoder[F, AmqpFieldValue] =
     Kleisli(e => F.catchNonFatal(e.properties.headers(name)))
 
   def optHeader[F[_]: Applicative](name: String): EnvelopeDecoder[F, Option[AmqpFieldValue]] =
     Kleisli(_.properties.headers.get(name).pure[F])
 
-  def stringHeader[F[_]: ApplicativeError[*[_], Throwable]](name: String): EnvelopeDecoder[F, String] =
+  def stringHeader[F[_]: ApplicativeThrow](name: String): EnvelopeDecoder[F, String] =
     headerPF[F, String](name) { case StringVal(a) => a }
 
-  def intHeader[F[_]: ApplicativeError[*[_], Throwable]](name: String): EnvelopeDecoder[F, Int] =
+  def intHeader[F[_]: ApplicativeThrow](name: String): EnvelopeDecoder[F, Int] =
     headerPF[F, Int](name) { case IntVal(a) => a }
 
-  def longHeader[F[_]: ApplicativeError[*[_], Throwable]](name: String): EnvelopeDecoder[F, Long] =
+  def longHeader[F[_]: ApplicativeThrow](name: String): EnvelopeDecoder[F, Long] =
     headerPF[F, Long](name) { case LongVal(a) => a }
 
-  def arrayHeader[F[_]: ApplicativeError[*[_], Throwable]](name: String): EnvelopeDecoder[F, collection.Seq[Any]] =
+  def arrayHeader[F[_]: ApplicativeThrow](name: String): EnvelopeDecoder[F, collection.Seq[Any]] =
     headerPF[F, collection.Seq[Any]](name) { case ArrayVal(a) => a }
 
-  def optStringHeader[F[_]: ApplicativeError[*[_], Throwable]](name: String): EnvelopeDecoder[F, Option[String]] =
+  def optStringHeader[F[_]: ApplicativeThrow](name: String): EnvelopeDecoder[F, Option[String]] =
     optHeaderPF[F, String](name) { case StringVal(a) => a }
 
-  def optIntHeader[F[_]: ApplicativeError[*[_], Throwable]](name: String): EnvelopeDecoder[F, Option[Int]] =
+  def optIntHeader[F[_]: ApplicativeThrow](name: String): EnvelopeDecoder[F, Option[Int]] =
     optHeaderPF[F, Int](name) { case IntVal(a) => a }
 
-  def optLongHeader[F[_]: ApplicativeError[*[_], Throwable]](name: String): EnvelopeDecoder[F, Option[Long]] =
+  def optLongHeader[F[_]: ApplicativeThrow](name: String): EnvelopeDecoder[F, Option[Long]] =
     optHeaderPF[F, Long](name) { case LongVal(a) => a }
 
-  def optArrayHeader[F[_]: ApplicativeError[*[_], Throwable]](
-      name: String): EnvelopeDecoder[F, Option[collection.Seq[Any]]] =
+  def optArrayHeader[F[_]: ApplicativeThrow](name: String): EnvelopeDecoder[F, Option[collection.Seq[Any]]] =
     optHeaderPF[F, collection.Seq[Any]](name) { case ArrayVal(a) => a }
 
   private def headerPF[F[_], A](name: String)(pf: PartialFunction[AmqpFieldValue, A])(
-      implicit F: ApplicativeError[F, Throwable]): EnvelopeDecoder[F, A] =
+      implicit F: ApplicativeThrow[F]): EnvelopeDecoder[F, A] =
     Kleisli { env =>
       F.catchNonFatal(pf(env.properties.headers(name)))
     }
 
   private def optHeaderPF[F[_], A](name: String)(pf: PartialFunction[AmqpFieldValue, A])(
-      implicit F: ApplicativeError[F, Throwable]): EnvelopeDecoder[F, Option[A]] =
+      implicit F: ApplicativeThrow[F]): EnvelopeDecoder[F, Option[A]] =
     Kleisli(_.properties.headers.get(name).traverse(h => F.catchNonFatal(pf(h))))
 }
