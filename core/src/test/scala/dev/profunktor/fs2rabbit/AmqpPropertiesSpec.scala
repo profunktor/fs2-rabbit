@@ -31,7 +31,7 @@ import scodec.bits.ByteVector
 class AmqpPropertiesSpec extends AnyFlatSpecLike with Matchers with AmqpPropertiesArbitraries {
 
   it should s"convert from and to Java AMQP.BasicProperties" in {
-    forAll { amqpProperties: AmqpProperties =>
+    forAll { (amqpProperties: AmqpProperties) =>
       val basicProps = amqpProperties.asBasicProps
       AmqpProperties.unsafeFrom(basicProps) should be(amqpProperties)
     }

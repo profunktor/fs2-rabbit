@@ -16,7 +16,6 @@ object Dependencies {
     val dropwizard = "4.2.0"
 
     val kindProjector    = "0.13.0"
-    val betterMonadicFor = "0.3.1"
 
     val scalaTest               = "3.2.9"
     val scalaCheck              = "1.15.4"
@@ -34,7 +33,6 @@ object Dependencies {
 
     // Compiler
     lazy val kindProjector    = "org.typelevel" % "kind-projector"     % Version.kindProjector cross CrossVersion.full
-    lazy val betterMonadicFor = "com.olegpy"   %% "better-monadic-for" % Version.betterMonadicFor
 
     // Examples
     lazy val logback       = "ch.qos.logback"        % "logback-classic"  % Version.logback

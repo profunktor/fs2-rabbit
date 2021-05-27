@@ -46,7 +46,6 @@ def commonDependencies(v: String) =
       case _            =>
         List(
           compilerPlugin(Libraries.kindProjector),
-          compilerPlugin(Libraries.betterMonadicFor)
         )
     })
 

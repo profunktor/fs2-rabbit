@@ -41,7 +41,7 @@ class AmqpFieldValueSpec extends AnyFlatSpecLike with Matchers with AmqpProperti
     AmqpFieldValue.unsafeFrom(arrayVal.toValueWriterCompatibleJava) should be(arrayVal)
   }
   it should "preserve the same value after a round-trip through impure and from" in {
-    forAll { amqpHeaderVal: AmqpFieldValue =>
+    forAll { (amqpHeaderVal: AmqpFieldValue) =>
       AmqpFieldValue.unsafeFrom(amqpHeaderVal.toValueWriterCompatibleJava) == amqpHeaderVal
     }
   }
