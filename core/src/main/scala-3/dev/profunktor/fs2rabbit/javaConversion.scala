@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2019 ProfunKtor
+ * Copyright 2017-2021 ProfunKtor
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,10 +16,10 @@
 
 package dev.profunktor.fs2rabbit
 
-import scala.collection.convert.{DecorateAsJava, DecorateAsScala}
+import scala.collection.convert.{AsJavaExtensions, AsScalaExtensions}
 
 // This exists purely for compatibility between Scala 2.13 and 2.12 since the
 // Java conversions have been moved into a different package between the two,
 // allowing us to have a single, consistent import everywhere else in this
 // codebase across both 2.13 and 2.12.
-object javaConversion extends DecorateAsJava with DecorateAsScala
+object javaConversion extends AsJavaExtensions with AsScalaExtensions

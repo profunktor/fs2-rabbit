@@ -32,7 +32,7 @@ object AckingProgram {
 
 trait AckingProgram[F[_]] extends Acking[F] with Consume[F]
 
-case class WrapperAckingProgram[F[_]: Sync] private (
+case class WrapperAckingProgram[F[_]: Sync] private[program] (
     config: Fs2RabbitConfig,
     consume: Consume[F]
 ) extends AckingProgram[F] {

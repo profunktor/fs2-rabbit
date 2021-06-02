@@ -17,11 +17,11 @@
 package dev.profunktor.fs2rabbit.examples
 
 import java.nio.charset.StandardCharsets.UTF_8
-
 import cats.data.Kleisli
 import cats.effect._
 import cats.implicits._
 import dev.profunktor.fs2rabbit.config.declaration.{DeclarationExchangeConfig, DeclarationQueueConfig}
+import dev.profunktor.fs2rabbit.effects.MessageEncoder
 import dev.profunktor.fs2rabbit.interpreter.RabbitClient
 import dev.profunktor.fs2rabbit.json.Fs2JsonEncoder
 import dev.profunktor.fs2rabbit.model.AckResult.Ack
@@ -35,7 +35,7 @@ class AckerConsumerDemo[F[_]: Async](fs2Rabbit: RabbitClient[F]) {
   private val exchangeName = ExchangeName("testEX")
   private val routingKey   = RoutingKey("testRK")
 
-  implicit val stringMessageEncoder =
+  implicit val stringMessageEncoder: MessageEncoder[F, AmqpMessage[String]] =
     Kleisli[F, AmqpMessage[String], AmqpMessage[Array[Byte]]](s => s.copy(payload = s.payload.getBytes(UTF_8)).pure[F])
 
   def logPipe: Pipe[F, AmqpEnvelope[String], AckResult] =
@@ -55,7 +55,8 @@ class AckerConsumerDemo[F[_]: Async](fs2Rabbit: RabbitClient[F]) {
       _                 <- fs2Rabbit.declareQueue(DeclarationQueueConfig.default(queueName))
       _                 <- fs2Rabbit.declareExchange(DeclarationExchangeConfig.default(exchangeName, Topic))
       _                 <- fs2Rabbit.bindQueue(queueName, exchangeName, routingKey)
-      (acker, consumer) <- fs2Rabbit.createAckerConsumer[String](queueName)
+      ackerConsumer     <- fs2Rabbit.createAckerConsumer[String](queueName)
+      (acker, consumer) = ackerConsumer
       publisher <- fs2Rabbit.createPublisherWithListener[AmqpMessage[String]](
                     exchangeName,
                     routingKey,
