@@ -78,7 +78,8 @@ class AckerConsumerDemo[F[_]: Async](R: RabbitClient[F]) {
                                                                       routingKey,
                                                                       publishingFlag,
                                                                       publishingListener)
-      (acker, consumer) <- R.createAckerConsumer[String](queueName)
+      ackerConsumer     <- R.createAckerConsumer[String](queueName)
+      (acker, consumer) = ackerConsumer
       result            = new Flow[F, String](consumer, acker, logPipe, publisher).flow
       _                 <- result.compile.drain
     } yield ()

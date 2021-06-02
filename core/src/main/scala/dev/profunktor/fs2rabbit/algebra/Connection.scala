@@ -91,13 +91,13 @@ object ConnectionResource {
             Sync[F]
               .delay(connectionFactory.newConnection(addresses.toList.asJava))
               .flatTap(c => Log[F].info(s"Acquired connection: $c"))
-              .map(RabbitConnection)
+              .map(RabbitConnection.apply)
 
           private[fs2rabbit] def acquireChannel(connection: AMQPConnection): F[AMQPChannel] =
             Sync[F]
               .delay(connection.value.createChannel)
               .flatTap(c => Log[F].info(s"Acquired channel: $c"))
-              .map(RabbitChannel)
+              .map(RabbitChannel.apply)
 
           override def createConnection: Resource[F, AMQPConnection] =
             Resource.make(acquireConnection) { amqpConn =>

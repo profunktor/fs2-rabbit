@@ -16,11 +16,10 @@ object Dependencies {
     val dropwizard = "4.2.0"
 
     val kindProjector    = "0.13.0"
-    val betterMonadicFor = "0.3.1"
 
     val scalaTest               = "3.2.9"
     val scalaCheck              = "1.15.4"
-    val scalaTestPlusScalaCheck = "3.2.2.0"
+    val scalaTestPlusScalaCheck = "3.2.9.0"
     val disciplineScalaCheck    = "2.1.5"
   }
 
@@ -34,7 +33,6 @@ object Dependencies {
 
     // Compiler
     lazy val kindProjector    = "org.typelevel" % "kind-projector"     % Version.kindProjector cross CrossVersion.full
-    lazy val betterMonadicFor = "com.olegpy"   %% "better-monadic-for" % Version.betterMonadicFor
 
     // Examples
     lazy val logback       = "ch.qos.logback"        % "logback-classic"  % Version.logback
@@ -52,7 +50,7 @@ object Dependencies {
     // Scala test libraries
     lazy val scalaTest               = "org.scalatest"     %% "scalatest"            % Version.scalaTest
     lazy val scalaCheck              = "org.scalacheck"    %% "scalacheck"           % Version.scalaCheck
-    lazy val scalaTestPlusScalaCheck = "org.scalatestplus" %% "scalacheck-1-14"      % Version.scalaTestPlusScalaCheck
+    lazy val scalaTestPlusScalaCheck = "org.scalatestplus" %% "scalacheck-1-15"       % Version.scalaTestPlusScalaCheck
     lazy val disciplineScalaCheck    = "org.typelevel"     %% "discipline-scalatest" % Version.disciplineScalaCheck
     lazy val catsLaws                = "org.typelevel"     %% "cats-laws"            % Version.cats
     lazy val catsKernelLaws          = "org.typelevel"     %% "cats-kernel-laws"     % Version.cats

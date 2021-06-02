@@ -17,7 +17,6 @@
 package dev.profunktor.fs2rabbit.examples
 
 import java.nio.charset.StandardCharsets.UTF_8
-
 import cats.data.{Kleisli, NonEmptyList}
 import cats.effect.{IO, IOApp, Resource, Sync}
 import cats.implicits._
@@ -26,6 +25,7 @@ import com.codahale.metrics.jmx.JmxReporter
 import com.rabbitmq.client.impl.StandardMetricsCollector
 import dev.profunktor.fs2rabbit.config.declaration.{DeclarationExchangeConfig, DeclarationQueueConfig}
 import dev.profunktor.fs2rabbit.config.{Fs2RabbitConfig, Fs2RabbitNodeConfig}
+import dev.profunktor.fs2rabbit.effects.MessageEncoder
 import dev.profunktor.fs2rabbit.interpreter.RabbitClient
 import dev.profunktor.fs2rabbit.model.AckResult.Ack
 import dev.profunktor.fs2rabbit.model.ExchangeType.Topic
@@ -56,7 +56,7 @@ object DropwizardMetricsDemo extends IOApp.Simple {
 
   val simpleMessage = AmqpMessage("Hey!", AmqpProperties.empty)
 
-  implicit val stringMessageEncoder =
+  implicit val stringMessageEncoder: MessageEncoder[IO, AmqpMessage[String]] =
     Kleisli[IO, AmqpMessage[String], AmqpMessage[Array[Byte]]] { s =>
       s.copy(payload = s.payload.getBytes(UTF_8)).pure[IO]
     }
@@ -80,7 +80,8 @@ object DropwizardMetricsDemo extends IOApp.Simple {
             _                 <- client.declareQueue(DeclarationQueueConfig.default(queueName))
             _                 <- client.declareExchange(DeclarationExchangeConfig.default(exchangeName, Topic))
             _                 <- client.bindQueue(queueName, exchangeName, routingKey)
-            (acker, consumer) <- client.createAckerConsumer[String](queueName)
+            ackerConsumer     <- client.createAckerConsumer[String](queueName)
+            (acker, consumer) = ackerConsumer
             publisher         <- client.createPublisher[AmqpMessage[String]](exchangeName, routingKey)
           } yield (consumer, acker, publisher)
 
