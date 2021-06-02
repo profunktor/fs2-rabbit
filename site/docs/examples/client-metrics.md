@@ -142,7 +142,8 @@ object DropwizardMetricsDemo extends IOApp {
             _                 <- client.declareQueue(DeclarationQueueConfig.default(queueName))
             _                 <- client.declareExchange(DeclarationExchangeConfig.default(exchangeName, Topic))
             _                 <- client.bindQueue(queueName, exchangeName, routingKey)
-            (acker, consumer) <- client.createAckerConsumer[String](queueName)
+            ackerConsumer     <- client.createAckerConsumer[String](queueName)
+            (acker, consumer) = ackerConsumer
             publisher         <- client.createPublisher[AmqpMessage[String]](exchangeName, routingKey)
           } yield (consumer, acker, publisher)
 
