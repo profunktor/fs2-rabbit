@@ -4,8 +4,8 @@ import Dependencies._
 import microsites.ExtraMdFileConfig
 
 ThisBuild / name := """fs2-rabbit"""
-ThisBuild / scalaVersion := "2.13.6"
-ThisBuild / crossScalaVersions := List("2.12.14", "2.13.6", "3.0.0")
+ThisBuild / scalaVersion := "2.13.5"
+ThisBuild / crossScalaVersions := List("2.12.14", "2.13.5", "3.0.1")
 ThisBuild / organization := "dev.profunktor"
 ThisBuild / homepage := Some(url("https://fs2-rabbit.profunktor.dev/"))
 ThisBuild / licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0"))
@@ -61,7 +61,7 @@ val commonSettings = List(
   libraryDependencies ++= commonDependencies(scalaVersion.value),
   resolvers += "Apache public" at "https://repository.apache.org/content/groups/public/",
   scalafmtOnCompile := true,
-  mimaPreviousArtifacts := Set(organization.value %% moduleName.value % "4.0.0")
+  mimaPreviousArtifacts := Set(organization.value %% moduleName.value % "4.1.0")
 )
 
 def CoreDependencies(scalaVersionStr: String): List[ModuleID] =
