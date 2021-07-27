@@ -10,7 +10,7 @@ object Dependencies {
     val amqpClient = "5.13.0"
     val logback    = "1.2.5"
     val monix      = "3.3.0"
-    val zio        = "1.0.9"
+    val zio        = "1.0.10"
     val zioCats    = "3.1.1.0"
     val scodec     = "1.1.0"
     val dropwizard = "4.2.3"
