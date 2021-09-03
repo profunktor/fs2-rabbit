@@ -15,7 +15,7 @@ object Dependencies {
     val scodec     = "1.1.0"
     val dropwizard = "4.2.3"
 
-    val kindProjector    = "0.13.1"
+    val kindProjector    = "0.13.2"
 
     val scalaTest               = "3.2.9"
     val scalaCheck              = "1.15.4"
