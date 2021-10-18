@@ -4,22 +4,22 @@ object Dependencies {
 
   object Version {
     val cats       = "2.6.1"
-    val catsEffect = "3.2.8"
-    val fs2        = "3.1.2"
+    val catsEffect = "3.2.9"
+    val fs2        = "3.1.6"
     val circe      = "0.14.1"
     val amqpClient = "5.13.1"
     val logback    = "1.2.6"
     val monix      = "3.3.0"
-    val zio        = "1.0.11"
+    val zio        = "1.0.12"
     val zioCats    = "3.1.1.0"
     val scodec     = "1.1.0"
-    val dropwizard = "4.2.3"
+    val dropwizard = "4.2.4"
 
     val kindProjector    = "0.13.2"
 
-    val scalaTest               = "3.2.9"
+    val scalaTest               = "3.2.10"
     val scalaCheck              = "1.15.4"
-    val scalaTestPlusScalaCheck = "3.2.9.0"
+    val scalaTestPlusScalaCheck = "3.2.10.0"
     val disciplineScalaCheck    = "2.1.5"
   }
 
