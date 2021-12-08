@@ -13,7 +13,7 @@ object Dependencies {
     val zio        = "1.0.12"
     val zioCats    = "3.2.9.0"
     val scodec     = "1.1.0"
-    val dropwizard = "4.2.4"
+    val dropwizard = "4.2.5"
 
     val kindProjector    = "0.13.2"
 
