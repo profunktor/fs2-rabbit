@@ -31,9 +31,9 @@ import fs2.{Pipe, Pure, Stream}
 import io.circe.Encoder
 
 class AutoAckConsumerDemo[F[_]: Async](R: RabbitClient[F]) {
-  private val queueName    = QueueName("testQ")
-  private val exchangeName = ExchangeName("testEX")
-  private val routingKey   = RoutingKey("testRK")
+  private val queueName                                                     = QueueName("testQ")
+  private val exchangeName                                                  = ExchangeName("testEX")
+  private val routingKey                                                    = RoutingKey("testRK")
   implicit val stringMessageEncoder: MessageEncoder[F, AmqpMessage[String]] =
     Kleisli[F, AmqpMessage[String], AmqpMessage[Array[Byte]]](s => s.copy(payload = s.payload.getBytes(UTF_8)).pure[F])
 
@@ -74,7 +74,7 @@ class AutoAckFlow[F[_]: Async, A](
 
   val simpleMessage =
     AmqpMessage("Hey!", AmqpProperties(headers = Map("demoId" -> LongVal(123), "app" -> StringVal("fs2RabbitDemo"))))
-  val classMessage = AmqpMessage(Person(1L, "Sherlock", Address(212, "Baker St")), AmqpProperties.empty)
+  val classMessage  = AmqpMessage(Person(1L, "Sherlock", Address(212, "Baker St")), AmqpProperties.empty)
 
   val flow: Stream[F, Unit] =
     Stream(

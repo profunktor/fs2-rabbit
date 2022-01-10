@@ -47,10 +47,10 @@ case class WrapperAckingProgram[F[_]: Sync] private[program] (
     }
 
   private def _createAckerWithMultipleFlag(channel: AMQPChannel): (AckResult, AckMultiple) => F[Unit] = {
-    case (Ack(tag), flag) => consume.basicAck(channel, tag, multiple = flag.multiple)
+    case (Ack(tag), flag)  => consume.basicAck(channel, tag, multiple = flag.multiple)
     case (NAck(tag), flag) =>
       consume.basicNack(channel, tag, multiple = flag.multiple, config.requeueOnNack)
-    case (Reject(tag), _) =>
+    case (Reject(tag), _)  =>
       consume.basicReject(channel, tag, config.requeueOnReject)
   }
 

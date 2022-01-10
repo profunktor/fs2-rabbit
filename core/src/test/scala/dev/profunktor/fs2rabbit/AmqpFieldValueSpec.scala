@@ -74,14 +74,14 @@ class AmqpFieldValueSpec extends AnyFlatSpecLike with Matchers with AmqpProperti
     TableVal(Map(ShortString.unsafeFrom("dummyKey") -> value))
 
   private def createWriterFromQueue(outputResults: collection.mutable.Queue[Byte]): ValueWriter =
-    new ValueWriter({
-      new DataOutputStream({
+    new ValueWriter(
+      new DataOutputStream(
         new OutputStream {
           override def write(b: Int): Unit =
             outputResults.enqueue(b.toByte)
         }
-      })
-    })
+      )
+    )
 
   private def createReaderFromQueue(input: collection.mutable.Queue[Byte]): ValueReader = {
     val inputStream = new InputStream {
@@ -91,7 +91,7 @@ class AmqpFieldValueSpec extends AnyFlatSpecLike with Matchers with AmqpProperti
           // A signed -> unsigned conversion because bytes by default are
           // converted into signed ints, which is bad when the API of read
           // states that negative numbers indicate EOF...
-          0Xff & result.toInt
+          0xff & result.toInt
         } catch {
           case _: NoSuchElementException => -1
         }

@@ -73,9 +73,9 @@ case class WrapperPublishingProgram[F[_]: Sync] private[program] (
   )(implicit encoder: MessageEncoder[F, A]): F[(ExchangeName, RoutingKey, A) => F[Unit]] =
     Applicative[F].pure {
       case (
-          exchangeName: ExchangeName,
-          routingKey: RoutingKey,
-          msg: A @unchecked
+            exchangeName: ExchangeName,
+            routingKey: RoutingKey,
+            msg: A @unchecked
           ) =>
         encoder
           .run(msg)
@@ -89,21 +89,21 @@ case class WrapperPublishingProgram[F[_]: Sync] private[program] (
   )(implicit encoder: MessageEncoder[F, A]): F[(ExchangeName, RoutingKey, A) => F[Unit]] =
     publish.addPublishingListener(channel, listener).as {
       case (
-          exchangeName: ExchangeName,
-          routingKey: RoutingKey,
-          msg: A @unchecked
+            exchangeName: ExchangeName,
+            routingKey: RoutingKey,
+            msg: A @unchecked
           ) =>
         encoder
           .run(msg)
-          .flatMap(
-            payload =>
-              publish.basicPublishWithFlag(
-                channel,
-                exchangeName,
-                routingKey,
-                flag,
-                payload
-            ))
+          .flatMap(payload =>
+            publish.basicPublishWithFlag(
+              channel,
+              exchangeName,
+              routingKey,
+              flag,
+              payload
+            )
+          )
     }
 
   override def basicPublish(

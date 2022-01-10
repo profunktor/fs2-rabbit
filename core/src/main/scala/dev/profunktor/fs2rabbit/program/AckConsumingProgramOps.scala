@@ -59,9 +59,8 @@ final class AckConsumingProgramOps[F[_]](val prog: AckConsumingProgram[F]) exten
             .createAckerConsumer[A](channel, queueName, basicQos, consumerArgs, ackMultiple)(
               decoder.mapK(gk)
             )
-            .map {
-              case (acker, stream) =>
-                (acker.andThen(fk.apply), stream.translate(fk))
+            .map { case (acker, stream) =>
+              (acker.andThen(fk.apply), stream.translate(fk))
             }
         )
 
@@ -84,9 +83,8 @@ final class AckConsumingProgramOps[F[_]](val prog: AckConsumingProgram[F]) exten
 
       def createAckerWithMultipleFlag(channel: AMQPChannel): G[(AckResult, AckMultiple) => G[Unit]] =
         fk(prog.createAckerWithMultipleFlag(channel).map { acker =>
-          {
-            case (result, flag) =>
-              fk(acker(result, flag))
+          { case (result, flag) =>
+            fk(acker(result, flag))
           }
         })
 
@@ -101,10 +99,9 @@ final class AckConsumingProgramOps[F[_]](val prog: AckConsumingProgram[F]) exten
             .createAckerConsumerWithMultipleFlag[A](channel, queueName, basicQos, consumerArgs)(
               decoder.mapK(gk)
             )
-            .map {
-              case (acker, stream) =>
-                val gAcker: (AckResult, AckMultiple) => G[Unit] = { case (result, flag) => fk(acker(result, flag)) }
-                (gAcker, stream.translate(fk))
+            .map { case (acker, stream) =>
+              val gAcker: (AckResult, AckMultiple) => G[Unit] = { case (result, flag) => fk(acker(result, flag)) }
+              (gAcker, stream.translate(fk))
             }
         )
     }

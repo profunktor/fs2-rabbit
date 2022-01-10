@@ -20,11 +20,10 @@ import dev.profunktor.fs2rabbit.model.{AmqpEnvelope, AmqpMessage}
 
 package object effects {
 
-  /**
-    * Typeclass that provides the machinery to decode a given AMQP Envelope's payload.
+  /** Typeclass that provides the machinery to decode a given AMQP Envelope's payload.
     *
     * There's a default instance for decoding payloads into a UTF-8 String.
-    * */
+    */
   type EnvelopeDecoder[F[_], A] = Kleisli[F, AmqpEnvelope[Array[Byte]], A]
 
   type MessageEncoder[F[_], A] = Kleisli[F, A, AmqpMessage[Array[Byte]]]

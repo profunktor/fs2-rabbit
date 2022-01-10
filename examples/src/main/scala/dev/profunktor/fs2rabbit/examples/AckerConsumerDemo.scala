@@ -52,18 +52,18 @@ class AckerConsumerDemo[F[_]: Async](fs2Rabbit: RabbitClient[F]) {
 
   val program: F[Unit] = mkChannel.use { implicit channel =>
     for {
-      _                 <- fs2Rabbit.declareQueue(DeclarationQueueConfig.default(queueName))
-      _                 <- fs2Rabbit.declareExchange(DeclarationExchangeConfig.default(exchangeName, Topic))
-      _                 <- fs2Rabbit.bindQueue(queueName, exchangeName, routingKey)
-      ackerConsumer     <- fs2Rabbit.createAckerConsumer[String](queueName)
+      _                <- fs2Rabbit.declareQueue(DeclarationQueueConfig.default(queueName))
+      _                <- fs2Rabbit.declareExchange(DeclarationExchangeConfig.default(exchangeName, Topic))
+      _                <- fs2Rabbit.bindQueue(queueName, exchangeName, routingKey)
+      ackerConsumer    <- fs2Rabbit.createAckerConsumer[String](queueName)
       (acker, consumer) = ackerConsumer
-      publisher <- fs2Rabbit.createPublisherWithListener[AmqpMessage[String]](
-                    exchangeName,
-                    routingKey,
-                    publishingFlag,
-                    publishingListener
-                  )
-      _ <- new Flow[F, String](consumer, acker, logPipe, publisher).flow.compile.drain
+      publisher        <- fs2Rabbit.createPublisherWithListener[AmqpMessage[String]](
+                            exchangeName,
+                            routingKey,
+                            publishingFlag,
+                            publishingListener
+                          )
+      _                <- new Flow[F, String](consumer, acker, logPipe, publisher).flow.compile.drain
     } yield ()
   }
 
@@ -88,7 +88,7 @@ class Flow[F[_]: Concurrent, A](
 
   val simpleMessage =
     AmqpMessage("Hey!", AmqpProperties(headers = Map("demoId" -> LongVal(123), "app" -> StringVal("fs2RabbitDemo"))))
-  val classMessage = AmqpMessage(Person(1L, "Sherlock", Address(212, "Baker St")), AmqpProperties.empty)
+  val classMessage  = AmqpMessage(Person(1L, "Sherlock", Address(212, "Baker St")), AmqpProperties.empty)
 
   val flow: Stream[F, Unit] =
     Stream(

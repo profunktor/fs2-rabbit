@@ -20,14 +20,12 @@ import dev.profunktor.fs2rabbit.model.{AmqpEnvelope, DeliveryTag}
 import io.circe.parser.decode
 import io.circe.{Decoder, Error}
 
-/**
-  * Stream-based Json Decoder that exposes only one method as a streaming transformation
-  * using `fs2.Pipe` and depends on the Circe library.
-  * */
+/** Stream-based Json Decoder that exposes only one method as a streaming transformation using `fs2.Pipe` and depends on
+  * the Circe library.
+  */
 class Fs2JsonDecoder {
 
-  /**
-    * It tries to decode an `AmqpEnvelope.payload` into a case class determined by the parameter [A].
+  /** It tries to decode an `AmqpEnvelope.payload` into a case class determined by the parameter [A].
     *
     * For example:
     *
@@ -43,7 +41,7 @@ class Fs2JsonDecoder {
     * }}}
     *
     * The result will be a tuple (`Either` of `Error` and `A`, `DeliveryTag`)
-    * */
+    */
   def jsonDecode[A: Decoder]: AmqpEnvelope[String] => (Either[Error, A], DeliveryTag) =
     amqpMsg => (decode[A](amqpMsg.payload), amqpMsg.deliveryTag)
 

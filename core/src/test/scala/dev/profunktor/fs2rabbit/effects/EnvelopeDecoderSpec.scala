@@ -43,7 +43,8 @@ class EnvelopeDecoderSpec extends AsyncFunSuite {
 
     EnvelopeDecoder[IO, String]
       .run(
-        AmqpEnvelope(DeliveryTag(0L), raw, AmqpProperties.empty, ExchangeName("test"), RoutingKey("test.route"), false))
+        AmqpEnvelope(DeliveryTag(0L), raw, AmqpProperties.empty, ExchangeName("test"), RoutingKey("test.route"), false)
+      )
       .flatMap { result =>
         IO(assert(result == msg))
       }
@@ -56,12 +57,15 @@ class EnvelopeDecoderSpec extends AsyncFunSuite {
 
     EnvelopeDecoder[IO, String]
       .run(
-        AmqpEnvelope(DeliveryTag(0L),
-                     raw,
-                     AmqpProperties.empty.copy(contentEncoding = Some("UTF-16")),
-                     ExchangeName("test"),
-                     RoutingKey("test.route"),
-                     false))
+        AmqpEnvelope(
+          DeliveryTag(0L),
+          raw,
+          AmqpProperties.empty.copy(contentEncoding = Some("UTF-16")),
+          ExchangeName("test"),
+          RoutingKey("test.route"),
+          false
+        )
+      )
       .flatMap { result =>
         IO(assert(result != msg))
       }
@@ -74,7 +78,8 @@ class EnvelopeDecoderSpec extends AsyncFunSuite {
 
     EnvelopeDecoder[IO, String]
       .run(
-        AmqpEnvelope(DeliveryTag(0L), raw, AmqpProperties.empty, ExchangeName("test"), RoutingKey("test.route"), false))
+        AmqpEnvelope(DeliveryTag(0L), raw, AmqpProperties.empty, ExchangeName("test"), RoutingKey("test.route"), false)
+      )
       .flatMap { result =>
         IO(assert(result != msg))
       }
