@@ -33,7 +33,7 @@ object Consume {
       private[fs2rabbit] def defaultConsumer[A](
           channel: AMQPChannel,
           internals: AMQPInternals[F]
-      ): F[Consumer] = Sync[F].delay {
+      ): F[Consumer] = Applicative[F].pure {
         new DefaultConsumer(channel.value) {
 
           override def handleCancel(consumerTag: String): Unit =
@@ -98,7 +98,8 @@ object Consume {
                 )
               }
 
-            dispatcher.unsafeRunAndForget {
+            // Block on offering thus preserving order of messages
+            dispatcher.unsafeRunSync {
               internals.queue
                 .fold(Applicative[F].unit) { internalQ =>
                   internalQ.offer(envelopeOrErr)
