@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2021 ProfunKtor
+ * Copyright 2017-2022 ProfunKtor
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -49,25 +49,25 @@ object model {
   case class RabbitConnection(value: Connection) extends AMQPConnection
 
   case class ExchangeName(value: String) extends AnyVal
-  object ExchangeName extends (String => ExchangeName) {
+  object ExchangeName                    extends (String => ExchangeName) {
     implicit val exchangeNameOrder: Order[ExchangeName] = Order.by(_.value)
   }
-  case class QueueName(value: String) extends AnyVal
-  object QueueName extends (String => QueueName) {
+  case class QueueName(value: String)    extends AnyVal
+  object QueueName                       extends (String => QueueName)    {
     implicit val queueNameOrder: Order[QueueName] = Order.by(_.value)
   }
-  case class RoutingKey(value: String) extends AnyVal
-  object RoutingKey extends (String => RoutingKey) {
+  case class RoutingKey(value: String)   extends AnyVal
+  object RoutingKey                      extends (String => RoutingKey)   {
     implicit val routingKeyOrder: Order[RoutingKey] = Order.by(_.value)
   }
-  case class DeliveryTag(value: Long) extends AnyVal
-  object DeliveryTag extends (Long => DeliveryTag) {
-    implicit val deliveryTagOrder: Order[DeliveryTag] = Order.by(_.value)
+  case class DeliveryTag(value: Long)    extends AnyVal
+  object DeliveryTag                     extends (Long => DeliveryTag)    {
+    implicit val deliveryTagOrder: Order[DeliveryTag]                               = Order.by(_.value)
     implicit val deliveryTagCommutativeSemigroup: CommutativeSemigroup[DeliveryTag] =
       CommutativeSemigroup.instance(deliveryTagOrder.max)
   }
-  case class ConsumerTag(value: String) extends AnyVal
-  object ConsumerTag extends (String => ConsumerTag) {
+  case class ConsumerTag(value: String)  extends AnyVal
+  object ConsumerTag                     extends (String => ConsumerTag)  {
     implicit val consumerTagOrder: Order[ConsumerTag] = Order.by(_.value)
   }
 
@@ -122,9 +122,8 @@ object model {
         None
       }
 
-    /** This bypasses the safety check that [[from]] has. This is meant only for
-      * situations where you are certain the string cannot be larger than
-      * [[MaxByteLength]] (e.g. string literals).
+    /** This bypasses the safety check that [[from]] has. This is meant only for situations where you are certain the
+      * string cannot be larger than [[MaxByteLength]] (e.g. string literals).
       */
     def unsafeFrom(str: String): ShortString = new ShortString(str) {}
 
@@ -132,33 +131,26 @@ object model {
     implicit val shortStringOrdering: Ordering[ShortString] = Order[ShortString].toOrdering
   }
 
-  /** This hierarchy is meant to reflect the output of
-    * [[com.rabbitmq.client.impl.ValueReader.readFieldValue]] in a type-safe
-    * way.
+  /** This hierarchy is meant to reflect the output of [[com.rabbitmq.client.impl.ValueReader.readFieldValue]] in a
+    * type-safe way.
     *
-    * Note that we don't include LongString here because of some ambiguity in
-    * how RabbitMQ's Java client deals with it. While it will happily write out
-    * LongStrings and Strings separately, when reading it will always interpret
-    * a String as a LongString and so will never return a normal String.
-    * This means that if we included separate LongStringVal and StringVals we
-    * could have encode-decode round-trip differences (taking a String sending
-    * it off to RabbitMQ and reading it back will result in a LongString).
-    * We therefore collapse both LongStrings and Strings into a single StringVal
-    * backed by an ordinary String.
+    * Note that we don't include LongString here because of some ambiguity in how RabbitMQ's Java client deals with it.
+    * While it will happily write out LongStrings and Strings separately, when reading it will always interpret a String
+    * as a LongString and so will never return a normal String. This means that if we included separate LongStringVal
+    * and StringVals we could have encode-decode round-trip differences (taking a String sending it off to RabbitMQ and
+    * reading it back will result in a LongString). We therefore collapse both LongStrings and Strings into a single
+    * StringVal backed by an ordinary String.
     *
-    * Note that this type hierarchy is NOT exactly identical to the AMQP 0-9-1
-    * spec. This is partially because RabbitMQ does not exactly follow the spec
-    * itself (see https://www.rabbitmq.com/amqp-0-9-1-errata.html#section_3)
-    * and also because the underlying Java client chooses to try to map the
-    * RabbitMQ types into Java primitive types when possible, collapsing a lot
-    * of the signed and unsigned types because Java does not have the signed
-    * and unsigned equivalents.
+    * Note that this type hierarchy is NOT exactly identical to the AMQP 0-9-1 spec. This is partially because RabbitMQ
+    * does not exactly follow the spec itself (see https://www.rabbitmq.com/amqp-0-9-1-errata.html#section_3) and also
+    * because the underlying Java client chooses to try to map the RabbitMQ types into Java primitive types when
+    * possible, collapsing a lot of the signed and unsigned types because Java does not have the signed and unsigned
+    * equivalents.
     */
   sealed trait AmqpFieldValue extends Product with Serializable {
 
-    /** The opposite of [[AmqpFieldValue.unsafeFrom]]. Turns an [[AmqpFieldValue]]
-      * into something that can be processed by
-      * [[com.rabbitmq.client.impl.ValueWriter]].
+    /** The opposite of [[AmqpFieldValue.unsafeFrom]]. Turns an [[AmqpFieldValue]] into something that can be processed
+      * by [[com.rabbitmq.client.impl.ValueWriter]].
       */
     def toValueWriterCompatibleJava: AnyRef
   }
@@ -167,8 +159,8 @@ object model {
 
     /** A type for AMQP timestamps.
       *
-      * Note that this is only accurate to the second (as supported by the AMQP
-      * spec and the underlying RabbitMQ implementation).
+      * Note that this is only accurate to the second (as supported by the AMQP spec and the underlying RabbitMQ
+      * implementation).
       */
     sealed abstract case class TimestampVal private (instantWithOneSecondAccuracy: Instant) extends AmqpFieldValue {
       override def toValueWriterCompatibleJava: Date = Date.from(instantWithOneSecondAccuracy)
@@ -183,9 +175,8 @@ object model {
         Order.by[TimestampVal, Instant](_.instantWithOneSecondAccuracy)(instantOrderWithSecondPrecision)
     }
 
-    /** A type for precise decimal values. Note that while it is backed by a
-      * [[BigDecimal]] (just like the underlying Java library), there is a limit
-      * on the size and precision of the decimal: its unscaled representation cannot
+    /** A type for precise decimal values. Note that while it is backed by a [[BigDecimal]] (just like the underlying
+      * Java library), there is a limit on the size and precision of the decimal: its unscaled representation cannot
       * exceed 4 bytes due to the AMQP spec and its scale component must be an octet.
       */
     sealed abstract case class DecimalVal private (sizeLimitedBigDecimal: BigDecimal) extends AmqpFieldValue {
@@ -196,23 +187,23 @@ object model {
 
       val MaxScaleValue: Int = 255
 
-      /** The AMQP 0.9.1 standard specifies that the scale component of a
-        * decimal must be an octet (i.e. between 0 and 255) and that its
-        * unscaled component must be a 32-bit integer. If those criteria are
-        * not met, then we get back None.
+      /** The AMQP 0.9.1 standard specifies that the scale component of a decimal must be an octet (i.e. between 0 and
+        * 255) and that its unscaled component must be a 32-bit integer. If those criteria are not met, then we get back
+        * None.
         */
       def from(bigDecimal: BigDecimal): Option[DecimalVal] =
-        if (getFullBitLengthOfUnscaled(bigDecimal) > MaxUnscaledBits ||
-            bigDecimal.scale > MaxScaleValue ||
-            bigDecimal.scale < 0) {
+        if (
+          getFullBitLengthOfUnscaled(bigDecimal) > MaxUnscaledBits ||
+          bigDecimal.scale > MaxScaleValue ||
+          bigDecimal.scale < 0
+        ) {
           None
         } else {
           Some(new DecimalVal(bigDecimal) {})
         }
 
-      /** Only use if you're certain that the [[BigDecimal]]'s representation
-        * meets the requirements of a [[ DecimalVal ]] (e.g. you are
-        * constructing one using literals).
+      /** Only use if you're certain that the [[BigDecimal]]'s representation meets the requirements of a [[DecimalVal]]
+        * (e.g. you are constructing one using literals).
         *
         * Almost always you should be using [[from]].
         */
@@ -227,86 +218,85 @@ object model {
       implicit val decimalValOrder: Order[DecimalVal] = Order.by(_.sizeLimitedBigDecimal)
     }
 
-    final case class TableVal(value: Map[ShortString, AmqpFieldValue]) extends AmqpFieldValue {
+    final case class TableVal(value: Map[ShortString, AmqpFieldValue]) extends AmqpFieldValue                                 {
       override def toValueWriterCompatibleJava: java.util.Map[String, AnyRef] =
         value.map { case (key, v) => key.str -> v.toValueWriterCompatibleJava }.asJava
     }
-    object TableVal extends (Map[ShortString, AmqpFieldValue] => TableVal) {
+    object TableVal                                                    extends (Map[ShortString, AmqpFieldValue] => TableVal) {
       implicit val tableValEq: Eq[TableVal] = Eq.by(_.value)
     }
-    final case class ByteVal(value: Byte) extends AmqpFieldValue {
+    final case class ByteVal(value: Byte)                              extends AmqpFieldValue                                 {
       override def toValueWriterCompatibleJava: java.lang.Byte = Byte.box(value)
     }
-    object ByteVal extends (Byte => ByteVal) {
+    object ByteVal                                                     extends (Byte => ByteVal)                              {
       implicit val byteValOrder: Order[ByteVal] = Order.by(_.value)
     }
-    final case class DoubleVal(value: Double) extends AmqpFieldValue {
+    final case class DoubleVal(value: Double)                          extends AmqpFieldValue                                 {
       override def toValueWriterCompatibleJava: java.lang.Double = Double.box(value)
     }
-    object DoubleVal extends (Double => DoubleVal) {
+    object DoubleVal                                                   extends (Double => DoubleVal)                          {
       implicit val doubleValOrder: Order[DoubleVal] = Order.by(_.value)
     }
-    final case class FloatVal(value: Float) extends AmqpFieldValue {
+    final case class FloatVal(value: Float)                            extends AmqpFieldValue                                 {
       override def toValueWriterCompatibleJava: java.lang.Float = Float.box(value)
     }
-    object FloatVal extends (Float => FloatVal) {
+    object FloatVal                                                    extends (Float => FloatVal)                            {
       implicit val floatValOrder: Order[FloatVal] = Order.by(_.value)
     }
-    final case class ShortVal(value: Short) extends AmqpFieldValue {
+    final case class ShortVal(value: Short)                            extends AmqpFieldValue                                 {
       override def toValueWriterCompatibleJava: java.lang.Short = Short.box(value)
     }
-    object ShortVal extends (Short => ShortVal) {
+    object ShortVal                                                    extends (Short => ShortVal)                            {
       implicit val shortValOrder: Order[ShortVal] = Order.by(_.value)
     }
-    final case class ByteArrayVal(value: ByteVector) extends AmqpFieldValue {
+    final case class ByteArrayVal(value: ByteVector)                   extends AmqpFieldValue                                 {
       override def toValueWriterCompatibleJava: Array[Byte] = value.toArray
     }
-    object ByteArrayVal extends (ByteVector => ByteArrayVal) {
+    object ByteArrayVal                                                extends (ByteVector => ByteArrayVal)                   {
       implicit val byteArrayValEq: Eq[ByteArrayVal] = Eq.by(_.value)
     }
-    final case class BooleanVal(value: Boolean) extends AmqpFieldValue {
+    final case class BooleanVal(value: Boolean)                        extends AmqpFieldValue                                 {
       override def toValueWriterCompatibleJava: java.lang.Boolean = Boolean.box(value)
     }
-    object BooleanVal extends (Boolean => BooleanVal) {
+    object BooleanVal                                                  extends (Boolean => BooleanVal)                        {
       implicit val booleanValOrder: Order[BooleanVal] = Order.by(_.value)
     }
-    final case class IntVal(value: Int) extends AmqpFieldValue {
+    final case class IntVal(value: Int)                                extends AmqpFieldValue                                 {
       override def toValueWriterCompatibleJava: java.lang.Integer = Int.box(value)
     }
-    object IntVal extends (Int => IntVal) {
+    object IntVal                                                      extends (Int => IntVal)                                {
       implicit val intValOrder: Order[IntVal] = Order.by(_.value)
     }
-    final case class LongVal(value: Long) extends AmqpFieldValue {
+    final case class LongVal(value: Long)                              extends AmqpFieldValue                                 {
       override def toValueWriterCompatibleJava: java.lang.Long = Long.box(value)
     }
-    object LongVal extends (Long => LongVal) {
+    object LongVal                                                     extends (Long => LongVal)                              {
       implicit val longValOrder: Order[LongVal] = Order.by(_.value)
     }
-    final case class StringVal(value: String) extends AmqpFieldValue {
+    final case class StringVal(value: String)                          extends AmqpFieldValue                                 {
       override def toValueWriterCompatibleJava: String = value
     }
-    object StringVal extends (String => StringVal) {
+    object StringVal                                                   extends (String => StringVal)                          {
       implicit val stringValOrder: Order[StringVal] = Order.by(_.value)
     }
-    final case class ArrayVal(value: Vector[AmqpFieldValue]) extends AmqpFieldValue {
+    final case class ArrayVal(value: Vector[AmqpFieldValue])           extends AmqpFieldValue                                 {
       override def toValueWriterCompatibleJava: java.util.List[AnyRef] = value.map(_.toValueWriterCompatibleJava).asJava
     }
-    object ArrayVal extends (Vector[AmqpFieldValue] => ArrayVal) {
+    object ArrayVal                                                    extends (Vector[AmqpFieldValue] => ArrayVal)           {
       implicit val arrayValEq: Eq[ArrayVal] = Eq.by(_.value)
     }
-    case object NullVal extends AmqpFieldValue {
+    case object NullVal                                                extends AmqpFieldValue                                 {
       override def toValueWriterCompatibleJava: Null = null
 
       implicit val nullValOrder: Order[NullVal.type] = Order.allEqual
     }
 
-    /** This method is meant purely to translate the output of
-      * [[com.rabbitmq.client.impl.ValueReader.readFieldValue]]. As such it is
-      * NOT total and will blow up if you pass it a class which
+    /** This method is meant purely to translate the output of [[com.rabbitmq.client.impl.ValueReader.readFieldValue]].
+      * As such it is NOT total and will blow up if you pass it a class which
       * [[com.rabbitmq.client.impl.ValueReader.readFieldValue]] does not output.
       *
-      * As a user of this library, you almost certainly be constructing
-      * [[AmqpFieldValue]]s directly instead of using this method.
+      * As a user of this library, you almost certainly be constructing [[AmqpFieldValue]]s directly instead of using
+      * this method.
       */
     private[fs2rabbit] def unsafeFrom(value: AnyRef): AmqpFieldValue = value match {
       // It's safe to call unsafeFromBigDecimal here because if the value came
@@ -314,9 +304,9 @@ object model {
       // representation size must have already occurred because ValueReader will
       // only read a maximum of 4 bytes before bailing out (similarly it will
       // read no more than the first 8 bits to determine scale).
-      case bd: java.math.BigDecimal => DecimalVal.unsafeFrom(bd)
-      case ts: java.time.Instant    => TimestampVal.from(ts)
-      case d: java.util.Date        => TimestampVal.from(d)
+      case bd: java.math.BigDecimal                               => DecimalVal.unsafeFrom(bd)
+      case ts: java.time.Instant                                  => TimestampVal.from(ts)
+      case d: java.util.Date                                      => TimestampVal.from(d)
       // Looking at com.rabbitmq.client.impl.ValueReader.readFieldValue reveals
       // that java.util.Maps must always be created by
       // com.rabbitmq.client.impl.ValueReader.readTable, whose Maps must always
@@ -329,16 +319,16 @@ object model {
         // one byte to determine how large of a byte array to allocate for the
         // string which means the length cannot possibly exceed 255.
         TableVal(t.asScala.toMap.map { case (key, v) => ShortString.unsafeFrom(key) -> unsafeFrom(v) })
-      case byte: java.lang.Byte     => ByteVal(byte)
-      case double: java.lang.Double => DoubleVal(double)
-      case float: java.lang.Float   => FloatVal(float)
-      case short: java.lang.Short   => ShortVal(short)
-      case byteArray: Array[Byte]   => ByteArrayVal(ByteVector(byteArray))
-      case b: java.lang.Boolean     => BooleanVal(b)
-      case i: java.lang.Integer     => IntVal(i)
-      case l: java.lang.Long        => LongVal(l)
-      case s: java.lang.String      => StringVal(s)
-      case ls: LongString           => StringVal(ls.toString)
+      case byte: java.lang.Byte                                   => ByteVal(byte)
+      case double: java.lang.Double                               => DoubleVal(double)
+      case float: java.lang.Float                                 => FloatVal(float)
+      case short: java.lang.Short                                 => ShortVal(short)
+      case byteArray: Array[Byte]                                 => ByteArrayVal(ByteVector(byteArray))
+      case b: java.lang.Boolean                                   => BooleanVal(b)
+      case i: java.lang.Integer                                   => IntVal(i)
+      case l: java.lang.Long                                      => LongVal(l)
+      case s: java.lang.String                                    => StringVal(s)
+      case ls: LongString                                         => StringVal(ls.toString)
       // Looking at com.rabbitmq.client.impl.ValueReader.readFieldValue reveals
       // that java.util.Lists must always be created by
       // com.rabbitmq.client.impl.ValueReader.readArray, whose values must are
@@ -347,9 +337,9 @@ object model {
       // that the inner type can never be anything other than the types
       // represented by AmqpHeaderVal
       // This makes us safe from ClassCastExceptions down the road.
-      case a: java.util.List[AnyRef @unchecked] => ArrayVal(a.asScala.toVector.map(unsafeFrom))
-      case null                                 => NullVal
-      case _                                    => throw new IllegalArgumentException()
+      case a: java.util.List[AnyRef @unchecked]                   => ArrayVal(a.asScala.toVector.map(unsafeFrom))
+      case null                                                   => NullVal
+      case _                                                      => throw new IllegalArgumentException()
     }
 
     implicit val amqpFieldValueEq: Eq[AmqpFieldValue] = new Eq[AmqpFieldValue] {
@@ -418,14 +408,12 @@ object model {
       Eq.by(ap => tupled(ap))
     }
 
-    /** It is possible to construct an [[AMQP.BasicProperties]] that will cause
-      * this method to crash, hence it is unsafe. It is meant to be passed
-      * values that are created by the underlying RabbitMQ Java client library
-      * or other values that you are certain are well-formed (that is they
-      * conform to the AMQP spec).
+    /** It is possible to construct an [[AMQP.BasicProperties]] that will cause this method to crash, hence it is
+      * unsafe. It is meant to be passed values that are created by the underlying RabbitMQ Java client library or other
+      * values that you are certain are well-formed (that is they conform to the AMQP spec).
       *
-      * A user of the library should most likely not be calling this directly, and instead should
-      * be constructing an [[AmqpProperties]] directly.
+      * A user of the library should most likely not be calling this directly, and instead should be constructing an
+      * [[AmqpProperties]] directly.
       */
     private[fs2rabbit] def unsafeFrom(basicProps: AMQP.BasicProperties): AmqpProperties =
       AmqpProperties(
@@ -444,9 +432,8 @@ object model {
         timestamp = Option(basicProps.getTimestamp).map(_.toInstant),
         headers = Option(basicProps.getHeaders)
           .fold(Map.empty[String, Object])(_.asScala.toMap)
-          .map {
-            case (k, v) =>
-              k -> AmqpFieldValue.unsafeFrom(v)
+          .map { case (k, v) =>
+            k -> AmqpFieldValue.unsafeFrom(v)
           }
       )
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2021 ProfunKtor
+ * Copyright 2017-2022 ProfunKtor
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -49,31 +49,29 @@ case class WrapperConsumingProgram[F[_]: Sync] private[program] (
   )(implicit decoder: EnvelopeDecoder[F, A]): F[Stream[F, AmqpEnvelope[A]]] = {
 
     val setup = for {
-      internalQ <- internalQueue.create
-      internals = AMQPInternals[F](Some(internalQ))
-      _         <- consume.basicQos(channel, basicQos)
+      internalQ   <- internalQueue.create
+      internals    = AMQPInternals[F](Some(internalQ))
+      _           <- consume.basicQos(channel, basicQos)
       consumerTag <- consume.basicConsume(
-                      channel,
-                      queueName,
-                      autoAck,
-                      consumerTag,
-                      noLocal,
-                      exclusive,
-                      args
-                    )(internals)
+                       channel,
+                       queueName,
+                       autoAck,
+                       consumerTag,
+                       noLocal,
+                       exclusive,
+                       args
+                     )(internals)
     } yield (consumerTag, internalQ)
 
     Stream
-      .bracket(setup) {
-        case (tag, _) =>
-          consume.basicCancel(channel, tag)
+      .bracket(setup) { case (tag, _) =>
+        consume.basicCancel(channel, tag)
       }
-      .flatMap {
-        case (_, queue) =>
-          Stream
-            .fromQueueUnterminated(queue)
-            .rethrow
-            .evalMap(env => decoder(env).map(a => env.copy(payload = a)))
+      .flatMap { case (_, queue) =>
+        Stream
+          .fromQueueUnterminated(queue)
+          .rethrow
+          .evalMap(env => decoder(env).map(a => env.copy(payload = a)))
       }
       .pure[F]
   }

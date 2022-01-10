@@ -36,14 +36,16 @@ class Fs2JsonEncoderSpec extends AnyFlatSpecLike with Matchers {
     val encode  = jsonEncode[Address]
 
     encode(AmqpMessage(payload, AmqpProperties.empty)) should be(
-      AmqpMessage(payload.asJson.noSpaces, AmqpProperties.empty))
+      AmqpMessage(payload.asJson.noSpaces, AmqpProperties.empty)
+    )
   }
 
   it should "encode a nested case class" in {
     val payload = Person("Sherlock", Address(212, "Baker St"))
     val encode  = jsonEncode[Person]
     encode(AmqpMessage(payload, AmqpProperties.empty)) should be(
-      AmqpMessage(payload.asJson.noSpaces, AmqpProperties.empty))
+      AmqpMessage(payload.asJson.noSpaces, AmqpProperties.empty)
+    )
   }
 
   it should "encode a simple case class according to a custom printer" in {
@@ -52,7 +54,8 @@ class Fs2JsonEncoderSpec extends AnyFlatSpecLike with Matchers {
     val customEncode = new Fs2JsonEncoder(Printer.spaces4).jsonEncode[Address]
 
     customEncode(AmqpMessage(payload, AmqpProperties.empty)) should be(
-      AmqpMessage(payload.asJson.printWith(Printer.spaces4), AmqpProperties.empty))
+      AmqpMessage(payload.asJson.printWith(Printer.spaces4), AmqpProperties.empty)
+    )
   }
 
 }

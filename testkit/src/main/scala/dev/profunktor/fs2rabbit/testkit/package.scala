@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2021 ProfunKtor
+ * Copyright 2017-2022 ProfunKtor
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,7 +37,7 @@ package object testkit {
       redelivered <- arbitrary[Boolean]
     } yield AmqpEnvelope(deliveryTag, payload, props, exchange, routingKey, redelivered)
   }
-  implicit def cogenAmqpEnvelope[A: Cogen]: Cogen[AmqpEnvelope[A]] =
+  implicit def cogenAmqpEnvelope[A: Cogen]: Cogen[AmqpEnvelope[A]]                      =
     Cogen[(DeliveryTag, A, ExchangeName, RoutingKey, Boolean)].contramap { a =>
       (a.deliveryTag, a.payload, a.exchangeName, a.routingKey, a.redelivered)
     }
@@ -58,25 +58,24 @@ package object testkit {
       clusterId       <- Gen.option(Gen.identifier)
       timestamp       <- Gen.option(arbitrary[Instant])
       headers         <- arbitrary[Map[String, AmqpFieldValue]]
-    } yield
-      AmqpProperties(
-        contentType = contentType,
-        contentEncoding = contentEncoding,
-        priority = priority,
-        deliveryMode = deliveryMode,
-        correlationId = correlationId,
-        messageId = messageId,
-        `type` = tpe,
-        userId = userId,
-        appId = appId,
-        expiration = expiration,
-        replyTo = replyTo,
-        clusterId = clusterId,
-        timestamp = timestamp,
-        headers = headers
-      )
+    } yield AmqpProperties(
+      contentType = contentType,
+      contentEncoding = contentEncoding,
+      priority = priority,
+      deliveryMode = deliveryMode,
+      correlationId = correlationId,
+      messageId = messageId,
+      `type` = tpe,
+      userId = userId,
+      appId = appId,
+      expiration = expiration,
+      replyTo = replyTo,
+      clusterId = clusterId,
+      timestamp = timestamp,
+      headers = headers
+    )
   }
-  implicit val cogenAmqpProperties: Cogen[AmqpProperties] =
+  implicit val cogenAmqpProperties: Cogen[AmqpProperties]   =
     Cogen.it { p =>
       (p.contentType ++ p.contentEncoding ++ p.correlationId ++ p.messageId ++ p.userId ++ p.appId).iterator
     }
@@ -105,30 +104,30 @@ package object testkit {
       }
       .map(ShortString.unsafeFrom)
   }
-  implicit val cogenShortString: Cogen[ShortString] = Cogen[String].contramap(_.str)
+  implicit val cogenShortString: Cogen[ShortString]   = Cogen[String].contramap(_.str)
 
   implicit val arbTableVal: Arbitrary[TableVal] = Arbitrary {
     Gen.lzy(arbitrary[Map[ShortString, AmqpFieldValue]].map(TableVal(_)))
   }
-  implicit val cogenTableVal: Cogen[TableVal] = Cogen[Map[ShortString, AmqpFieldValue]].contramap(_.value)
+  implicit val cogenTableVal: Cogen[TableVal]   = Cogen[Map[ShortString, AmqpFieldValue]].contramap(_.value)
 
   implicit val arbByteArrayVal: Arbitrary[ByteArrayVal] = Arbitrary(
     arbitrary[Array[Byte]].map(ByteVector(_)).map(ByteArrayVal(_))
   )
-  implicit val cogenByteArrayVal: Cogen[ByteArrayVal] = Cogen[Array[Byte]].contramap(_.value.toArray)
+  implicit val cogenByteArrayVal: Cogen[ByteArrayVal]   = Cogen[Array[Byte]].contramap(_.value.toArray)
 
   implicit val arbArrayVal: Arbitrary[ArrayVal] = Arbitrary {
     Gen.lzy(arbitrary[Vector[AmqpFieldValue]].map(ArrayVal(_)))
   }
-  implicit val cogenArrayVal: Cogen[ArrayVal] = Cogen[Vector[AmqpFieldValue]].contramap(_.value)
+  implicit val cogenArrayVal: Cogen[ArrayVal]   = Cogen[Vector[AmqpFieldValue]].contramap(_.value)
 
   implicit val arbDeliveryMode: Arbitrary[DeliveryMode] = Arbitrary(
     Gen.oneOf(DeliveryMode.NonPersistent, DeliveryMode.Persistent)
   )
-  implicit val cogenDeliveryMode: Cogen[DeliveryMode] = Cogen[Int].contramap(_.value)
+  implicit val cogenDeliveryMode: Cogen[DeliveryMode]   = Cogen[Int].contramap(_.value)
 
   implicit val arbTimestampVal: Arbitrary[TimestampVal] = Arbitrary(arbitrary[Date].map(TimestampVal.from))
-  implicit val cogenTimestampVal: Cogen[TimestampVal] =
+  implicit val cogenTimestampVal: Cogen[TimestampVal]   =
     Cogen[Long].contramap(_.instantWithOneSecondAccuracy.getEpochSecond)
 
   implicit val arbDecimalVal: Arbitrary[DecimalVal] = Arbitrary {
@@ -139,7 +138,7 @@ package object testkit {
       } yield BigDecimal(BigInt(unscaled), scale)
     safeBigDecimalGen.suchThat(DecimalVal.from(_).isDefined).map(DecimalVal.unsafeFrom)
   }
-  implicit val cogenDecimalVal: Cogen[DecimalVal] = Cogen[BigDecimal].contramap(_.sizeLimitedBigDecimal)
+  implicit val cogenDecimalVal: Cogen[DecimalVal]   = Cogen[BigDecimal].contramap(_.sizeLimitedBigDecimal)
 
   implicit val arbByteVal: Arbitrary[ByteVal] = Arbitrary(arbitrary[Byte].map(ByteVal(_)))
   implicit val cogenByteVal: Cogen[ByteVal]   = Cogen[Byte].contramap(_.value)

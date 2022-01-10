@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2021 ProfunKtor
+ * Copyright 2017-2022 ProfunKtor
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -98,9 +98,9 @@ class RabbitClient[F[_]] private[fs2rabbit] (
   def createConnectionChannel: Resource[F, AMQPChannel] =
     createConnection.flatMap(createChannel)
 
-  /** @param ackMultiple configures the behaviour of the returned acking function.
-    * If true (n)acks all messages up to and including the supplied delivery tag,
-    * if false (n)acks just the supplied delivery tag.
+  /** @param ackMultiple
+    *   configures the behaviour of the returned acking function. If true (n)acks all messages up to and including the
+    *   supplied delivery tag, if false (n)acks just the supplied delivery tag.
     */
   def createAckerConsumer[A](
       queueName: QueueName,
@@ -108,8 +108,9 @@ class RabbitClient[F[_]] private[fs2rabbit] (
       consumerArgs: Option[ConsumerArgs] = None,
       ackMultiple: AckMultiple = AckMultiple(false)
   )(implicit
-    channel: AMQPChannel,
-    decoder: EnvelopeDecoder[F, A]): F[(AckResult => F[Unit], Stream[F, AmqpEnvelope[A]])] =
+      channel: AMQPChannel,
+      decoder: EnvelopeDecoder[F, A]
+  ): F[(AckResult => F[Unit], Stream[F, AmqpEnvelope[A]])] =
     consumingProgram.createAckerConsumer(
       channel,
       queueName,
@@ -118,18 +119,18 @@ class RabbitClient[F[_]] private[fs2rabbit] (
       ackMultiple
     )
 
-  /** Returns an acking function and a stream of messages.
-    * The acking function takes two arguments - the first is the {@link AckResult} that wraps a delivery tag,
-    * the second is a {@link AckMultiple} flag that if true (n)acks all messages up to and including the supplied delivery tag,
-    * if false (n)acks just the supplied delivery tag.
+  /** Returns an acking function and a stream of messages. The acking function takes two arguments - the first is the
+    * {@link AckResult} that wraps a delivery tag, the second is a {@link AckMultiple} flag that if true (n)acks all
+    * messages up to and including the supplied delivery tag, if false (n)acks just the supplied delivery tag.
     */
   def createAckerConsumerWithMultipleFlag[A](
       queueName: QueueName,
       basicQos: BasicQos = BasicQos(prefetchSize = 0, prefetchCount = 1),
       consumerArgs: Option[ConsumerArgs] = None
   )(implicit
-    channel: AMQPChannel,
-    decoder: EnvelopeDecoder[F, A]): F[((AckResult, AckMultiple) => F[Unit], Stream[F, AmqpEnvelope[A]])] =
+      channel: AMQPChannel,
+      decoder: EnvelopeDecoder[F, A]
+  ): F[((AckResult, AckMultiple) => F[Unit], Stream[F, AmqpEnvelope[A]])] =
     consumingProgram.createAckerConsumerWithMultipleFlag(
       channel,
       queueName,
@@ -149,10 +150,10 @@ class RabbitClient[F[_]] private[fs2rabbit] (
       consumerArgs
     )
 
-  def createPublisher[A](exchangeName: ExchangeName, routingKey: RoutingKey)(
-      implicit
+  def createPublisher[A](exchangeName: ExchangeName, routingKey: RoutingKey)(implicit
       channel: AMQPChannel,
-      encoder: MessageEncoder[F, A]): F[A => F[Unit]] =
+      encoder: MessageEncoder[F, A]
+  ): F[A => F[Unit]] =
     publishingProgram.createPublisher(channel, exchangeName, routingKey)
 
   def createPublisherWithListener[A](
@@ -170,14 +171,15 @@ class RabbitClient[F[_]] private[fs2rabbit] (
     )
 
   def createBasicPublisher[A](implicit
-                              channel: AMQPChannel,
-                              encoder: MessageEncoder[F, A]): F[(ExchangeName, RoutingKey, A) => F[Unit]] =
+      channel: AMQPChannel,
+      encoder: MessageEncoder[F, A]
+  ): F[(ExchangeName, RoutingKey, A) => F[Unit]] =
     publishingProgram.createBasicPublisher(channel)
 
-  def createBasicPublisherWithListener[A](flag: PublishingFlag, listener: PublishReturn => F[Unit])(
-      implicit
+  def createBasicPublisherWithListener[A](flag: PublishingFlag, listener: PublishReturn => F[Unit])(implicit
       channel: AMQPChannel,
-      encoder: MessageEncoder[F, A]): F[(ExchangeName, RoutingKey, A) => F[Unit]] =
+      encoder: MessageEncoder[F, A]
+  ): F[(ExchangeName, RoutingKey, A) => F[Unit]] =
     publishingProgram.createBasicPublisherWithListener(
       channel,
       flag,

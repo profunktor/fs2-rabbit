@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2021 ProfunKtor
+ * Copyright 2017-2022 ProfunKtor
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -49,7 +49,7 @@ object arguments {
   }
 
   object SafeArgument {
-    private[fs2rabbit] def apply[A](implicit ev: SafeArgument[A]): SafeArgument[A] = ev
+    private[fs2rabbit] def apply[A](implicit ev: SafeArgument[A]): SafeArgument[A]      = ev
     private[fs2rabbit] def instance[A, J >: Null <: AnyRef](f: A => J): SafeArgument[A] =
       new SafeArgument[A] {
         type JavaType = J
@@ -67,7 +67,7 @@ object arguments {
     implicit val byteInstance: SafeArgument[Byte]             = instance(Byte.box)
     implicit val dateInstance: SafeArgument[java.util.Date]   = instance(identity)
 
-    implicit def listInstance[A: SafeArgument]: SafeArgument[List[A]] = {
+    implicit def listInstance[A: SafeArgument]: SafeArgument[List[A]]                   = {
       val _ = implicitly[SafeArgument[A]]
       instance(_.asJava)
     }

@@ -39,20 +39,23 @@ class AmqpPropertiesSpec extends AnyFlatSpecLike with Matchers with AmqpProperti
 
   it should "create an empty amqp properties" in {
     AmqpProperties.empty should be(
-      AmqpProperties(None,
-                     None,
-                     None,
-                     None,
-                     None,
-                     None,
-                     None,
-                     None,
-                     None,
-                     None,
-                     None,
-                     None,
-                     None,
-                     Map.empty[String, AmqpFieldValue]))
+      AmqpProperties(
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        Map.empty[String, AmqpFieldValue]
+      )
+    )
   }
 
   it should "handle null values in Java AMQP.BasicProperties" in {
@@ -85,9 +88,9 @@ trait AmqpPropertiesArbitraries extends PropertyChecks {
 
   def tableVal(maxDepth: Int): Arbitrary[TableVal] = Arbitrary {
     for {
-      keys             <- arbitrary[List[String]]
+      keys            <- arbitrary[List[String]]
       keysWithValueGen = keys.map(key => amqpHeaderVal(maxDepth).arbitrary.map(modTruncateString(key) -> _))
-      keyValues        <- Gen.sequence[List[(ShortString, AmqpFieldValue)], (ShortString, AmqpFieldValue)](keysWithValueGen)
+      keyValues       <- Gen.sequence[List[(ShortString, AmqpFieldValue)], (ShortString, AmqpFieldValue)](keysWithValueGen)
     } yield TableVal(keyValues.toMap)
   }
 
@@ -189,23 +192,22 @@ trait AmqpPropertiesArbitraries extends PropertyChecks {
       clusterId       <- Gen.option(Gen.alphaNumStr)
       timestamp       <- Gen.option(dateVal.arbitrary.map(_.instantWithOneSecondAccuracy))
       headers         <- Gen.mapOf[String, AmqpFieldValue](headersGen)
-    } yield
-      AmqpProperties(
-        contentType,
-        contentEncoding,
-        priority,
-        deliveryMode.map(DeliveryMode.from),
-        correlationId,
-        messageId,
-        messageType,
-        userId,
-        appId,
-        expiration,
-        replyTo,
-        clusterId,
-        timestamp,
-        headers
-      )
+    } yield AmqpProperties(
+      contentType,
+      contentEncoding,
+      priority,
+      deliveryMode.map(DeliveryMode.from),
+      correlationId,
+      messageId,
+      messageType,
+      userId,
+      appId,
+      expiration,
+      replyTo,
+      clusterId,
+      timestamp,
+      headers
+    )
   }
 
 }

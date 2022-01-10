@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2021 ProfunKtor
+ * Copyright 2017-2022 ProfunKtor
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,8 +35,8 @@ final class RabbitClientOps[F[_]](val client: RabbitClient[F]) extends AnyVal {
       client.publishingProgram.imapK(fk)(gk)
     )
 
-  /** *
-    * Transforms the rabbit client into one where all errors from the effect are caught and lifted into EitherT's error channel
+  /** * Transforms the rabbit client into one where all errors from the effect are caught and lifted into EitherT's
+    * error channel
     */
   def liftAttemptK(implicit F: MonadCancelThrow[F]): RabbitClient[EitherT[F, Throwable, *]] =
     imapK[EitherT[F, Throwable, *]](EitherT.liftAttemptK)(

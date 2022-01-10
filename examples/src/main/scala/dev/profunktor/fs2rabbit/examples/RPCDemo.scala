@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2021 ProfunKtor
+ * Copyright 2017-2022 ProfunKtor
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -87,24 +87,22 @@ class RPCClient[F[_]: Sync](rpcQueue: QueueName)(implicit R: RabbitClient[F], ch
     val correlationId = UUID.randomUUID().toString
 
     for {
-      queue <- Stream.eval(R.declareQueue)
+      queue     <- Stream.eval(R.declareQueue)
       publisher <- Stream.eval(
-                    R.createPublisher[AmqpMessage[String]](EmptyExchange, RoutingKey(rpcQueue.value))
-                  )
-      _        <- Stream.eval(putStrLn(s"[Client] Message $body. ReplyTo queue $queue. Correlation $correlationId"))
-      message  = AmqpMessage(body, AmqpProperties(replyTo = Some(queue.value), correlationId = Some(correlationId)))
-      _        <- Stream.eval(publisher(message))
-      consumer <- Stream.eval(R.createAutoAckConsumer(queue))
-      response <- consumer.filter(_.properties.correlationId.contains(correlationId)).take(1)
-      _        <- Stream.eval(putStrLn(s"[Client] Request $body. Received response [${response.payload}]"))
+                     R.createPublisher[AmqpMessage[String]](EmptyExchange, RoutingKey(rpcQueue.value))
+                   )
+      _         <- Stream.eval(putStrLn(s"[Client] Message $body. ReplyTo queue $queue. Correlation $correlationId"))
+      message    = AmqpMessage(body, AmqpProperties(replyTo = Some(queue.value), correlationId = Some(correlationId)))
+      _         <- Stream.eval(publisher(message))
+      consumer  <- Stream.eval(R.createAutoAckConsumer(queue))
+      response  <- consumer.filter(_.properties.correlationId.contains(correlationId)).take(1)
+      _         <- Stream.eval(putStrLn(s"[Client] Request $body. Received response [${response.payload}]"))
     } yield response
   }
 
 }
 
-class RPCServer[F[_]: Sync](rpcQueue: QueueName)(implicit
-                                                 R: RabbitClient[F],
-                                                 channel: AMQPChannel) {
+class RPCServer[F[_]: Sync](rpcQueue: QueueName)(implicit R: RabbitClient[F], channel: AMQPChannel) {
 
   private val EmptyExchange = ExchangeName("")
 
@@ -127,7 +125,7 @@ class RPCServer[F[_]: Sync](rpcQueue: QueueName)(implicit
       rk        <- replyTo.liftTo[F]
       _         <- putStrLn(s"[Server] Received message [${e.payload}]. ReplyTo $rk. CorrelationId $correlationId")
       publisher <- R.createPublisher[AmqpMessage[String]](EmptyExchange, RoutingKey(rk))
-      response  = AmqpMessage(s"Response for ${e.payload}", AmqpProperties(correlationId = correlationId))
+      response   = AmqpMessage(s"Response for ${e.payload}", AmqpProperties(correlationId = correlationId))
       _         <- publisher(response)
     } yield ()
 

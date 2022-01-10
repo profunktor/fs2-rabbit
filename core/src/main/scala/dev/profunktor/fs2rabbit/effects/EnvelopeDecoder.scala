@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2021 ProfunKtor
+ * Copyright 2017-2022 ProfunKtor
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -69,13 +69,15 @@ object EnvelopeDecoder {
   def optArrayHeader[F[_]: ApplicativeThrow](name: String): EnvelopeDecoder[F, Option[collection.Seq[Any]]] =
     optHeaderPF[F, collection.Seq[Any]](name) { case ArrayVal(a) => a }
 
-  private def headerPF[F[_], A](name: String)(pf: PartialFunction[AmqpFieldValue, A])(
-      implicit F: ApplicativeThrow[F]): EnvelopeDecoder[F, A] =
+  private def headerPF[F[_], A](
+      name: String
+  )(pf: PartialFunction[AmqpFieldValue, A])(implicit F: ApplicativeThrow[F]): EnvelopeDecoder[F, A] =
     Kleisli { env =>
       F.catchNonFatal(pf(env.properties.headers(name)))
     }
 
-  private def optHeaderPF[F[_], A](name: String)(pf: PartialFunction[AmqpFieldValue, A])(
-      implicit F: ApplicativeThrow[F]): EnvelopeDecoder[F, Option[A]] =
+  private def optHeaderPF[F[_], A](name: String)(pf: PartialFunction[AmqpFieldValue, A])(implicit
+      F: ApplicativeThrow[F]
+  ): EnvelopeDecoder[F, Option[A]] =
     Kleisli(_.properties.headers.get(name).traverse(h => F.catchNonFatal(pf(h))))
 }

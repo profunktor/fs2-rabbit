@@ -29,25 +29,29 @@ class Fs2JsonDecoderSpec extends Fs2JsonDecoderFixture with AnyFlatSpecLike with
 
   forAll(examples) { (description, json, decoder, expected) =>
     it should description in {
-      val envelope = AmqpEnvelope(new DeliveryTag(1),
-                                  json,
-                                  AmqpProperties.empty,
-                                  ExchangeName("test"),
-                                  RoutingKey("test.route"),
-                                  false)
+      val envelope = AmqpEnvelope(
+        new DeliveryTag(1),
+        json,
+        AmqpProperties.empty,
+        ExchangeName("test"),
+        RoutingKey("test.route"),
+        false
+      )
       decoder(envelope) match { case (validated, _) => validated should be(expected) }
     }
   }
 
   it should "fail decoding the wrong class" in {
-    val json = """ { "two": "the two" } """
-    val envelope = AmqpEnvelope(new DeliveryTag(1),
-                                json,
-                                AmqpProperties.empty,
-                                ExchangeName("test"),
-                                RoutingKey("test.route"),
-                                false)
-    val decoder = fs2JsonDecoder.jsonDecode[Person]
+    val json     = """ { "two": "the two" } """
+    val envelope = AmqpEnvelope(
+      new DeliveryTag(1),
+      json,
+      AmqpProperties.empty,
+      ExchangeName("test"),
+      RoutingKey("test.route"),
+      false
+    )
+    val decoder  = fs2JsonDecoder.jsonDecode[Person]
     decoder(envelope) match { case (validated, _) => validated shouldBe a[Left[_, Person]] }
   }
 

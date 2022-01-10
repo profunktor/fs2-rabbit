@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2021 ProfunKtor
+ * Copyright 2017-2022 ProfunKtor
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -71,31 +71,29 @@ object DropwizardMetricsDemo extends IOApp.Simple {
       channel <- client.createConnection.flatMap(client.createChannel)
     } yield (channel, client)
 
-    val program = resources.use {
-      case (channel, client) =>
-        implicit val c = channel
+    val program = resources.use { case (channel, client) =>
+      implicit val c = channel
 
-        val setup =
-          for {
-            _                 <- client.declareQueue(DeclarationQueueConfig.default(queueName))
-            _                 <- client.declareExchange(DeclarationExchangeConfig.default(exchangeName, Topic))
-            _                 <- client.bindQueue(queueName, exchangeName, routingKey)
-            ackerConsumer     <- client.createAckerConsumer[String](queueName)
-            (acker, consumer) = ackerConsumer
-            publisher         <- client.createPublisher[AmqpMessage[String]](exchangeName, routingKey)
-          } yield (consumer, acker, publisher)
+      val setup =
+        for {
+          _                <- client.declareQueue(DeclarationQueueConfig.default(queueName))
+          _                <- client.declareExchange(DeclarationExchangeConfig.default(exchangeName, Topic))
+          _                <- client.bindQueue(queueName, exchangeName, routingKey)
+          ackerConsumer    <- client.createAckerConsumer[String](queueName)
+          (acker, consumer) = ackerConsumer
+          publisher        <- client.createPublisher[AmqpMessage[String]](exchangeName, routingKey)
+        } yield (consumer, acker, publisher)
 
-        Stream
-          .eval(setup)
-          .flatTap {
-            case (consumer, acker, publisher) =>
-              Stream(
-                Stream(simpleMessage).evalMap(publisher).repeat.metered(1.second),
-                consumer.through(logPipe).evalMap(acker)
-              ).parJoin(2)
-          }
-          .compile
-          .drain
+      Stream
+        .eval(setup)
+        .flatTap { case (consumer, acker, publisher) =>
+          Stream(
+            Stream(simpleMessage).evalMap(publisher).repeat.metered(1.second),
+            consumer.through(logPipe).evalMap(acker)
+          ).parJoin(2)
+        }
+        .compile
+        .drain
     }
 
     program
