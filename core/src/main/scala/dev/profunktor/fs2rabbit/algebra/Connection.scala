@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2021 ProfunKtor
+ * Copyright 2017-2022 ProfunKtor
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ import cats.~>
 import com.rabbitmq.client.{Address, ConnectionFactory, DefaultSaslConfig, MetricsCollector, SaslConfig}
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
 import dev.profunktor.fs2rabbit.effects.Log
-import dev.profunktor.fs2rabbit.javaConversion._
+import scala.jdk.CollectionConverters._
 import dev.profunktor.fs2rabbit.model.{AMQPChannel, AMQPConnection, RabbitChannel, RabbitConnection}
 import javax.net.ssl.SSLContext
 

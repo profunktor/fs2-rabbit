@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2021 ProfunKtor
+ * Copyright 2017-2022 ProfunKtor
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ import cats._
 import com.rabbitmq.client.{AMQP, Channel, Connection, LongString}
 import dev.profunktor.fs2rabbit.arguments.Arguments
 import dev.profunktor.fs2rabbit.effects.{EnvelopeDecoder, MessageEncoder}
-import dev.profunktor.fs2rabbit.javaConversion._
+import scala.jdk.CollectionConverters._
 import fs2.Stream
 import scodec.bits.ByteVector
 import scodec.interop.cats._

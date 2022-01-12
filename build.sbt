@@ -45,6 +45,7 @@ def commonDependencies(v: String) =
       case Some((3, _)) => List.empty
       case _            =>
         List(
+          Libraries.collectionCompat,
           compilerPlugin(Libraries.kindProjector)
         )
     })

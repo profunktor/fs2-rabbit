@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2021 ProfunKtor
+ * Copyright 2017-2022 ProfunKtor
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,8 @@
 package dev.profunktor.fs2rabbit
 
 import scala.annotation.implicitNotFound
-import dev.profunktor.fs2rabbit.javaConversion._
+
+import scala.jdk.CollectionConverters._
 
 object arguments {
 
