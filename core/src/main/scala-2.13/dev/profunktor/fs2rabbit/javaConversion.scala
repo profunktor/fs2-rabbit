@@ -14,15 +14,9 @@
  * limitations under the License.
  */
 
-package dev.profunktor.fs2rabbit.laws
+package dev.profunktor.fs2rabbit
 
-import cats.kernel.laws.discipline.CommutativeSemigroupTests
-import dev.profunktor.fs2rabbit.model.DeliveryTag
-import dev.profunktor.fs2rabbit.testkit._
-import org.scalatest.funspec.AnyFunSpec
-import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
-import org.typelevel.discipline.scalatest.FunSpecDiscipline
+import scala.collection.convert.{AsJavaExtensions, AsScalaExtensions}
 
-class CommutativeSemigroupInstancesSpec extends AnyFunSpec with FunSpecDiscipline with ScalaCheckPropertyChecks {
-  checkAll("DeliveryTag.CommutativeSemigroupLaws", CommutativeSemigroupTests[DeliveryTag].commutativeSemigroup)
-}
+@deprecated("kept for binary compatibility", "4.1.1")
+private [fs2rabbit] object javaConversion extends AsJavaExtensions with AsScalaExtensions
