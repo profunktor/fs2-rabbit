@@ -34,6 +34,7 @@ import scala.concurrent.Future
 import cats.effect.unsafe.implicits.global
 
 import cats.effect.kernel.Deferred
+import cats.data.Kleisli
 
 trait Fs2RabbitSpec { self: BaseSpec =>
 
@@ -708,6 +709,49 @@ trait Fs2RabbitSpec { self: BaseSpec =>
             case _         => emptyAssertion
           }
       }
+  }
+
+  it should "preserve order of published messages" in withRabbit { interpreter =>
+    import dev.profunktor.fs2rabbit.effects.{EnvelopeDecoder, MessageEncoder}
+    import interpreter._
+
+    implicit val intMessageEncoder: MessageEncoder[IO, AmqpMessage[Int]] =
+      Kleisli[IO, AmqpMessage[Int], AmqpMessage[Array[Byte]]](s =>
+        IO.pure(s.copy(payload = s.payload.toString.getBytes))
+      )
+    implicit val intMessageDecoder: EnvelopeDecoder[IO, Int]             =
+      Kleisli[IO, AmqpEnvelope[Array[Byte]], Int](s => IO.pure(new String(s.payload).toInt))
+
+    def simpleMessage(i: Int) =
+      AmqpMessage(
+        i,
+        AmqpProperties(headers =
+          Map("demoId" -> AmqpFieldValue.LongVal(123), "app" -> AmqpFieldValue.StringVal("fs2RabbitTest"))
+        )
+      )
+
+    createConnectionChannel.use { implicit channel =>
+      val n = 100
+      for {
+        qxrk      <- randomQueueData
+        (q, x, rk) = qxrk
+        _         <- declareExchange(x, ExchangeType.Topic)
+        _         <- declareQueue(DeclarationQueueConfig.default(q))
+        _         <- bindQueue(q, x, rk)
+        publisher <- createPublisher[AmqpMessage[Int]](x, rk)
+        _         <- Stream
+                       .iterable(0 to n)
+                       .evalTap(i => publisher(simpleMessage(i)))
+                       .compile
+                       .drain
+        consumer  <- createAutoAckConsumer[Int](q)
+        is        <- consumer
+                       .take(n.toLong)
+                       .compile
+                       .toList
+                       .map(_.map(_.payload))
+      } yield is shouldBe sorted
+    }
   }
 
   private def withStreamRabbit[A](fa: RabbitClient[IO] => Stream[IO, A]): Future[Assertion] =
