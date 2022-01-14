@@ -52,5 +52,3 @@ tags
 .bloop/
 .sbtopts
 .bsp
-metals.sbt
-.vscode/
