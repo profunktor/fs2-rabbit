@@ -3,13 +3,13 @@ import com.scalapenos.sbt.prompt._
 import Dependencies._
 import microsites.ExtraMdFileConfig
 
-ThisBuild / name := """fs2-rabbit"""
-ThisBuild / scalaVersion := "2.13.8"
+ThisBuild / name               := """fs2-rabbit"""
+ThisBuild / scalaVersion       := "2.13.8"
 ThisBuild / crossScalaVersions := List("2.12.15", "2.13.8", "3.1.0")
-ThisBuild / organization := "dev.profunktor"
-ThisBuild / homepage := Some(url("https://fs2-rabbit.profunktor.dev/"))
-ThisBuild / licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0"))
-ThisBuild / developers := List(
+ThisBuild / organization       := "dev.profunktor"
+ThisBuild / homepage           := Some(url("https://fs2-rabbit.profunktor.dev/"))
+ThisBuild / licenses           := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0"))
+ThisBuild / developers         := List(
   Developer(
     "gvolpe",
     "Gabriel Volpe",
@@ -17,6 +17,8 @@ ThisBuild / developers := List(
     url("https://gvolpe.github.io")
   )
 )
+
+publish / skip                 := true
 
 promptTheme := PromptTheme(
   List(
@@ -51,17 +53,17 @@ def commonDependencies(v: String) =
     })
 
 val commonSettings = List(
-  organizationName := "ProfunKtor",
-  startYear := Some(2017),
+  organizationName      := "ProfunKtor",
+  startYear             := Some(2017),
   licenses += ("Apache-2.0", new URL("https://www.apache.org/licenses/LICENSE-2.0.txt")),
-  homepage := Some(url("https://fs2-rabbit.profunktor.dev/")),
-  headerLicense := Some(HeaderLicense.ALv2(s"${startYear.value.get}-${java.time.Year.now}", "ProfunKtor")),
+  homepage              := Some(url("https://fs2-rabbit.profunktor.dev/")),
+  headerLicense         := Some(HeaderLicense.ALv2(s"${startYear.value.get}-${java.time.Year.now}", "ProfunKtor")),
   Compile / doc / scalacOptions ++= List("-no-link-warnings"),
   scalacOptions ++= scalaOptions(scalaVersion.value),
   scalacOptions --= List("-Wunused:params", "-Xfatal-warnings"),
   libraryDependencies ++= commonDependencies(scalaVersion.value),
   resolvers += "Apache public" at "https://repository.apache.org/content/groups/public/",
-  scalafmtOnCompile := true,
+  scalafmtOnCompile     := true,
   mimaPreviousArtifacts := Set(organization.value %% moduleName.value % "4.1.0")
 )
 
@@ -98,10 +100,10 @@ def TestsDependencies(scalaVersionStr: String): List[ModuleID] =
   )
 
 lazy val noPublish = List(
-  publish := {},
-  publishLocal := {},
+  publish         := {},
+  publishLocal    := {},
   publishArtifact := false,
-  publish / skip := true
+  publish / skip  := true
 )
 
 lazy val `fs2-rabbit-root` = project
@@ -158,13 +160,13 @@ lazy val microsite = project
   .settings(commonSettings: _*)
   .settings(noPublish)
   .settings(
-    micrositeName := "Fs2 Rabbit",
-    micrositeDescription := "RabbitMQ stream-based client",
-    micrositeAuthor := "ProfunKtor",
-    micrositeGithubOwner := "profunktor",
-    micrositeGithubRepo := "fs2-rabbit",
-    micrositeBaseUrl := "",
-    micrositeExtraMdFiles := Map(
+    micrositeName               := "Fs2 Rabbit",
+    micrositeDescription        := "RabbitMQ stream-based client",
+    micrositeAuthor             := "ProfunKtor",
+    micrositeGithubOwner        := "profunktor",
+    micrositeGithubRepo         := "fs2-rabbit",
+    micrositeBaseUrl            := "",
+    micrositeExtraMdFiles       := Map(
       file("README.md")          -> ExtraMdFileConfig(
         "index.md",
         "home",
@@ -177,10 +179,10 @@ lazy val microsite = project
       )
     ),
     micrositeExtraMdFilesOutput := (Compile / resourceManaged).value / "jekyll",
-    micrositeGitterChannel := true,
-    micrositeGitterChannelUrl := "profunktor-dev/fs2-rabbit",
-    micrositePushSiteWith := GitHub4s,
-    micrositeGithubToken := sys.env.get("GITHUB_TOKEN"),
+    micrositeGitterChannel      := true,
+    micrositeGitterChannelUrl   := "profunktor-dev/fs2-rabbit",
+    micrositePushSiteWith       := GitHub4s,
+    micrositeGithubToken        := sys.env.get("GITHUB_TOKEN"),
     scalacOptions --= List(
       "-Werror",
       "-Xfatal-warnings",
