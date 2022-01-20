@@ -3,20 +3,20 @@ import sbt._
 object Dependencies {
 
   object Version {
-    val cats       = "2.7.0"
-    val catsEffect = "3.3.4"
-    val fs2        = "3.2.4"
-    val circe      = "0.14.1"
-    val amqpClient = "5.14.0"
-    val logback    = "1.2.10"
-    val monix      = "3.3.0"
-    val zio        = "1.0.13"
-    val zioCats    = "3.2.9.0"
-    val scodec     = "1.1.0"
-    val dropwizard = "4.2.7"
+    val cats             = "2.7.0"
+    val catsEffect       = "3.3.4"
+    val fs2              = "3.2.4"
+    val circe            = "0.14.1"
+    val amqpClient       = "5.14.0"
+    val logback          = "1.2.10"
+    val monix            = "3.3.0"
+    val zio              = "1.0.13"
+    val zioCats          = "3.2.9.0"
+    val scodec           = "1.1.0"
+    val dropwizard       = "4.2.7"
     val collectionCompat = "2.6.0"
 
-    val kindProjector    = "0.13.2"
+    val kindProjector = "0.13.2"
 
     val scalaTest               = "3.2.10"
     val scalaCheck              = "1.15.4"
@@ -27,14 +27,14 @@ object Dependencies {
   object Libraries {
     def circe(artifact: String): ModuleID = "io.circe" %% artifact % Version.circe
 
-    lazy val amqpClient = "com.rabbitmq"   % "amqp-client" % Version.amqpClient
-    lazy val catsEffect = "org.typelevel" %% "cats-effect" % Version.catsEffect
-    lazy val fs2Core    = "co.fs2"        %% "fs2-core"    % Version.fs2
-    lazy val scodecCats = "org.scodec"    %% "scodec-cats" % Version.scodec
+    lazy val amqpClient       = "com.rabbitmq"            % "amqp-client"             % Version.amqpClient
+    lazy val catsEffect       = "org.typelevel"          %% "cats-effect"             % Version.catsEffect
+    lazy val fs2Core          = "co.fs2"                 %% "fs2-core"                % Version.fs2
+    lazy val scodecCats       = "org.scodec"             %% "scodec-cats"             % Version.scodec
     lazy val collectionCompat = "org.scala-lang.modules" %% "scala-collection-compat" % Version.collectionCompat
 
     // Compiler
-    lazy val kindProjector    = "org.typelevel" % "kind-projector"     % Version.kindProjector cross CrossVersion.full
+    lazy val kindProjector = "org.typelevel" % "kind-projector" % Version.kindProjector cross CrossVersion.full
 
     // Examples
     lazy val logback       = "ch.qos.logback"        % "logback-classic"  % Version.logback
@@ -52,7 +52,7 @@ object Dependencies {
     // Scala test libraries
     lazy val scalaTest               = "org.scalatest"     %% "scalatest"            % Version.scalaTest
     lazy val scalaCheck              = "org.scalacheck"    %% "scalacheck"           % Version.scalaCheck
-    lazy val scalaTestPlusScalaCheck = "org.scalatestplus" %% "scalacheck-1-15"       % Version.scalaTestPlusScalaCheck
+    lazy val scalaTestPlusScalaCheck = "org.scalatestplus" %% "scalacheck-1-15"      % Version.scalaTestPlusScalaCheck
     lazy val disciplineScalaCheck    = "org.typelevel"     %% "discipline-scalatest" % Version.disciplineScalaCheck
     lazy val catsLaws                = "org.typelevel"     %% "cats-laws"            % Version.cats
     lazy val catsKernelLaws          = "org.typelevel"     %% "cats-kernel-laws"     % Version.cats
