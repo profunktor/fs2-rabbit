@@ -19,4 +19,4 @@ package dev.profunktor.fs2rabbit
 import scala.collection.convert.{AsJavaExtensions, AsScalaExtensions}
 
 @deprecated("kept for binary compatibility", "4.1.1")
-private [fs2rabbit] object javaConversion extends AsJavaExtensions with AsScalaExtensions
+private[fs2rabbit] object javaConversion extends AsJavaExtensions with AsScalaExtensions
