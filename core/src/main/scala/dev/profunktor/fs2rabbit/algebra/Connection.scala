@@ -16,23 +16,37 @@
 
 package dev.profunktor.fs2rabbit.algebra
 
-import java.util.concurrent.ThreadFactory
-
+import cats.effect.Resource
+import cats.effect.Sync
 import cats.effect.kernel.MonadCancel
-import cats.effect.{Resource, Sync}
 import cats.implicits._
 import cats.~>
-import com.rabbitmq.client.{Address, ConnectionFactory, DefaultSaslConfig, MetricsCollector, SaslConfig}
+import com.rabbitmq.client.Address
+import com.rabbitmq.client.ConnectionFactory
+import com.rabbitmq.client.DefaultSaslConfig
+import com.rabbitmq.client.MetricsCollector
+import com.rabbitmq.client.SaslConfig
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
 import dev.profunktor.fs2rabbit.effects.Log
-import scala.jdk.CollectionConverters._
-import dev.profunktor.fs2rabbit.model.{AMQPChannel, AMQPConnection, RabbitChannel, RabbitConnection}
+import dev.profunktor.fs2rabbit.model.AMQPChannel
+import dev.profunktor.fs2rabbit.model.AMQPConnection
+import dev.profunktor.fs2rabbit.model.RabbitChannel
+import dev.profunktor.fs2rabbit.model.RabbitConnection
+
+import java.util.Collections
+import java.util.concurrent.AbstractExecutorService
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.ThreadFactory
+import java.util.concurrent.TimeUnit
 import javax.net.ssl.SSLContext
+import scala.concurrent.ExecutionContext
+import scala.jdk.CollectionConverters._
 
 object ConnectionResource {
   type ConnectionResource[F[_]] = Connection[Resource[F, *]]
   def make[F[_]: Sync: Log](
       conf: Fs2RabbitConfig,
+      executionContext: ExecutionContext,
       sslCtx: Option[SSLContext] = None,
       // Unlike SSLContext, SaslConfig is not optional because it is always set
       // by the underlying Java library, even if the user doesn't set it.
@@ -49,6 +63,7 @@ object ConnectionResource {
     addThreadFactory.flatMap { fn =>
       _make(
         conf,
+        executionContext,
         sslCtx,
         saslConf,
         metricsCollector,
@@ -59,6 +74,7 @@ object ConnectionResource {
 
   private def _make[F[_]: Sync: Log](
       conf: Fs2RabbitConfig,
+      executionContext: ExecutionContext,
       sslCtx: Option[SSLContext],
       saslConf: SaslConfig,
       metricsCollector: Option[MetricsCollector],
@@ -78,8 +94,10 @@ object ConnectionResource {
         factory.setSaslConfig(saslConf)
         conf.username.foreach(factory.setUsername)
         conf.password.foreach(factory.setPassword)
+        factory.setSharedExecutor(fromExecutionContext(executionContext))
         metricsCollector.foreach(factory.setMetricsCollector)
         addThreadFactory(factory)
+
         factory
       }
       .map { connectionFactory =>
@@ -115,6 +133,20 @@ object ConnectionResource {
             }
         }
       }
+
+  private def fromExecutionContext(ec: ExecutionContext): ExecutorService =
+    ec match {
+      case es: ExecutorService => es
+      case _                   =>
+        new AbstractExecutorService {
+          override def isShutdown                                              = false
+          override def isTerminated                                            = false
+          override def shutdown()                                              = ()
+          override def shutdownNow()                                           = Collections.emptyList[Runnable]
+          override def execute(runnable: Runnable): Unit                       = ec execute runnable
+          override def awaitTermination(length: Long, unit: TimeUnit): Boolean = false
+        }
+    }
 
   implicit class ConnectionResourceOps[F[_]](val cf: ConnectionResource[F]) extends AnyVal {
     def mapK[G[_]](fk: F ~> G)(implicit F: MonadCancel[F, _], G: MonadCancel[G, _]): ConnectionResource[G] =

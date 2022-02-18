@@ -16,22 +16,28 @@
 
 package dev.profunktor.fs2rabbit.interpreter
 
-import java.util.concurrent.ThreadFactory
-
 import cats.effect._
 import cats.effect.std.Dispatcher
 import cats.implicits._
-import com.rabbitmq.client.{DefaultSaslConfig, MetricsCollector, SaslConfig}
+import com.rabbitmq.client.DefaultSaslConfig
+import com.rabbitmq.client.MetricsCollector
+import com.rabbitmq.client.SaslConfig
+import dev.profunktor.fs2rabbit.algebra.ConnectionResource.ConnectionResource
 import dev.profunktor.fs2rabbit.algebra._
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
-import dev.profunktor.fs2rabbit.config.declaration.{DeclarationExchangeConfig, DeclarationQueueConfig}
-import dev.profunktor.fs2rabbit.config.deletion.{DeletionExchangeConfig, DeletionQueueConfig}
-import dev.profunktor.fs2rabbit.effects.{EnvelopeDecoder, MessageEncoder}
-import dev.profunktor.fs2rabbit.algebra.ConnectionResource.ConnectionResource
+import dev.profunktor.fs2rabbit.config.declaration.DeclarationExchangeConfig
+import dev.profunktor.fs2rabbit.config.declaration.DeclarationQueueConfig
+import dev.profunktor.fs2rabbit.config.deletion.DeletionExchangeConfig
+import dev.profunktor.fs2rabbit.config.deletion.DeletionQueueConfig
+import dev.profunktor.fs2rabbit.effects.EnvelopeDecoder
+import dev.profunktor.fs2rabbit.effects.MessageEncoder
 import dev.profunktor.fs2rabbit.model._
 import dev.profunktor.fs2rabbit.program._
 import fs2.Stream
+
+import java.util.concurrent.ThreadFactory
 import javax.net.ssl.SSLContext
+import scala.concurrent.ExecutionContext
 
 object RabbitClient {
 
@@ -43,10 +49,13 @@ object RabbitClient {
       // by the underlying Java library, even if the user doesn't set it.
       saslConfig: SaslConfig = DefaultSaslConfig.PLAIN,
       metricsCollector: Option[MetricsCollector] = None,
-      threadFactory: Option[F[ThreadFactory]] = None
+      threadFactory: Option[F[ThreadFactory]] = None,
+      executionContext: Option[F[ExecutionContext]] = None
   ): F[RabbitClient[F]] = {
     val internalQ         = new LiveInternalQueue[F](config.internalQueueSize.getOrElse(500))
-    val connection        = ConnectionResource.make(config, sslContext, saslConfig, metricsCollector, threadFactory)
+    val connection        = executionContext.getOrElse(Async[F].executionContext).flatMap { executionContext =>
+      ConnectionResource.make(config, executionContext, sslContext, saslConfig, metricsCollector, threadFactory)
+    }
     val consumingProgram  = AckConsumingProgram.make[F](config, internalQ, dispatcher)
     val publishingProgram = PublishingProgram.make[F](dispatcher)
     val bindingClient     = Binding.make[F]
