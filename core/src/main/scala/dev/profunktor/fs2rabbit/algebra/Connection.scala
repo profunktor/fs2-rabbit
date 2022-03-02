@@ -44,6 +44,33 @@ import scala.jdk.CollectionConverters._
 
 object ConnectionResource {
   type ConnectionResource[F[_]] = Connection[Resource[F, *]]
+
+  @deprecated("use other make method with configurable execution context", "4.1.1")
+  private[algebra] def make[F[_]: Sync: Log](
+      conf: Fs2RabbitConfig,
+      sslCtx: Option[SSLContext],
+      saslConf: SaslConfig,
+      metricsCollector: Option[MetricsCollector],
+      threadFactory: Option[F[ThreadFactory]]
+  ): F[Connection[Resource[F, *]]] = {
+    val addThreadFactory: F[ConnectionFactory => Unit] =
+      threadFactory.fold(Sync[F].pure((_: ConnectionFactory) => ())) { threadFact =>
+        threadFact.map { tf => (cf: ConnectionFactory) =>
+          cf.setThreadFactory(tf)
+        }
+      }
+    addThreadFactory.flatMap { fn =>
+      _make(
+        conf,
+        None,
+        sslCtx,
+        saslConf,
+        metricsCollector,
+        fn
+      )
+    }
+  }
+
   def make[F[_]: Sync: Log](
       conf: Fs2RabbitConfig,
       executionContext: ExecutionContext,
@@ -63,7 +90,7 @@ object ConnectionResource {
     addThreadFactory.flatMap { fn =>
       _make(
         conf,
-        executionContext,
+        Some(executionContext),
         sslCtx,
         saslConf,
         metricsCollector,
@@ -74,7 +101,7 @@ object ConnectionResource {
 
   private def _make[F[_]: Sync: Log](
       conf: Fs2RabbitConfig,
-      executionContext: ExecutionContext,
+      executionContext: Option[ExecutionContext],
       sslCtx: Option[SSLContext],
       saslConf: SaslConfig,
       metricsCollector: Option[MetricsCollector],
@@ -94,7 +121,7 @@ object ConnectionResource {
         factory.setSaslConfig(saslConf)
         conf.username.foreach(factory.setUsername)
         conf.password.foreach(factory.setPassword)
-        factory.setSharedExecutor(fromExecutionContext(executionContext))
+        executionContext.foreach(ec => factory.setSharedExecutor(fromExecutionContext(ec)))
         metricsCollector.foreach(factory.setMetricsCollector)
         addThreadFactory(factory)
 
