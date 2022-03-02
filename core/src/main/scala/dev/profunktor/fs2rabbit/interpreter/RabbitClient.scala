@@ -55,7 +55,7 @@ object RabbitClient {
     saslConfig = saslConfig,
     metricsCollector = metricsCollector,
     threadFactory = threadFactory,
-    executionContext = None,
+    executionContext = None
   )
 
   def apply[F[_]: Async](
@@ -67,7 +67,7 @@ object RabbitClient {
       saslConfig: SaslConfig = DefaultSaslConfig.PLAIN,
       metricsCollector: Option[MetricsCollector] = None,
       threadFactory: Option[F[ThreadFactory]] = None,
-      executionContext: Option[F[ExecutionContext]] = None,
+      executionContext: Option[F[ExecutionContext]] = None
   ): F[RabbitClient[F]] = {
     val internalQ         = new LiveInternalQueue[F](config.internalQueueSize.getOrElse(500))
     val connection        = executionContext.getOrElse(Async[F].executionContext).flatMap { executionContext =>
@@ -110,7 +110,7 @@ object RabbitClient {
       saslConfig: SaslConfig = DefaultSaslConfig.PLAIN,
       metricsCollector: Option[MetricsCollector] = None,
       threadFactory: Option[F[ThreadFactory]] = None,
-      executionContext: Option[F[ExecutionContext]],
+      executionContext: Option[F[ExecutionContext]] = None
   ): Resource[F, RabbitClient[F]] = Dispatcher[F].evalMap { dispatcher =>
     apply[F](config, dispatcher, sslContext, saslConfig, metricsCollector, threadFactory, executionContext)
   }
