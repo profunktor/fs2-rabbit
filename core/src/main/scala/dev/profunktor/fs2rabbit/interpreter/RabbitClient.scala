@@ -40,6 +40,23 @@ import javax.net.ssl.SSLContext
 import scala.concurrent.ExecutionContext
 
 object RabbitClient {
+  @deprecated("use other apply method with configurable execution context", "4.1.1")
+  private[interpreter] def apply[F[_]: Async](
+      config: Fs2RabbitConfig,
+      dispatcher: Dispatcher[F],
+      sslContext: Option[SSLContext],
+      saslConfig: SaslConfig,
+      metricsCollector: Option[MetricsCollector],
+      threadFactory: Option[F[ThreadFactory]]
+  ): F[RabbitClient[F]] = apply(
+    config = config,
+    dispatcher = dispatcher,
+    sslContext = sslContext,
+    saslConfig = saslConfig,
+    metricsCollector = metricsCollector,
+    threadFactory = threadFactory,
+    executionContext = None,
+  )
 
   def apply[F[_]: Async](
       config: Fs2RabbitConfig,
@@ -50,7 +67,7 @@ object RabbitClient {
       saslConfig: SaslConfig = DefaultSaslConfig.PLAIN,
       metricsCollector: Option[MetricsCollector] = None,
       threadFactory: Option[F[ThreadFactory]] = None,
-      executionContext: Option[F[ExecutionContext]] = None
+      executionContext: Option[F[ExecutionContext]] = None,
   ): F[RabbitClient[F]] = {
     val internalQ         = new LiveInternalQueue[F](config.internalQueueSize.getOrElse(500))
     val connection        = executionContext.getOrElse(Async[F].executionContext).flatMap { executionContext =>
@@ -74,6 +91,17 @@ object RabbitClient {
     }
   }
 
+  @deprecated("use other resource method with configurable execution context", "4.1.1")
+  private[interpreter] def resource[F[_]: Async](
+      config: Fs2RabbitConfig,
+      sslContext: Option[SSLContext],
+      saslConfig: SaslConfig,
+      metricsCollector: Option[MetricsCollector],
+      threadFactory: Option[F[ThreadFactory]]
+  ): Resource[F, RabbitClient[F]] = Dispatcher[F].evalMap { dispatcher =>
+    apply[F](config, dispatcher, sslContext, saslConfig, metricsCollector, threadFactory)
+  }
+
   def resource[F[_]: Async](
       config: Fs2RabbitConfig,
       sslContext: Option[SSLContext] = None,
@@ -81,9 +109,10 @@ object RabbitClient {
       // by the underlying Java library, even if the user doesn't set it.
       saslConfig: SaslConfig = DefaultSaslConfig.PLAIN,
       metricsCollector: Option[MetricsCollector] = None,
-      threadFactory: Option[F[ThreadFactory]] = None
+      threadFactory: Option[F[ThreadFactory]] = None,
+      executionContext: Option[F[ExecutionContext]],
   ): Resource[F, RabbitClient[F]] = Dispatcher[F].evalMap { dispatcher =>
-    apply[F](config, dispatcher, sslContext, saslConfig, metricsCollector, threadFactory)
+    apply[F](config, dispatcher, sslContext, saslConfig, metricsCollector, threadFactory, executionContext)
   }
 
   implicit def toRabbitClientOps[F[_]](client: RabbitClient[F]): RabbitClientOps[F] = new RabbitClientOps[F](client)
