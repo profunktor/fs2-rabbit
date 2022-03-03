@@ -49,7 +49,8 @@ object RPCDemo extends IOApp.Simple {
     requeueOnReject = false,
     internalQueueSize = Some(500),
     requestedHeartbeat = 60.seconds,
-    automaticRecovery = true
+    automaticRecovery = true,
+    clientProvidedName = Some("app:rpc-demo")
   )
 
   def run: IO[Unit] =

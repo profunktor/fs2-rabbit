@@ -36,7 +36,8 @@ object ZIOAutoAckConsumer extends CatsApp {
     connectionTimeout = 3.seconds,
     requeueOnNack = false,
     requeueOnReject = false,
-    internalQueueSize = Some(500)
+    internalQueueSize = Some(500),
+    clientProvidedName = Some("app:zio-auto-ack-consumer")
   )
 
   override def run(args: List[String]): URIO[ZEnv, ExitCode] =
