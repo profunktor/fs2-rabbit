@@ -39,7 +39,8 @@ case class Fs2RabbitConfig(
     requeueOnReject: Boolean,
     internalQueueSize: Option[Int],
     requestedHeartbeat: FiniteDuration,
-    automaticRecovery: Boolean
+    automaticRecovery: Boolean,
+    clientProvidedName: Option[String]
 )
 
 object Fs2RabbitConfig {
@@ -55,7 +56,8 @@ object Fs2RabbitConfig {
       requeueOnReject: Boolean,
       internalQueueSize: Option[Int],
       requestedHeartbeat: FiniteDuration = FiniteDuration(ConnectionFactory.DEFAULT_HEARTBEAT, TimeUnit.SECONDS),
-      automaticRecovery: Boolean = true
+      automaticRecovery: Boolean = true,
+      clientProvidedName: Option[String] = None
   ): Fs2RabbitConfig = Fs2RabbitConfig(
     nodes = NonEmptyList.one(Fs2RabbitNodeConfig(host, port)),
     virtualHost = virtualHost,
@@ -67,6 +69,7 @@ object Fs2RabbitConfig {
     requeueOnReject = requeueOnReject,
     internalQueueSize = internalQueueSize,
     requestedHeartbeat = requestedHeartbeat,
-    automaticRecovery = automaticRecovery
+    automaticRecovery = automaticRecovery,
+    clientProvidedName = clientProvidedName
   )
 }
