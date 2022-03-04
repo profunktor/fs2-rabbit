@@ -45,41 +45,15 @@ import scala.jdk.CollectionConverters._
 object ConnectionResource {
   type ConnectionResource[F[_]] = Connection[Resource[F, *]]
 
-  @deprecated("use other make method with configurable execution context", "4.1.1")
-  private[algebra] def make[F[_]: Sync: Log](
-      conf: Fs2RabbitConfig,
-      sslCtx: Option[SSLContext],
-      saslConf: SaslConfig,
-      metricsCollector: Option[MetricsCollector],
-      threadFactory: Option[F[ThreadFactory]]
-  ): F[Connection[Resource[F, *]]] = {
-    val addThreadFactory: F[ConnectionFactory => Unit] =
-      threadFactory.fold(Sync[F].pure((_: ConnectionFactory) => ())) { threadFact =>
-        threadFact.map { tf => (cf: ConnectionFactory) =>
-          cf.setThreadFactory(tf)
-        }
-      }
-    addThreadFactory.flatMap { fn =>
-      _make(
-        conf,
-        None,
-        sslCtx,
-        saslConf,
-        metricsCollector,
-        fn
-      )
-    }
-  }
-
   def make[F[_]: Sync: Log](
       conf: Fs2RabbitConfig,
       executionContext: ExecutionContext,
-      sslCtx: Option[SSLContext] = None,
+      sslCtx: Option[SSLContext],
       // Unlike SSLContext, SaslConfig is not optional because it is always set
       // by the underlying Java library, even if the user doesn't set it.
-      saslConf: SaslConfig = DefaultSaslConfig.PLAIN,
-      metricsCollector: Option[MetricsCollector] = None,
-      threadFactory: Option[F[ThreadFactory]] = None
+      saslConf: SaslConfig,
+      metricsCollector: Option[MetricsCollector],
+      threadFactory: Option[F[ThreadFactory]]
   ): F[Connection[Resource[F, *]]] = {
     val addThreadFactory: F[ConnectionFactory => Unit] =
       threadFactory.fold(Sync[F].pure((_: ConnectionFactory) => ())) { threadFact =>
