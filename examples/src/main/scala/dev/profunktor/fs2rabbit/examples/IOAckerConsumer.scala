@@ -41,7 +41,7 @@ object IOAckerConsumer extends IOApp.Simple {
   )
 
   override def run: IO[Unit] =
-    RabbitClient.resource[IO](config).use { client =>
+    RabbitClient.default[IO](config).resource().use { client =>
       ResilientStream
         .runF(new AckerConsumerDemo[IO](client).program)
     }

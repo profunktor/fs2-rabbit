@@ -40,34 +40,90 @@ import javax.net.ssl.SSLContext
 import scala.concurrent.ExecutionContext
 
 object RabbitClient {
-  @deprecated("use other apply method with configurable execution context", "4.1.1")
-  private[interpreter] def apply[F[_]: Async](
+  sealed abstract class Builder[F[_]: Async] private[RabbitClient] (
+      config: Fs2RabbitConfig,
+      sslContext: Option[SSLContext],
+      // Unlike SSLContext, SaslConfig is not optional because it is always set
+      // by the underlying Java library, even if the user doesn't set it.
+      saslConfig: SaslConfig,
+      metricsCollector: Option[MetricsCollector],
+      threadFactory: Option[F[ThreadFactory]],
+      executionContext: Option[F[ExecutionContext]]
+  ) {
+    def withSslContext(sslContext: SSLContext): Builder[F] = new Builder[F](
+      config = config,
+      sslContext = Some(sslContext),
+      saslConfig = saslConfig,
+      metricsCollector = metricsCollector,
+      threadFactory = threadFactory,
+      executionContext = executionContext
+    ) {}
+
+    def withSaslConfig(saslConfig: SaslConfig): Builder[F] = new Builder[F](
+      config = config,
+      sslContext = sslContext,
+      saslConfig = saslConfig,
+      metricsCollector = metricsCollector,
+      threadFactory = threadFactory,
+      executionContext = executionContext
+    ) {}
+
+    def withMetricsCollector(metricsCollector: MetricsCollector): Builder[F] = new Builder[F](
+      config = config,
+      sslContext = sslContext,
+      saslConfig = saslConfig,
+      metricsCollector = Some(metricsCollector),
+      threadFactory = threadFactory,
+      executionContext = executionContext
+    ) {}
+
+    def withThreadFactory(threadFactory: F[ThreadFactory]): Builder[F] = new Builder[F](
+      config = config,
+      sslContext = sslContext,
+      saslConfig = saslConfig,
+      metricsCollector = metricsCollector,
+      threadFactory = Some(threadFactory),
+      executionContext = executionContext
+    ) {}
+
+    def withExecutionContext(executionContext: F[ExecutionContext]): Builder[F] =
+      new Builder[F](
+        config = config,
+        sslContext = sslContext,
+        saslConfig = saslConfig,
+        metricsCollector = metricsCollector,
+        threadFactory = threadFactory,
+        executionContext = Some(executionContext)
+      ) {}
+
+    def build(dispatcher: Dispatcher[F]): F[RabbitClient[F]] =
+      create[F](config, dispatcher, sslContext, saslConfig, metricsCollector, threadFactory, executionContext)
+
+    def resource(): Resource[F, RabbitClient[F]] =
+      Dispatcher[F].evalMap { dispatcher =>
+        create[F](config, dispatcher, sslContext, saslConfig, metricsCollector, threadFactory, executionContext)
+      }
+  }
+
+  def default[F[_]: Async](
+      config: Fs2RabbitConfig
+  ): Builder[F] = new Builder[F](
+    config = config,
+    sslContext = None,
+    saslConfig = DefaultSaslConfig.PLAIN,
+    metricsCollector = None,
+    threadFactory = None,
+    executionContext = None
+  ) {}
+
+  private def create[F[_]: Async](
       config: Fs2RabbitConfig,
       dispatcher: Dispatcher[F],
       sslContext: Option[SSLContext],
       saslConfig: SaslConfig,
       metricsCollector: Option[MetricsCollector],
-      threadFactory: Option[F[ThreadFactory]]
-  ): F[RabbitClient[F]] = apply(
-    config = config,
-    dispatcher = dispatcher,
-    sslContext = sslContext,
-    saslConfig = saslConfig,
-    metricsCollector = metricsCollector,
-    threadFactory = threadFactory,
-    executionContext = None
-  )
-
-  def apply[F[_]: Async](
-      config: Fs2RabbitConfig,
-      dispatcher: Dispatcher[F],
-      sslContext: Option[SSLContext] = None,
-      // Unlike SSLContext, SaslConfig is not optional because it is always set
-      // by the underlying Java library, even if the user doesn't set it.
-      saslConfig: SaslConfig = DefaultSaslConfig.PLAIN,
-      metricsCollector: Option[MetricsCollector] = None,
-      threadFactory: Option[F[ThreadFactory]] = None,
-      executionContext: Option[F[ExecutionContext]] = None
+      threadFactory: Option[F[ThreadFactory]],
+      executionContext: Option[F[ExecutionContext]]
   ): F[RabbitClient[F]] = {
     val internalQ         = new LiveInternalQueue[F](config.internalQueueSize.getOrElse(500))
     val connection        = executionContext.getOrElse(Async[F].executionContext).flatMap { executionContext =>
@@ -89,30 +145,6 @@ object RabbitClient {
         publishingProgram
       )
     }
-  }
-
-  @deprecated("use other resource method with configurable execution context", "4.1.1")
-  private[interpreter] def resource[F[_]: Async](
-      config: Fs2RabbitConfig,
-      sslContext: Option[SSLContext],
-      saslConfig: SaslConfig,
-      metricsCollector: Option[MetricsCollector],
-      threadFactory: Option[F[ThreadFactory]]
-  ): Resource[F, RabbitClient[F]] = Dispatcher[F].evalMap { dispatcher =>
-    apply[F](config, dispatcher, sslContext, saslConfig, metricsCollector, threadFactory)
-  }
-
-  def resource[F[_]: Async](
-      config: Fs2RabbitConfig,
-      sslContext: Option[SSLContext] = None,
-      // Unlike SSLContext, SaslConfig is not optional because it is always set
-      // by the underlying Java library, even if the user doesn't set it.
-      saslConfig: SaslConfig = DefaultSaslConfig.PLAIN,
-      metricsCollector: Option[MetricsCollector] = None,
-      threadFactory: Option[F[ThreadFactory]] = None,
-      executionContext: Option[F[ExecutionContext]] = None
-  ): Resource[F, RabbitClient[F]] = Dispatcher[F].evalMap { dispatcher =>
-    apply[F](config, dispatcher, sslContext, saslConfig, metricsCollector, threadFactory, executionContext)
   }
 
   implicit def toRabbitClientOps[F[_]](client: RabbitClient[F]): RabbitClientOps[F] = new RabbitClientOps[F](client)
@@ -415,5 +447,4 @@ class RabbitClient[F[_]] private[fs2rabbit] (
       config: DeletionExchangeConfig
   )(implicit channel: AMQPChannel): F[Unit] =
     deletion.deleteExchangeNoWait(channel, config)
-
 }

@@ -756,27 +756,34 @@ trait Fs2RabbitSpec { self: BaseSpec =>
 
   private def withStreamRabbit[A](fa: RabbitClient[IO] => Stream[IO, A]): Future[Assertion] =
     RabbitClient
-      .resource[IO](config)
+      .default[IO](config)
+      .resource()
       .use(r => fa(r).compile.drain)
       .as(emptyAssertion)
       .unsafeToFuture()
 
   private def withStreamNackRabbit[A](fa: RabbitClient[IO] => Stream[IO, A]): Future[Assertion] =
     RabbitClient
-      .resource[IO](config.copy(requeueOnNack = true))
+      .default[IO](config.copy(requeueOnNack = true))
+      .resource()
       .use(r => fa(r).compile.drain)
       .as(emptyAssertion)
       .unsafeToFuture()
 
   private def withStreamRejectRabbit[A](fa: RabbitClient[IO] => Stream[IO, A]): Future[Assertion] =
     RabbitClient
-      .resource[IO](config.copy(requeueOnReject = true))
+      .default[IO](config.copy(requeueOnReject = true))
+      .resource()
       .use(r => fa(r).compile.drain)
       .as(emptyAssertion)
       .unsafeToFuture()
 
   private def withRabbit[A](fa: RabbitClient[IO] => IO[A]): Future[A] =
-    RabbitClient.resource[IO](config).use(r => fa(r)).unsafeToFuture()
+    RabbitClient
+      .default[IO](config)
+      .resource()
+      .use(r => fa(r))
+      .unsafeToFuture()
 
   private def randomQueueData: IO[(QueueName, ExchangeName, RoutingKey)] =
     (mkRandomString, mkRandomString, mkRandomString).mapN { case (a, b, c) =>
