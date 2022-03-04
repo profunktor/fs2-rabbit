@@ -121,7 +121,7 @@ object IOAckerConsumer extends IOApp {
   )
 
   override def run(args: List[String]): IO[ExitCode] =
-      RabbitClient.resource[IO](config).use { client =>
+      RabbitClient.default[IO](config).resource().use { client =>
         ResilientStream
           .runF(new AckerConsumerDemo[IO](client).program)
           .as(ExitCode.Success)

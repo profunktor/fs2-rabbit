@@ -100,9 +100,7 @@ object RabbitClient {
       create[F](config, dispatcher, sslContext, saslConfig, metricsCollector, threadFactory, executionContext)
 
     def resource(): Resource[F, RabbitClient[F]] =
-      Dispatcher[F].evalMap { dispatcher =>
-        create[F](config, dispatcher, sslContext, saslConfig, metricsCollector, threadFactory, executionContext)
-      }
+      Dispatcher[F].evalMap(build)
   }
 
   def default[F[_]: Async](
