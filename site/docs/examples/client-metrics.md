@@ -17,7 +17,7 @@ val dropwizardCollector = new StandardMetricsCollector(registry)
 Now it is ready to use.
 
 ```scala
-RabbitClient.resource[IO](config, metricsCollector = Some(dropwizardCollector))
+RabbitClient.default[IO](config).withMetricsCollector(dropwizardCollector).resource()
 ```
 
 ## Expose via JMX
@@ -54,7 +54,7 @@ Let's initialise the FS2 RabbitMQ client and AMQP channel with metrics.
 ```scala
 val resources = for {
   _       <- JmxReporterResource.make[IO](registry)
-  client  <- RabbitClient.resource[IO](config, metricsCollector = Some(dropwizardCollector))
+  client  <- RabbitClient.default[IO](config).withMetricsCollector(dropwizardCollector).resource()
   channel <- client.createConnection.flatMap(client.createChannel)
 } yield (channel, client)
 
@@ -129,7 +129,7 @@ object DropwizardMetricsDemo extends IOApp {
 
     val resources = for {
       _       <- JmxReporterResource.make[IO](registry)
-      client  <- RabbitClient.resource[IO](config, metricsCollector = Some(dropwizardCollector))
+      client  <- RabbitClient.default[IO](config).withMetricsCollector(dropwizardCollector).resource()
       channel <- client.createConnection.flatMap(client.createChannel)
     } yield (channel, client)
 
