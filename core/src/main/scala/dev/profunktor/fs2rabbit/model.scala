@@ -74,13 +74,23 @@ object model {
   case class ConsumerArgs(consumerTag: ConsumerTag, noLocal: Boolean, exclusive: Boolean, args: Arguments)
   case class BasicQos(prefetchSize: Int, prefetchCount: Int, global: Boolean = false)
 
-  sealed trait ExchangeType extends Product with Serializable
+  sealed trait ExchangeType extends Product with Serializable {
+    def asString: String = this match {
+      case ExchangeType.Direct              => "direct"
+      case ExchangeType.FanOut              => "fanout"
+      case ExchangeType.Headers             => "headers"
+      case ExchangeType.Topic               => "topic"
+      case ExchangeType.`X-Delayed-Message` => "x-delayed-message"
+    }
+  }
 
   object ExchangeType {
     case object Direct  extends ExchangeType
     case object FanOut  extends ExchangeType
     case object Headers extends ExchangeType
     case object Topic   extends ExchangeType
+    case object `X-Delayed-Message`
+        extends ExchangeType // for use with the plugin https://github.com/rabbitmq/rabbitmq-delayed-message-exchange/
   }
 
   sealed abstract class DeliveryMode(val value: Int) extends Product with Serializable
