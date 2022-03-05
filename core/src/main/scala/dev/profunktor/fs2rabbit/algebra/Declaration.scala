@@ -29,7 +29,7 @@ object Declaration {
       Sync[F].blocking {
         channel.value.exchangeDeclare(
           config.exchangeName.value,
-          config.exchangeType.toString.toLowerCase,
+          config.exchangeType.asString,
           config.durable.isTrue,
           config.autoDelete.isTrue,
           config.internal.isTrue,
@@ -44,7 +44,7 @@ object Declaration {
       Sync[F].blocking {
         channel.value.exchangeDeclareNoWait(
           config.exchangeName.value,
-          config.exchangeType.toString.toLowerCase,
+          config.exchangeType.asString,
           config.durable.isTrue,
           config.autoDelete.isTrue,
           config.internal.isTrue,
