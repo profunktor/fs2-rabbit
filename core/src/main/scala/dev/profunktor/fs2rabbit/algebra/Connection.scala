@@ -36,12 +36,12 @@ import dev.profunktor.fs2rabbit.model.RabbitConnection
 import java.util.Collections
 import java.util.concurrent.AbstractExecutorService
 import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
 import java.util.concurrent.ThreadFactory
 import java.util.concurrent.TimeUnit
 import javax.net.ssl.SSLContext
 import scala.concurrent.ExecutionContext
 import scala.jdk.CollectionConverters._
+import java.util.concurrent.Executors
 
 object ConnectionResource {
   type ConnectionResource[F[_]] = Connection[Resource[F, *]]
@@ -63,20 +63,28 @@ object ConnectionResource {
         }
       }
 
-    val numOfThreads = Runtime.getRuntime().availableProcessors() * 2
-    val es           = Executors.newFixedThreadPool(numOfThreads)
-    sys.addShutdownHook(es.shutdown())
+    val numOfThreads            = Runtime.getRuntime().availableProcessors() * 2
+    val esF: F[ExecutorService] = threadFactory
+      .fold(Executors.newFixedThreadPool(numOfThreads).pure[F]) {
+        _.map(Executors.newFixedThreadPool(numOfThreads, _))
+      }
+      .map { es =>
+        sys.addShutdownHook(es.shutdown())
+        es
+      }
 
-    addThreadFactory.flatMap { fn =>
-      _make(
-        conf,
-        Some(ExecutionContext.fromExecutorService(es)),
-        sslCtx,
-        saslConf,
-        metricsCollector,
-        fn
-      )
-    }
+    for {
+      es   <- esF
+      fn   <- addThreadFactory
+      conn <- _make(
+                conf,
+                Some(ExecutionContext.fromExecutorService(es)),
+                sslCtx,
+                saslConf,
+                metricsCollector,
+                fn
+              )
+    } yield conn
   }
 
   def make[F[_]: Sync: Log](
