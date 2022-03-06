@@ -36,6 +36,7 @@ import dev.profunktor.fs2rabbit.model.RabbitConnection
 import java.util.Collections
 import java.util.concurrent.AbstractExecutorService
 import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 import java.util.concurrent.ThreadFactory
 import java.util.concurrent.TimeUnit
 import javax.net.ssl.SSLContext
@@ -44,6 +45,39 @@ import scala.jdk.CollectionConverters._
 
 object ConnectionResource {
   type ConnectionResource[F[_]] = Connection[Resource[F, *]]
+
+  @deprecated(message = "Use `make` with explicit ExecutionContext", since = "5.0.0")
+  def make[F[_]: Sync: Log](
+      conf: Fs2RabbitConfig,
+      sslCtx: Option[SSLContext] = None,
+      // Unlike SSLContext, SaslConfig is not optional because it is always set
+      // by the underlying Java library, even if the user doesn't set it.
+      saslConf: SaslConfig = DefaultSaslConfig.PLAIN,
+      metricsCollector: Option[MetricsCollector] = None,
+      threadFactory: Option[F[ThreadFactory]] = None
+  ): F[Connection[Resource[F, *]]] = {
+    val addThreadFactory: F[ConnectionFactory => Unit] =
+      threadFactory.fold(Sync[F].pure((_: ConnectionFactory) => ())) { threadFact =>
+        threadFact.map { tf => (cf: ConnectionFactory) =>
+          cf.setThreadFactory(tf)
+        }
+      }
+
+    val numOfThreads = Runtime.getRuntime().availableProcessors() * 2
+    val es           = Executors.newFixedThreadPool(numOfThreads)
+    sys.addShutdownHook(es.shutdown())
+
+    addThreadFactory.flatMap { fn =>
+      _make(
+        conf,
+        Some(ExecutionContext.fromExecutorService(es)),
+        sslCtx,
+        saslConf,
+        metricsCollector,
+        fn
+      )
+    }
+  }
 
   def make[F[_]: Sync: Log](
       conf: Fs2RabbitConfig,
