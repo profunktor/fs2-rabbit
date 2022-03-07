@@ -57,7 +57,7 @@ object Fs2RabbitConfig {
       internalQueueSize: Option[Int],
       requestedHeartbeat: FiniteDuration = FiniteDuration(ConnectionFactory.DEFAULT_HEARTBEAT, TimeUnit.SECONDS),
       automaticRecovery: Boolean = true,
-      clientProvidedName: Option[String] = None
+      clientProvidedConnectionName: Option[String] = None
   ): Fs2RabbitConfig = Fs2RabbitConfig(
     nodes = NonEmptyList.one(Fs2RabbitNodeConfig(host, port)),
     virtualHost = virtualHost,
@@ -70,6 +70,6 @@ object Fs2RabbitConfig {
     internalQueueSize = internalQueueSize,
     requestedHeartbeat = requestedHeartbeat,
     automaticRecovery = automaticRecovery,
-    clientProvidedName = clientProvidedName
+    clientProvidedName = clientProvidedConnectionName
   )
 }
