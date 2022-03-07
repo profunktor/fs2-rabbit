@@ -54,7 +54,7 @@ object RPCDemo extends IOApp.Simple {
   )
 
   def run: IO[Unit] =
-    RabbitClient.default[IO](config).resource().use { implicit client =>
+    RabbitClient.default[IO](config).resource.use { implicit client =>
       val queue = QueueName("rpc_queue")
       runServer[IO](queue).concurrently(runClient[IO](queue)).compile.drain
     }
