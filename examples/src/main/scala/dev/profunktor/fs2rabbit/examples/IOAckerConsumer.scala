@@ -38,7 +38,7 @@ object IOAckerConsumer extends IOApp.Simple {
     internalQueueSize = Some(500),
     requestedHeartbeat = 60.seconds,
     automaticRecovery = true,
-    clientProvidedName = Some("app:io-acker-consumer")
+    clientProvidedConnectionName = Some("app:io-acker-consumer")
   )
 
   override def run: IO[Unit] =

@@ -48,7 +48,7 @@ object DropwizardMetricsDemo extends IOApp.Simple {
     internalQueueSize = Some(500),
     requestedHeartbeat = 60.seconds,
     automaticRecovery = true,
-    clientProvidedName = Some("app:drop-wizard-metrics-demo")
+    clientProvidedConnectionName = Some("app:drop-wizard-metrics-demo")
   )
 
   private val queueName    = QueueName("testQ")
