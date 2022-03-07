@@ -89,7 +89,7 @@ object ConnectionResource {
 
           private[fs2rabbit] val acquireConnection: F[AMQPConnection] =
             Sync[F]
-              .delay(connectionFactory.newConnection(addresses.toList.asJava, conf.clientProvidedName.orNull))
+              .delay(connectionFactory.newConnection(addresses.toList.asJava, conf.clientProvidedConnectionName.orNull))
               .flatTap(c => Log[F].info(s"Acquired connection: $c"))
               .map(RabbitConnection.apply)
 

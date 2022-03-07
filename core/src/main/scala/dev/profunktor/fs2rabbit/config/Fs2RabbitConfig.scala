@@ -40,7 +40,7 @@ case class Fs2RabbitConfig(
     internalQueueSize: Option[Int],
     requestedHeartbeat: FiniteDuration,
     automaticRecovery: Boolean,
-    clientProvidedName: Option[String]
+    clientProvidedConnectionName: Option[String]
 )
 
 object Fs2RabbitConfig {
@@ -70,6 +70,6 @@ object Fs2RabbitConfig {
     internalQueueSize = internalQueueSize,
     requestedHeartbeat = requestedHeartbeat,
     automaticRecovery = automaticRecovery,
-    clientProvidedName = clientProvidedConnectionName
+    clientProvidedConnectionName = clientProvidedConnectionName
   )
 }
