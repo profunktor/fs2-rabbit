@@ -40,7 +40,7 @@ import javax.net.ssl.SSLContext
 import scala.concurrent.ExecutionContext
 
 object RabbitClient {
-  @deprecated(message = "Use `default` to create Builder instead", since = "5.0.0")
+  @deprecated(message = "Use `default` to create Builder instead", since = "4.2.0")
   def apply[F[_]: Async](
       config: Fs2RabbitConfig,
       dispatcher: Dispatcher[F],
@@ -71,7 +71,7 @@ object RabbitClient {
     }
   }
 
-  @deprecated(message = "Use `default` to create Builder instead", since = "5.0.0")
+  @deprecated(message = "Use `default` to create Builder instead", since = "4.2.0")
   def resource[F[_]: Async](
       config: Fs2RabbitConfig,
       sslContext: Option[SSLContext] = None,
@@ -84,7 +84,7 @@ object RabbitClient {
     apply[F](config, dispatcher, sslContext, saslConfig, metricsCollector, threadFactory)
   }
 
-  sealed abstract class Builder[F[_]: Async] private[RabbitClient] (
+  sealed abstract case class Builder[F[_]: Async] private[RabbitClient] (
       config: Fs2RabbitConfig,
       sslContext: Option[SSLContext],
       // Unlike SSLContext, SaslConfig is not optional because it is always set
@@ -94,16 +94,14 @@ object RabbitClient {
       threadFactory: Option[F[ThreadFactory]],
       executionContext: Option[F[ExecutionContext]]
   ) {
-    def withSslContext(sslContext: SSLContext): Builder[F] = new Builder[F](
-      config = config,
-      sslContext = Some(sslContext),
-      saslConfig = saslConfig,
-      metricsCollector = metricsCollector,
-      threadFactory = threadFactory,
-      executionContext = executionContext
-    ) {}
-
-    def withSaslConfig(saslConfig: SaslConfig): Builder[F] = new Builder[F](
+    def copy(
+        config: Fs2RabbitConfig = config,
+        sslContext: Option[SSLContext] = sslContext,
+        saslConfig: SaslConfig = saslConfig,
+        metricsCollector: Option[MetricsCollector] = metricsCollector,
+        threadFactory: Option[F[ThreadFactory]] = threadFactory,
+        executionContext: Option[F[ExecutionContext]] = executionContext
+    ): Builder[F] = new Builder[F](
       config = config,
       sslContext = sslContext,
       saslConfig = saslConfig,
@@ -112,38 +110,22 @@ object RabbitClient {
       executionContext = executionContext
     ) {}
 
-    def withMetricsCollector(metricsCollector: MetricsCollector): Builder[F] = new Builder[F](
-      config = config,
-      sslContext = sslContext,
-      saslConfig = saslConfig,
-      metricsCollector = Some(metricsCollector),
-      threadFactory = threadFactory,
-      executionContext = executionContext
-    ) {}
+    def withSslContext(sslContext: SSLContext): Builder[F] = copy(sslContext = Some(sslContext))
 
-    def withThreadFactory(threadFactory: F[ThreadFactory]): Builder[F] = new Builder[F](
-      config = config,
-      sslContext = sslContext,
-      saslConfig = saslConfig,
-      metricsCollector = metricsCollector,
-      threadFactory = Some(threadFactory),
-      executionContext = executionContext
-    ) {}
+    def withSaslConfig(saslConfig: SaslConfig): Builder[F] = copy(saslConfig = saslConfig)
+
+    def withMetricsCollector(metricsCollector: MetricsCollector): Builder[F] =
+      copy(metricsCollector = Some(metricsCollector))
+
+    def withThreadFactory(threadFactory: F[ThreadFactory]): Builder[F] = copy(threadFactory = Some(threadFactory))
 
     def withExecutionContext(executionContext: F[ExecutionContext]): Builder[F] =
-      new Builder[F](
-        config = config,
-        sslContext = sslContext,
-        saslConfig = saslConfig,
-        metricsCollector = metricsCollector,
-        threadFactory = threadFactory,
-        executionContext = Some(executionContext)
-      ) {}
+      copy(executionContext = Some(executionContext))
 
     def build(dispatcher: Dispatcher[F]): F[RabbitClient[F]] =
       create[F](config, dispatcher, sslContext, saslConfig, metricsCollector, threadFactory, executionContext)
 
-    def resource(): Resource[F, RabbitClient[F]] =
+    def resource: Resource[F, RabbitClient[F]] =
       Dispatcher[F].evalMap(build)
   }
 

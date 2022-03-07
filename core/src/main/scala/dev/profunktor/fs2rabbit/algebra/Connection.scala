@@ -46,7 +46,7 @@ import java.util.concurrent.Executors
 object ConnectionResource {
   type ConnectionResource[F[_]] = Connection[Resource[F, *]]
 
-  @deprecated(message = "Use `make` with explicit ExecutionContext", since = "5.0.0")
+  @deprecated(message = "Use `make` with explicit ExecutionContext", since = "4.2.0")
   def make[F[_]: Sync: Log](
       conf: Fs2RabbitConfig,
       sslCtx: Option[SSLContext] = None,
