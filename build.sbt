@@ -64,7 +64,7 @@ val commonSettings = List(
   libraryDependencies ++= commonDependencies(scalaVersion.value),
   resolvers += "Apache public" at "https://repository.apache.org/content/groups/public/",
   scalafmtOnCompile     := true,
-  mimaPreviousArtifacts := Set(organization.value %% moduleName.value % "4.1.0")
+  mimaPreviousArtifacts := Set(organization.value %% moduleName.value % "4.1.1")
 )
 
 def CoreDependencies(scalaVersionStr: String): List[ModuleID] =

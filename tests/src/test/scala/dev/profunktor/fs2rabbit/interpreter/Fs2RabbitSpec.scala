@@ -757,7 +757,7 @@ trait Fs2RabbitSpec { self: BaseSpec =>
   private def withStreamRabbit[A](fa: RabbitClient[IO] => Stream[IO, A]): Future[Assertion] =
     RabbitClient
       .default[IO](config)
-      .resource()
+      .resource
       .use(r => fa(r).compile.drain)
       .as(emptyAssertion)
       .unsafeToFuture()
@@ -765,7 +765,7 @@ trait Fs2RabbitSpec { self: BaseSpec =>
   private def withStreamNackRabbit[A](fa: RabbitClient[IO] => Stream[IO, A]): Future[Assertion] =
     RabbitClient
       .default[IO](config.copy(requeueOnNack = true))
-      .resource()
+      .resource
       .use(r => fa(r).compile.drain)
       .as(emptyAssertion)
       .unsafeToFuture()
@@ -773,7 +773,7 @@ trait Fs2RabbitSpec { self: BaseSpec =>
   private def withStreamRejectRabbit[A](fa: RabbitClient[IO] => Stream[IO, A]): Future[Assertion] =
     RabbitClient
       .default[IO](config.copy(requeueOnReject = true))
-      .resource()
+      .resource
       .use(r => fa(r).compile.drain)
       .as(emptyAssertion)
       .unsafeToFuture()
@@ -781,7 +781,7 @@ trait Fs2RabbitSpec { self: BaseSpec =>
   private def withRabbit[A](fa: RabbitClient[IO] => IO[A]): Future[A] =
     RabbitClient
       .default[IO](config)
-      .resource()
+      .resource
       .use(r => fa(r))
       .unsafeToFuture()
 

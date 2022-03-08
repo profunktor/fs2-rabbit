@@ -43,7 +43,7 @@ object ZIOAutoAckConsumer extends CatsApp {
   override def run(args: List[String]): URIO[ZEnv, ExitCode] =
     RabbitClient
       .default[Task](config)
-      .resource()
+      .resource
       .use { client =>
         ResilientStream
           .runF(new AutoAckConsumerDemo[Task](client).program)
