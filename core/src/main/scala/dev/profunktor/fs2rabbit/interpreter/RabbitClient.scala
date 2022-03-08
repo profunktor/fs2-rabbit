@@ -84,7 +84,7 @@ object RabbitClient {
     apply[F](config, dispatcher, sslContext, saslConfig, metricsCollector, threadFactory)
   }
 
-  sealed abstract case class Builder[F[_]: Async] private[RabbitClient] (
+  sealed abstract class Builder[F[_]: Async] private[RabbitClient] (
       config: Fs2RabbitConfig,
       sslContext: Option[SSLContext],
       // Unlike SSLContext, SaslConfig is not optional because it is always set
@@ -94,7 +94,7 @@ object RabbitClient {
       threadFactory: Option[F[ThreadFactory]],
       executionContext: Option[F[ExecutionContext]]
   ) {
-    def copy(
+    private def copy(
         config: Fs2RabbitConfig = config,
         sslContext: Option[SSLContext] = sslContext,
         saslConfig: SaslConfig = saslConfig,
