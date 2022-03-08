@@ -117,11 +117,12 @@ object IOAckerConsumer extends IOApp {
     requeueOnReject = false,
     internalQueueSize = Some(500),
     requestedHeartbeat = 60.seconds,
-    automaticRecovery = true
+    automaticRecovery = true,
+    clientProvidedConnectionName = Some("app:rabbit")
   )
 
   override def run(args: List[String]): IO[ExitCode] =
-      RabbitClient.default[IO](config).resource().use { client =>
+      RabbitClient.default[IO](config).resource.use { client =>
         ResilientStream
           .runF(new AckerConsumerDemo[IO](client).program)
           .as(ExitCode.Success)
