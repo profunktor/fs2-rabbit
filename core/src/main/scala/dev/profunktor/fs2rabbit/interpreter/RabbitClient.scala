@@ -40,7 +40,7 @@ import javax.net.ssl.SSLContext
 import scala.concurrent.ExecutionContext
 
 object RabbitClient {
-  @deprecated(message = "Use `default` to create Builder instead", since = "4.2.0")
+  @deprecated(message = "Use `default` to create Builder instead", since = "5.0.0")
   def apply[F[_]: Async](
       config: Fs2RabbitConfig,
       dispatcher: Dispatcher[F],
@@ -71,7 +71,7 @@ object RabbitClient {
     }
   }
 
-  @deprecated(message = "Use `default` to create Builder instead", since = "4.2.0")
+  @deprecated(message = "Use `default` to create Builder instead", since = "5.0.0")
   def resource[F[_]: Async](
       config: Fs2RabbitConfig,
       sslContext: Option[SSLContext] = None,
