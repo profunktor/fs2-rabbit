@@ -40,7 +40,7 @@ final class RabbitClientOps[F[_]](val client: RabbitClient[F]) extends AnyVal {
     */
   def liftAttemptK(implicit F: MonadCancelThrow[F]): RabbitClient[EitherT[F, Throwable, *]] =
     imapK[EitherT[F, Throwable, *]](EitherT.liftAttemptK)(
-      new (EitherT[F, Throwable, *] ~> F) {
+      new EitherT[F, Throwable, *] ~> F {
         def apply[A](fa: EitherT[F, Throwable, A]): F[A] = fa.value.flatMap {
           case Right(a) => F.pure(a)
           case Left(e)  => F.raiseError(e)

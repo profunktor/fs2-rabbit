@@ -73,7 +73,7 @@ class SafeArgSpec extends AnyFunSuite with PropertyChecks {
     safeConversion(Map("key" -> 123))
     safeConversion(Map("key" -> 456L))
     safeConversion(Map("key" -> 1.87))
-    safeConversion(Map("key" -> new java.util.Date()))
+    safeConversion(Map("key" -> new java.util.Date))
     safeConversion(Map("key" -> "value".getBytes.toList))
     safeConversion(Map("key" -> Map("nested" -> "value")))
     safeConversion(Map("key" -> List(1, 2, 3)))

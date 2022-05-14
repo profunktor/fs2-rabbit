@@ -59,7 +59,7 @@ class AmqpPropertiesSpec extends AnyFlatSpecLike with Matchers with AmqpProperti
   }
 
   it should "handle null values in Java AMQP.BasicProperties" in {
-    val basic = new AMQP.BasicProperties()
+    val basic = new AMQP.BasicProperties
     AmqpProperties.unsafeFrom(basic) should be(AmqpProperties.empty)
   }
 

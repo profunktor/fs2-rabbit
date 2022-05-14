@@ -171,7 +171,7 @@ package object testkit {
     Gen.sized { size =>
       val effectiveSize = size min 5
       Gen.resize(
-        0 max (effectiveSize - 1),
+        0 max effectiveSize - 1,
         Gen.lzy {
           Gen.oneOf(
             arbTableVal.arbitrary,

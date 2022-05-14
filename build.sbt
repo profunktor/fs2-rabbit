@@ -29,9 +29,9 @@ promptTheme := PromptTheme(
 
 def scalaOptions(v: String) =
   CrossVersion.partialVersion(v) match {
-    case Some((2, 13)) => List.empty[String]
-    case Some((3, _))  => List("-source:3.0-migration")
-    case _             => List("-Xmax-classfile-name", "100")
+    case Some(2, 13) => List.empty[String]
+    case Some(3, _)  => List("-source:3.0-migration")
+    case _           => List("-Xmax-classfile-name", "100")
   }
 
 def commonDependencies(v: String) =
@@ -44,8 +44,8 @@ def commonDependencies(v: String) =
     Libraries.scalaTestPlusScalaCheck % Test
   ) ++
     (CrossVersion.partialVersion(v) match {
-      case Some((3, _)) => List.empty
-      case _            =>
+      case Some(3, _) => List.empty
+      case _          =>
         List(
           Libraries.collectionCompat,
           compilerPlugin(Libraries.kindProjector)

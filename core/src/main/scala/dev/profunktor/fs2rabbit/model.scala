@@ -49,25 +49,25 @@ object model {
   case class RabbitConnection(value: Connection) extends AMQPConnection
 
   case class ExchangeName(value: String) extends AnyVal
-  object ExchangeName                    extends (String => ExchangeName) {
+  object ExchangeName                    extends String => ExchangeName {
     implicit val exchangeNameOrder: Order[ExchangeName] = Order.by(_.value)
   }
   case class QueueName(value: String)    extends AnyVal
-  object QueueName                       extends (String => QueueName)    {
+  object QueueName                       extends String => QueueName    {
     implicit val queueNameOrder: Order[QueueName] = Order.by(_.value)
   }
   case class RoutingKey(value: String)   extends AnyVal
-  object RoutingKey                      extends (String => RoutingKey)   {
+  object RoutingKey                      extends String => RoutingKey   {
     implicit val routingKeyOrder: Order[RoutingKey] = Order.by(_.value)
   }
   case class DeliveryTag(value: Long)    extends AnyVal
-  object DeliveryTag                     extends (Long => DeliveryTag)    {
+  object DeliveryTag                     extends Long => DeliveryTag    {
     implicit val deliveryTagOrder: Order[DeliveryTag]                               = Order.by(_.value)
     implicit val deliveryTagCommutativeSemigroup: CommutativeSemigroup[DeliveryTag] =
       CommutativeSemigroup.instance(deliveryTagOrder.max)
   }
   case class ConsumerTag(value: String)  extends AnyVal
-  object ConsumerTag                     extends (String => ConsumerTag)  {
+  object ConsumerTag                     extends String => ConsumerTag  {
     implicit val consumerTagOrder: Order[ConsumerTag] = Order.by(_.value)
   }
 
@@ -228,74 +228,74 @@ object model {
       implicit val decimalValOrder: Order[DecimalVal] = Order.by(_.sizeLimitedBigDecimal)
     }
 
-    final case class TableVal(value: Map[ShortString, AmqpFieldValue]) extends AmqpFieldValue                                 {
+    final case class TableVal(value: Map[ShortString, AmqpFieldValue]) extends AmqpFieldValue                               {
       override def toValueWriterCompatibleJava: java.util.Map[String, AnyRef] =
         value.map { case (key, v) => key.str -> v.toValueWriterCompatibleJava }.asJava
     }
-    object TableVal                                                    extends (Map[ShortString, AmqpFieldValue] => TableVal) {
+    object TableVal                                                    extends Map[ShortString, AmqpFieldValue] => TableVal {
       implicit val tableValEq: Eq[TableVal] = Eq.by(_.value)
     }
-    final case class ByteVal(value: Byte)                              extends AmqpFieldValue                                 {
+    final case class ByteVal(value: Byte)                              extends AmqpFieldValue                               {
       override def toValueWriterCompatibleJava: java.lang.Byte = Byte.box(value)
     }
-    object ByteVal                                                     extends (Byte => ByteVal)                              {
+    object ByteVal                                                     extends Byte => ByteVal                              {
       implicit val byteValOrder: Order[ByteVal] = Order.by(_.value)
     }
-    final case class DoubleVal(value: Double)                          extends AmqpFieldValue                                 {
+    final case class DoubleVal(value: Double)                          extends AmqpFieldValue                               {
       override def toValueWriterCompatibleJava: java.lang.Double = Double.box(value)
     }
-    object DoubleVal                                                   extends (Double => DoubleVal)                          {
+    object DoubleVal                                                   extends Double => DoubleVal                          {
       implicit val doubleValOrder: Order[DoubleVal] = Order.by(_.value)
     }
-    final case class FloatVal(value: Float)                            extends AmqpFieldValue                                 {
+    final case class FloatVal(value: Float)                            extends AmqpFieldValue                               {
       override def toValueWriterCompatibleJava: java.lang.Float = Float.box(value)
     }
-    object FloatVal                                                    extends (Float => FloatVal)                            {
+    object FloatVal                                                    extends Float => FloatVal                            {
       implicit val floatValOrder: Order[FloatVal] = Order.by(_.value)
     }
-    final case class ShortVal(value: Short)                            extends AmqpFieldValue                                 {
+    final case class ShortVal(value: Short)                            extends AmqpFieldValue                               {
       override def toValueWriterCompatibleJava: java.lang.Short = Short.box(value)
     }
-    object ShortVal                                                    extends (Short => ShortVal)                            {
+    object ShortVal                                                    extends Short => ShortVal                            {
       implicit val shortValOrder: Order[ShortVal] = Order.by(_.value)
     }
-    final case class ByteArrayVal(value: ByteVector)                   extends AmqpFieldValue                                 {
+    final case class ByteArrayVal(value: ByteVector)                   extends AmqpFieldValue                               {
       override def toValueWriterCompatibleJava: Array[Byte] = value.toArray
     }
-    object ByteArrayVal                                                extends (ByteVector => ByteArrayVal)                   {
+    object ByteArrayVal                                                extends ByteVector => ByteArrayVal                   {
       implicit val byteArrayValEq: Eq[ByteArrayVal] = Eq.by(_.value)
     }
-    final case class BooleanVal(value: Boolean)                        extends AmqpFieldValue                                 {
+    final case class BooleanVal(value: Boolean)                        extends AmqpFieldValue                               {
       override def toValueWriterCompatibleJava: java.lang.Boolean = Boolean.box(value)
     }
-    object BooleanVal                                                  extends (Boolean => BooleanVal)                        {
+    object BooleanVal                                                  extends Boolean => BooleanVal                        {
       implicit val booleanValOrder: Order[BooleanVal] = Order.by(_.value)
     }
-    final case class IntVal(value: Int)                                extends AmqpFieldValue                                 {
+    final case class IntVal(value: Int)                                extends AmqpFieldValue                               {
       override def toValueWriterCompatibleJava: java.lang.Integer = Int.box(value)
     }
-    object IntVal                                                      extends (Int => IntVal)                                {
+    object IntVal                                                      extends Int => IntVal                                {
       implicit val intValOrder: Order[IntVal] = Order.by(_.value)
     }
-    final case class LongVal(value: Long)                              extends AmqpFieldValue                                 {
+    final case class LongVal(value: Long)                              extends AmqpFieldValue                               {
       override def toValueWriterCompatibleJava: java.lang.Long = Long.box(value)
     }
-    object LongVal                                                     extends (Long => LongVal)                              {
+    object LongVal                                                     extends Long => LongVal                              {
       implicit val longValOrder: Order[LongVal] = Order.by(_.value)
     }
-    final case class StringVal(value: String)                          extends AmqpFieldValue                                 {
+    final case class StringVal(value: String)                          extends AmqpFieldValue                               {
       override def toValueWriterCompatibleJava: String = value
     }
-    object StringVal                                                   extends (String => StringVal)                          {
+    object StringVal                                                   extends String => StringVal                          {
       implicit val stringValOrder: Order[StringVal] = Order.by(_.value)
     }
-    final case class ArrayVal(value: Vector[AmqpFieldValue])           extends AmqpFieldValue                                 {
+    final case class ArrayVal(value: Vector[AmqpFieldValue])           extends AmqpFieldValue                               {
       override def toValueWriterCompatibleJava: java.util.List[AnyRef] = value.map(_.toValueWriterCompatibleJava).asJava
     }
-    object ArrayVal                                                    extends (Vector[AmqpFieldValue] => ArrayVal)           {
+    object ArrayVal                                                    extends Vector[AmqpFieldValue] => ArrayVal           {
       implicit val arrayValEq: Eq[ArrayVal] = Eq.by(_.value)
     }
-    case object NullVal                                                extends AmqpFieldValue                                 {
+    case object NullVal                                                extends AmqpFieldValue                               {
       override def toValueWriterCompatibleJava: Null = null
 
       implicit val nullValOrder: Order[NullVal.type] = Order.allEqual
@@ -349,7 +349,7 @@ object model {
       // This makes us safe from ClassCastExceptions down the road.
       case a: java.util.List[AnyRef @unchecked]                   => ArrayVal(a.asScala.toVector.map(unsafeFrom))
       case null                                                   => NullVal
-      case _                                                      => throw new IllegalArgumentException()
+      case _                                                      => throw new IllegalArgumentException
     }
 
     implicit val amqpFieldValueEq: Eq[AmqpFieldValue] = new Eq[AmqpFieldValue] {
@@ -449,7 +449,7 @@ object model {
 
     implicit class AmqpPropertiesOps(props: AmqpProperties) {
       def asBasicProps: AMQP.BasicProperties =
-        new AMQP.BasicProperties.Builder()
+        new AMQP.BasicProperties.Builder
           .contentType(props.contentType.orNull)
           .contentEncoding(props.contentEncoding.orNull)
           .priority(props.priority.map(Int.box).orNull)
