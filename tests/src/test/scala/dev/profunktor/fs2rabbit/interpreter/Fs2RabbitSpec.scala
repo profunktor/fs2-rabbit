@@ -711,6 +711,28 @@ trait Fs2RabbitSpec { self: BaseSpec =>
       }
   }
 
+  it should "shutdown the stream when the server closes the channel" in withRabbit { interpreter =>
+    import interpreter._
+    val msg = "will-not-be-acked"
+    createConnectionChannel.use { implicit channel =>
+      for {
+        qxrk      <- randomQueueData
+        (q, x, rk) = qxrk
+        _         <- declareExchange(x, ExchangeType.Topic)
+        _         <- declareQueue(DeclarationQueueConfig.default(q))
+        _         <- bindQueue(q, x, rk, QueueBindingArgs(Map.empty))
+        publisher <- createPublisher[String](x, rk)
+        _         <- publisher(msg)
+        stream    <- createAckerConsumer(q).map(_._2)
+        results   <- stream.attempt.compile.toList.timeoutAndForget(Duration(10, "s"))
+      } yield {
+        results.size shouldEqual 2
+        results.head.map(_.payload) shouldEqual Right(msg)
+        results.last.isLeft shouldEqual true
+      }
+    }
+  }
+
   it should "preserve order of published messages" in withRabbit { interpreter =>
     import dev.profunktor.fs2rabbit.effects.{EnvelopeDecoder, MessageEncoder}
     import interpreter._
