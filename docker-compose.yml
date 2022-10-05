@@ -5,3 +5,5 @@ RabbitMQ:
     - "5672:5672"
   environment:
     - DEBUG=false
+  volumes:
+    - ./rabbit-test-config/:/etc/rabbitmq/

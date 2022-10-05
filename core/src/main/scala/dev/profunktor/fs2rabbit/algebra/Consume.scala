@@ -21,7 +21,7 @@ import cats.effect.std.Dispatcher
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.{Applicative, Functor}
-import com.rabbitmq.client.{AMQP, Consumer, DefaultConsumer, Envelope}
+import com.rabbitmq.client.{AMQP, Consumer, DefaultConsumer, Envelope, ShutdownSignalException}
 import dev.profunktor.fs2rabbit.arguments.{Arguments, _}
 import dev.profunktor.fs2rabbit.model._
 
@@ -106,6 +106,11 @@ object Consume {
                 }
             }
           }
+
+          override def handleShutdownSignal(consumerTag: String, sig: ShutdownSignalException): Unit =
+            if (!sig.isInitiatedByApplication) {
+              internals.queue.foreach(q => dispatcher.unsafeRunAndForget(q.offer(Left(sig))))
+            }
         }
       }
 
