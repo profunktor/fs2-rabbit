@@ -3,25 +3,25 @@ import sbt._
 object Dependencies {
 
   object Version {
-    val cats             = "2.7.0"
+    val cats             = "2.8.0"
     val catsEffect       = "3.3.12"
-    val fs2              = "3.2.7"
+    val fs2              = "3.2.14"
     val circe            = "0.14.2"
     val amqpClient       = "5.14.2"
-    val logback          = "1.2.11"
+    val logback          = "1.4.4"
     val monix            = "3.3.0"
-    val zio              = "1.0.14"
+    val zio              = "1.0.17"
     val zioCats          = "3.2.9.1"
     val scodec           = "1.1.0"
-    val dropwizard       = "4.2.9"
+    val dropwizard       = "4.2.12"
     val collectionCompat = "2.7.0"
 
     val kindProjector = "0.13.2"
 
     val scalaTest               = "3.2.12"
-    val scalaCheck              = "1.16.0"
+    val scalaCheck              = "1.17.0"
     val scalaTestPlusScalaCheck = "3.2.11.0"
-    val disciplineScalaCheck    = "2.1.5"
+    val disciplineScalaCheck    = "2.2.0"
   }
 
   object Libraries {
