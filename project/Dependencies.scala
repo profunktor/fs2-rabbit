@@ -11,7 +11,7 @@ object Dependencies {
     val logback          = "1.4.4"
     val monix            = "3.3.0"
     val zio              = "1.0.17"
-    val zioCats          = "3.3.0"
+    val zioCats          = "3.2.9.1"
     val scodec           = "1.1.0"
     val dropwizard       = "4.2.12"
     val collectionCompat = "2.7.0"
