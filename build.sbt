@@ -18,7 +18,7 @@ ThisBuild / developers         := List(
   )
 )
 
-publish / skip                 := true
+publish / skip := true
 
 promptTheme := PromptTheme(
   List(
