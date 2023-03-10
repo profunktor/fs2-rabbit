@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2022 ProfunKtor
+ * Copyright 2017-2023 ProfunKtor
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,16 +16,24 @@
 
 package dev.profunktor.fs2rabbit.algebra
 
+import cats.Applicative
+import cats.Functor
 import cats.effect.kernel.Sync
 import cats.effect.std.Dispatcher
 import cats.syntax.flatMap._
 import cats.syntax.functor._
-import cats.{Applicative, Functor}
-import com.rabbitmq.client.{AMQP, Consumer, DefaultConsumer, Envelope, ShutdownSignalException}
-import dev.profunktor.fs2rabbit.arguments.{Arguments, _}
+import com.rabbitmq.client.AMQP
+import com.rabbitmq.client.Consumer
+import com.rabbitmq.client.DefaultConsumer
+import com.rabbitmq.client.Envelope
+import com.rabbitmq.client.ShutdownSignalException
+import dev.profunktor.fs2rabbit.arguments.Arguments
+import dev.profunktor.fs2rabbit.arguments._
 import dev.profunktor.fs2rabbit.model._
 
-import scala.util.{Failure, Success, Try}
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
 object Consume {
   def make[F[_]: Sync](dispatcher: Dispatcher[F]): Consume[F] =

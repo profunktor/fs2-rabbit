@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2022 ProfunKtor
+ * Copyright 2017-2023 ProfunKtor
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,25 +16,26 @@
 
 package dev.profunktor.fs2rabbit.interpreter
 
+import cats.data.Kleisli
 import cats.effect._
+import cats.effect.kernel.Deferred
+import cats.effect.unsafe.implicits.global
 import cats.implicits._
+import dev.profunktor.fs2rabbit.BaseSpec
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
 import dev.profunktor.fs2rabbit.config.declaration._
-import dev.profunktor.fs2rabbit.config.deletion.{DeletionExchangeConfig, DeletionQueueConfig}
-import dev.profunktor.fs2rabbit.model.AckResult.{Ack, NAck, Reject}
+import dev.profunktor.fs2rabbit.config.deletion.DeletionExchangeConfig
+import dev.profunktor.fs2rabbit.config.deletion.DeletionQueueConfig
+import dev.profunktor.fs2rabbit.model.AckResult.Ack
+import dev.profunktor.fs2rabbit.model.AckResult.NAck
+import dev.profunktor.fs2rabbit.model.AckResult.Reject
 import dev.profunktor.fs2rabbit.model._
-import dev.profunktor.fs2rabbit.BaseSpec
 import fs2.Stream
 import org.scalatest.Assertion
 
+import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.Random
-import scala.concurrent.Future
-
-import cats.effect.unsafe.implicits.global
-
-import cats.effect.kernel.Deferred
-import cats.data.Kleisli
 
 trait Fs2RabbitSpec { self: BaseSpec =>
 
