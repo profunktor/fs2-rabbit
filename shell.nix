@@ -25,5 +25,7 @@ in
       jekyll # 4.1.0
       openjdk11 # 11.0.6-internal
       sbt # 1.3.12
+      bloop
+      docker-compose
     ];
   }
