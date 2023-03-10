@@ -622,6 +622,110 @@ trait Fs2RabbitSpec { self: BaseSpec =>
       }
   }
 
+  it should "get and autoAck a message" in withRabbit { interpreter =>
+    import interpreter._
+
+    createConnectionChannel.use { implicit channel =>
+      for {
+        qxrk      <- randomQueueData
+        (q, x, rk) = qxrk
+        _         <- declareExchange(x, ExchangeType.Topic)
+        _         <- declareQueue(DeclarationQueueConfig.default(q))
+        _         <- bindQueue(q, x, rk)
+        publisher <- createRoutingPublisher[String](x)
+        _         <- publisher(rk).apply("test")
+        msg       <- getAndAck(q)
+      } yield msg match {
+        case Some(msg) => msg shouldBe expectedDelivery(msg.deliveryTag, x, rk, "test")
+        case None      => fail("Message was empty")
+      }
+    }
+  }
+
+  it should "get and manually ack a message" in withRabbit { interpreter =>
+    import interpreter._
+
+    createConnectionChannel.use { implicit channel =>
+      for {
+        qxrk      <- randomQueueData
+        (q, x, rk) = qxrk
+        _         <- declareExchange(x, ExchangeType.Topic)
+        _         <- declareQueue(DeclarationQueueConfig.default(q))
+        _         <- bindQueue(q, x, rk)
+        publisher <- createRoutingPublisher[String](x)
+        _         <- publisher(rk).apply("test")
+        ack       <- createAcker
+        msg       <- get(q)
+        _         <- msg match {
+                       case Some(msg) => ack(AckResult.Ack(msg.deliveryTag))
+                       case None      => fail("Message was empty")
+                     }
+      } yield emptyAssertion
+    }
+  }
+
+  it should "get an empty response on an empty queue" in withRabbit { interpreter =>
+    import interpreter._
+
+    createConnectionChannel.use { implicit channel =>
+      for {
+        qxrk      <- randomQueueData
+        (q, x, rk) = qxrk
+        _         <- declareExchange(x, ExchangeType.Topic)
+        _         <- declareQueue(DeclarationQueueConfig.default(q))
+        _         <- bindQueue(q, x, rk)
+        msg       <- getAndAck(q)
+      } yield msg shouldBe None
+    }
+  }
+
+  it should "get an empty response after getting a single message" in withRabbit { interpreter =>
+    import interpreter._
+
+    createConnectionChannel.use { implicit channel =>
+      for {
+        qxrk      <- randomQueueData
+        (q, x, rk) = qxrk
+        _         <- declareExchange(x, ExchangeType.Topic)
+        _         <- declareQueue(DeclarationQueueConfig.default(q))
+        _         <- bindQueue(q, x, rk)
+        publisher <- createRoutingPublisher[String](x)
+        _         <- publisher(rk).apply("test")
+        msg       <- getAndAck(q)
+        msg2      <- getAndAck(q)
+      } yield msg match {
+        case Some(_) => msg2 shouldBe None
+        case None    => fail("First message was empty already")
+      }
+    }
+  }
+
+  it should "get a nacked message again with requeueOnNack" in withRequeueRabbit { interpreter =>
+    import interpreter._
+
+    createConnectionChannel.use { implicit channel =>
+      for {
+        qxrk      <- randomQueueData
+        (q, x, rk) = qxrk
+        _         <- declareExchange(x, ExchangeType.Topic)
+        _         <- declareQueue(DeclarationQueueConfig.default(q))
+        _         <- bindQueue(q, x, rk)
+        publisher <- createRoutingPublisher[String](x)
+        _         <- publisher(rk).apply("test")
+        ack       <- createAcker
+        msg1      <- get(q)
+        _         <- msg1 match {
+                       case Some(msg) => ack(AckResult.NAck(msg.deliveryTag))
+                       case None      => fail("First message was empty")
+                     }
+        msg2      <- getAndAck(q)
+      } yield msg2 match {
+        case Some(msg) => msg shouldBe expectedDelivery(msg.deliveryTag, x, rk, "test").copy(redelivered = true)
+        case None      => fail("Second message was empty")
+      }
+    }
+  }
+
   it should "create a routing publisher, an auto-ack consumer, publish a message and consume it" in withRabbit {
     interpreter =>
       import interpreter._
@@ -804,6 +908,13 @@ trait Fs2RabbitSpec { self: BaseSpec =>
   private def withRabbit[A](fa: RabbitClient[IO] => IO[A]): Future[A] =
     RabbitClient
       .default[IO](config)
+      .resource
+      .use(r => fa(r))
+      .unsafeToFuture()
+
+  private def withRequeueRabbit[A](fa: RabbitClient[IO] => IO[A]): Future[A] =
+    RabbitClient
+      .default[IO](config.copy(requeueOnNack = true))
       .resource
       .use(r => fa(r))
       .unsafeToFuture()
