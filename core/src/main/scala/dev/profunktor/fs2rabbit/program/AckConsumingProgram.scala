@@ -106,6 +106,11 @@ case class WrapperAckConsumingProgram[F[_]: Sync] private[program] (
   )(implicit decoder: EnvelopeDecoder[F, A]): F[Stream[F, AmqpEnvelope[A]]] =
     consumingProgram.createConsumer(queueName, channel, basicQos, autoAck, noLocal, exclusive, consumerTag, args)
 
+  override def get[A](queue: QueueName, channel: AMQPChannel, autoAck: Boolean)(implicit
+      decoder: EnvelopeDecoder[F, A]
+  ): F[Option[AmqpEnvelope[A]]] =
+    consumingProgram.get(queue, channel, autoAck)
+
   override def createAcker(channel: AMQPChannel, ackMultiple: AckMultiple): F[AckResult => F[Unit]] =
     ackingProgram.createAcker(channel, ackMultiple)
 

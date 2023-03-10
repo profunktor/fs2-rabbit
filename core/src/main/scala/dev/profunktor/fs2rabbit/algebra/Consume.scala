@@ -38,6 +38,8 @@ import scala.util.Try
 object Consume {
   def make[F[_]: Sync](dispatcher: Dispatcher[F]): Consume[F] =
     new Consume[F] {
+      private val get = Get.make[F]
+
       private[fs2rabbit] def defaultConsumer[A](
           channel: AMQPChannel,
           internals: AMQPInternals[F]
@@ -122,27 +124,21 @@ object Consume {
         }
       }
 
-      override def basicAck(channel: AMQPChannel, tag: DeliveryTag, multiple: Boolean): F[Unit] = Sync[F].blocking {
-        channel.value.basicAck(tag.value, multiple)
-      }
+      override def basicAck(channel: AMQPChannel, tag: DeliveryTag, multiple: Boolean): F[Unit] =
+        get.basicAck(channel, tag, multiple)
 
       override def basicNack(channel: AMQPChannel, tag: DeliveryTag, multiple: Boolean, requeue: Boolean): F[Unit] =
-        Sync[F].blocking {
-          channel.value.basicNack(tag.value, multiple, requeue)
-        }
+        get.basicNack(channel, tag, multiple, requeue)
 
-      override def basicReject(channel: AMQPChannel, tag: DeliveryTag, requeue: Boolean): F[Unit] = Sync[F].blocking {
-        channel.value.basicReject(tag.value, requeue)
-      }
+      override def basicReject(channel: AMQPChannel, tag: DeliveryTag, requeue: Boolean): F[Unit] =
+        get.basicReject(channel, tag, requeue)
 
-      override def basicQos(channel: AMQPChannel, basicQos: BasicQos): F[Unit] =
-        Sync[F].blocking {
-          channel.value.basicQos(
-            basicQos.prefetchSize,
-            basicQos.prefetchCount,
-            basicQos.global
-          )
-        }.void
+      override def basicGet(
+          channel: AMQPChannel,
+          queue: QueueName,
+          autoAck: Boolean
+      ): F[Either[Throwable, Option[AmqpEnvelope[Array[Byte]]]]] =
+        get.basicGet(channel, queue, autoAck)
 
       override def basicConsume[A](
           channel: AMQPChannel,
@@ -168,6 +164,15 @@ object Consume {
                 )
         } yield ConsumerTag(rs)
 
+      override def basicQos(channel: AMQPChannel, basicQos: BasicQos): F[Unit] =
+        Sync[F].blocking {
+          channel.value.basicQos(
+            basicQos.prefetchSize,
+            basicQos.prefetchCount,
+            basicQos.global
+          )
+        }.void
+
       override def basicCancel(channel: AMQPChannel, consumerTag: ConsumerTag): F[Unit] =
         Sync[F].blocking {
           channel.value.basicCancel(consumerTag.value)
@@ -175,11 +180,7 @@ object Consume {
     }
 }
 
-trait Consume[F[_]] extends Cancel[F] {
-  def basicAck(channel: AMQPChannel, tag: DeliveryTag, multiple: Boolean): F[Unit]
-  def basicNack(channel: AMQPChannel, tag: DeliveryTag, multiple: Boolean, requeue: Boolean): F[Unit]
-  def basicReject(channel: AMQPChannel, tag: DeliveryTag, requeue: Boolean): F[Unit]
-  def basicQos(channel: AMQPChannel, basicQos: BasicQos): F[Unit]
+trait Consume[F[_]] extends Get[F] with Cancel[F] {
   def basicConsume[A](
       channel: AMQPChannel,
       queueName: QueueName,
@@ -189,4 +190,6 @@ trait Consume[F[_]] extends Cancel[F] {
       exclusive: Boolean,
       args: Arguments
   )(internals: AMQPInternals[F]): F[ConsumerTag]
+
+  def basicQos(channel: AMQPChannel, basicQos: BasicQos): F[Unit]
 }

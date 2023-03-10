@@ -66,6 +66,13 @@ case class WrapperAckingProgram[F[_]: Sync] private[program] (
   override def basicQos(channel: AMQPChannel, basicQos: BasicQos): F[Unit] =
     consume.basicQos(channel, basicQos)
 
+  override def basicGet(
+      channel: AMQPChannel,
+      queue: QueueName,
+      autoAck: Boolean
+  ): F[Either[Throwable, Option[AmqpEnvelope[Array[Byte]]]]] =
+    consume.basicGet(channel, queue, autoAck)
+
   override def basicConsume[A](
       channel: AMQPChannel,
       queueName: QueueName,

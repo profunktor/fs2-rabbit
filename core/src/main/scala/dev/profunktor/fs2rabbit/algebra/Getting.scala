@@ -16,24 +16,13 @@
 
 package dev.profunktor.fs2rabbit.algebra
 
-import dev.profunktor.fs2rabbit.arguments.Arguments
 import dev.profunktor.fs2rabbit.effects.EnvelopeDecoder
-import dev.profunktor.fs2rabbit.model._
-import fs2.Stream
+import dev.profunktor.fs2rabbit.model.AMQPChannel
+import dev.profunktor.fs2rabbit.model.AmqpEnvelope
+import dev.profunktor.fs2rabbit.model.QueueName
 
-object ConsumingStream {
-  type ConsumingStream[F[_]] = Consuming[F, Stream[F, *]]
-}
-
-trait Consuming[F[_], R[_]] extends Getting[F] {
-  def createConsumer[A](
-      queueName: QueueName,
-      channel: AMQPChannel,
-      basicQos: BasicQos,
-      autoAck: Boolean = false,
-      noLocal: Boolean = false,
-      exclusive: Boolean = false,
-      consumerTag: ConsumerTag = ConsumerTag(""),
-      args: Arguments = Map.empty
-  )(implicit decoder: EnvelopeDecoder[F, A]): F[R[AmqpEnvelope[A]]]
+trait Getting[F[_]] {
+  def get[A](queue: QueueName, channel: AMQPChannel, autoAck: Boolean)(implicit
+      decoder: EnvelopeDecoder[F, A]
+  ): F[Option[AmqpEnvelope[A]]]
 }

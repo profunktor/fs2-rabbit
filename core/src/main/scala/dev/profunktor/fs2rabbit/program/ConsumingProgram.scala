@@ -76,6 +76,14 @@ case class WrapperConsumingProgram[F[_]: Sync] private[program] (
       .pure[F]
   }
 
+  override def get[A](queue: QueueName, channel: AMQPChannel, autoAck: Boolean)(implicit
+      decoder: EnvelopeDecoder[F, A]
+  ): F[Option[AmqpEnvelope[A]]] =
+    consume.basicGet(channel, queue, autoAck).rethrow.flatMap {
+      case None      => none[AmqpEnvelope[A]].pure[F]
+      case Some(env) => decoder(env).map(a => env.copy(payload = a).some)
+    }
+
   override def basicAck(channel: AMQPChannel, tag: DeliveryTag, multiple: Boolean): F[Unit] =
     consume.basicAck(channel, tag, multiple)
 
@@ -87,6 +95,13 @@ case class WrapperConsumingProgram[F[_]: Sync] private[program] (
 
   override def basicQos(channel: AMQPChannel, basicQos: BasicQos): F[Unit] =
     consume.basicQos(channel, basicQos)
+
+  override def basicGet(
+      channel: AMQPChannel,
+      queue: QueueName,
+      autoAck: Boolean
+  ): F[Either[Throwable, Option[AmqpEnvelope[Array[Byte]]]]] =
+    consume.basicGet(channel, queue, autoAck)
 
   override def basicConsume[A](
       channel: AMQPChannel,
@@ -101,4 +116,5 @@ case class WrapperConsumingProgram[F[_]: Sync] private[program] (
 
   override def basicCancel(channel: AMQPChannel, consumerTag: ConsumerTag): F[Unit] =
     consume.basicCancel(channel, consumerTag)
+
 }

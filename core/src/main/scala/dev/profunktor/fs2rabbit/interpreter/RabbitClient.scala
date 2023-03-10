@@ -471,4 +471,17 @@ class RabbitClient[F[_]] private[fs2rabbit] (
       config: DeletionExchangeConfig
   )(implicit channel: AMQPChannel): F[Unit] =
     deletion.deleteExchangeNoWait(channel, config)
+
+  def getAndAck[A](
+      queueName: QueueName
+  )(implicit channel: AMQPChannel, decoder: EnvelopeDecoder[F, A]): F[Option[AmqpEnvelope[A]]] =
+    consumingProgram.get(queueName, channel, true)
+
+  def get[A](
+      queueName: QueueName
+  )(implicit channel: AMQPChannel, decoder: EnvelopeDecoder[F, A]): F[Option[AmqpEnvelope[A]]] =
+    consumingProgram.get(queueName, channel, false)
+
+  def createAcker(implicit channel: AMQPChannel): F[AckResult => F[Unit]] =
+    consumingProgram.createAcker(channel, AckMultiple(false))
 }

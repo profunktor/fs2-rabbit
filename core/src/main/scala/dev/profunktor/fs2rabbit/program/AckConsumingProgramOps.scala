@@ -44,6 +44,11 @@ final class AckConsumingProgramOps[F[_]](val prog: AckConsumingProgram[F]) exten
             .map(_.translate(fk))
         )
 
+      def get[A](queue: QueueName, channel: AMQPChannel, autoAck: Boolean)(implicit
+          decoder: EnvelopeDecoder[G, A]
+      ): G[Option[AmqpEnvelope[A]]] =
+        fk(prog.get(queue, channel, autoAck)(decoder.mapK(gk)))
+
       def createAcker(channel: AMQPChannel, ackMultiple: AckMultiple): G[AckResult => G[Unit]] =
         fk(prog.createAcker(channel, ackMultiple).map(_.andThen(fk.apply)))
 
