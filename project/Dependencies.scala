@@ -20,7 +20,7 @@ object Dependencies {
 
     val scalaTest               = "3.2.15"
     val scalaCheck              = "1.17.0"
-    val scalaTestPlusScalaCheck = "3.2.11.0"
+    val scalaTestPlusScalaCheck = "3.2.14.0"
     val disciplineScalaCheck    = "2.2.0"
   }
 
@@ -52,7 +52,7 @@ object Dependencies {
     // Scala test libraries
     lazy val scalaTest               = "org.scalatest"     %% "scalatest"            % Version.scalaTest
     lazy val scalaCheck              = "org.scalacheck"    %% "scalacheck"           % Version.scalaCheck
-    lazy val scalaTestPlusScalaCheck = "org.scalatestplus" %% "scalacheck-1-15"      % Version.scalaTestPlusScalaCheck
+    lazy val scalaTestPlusScalaCheck = "org.scalatestplus" %% "scalacheck-1-16"      % Version.scalaTestPlusScalaCheck
     lazy val disciplineScalaCheck    = "org.typelevel"     %% "discipline-scalatest" % Version.disciplineScalaCheck
     lazy val catsLaws                = "org.typelevel"     %% "cats-laws"            % Version.cats
     lazy val catsKernelLaws          = "org.typelevel"     %% "cats-kernel-laws"     % Version.cats
