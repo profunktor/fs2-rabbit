@@ -4,8 +4,8 @@ import Dependencies._
 import microsites.ExtraMdFileConfig
 
 ThisBuild / name               := """fs2-rabbit"""
-ThisBuild / scalaVersion       := "2.13.10"
-ThisBuild / crossScalaVersions := List("2.12.17", "2.13.10", "3.3.0")
+ThisBuild / scalaVersion       := "2.13.11"
+ThisBuild / crossScalaVersions := List("2.12.17", "2.13.11", "3.3.0")
 ThisBuild / organization       := "dev.profunktor"
 ThisBuild / homepage           := Some(url("https://fs2-rabbit.profunktor.dev/"))
 ThisBuild / licenses           := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0"))
