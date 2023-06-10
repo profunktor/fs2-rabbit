@@ -4,23 +4,23 @@ object Dependencies {
 
   object Version {
     val cats             = "2.9.0"
-    val catsEffect       = "3.4.8"
-    val fs2              = "3.6.1"
+    val catsEffect       = "3.5.0"
+    val fs2              = "3.7.0"
     val circe            = "0.14.5"
     val amqpClient       = "5.17.0"
-    val logback          = "1.4.6"
+    val logback          = "1.4.7"
     val monix            = "3.3.0"
     val zio              = "1.0.18"
     val zioCats          = "3.2.9.1"
     val scodec           = "1.2.0"
-    val dropwizard       = "4.2.18"
-    val collectionCompat = "2.9.0"
+    val dropwizard       = "4.2.19"
+    val collectionCompat = "2.10.0"
 
     val kindProjector = "0.13.2"
 
-    val scalaTest               = "3.2.15"
+    val scalaTest               = "3.2.16"
     val scalaCheck              = "1.17.0"
-    val scalaTestPlusScalaCheck = "3.2.11.0"
+    val scalaTestPlusScalaCheck = "3.2.14.0"
     val disciplineScalaCheck    = "2.2.0"
   }
 
@@ -52,7 +52,7 @@ object Dependencies {
     // Scala test libraries
     lazy val scalaTest               = "org.scalatest"     %% "scalatest"            % Version.scalaTest
     lazy val scalaCheck              = "org.scalacheck"    %% "scalacheck"           % Version.scalaCheck
-    lazy val scalaTestPlusScalaCheck = "org.scalatestplus" %% "scalacheck-1-15"      % Version.scalaTestPlusScalaCheck
+    lazy val scalaTestPlusScalaCheck = "org.scalatestplus" %% "scalacheck-1-16"      % Version.scalaTestPlusScalaCheck
     lazy val disciplineScalaCheck    = "org.typelevel"     %% "discipline-scalatest" % Version.disciplineScalaCheck
     lazy val catsLaws                = "org.typelevel"     %% "cats-laws"            % Version.cats
     lazy val catsKernelLaws          = "org.typelevel"     %% "cats-kernel-laws"     % Version.cats
