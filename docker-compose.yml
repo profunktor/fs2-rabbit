@@ -1,9 +1,11 @@
-RabbitMQ:
-  restart: always
-  image: rabbitmq:alpine
-  ports:
-    - "5672:5672"
-  environment:
-    - DEBUG=false
-  volumes:
-    - ./rabbit-test-config/:/etc/rabbitmq/
+version: '3'
+services:
+  RabbitMQ:
+    restart: always
+    image: rabbitmq:alpine
+    ports:
+      - "5672:5672"
+    environment:
+      - DEBUG=false
+    volumes:
+      - ./rabbit-test-config/:/etc/rabbitmq/
