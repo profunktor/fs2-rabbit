@@ -80,7 +80,7 @@ object RabbitClient {
       saslConfig: SaslConfig = DefaultSaslConfig.PLAIN,
       metricsCollector: Option[MetricsCollector] = None,
       threadFactory: Option[F[ThreadFactory]] = None
-  ): Resource[F, RabbitClient[F]] = Dispatcher[F].evalMap { dispatcher =>
+  ): Resource[F, RabbitClient[F]] = Dispatcher.parallel[F](await = false).evalMap { dispatcher =>
     apply[F](config, dispatcher, sslContext, saslConfig, metricsCollector, threadFactory)
   }
 
@@ -126,7 +126,7 @@ object RabbitClient {
       create[F](config, dispatcher, sslContext, saslConfig, metricsCollector, threadFactory, executionContext)
 
     def resource: Resource[F, RabbitClient[F]] =
-      Dispatcher[F].evalMap(build)
+      Dispatcher.parallel[F](await = false).evalMap(build)
   }
 
   def default[F[_]: Async](
