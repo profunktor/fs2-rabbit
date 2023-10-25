@@ -214,7 +214,7 @@ class RabbitClient[F[_]] private[fs2rabbit] (
     )
 
   /** Returns an acking function and a stream of messages. The acking function takes two arguments - the first is the
-    * {@link AckResult} that wraps a delivery tag, the second is a {@link AckMultiple} flag that if true (n)acks all
+    * {@@linkAckResult} that wraps a delivery tag, the second is a {@@linkAckMultiple} flag that if true (n)acks all
     * messages up to and including the supplied delivery tag, if false (n)acks just the supplied delivery tag.
     */
   def createAckerConsumerWithMultipleFlag[A](
