@@ -69,7 +69,7 @@ object ConnectionResource {
         _.map(Executors.newFixedThreadPool(numOfThreads, _))
       }
       .map { es =>
-        sys.addShutdownHook(es.shutdown())
+        val _ = sys.addShutdownHook(es.shutdown())
         es
       }
 
@@ -150,27 +150,29 @@ object ConnectionResource {
 
           private[fs2rabbit] val acquireConnection: F[AMQPConnection] =
             Sync[F]
-              .delay(connectionFactory.newConnection(addresses.toList.asJava, conf.clientProvidedConnectionName.orNull))
+              .blocking(
+                connectionFactory.newConnection(addresses.toList.asJava, conf.clientProvidedConnectionName.orNull)
+              )
               .flatTap(c => Log[F].info(s"Acquired connection: $c"))
               .map(RabbitConnection.apply)
 
           private[fs2rabbit] def acquireChannel(connection: AMQPConnection): F[AMQPChannel] =
             Sync[F]
-              .delay(connection.value.createChannel)
+              .blocking(connection.value.createChannel)
               .flatTap(c => Log[F].info(s"Acquired channel: $c"))
               .map(RabbitChannel.apply)
 
           override def createConnection: Resource[F, AMQPConnection] =
             Resource.make(acquireConnection) { amqpConn =>
               Log[F].info(s"Releasing connection: ${amqpConn.value} previously acquired.") *>
-                Sync[F].delay {
+                Sync[F].blocking {
                   if (amqpConn.value.isOpen) amqpConn.value.close()
                 }
             }
 
           override def createChannel(connection: AMQPConnection): Resource[F, AMQPChannel] =
             Resource.make(acquireChannel(connection)) { amqpChannel =>
-              Sync[F].delay {
+              Sync[F].blocking {
                 if (amqpChannel.value.isOpen) amqpChannel.value.close()
               }
             }
