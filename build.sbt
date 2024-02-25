@@ -1,5 +1,3 @@
-import com.scalapenos.sbt.prompt.SbtPrompt.autoImport._
-import com.scalapenos.sbt.prompt._
 import Dependencies._
 import microsites.ExtraMdFileConfig
 
@@ -20,13 +18,6 @@ ThisBuild / developers         := List(
 )
 
 publish / skip := true
-
-promptTheme := PromptTheme(
-  List(
-    text("[sbt] ", fg(105)),
-    text(_ => "fs2-rabbit", fg(15)).padRight(" λ ")
-  )
-)
 
 def scalaOptions(v: String) =
   CrossVersion.partialVersion(v) match {
