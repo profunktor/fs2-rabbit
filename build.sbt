@@ -2,8 +2,8 @@ import Dependencies._
 import microsites.ExtraMdFileConfig
 
 ThisBuild / name               := """fs2-rabbit"""
-ThisBuild / scalaVersion       := "2.13.12"
-ThisBuild / crossScalaVersions := List("2.12.18", "2.13.12", "3.3.1")
+ThisBuild / scalaVersion       := "2.13.13"
+ThisBuild / crossScalaVersions := List("2.12.18", "2.13.13", "3.3.1")
 ThisBuild / versionScheme      := Some("semver-spec")
 ThisBuild / organization       := "dev.profunktor"
 ThisBuild / homepage           := Some(url("https://fs2-rabbit.profunktor.dev/"))
