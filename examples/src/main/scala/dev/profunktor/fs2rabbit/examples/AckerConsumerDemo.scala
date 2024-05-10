@@ -21,6 +21,7 @@ import cats.data.Kleisli
 import cats.effect._
 import cats.implicits._
 import dev.profunktor.fs2rabbit.config.declaration.{DeclarationExchangeConfig, DeclarationQueueConfig}
+import dev.profunktor.fs2rabbit.data.Headers
 import dev.profunktor.fs2rabbit.effects.MessageEncoder
 import dev.profunktor.fs2rabbit.interpreter.RabbitClient
 import dev.profunktor.fs2rabbit.json.Fs2JsonEncoder
@@ -87,7 +88,10 @@ class Flow[F[_]: Concurrent, A](
   val jsonPipe: Pipe[Pure, AmqpMessage[Person], AmqpMessage[String]] = _.map(jsonEncode[Person])
 
   val simpleMessage =
-    AmqpMessage("Hey!", AmqpProperties(headers = Map("demoId" -> LongVal(123), "app" -> StringVal("fs2RabbitDemo"))))
+    AmqpMessage(
+      "Hey!",
+      AmqpProperties(headers = Headers("demoId" -> LongVal(123), "app" -> StringVal("fs2RabbitDemo")))
+    )
   val classMessage  = AmqpMessage(Person(1L, "Sherlock", Address(212, "Baker St")), AmqpProperties.empty)
 
   val flow: Stream[F, Unit] =
