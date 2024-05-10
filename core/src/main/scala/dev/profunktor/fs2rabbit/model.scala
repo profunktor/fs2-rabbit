@@ -21,14 +21,16 @@ import java.nio.charset.StandardCharsets.UTF_8
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.Date
-
 import cats.data._
 import cats.implicits._
 import cats.kernel.CommutativeSemigroup
 import cats._
 import com.rabbitmq.client.{AMQP, Channel, Connection, LongString}
 import dev.profunktor.fs2rabbit.arguments.Arguments
+import dev.profunktor.fs2rabbit.data.Headers
+import dev.profunktor.fs2rabbit.data.codec.AmqpFieldDecoder
 import dev.profunktor.fs2rabbit.effects.{EnvelopeDecoder, MessageEncoder}
+
 import scala.jdk.CollectionConverters._
 import fs2.Stream
 import scodec.bits.ByteVector
@@ -170,6 +172,11 @@ object model {
     * equivalents.
     */
   sealed trait AmqpFieldValue extends Product with Serializable {
+
+    /** Attempt to decode this [[AmqpFieldValue]] into a value of type `T`.
+      */
+    def as[T: AmqpFieldDecoder]: Either[AmqpFieldDecoder.DecodingError, T] =
+      AmqpFieldDecoder[T].decode(this)
 
     /** The opposite of [[AmqpFieldValue.unsafeFrom]]. Turns an [[AmqpFieldValue]] into something that can be processed
       * by [[com.rabbitmq.client.impl.ValueWriter]].
@@ -399,11 +406,11 @@ object model {
       replyTo: Option[String] = None,
       clusterId: Option[String] = None,
       timestamp: Option[Instant] = None,
-      headers: Map[String, AmqpFieldValue] = Map.empty
+      headers: Headers = Headers.empty
   )
 
   object AmqpProperties {
-    def empty = AmqpProperties()
+    def empty: AmqpProperties = AmqpProperties()
 
     private def tupled(p: AmqpProperties): (
         Option[String],
@@ -419,7 +426,7 @@ object model {
         Option[String],
         Option[String],
         Option[Instant],
-        Map[String, AmqpFieldValue]
+        Headers
     ) =
       p match {
         case AmqpProperties(a, b, c, d, e, f, g, h, i, j, k, l, m, n) => (a, b, c, d, e, f, g, h, i, j, k, l, m, n)
@@ -452,11 +459,10 @@ object model {
         replyTo = Option(basicProps.getReplyTo),
         clusterId = Option(basicProps.getClusterId),
         timestamp = Option(basicProps.getTimestamp).map(_.toInstant),
-        headers = Option(basicProps.getHeaders)
-          .fold(Map.empty[String, Object])(_.asScala.toMap)
-          .map { case (k, v) =>
-            k -> AmqpFieldValue.unsafeFrom(v)
-          }
+        headers = Headers.unsafeFromMap(
+          Option(basicProps.getHeaders)
+            .fold(Map.empty[String, Object])(_.asScala.toMap)
+        )
       )
 
     implicit class AmqpPropertiesOps(props: AmqpProperties) {
@@ -477,7 +483,7 @@ object model {
           .timestamp(props.timestamp.map(Date.from).orNull)
           // Note we don't use mapValues here to maintain compatibility between
           // Scala 2.12 and 2.13
-          .headers(props.headers.map { case (key, value) => (key, value.toValueWriterCompatibleJava) }.asJava)
+          .headers(props.headers.toMap.map { case (key, value) => (key, value.toValueWriterCompatibleJava) }.asJava)
           .build()
     }
   }

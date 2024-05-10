@@ -30,11 +30,10 @@ import org.scalatest.Assertion
 import scala.concurrent.duration._
 import scala.util.Random
 import scala.concurrent.Future
-
 import cats.effect.unsafe.implicits.global
-
 import cats.effect.kernel.Deferred
 import cats.data.Kleisli
+import dev.profunktor.fs2rabbit.data.Headers
 
 trait Fs2RabbitSpec { self: BaseSpec =>
 
@@ -748,7 +747,7 @@ trait Fs2RabbitSpec { self: BaseSpec =>
       AmqpMessage(
         i,
         AmqpProperties(headers =
-          Map("demoId" -> AmqpFieldValue.LongVal(123), "app" -> AmqpFieldValue.StringVal("fs2RabbitTest"))
+          Headers("demoId" -> AmqpFieldValue.LongVal(123), "app" -> AmqpFieldValue.StringVal("fs2RabbitTest"))
         )
       )
 

@@ -17,8 +17,8 @@
 package dev.profunktor.fs2rabbit
 
 import java.util.Date
-
 import com.rabbitmq.client.AMQP
+import dev.profunktor.fs2rabbit.data.Headers
 import dev.profunktor.fs2rabbit.model.AmqpFieldValue._
 import dev.profunktor.fs2rabbit.model.{AmqpFieldValue, AmqpProperties, DeliveryMode, ShortString}
 import org.scalacheck.Arbitrary.arbitrary
@@ -53,7 +53,7 @@ class AmqpPropertiesSpec extends AnyFlatSpecLike with Matchers with AmqpProperti
         None,
         None,
         None,
-        Map.empty[String, AmqpFieldValue]
+        Headers.empty
       )
     )
   }
@@ -171,10 +171,15 @@ trait AmqpPropertiesArbitraries extends PropertyChecks {
     }
   }
 
-  private val headersGen: Gen[(String, AmqpFieldValue)] = for {
-    key   <- Gen.alphaStr
-    value <- arbitrary[AmqpFieldValue]
-  } yield (key, value)
+  private val headersGen: Gen[Headers] =
+    Gen
+      .mapOf[String, AmqpFieldValue](
+        for {
+          key   <- Gen.alphaStr
+          value <- arbitrary[AmqpFieldValue]
+        } yield (key, value)
+      )
+      .map(Headers(_))
 
   implicit val amqpProperties: Arbitrary[AmqpProperties] = Arbitrary[AmqpProperties] {
     for {
@@ -191,7 +196,7 @@ trait AmqpPropertiesArbitraries extends PropertyChecks {
       replyTo         <- Gen.option(Gen.alphaNumStr)
       clusterId       <- Gen.option(Gen.alphaNumStr)
       timestamp       <- Gen.option(dateVal.arbitrary.map(_.instantWithOneSecondAccuracy))
-      headers         <- Gen.mapOf[String, AmqpFieldValue](headersGen)
+      headers         <- headersGen
     } yield AmqpProperties(
       contentType,
       contentEncoding,
