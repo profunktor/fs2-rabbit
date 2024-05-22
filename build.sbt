@@ -56,7 +56,7 @@ val commonSettings = List(
   libraryDependencies ++= commonDependencies(scalaVersion.value),
   resolvers += "Apache public" at "https://repository.apache.org/content/groups/public/",
   scalafmtOnCompile     := true,
-  mimaPreviousArtifacts := Set(organization.value %% moduleName.value % "5.1.0")
+  mimaPreviousArtifacts := previousStableVersion.value.map(organization.value %% moduleName.value % _).toSet
 )
 
 def CoreDependencies(scalaVersionStr: String): List[ModuleID] =
@@ -95,7 +95,8 @@ lazy val noPublish = List(
   publish         := {},
   publishLocal    := {},
   publishArtifact := false,
-  publish / skip  := true
+  publish / skip  := true,
+  crossScalaVersions := Nil
 )
 
 lazy val `fs2-rabbit-root` = project
