@@ -1,7 +1,7 @@
 import Dependencies._
 import microsites.ExtraMdFileConfig
 
-ThisBuild / name               := """fs2-rabbit"""
+ThisBuild / name               := "fs2-rabbit"
 ThisBuild / scalaVersion       := "2.13.12"
 ThisBuild / crossScalaVersions := List("2.12.18", "2.13.12", "3.3.1")
 ThisBuild / versionScheme      := Some("semver-spec")
@@ -92,10 +92,10 @@ def TestsDependencies(scalaVersionStr: String): List[ModuleID] =
   )
 
 lazy val noPublish = List(
-  publish         := {},
-  publishLocal    := {},
-  publishArtifact := false,
-  publish / skip  := true,
+  publish            := {},
+  publishLocal       := {},
+  publishArtifact    := false,
+  publish / skip     := true,
   crossScalaVersions := Nil
 )
 
