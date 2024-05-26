@@ -1,7 +1,7 @@
 import Dependencies._
 import microsites.ExtraMdFileConfig
 
-ThisBuild / name               := """fs2-rabbit"""
+ThisBuild / name               := "fs2-rabbit"
 ThisBuild / scalaVersion       := "2.13.12"
 ThisBuild / crossScalaVersions := List("2.12.18", "2.13.12", "3.3.1")
 ThisBuild / versionScheme      := Some("semver-spec")
@@ -19,14 +19,14 @@ ThisBuild / developers         := List(
 
 publish / skip := true
 
-def scalaOptions(v: String) =
+def scalaOptions(v: String): List[String] =
   CrossVersion.partialVersion(v) match {
     case Some((2, 13)) => List.empty[String]
     case Some((3, _))  => List("-source:3.0-migration")
     case _             => List("-Xmax-classfile-name", "100")
   }
 
-def commonDependencies(v: String) =
+def commonDependencies(v: String): List[ModuleID] =
   List(
     Libraries.amqpClient,
     Libraries.catsEffect,
@@ -92,10 +92,10 @@ def TestsDependencies(scalaVersionStr: String): List[ModuleID] =
   )
 
 lazy val noPublish = List(
-  publish         := {},
-  publishLocal    := {},
-  publishArtifact := false,
-  publish / skip  := true,
+  publish            := {},
+  publishLocal       := {},
+  publishArtifact    := false,
+  publish / skip     := true,
   crossScalaVersions := Nil
 )
 
