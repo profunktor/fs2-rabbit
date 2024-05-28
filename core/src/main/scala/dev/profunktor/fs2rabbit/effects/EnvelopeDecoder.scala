@@ -15,7 +15,7 @@
  */
 
 package dev.profunktor.fs2rabbit.effects
-import cats.{Applicative, ApplicativeThrow, MonadError}
+import cats.{Applicative, ApplicativeError, ApplicativeThrow, MonadError}
 import cats.data.Kleisli
 import dev.profunktor.fs2rabbit.model.{AmqpFieldValue, AmqpProperties, ExchangeName, RoutingKey}
 import dev.profunktor.fs2rabbit.model.AmqpFieldValue._
@@ -85,8 +85,13 @@ object EnvelopeDecoder extends EnvelopeDecoderInstances {
 
 sealed trait EnvelopeDecoderInstances {
 
-  implicit def decoderAttempt[F[_], E: MonadError[F, *], A](implicit
+  implicit def decoderAttempt[F[_], E: ApplicativeError[F, *], A](implicit
       decoder: EnvelopeDecoder[F, A]
   ): EnvelopeDecoder[F, Either[E, A]] =
     decoder.attempt
+
+  implicit def decoderOption[F[_], E: ApplicativeError[F, *], A](implicit
+      decoder: EnvelopeDecoder[F, A]
+  ): EnvelopeDecoder[F, Option[A]] =
+    decoder.attempt.map(_.toOption)
 }
