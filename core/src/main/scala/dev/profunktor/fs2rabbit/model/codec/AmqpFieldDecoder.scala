@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package dev.profunktor.fs2rabbit.data.codec
+package dev.profunktor.fs2rabbit.model.codec
 
 import cats.Functor
 import cats.data.{NonEmptyList, NonEmptySeq, NonEmptySet}
 import cats.syntax.all._
-import dev.profunktor.fs2rabbit.data.codec.AmqpFieldDecoder.DecodingError
+import dev.profunktor.fs2rabbit.model.codec.AmqpFieldDecoder.DecodingError
 import dev.profunktor.fs2rabbit.model.{AmqpFieldValue, ShortString}
 
 import java.time.Instant

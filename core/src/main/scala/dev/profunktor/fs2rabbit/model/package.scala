@@ -16,14 +16,20 @@
 
 package dev.profunktor.fs2rabbit
 
-import dev.profunktor.fs2rabbit.data.codec.AmqpFieldEncoder
-import dev.profunktor.fs2rabbit.model.AmqpFieldValue
+import cats.Order
+import dev.profunktor.fs2rabbit.model.codec.AmqpFieldEncoder
+import fs2.Stream
 
-package object data {
-  type HeaderKey = String
-  type Header    = (String, AmqpFieldValue)
+import java.time.Instant
+
+package object model {
+  type StreamAckerConsumer[F[_], A] = (AckResult => F[Unit], Stream[F, AmqpEnvelope[A]])
+  type HeaderKey                    = String
+  type Header                       = (String, AmqpFieldValue)
   object Header {
     def apply[T: AmqpFieldEncoder](key: String, value: T): Header =
       (key, AmqpFieldEncoder[T].encode(value))
   }
+
+  val instantOrderWithSecondPrecision: Order[Instant] = Order.by(_.getEpochSecond)
 }

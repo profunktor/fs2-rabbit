@@ -16,7 +16,7 @@
 
 package dev.profunktor.fs2rabbit
 
-import dev.profunktor.fs2rabbit.data.Headers
+import dev.profunktor.fs2rabbit.model.Headers
 
 import java.time.Instant
 import java.util.Date

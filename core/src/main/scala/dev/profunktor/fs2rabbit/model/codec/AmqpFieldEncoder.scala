@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package dev.profunktor.fs2rabbit.data.codec
+package dev.profunktor.fs2rabbit.model.codec
 
 import cats.Contravariant
 import cats.data.{NonEmptyList, NonEmptySeq, NonEmptySet}

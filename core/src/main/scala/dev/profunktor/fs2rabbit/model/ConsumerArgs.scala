@@ -14,15 +14,13 @@
  * limitations under the License.
  */
 
-package dev.profunktor.fs2rabbit.data
+package dev.profunktor.fs2rabbit.model
 
-import dev.profunktor.fs2rabbit.model.AmqpFieldValue.StringVal
-import org.scalatest.funsuite.AnyFunSuite
-import org.scalatest.matchers.should.Matchers
+import dev.profunktor.fs2rabbit.arguments.Arguments
 
-class HeaderSpec extends AnyFunSuite with Matchers {
-
-  test("Header should be a tuple of a String and an AmqpFieldValue") {
-    val header: Header = "key" -> StringVal("value")
-  }
-}
+case class ConsumerArgs(
+    consumerTag: ConsumerTag,
+    noLocal: Boolean,
+    exclusive: Boolean,
+    args: Arguments
+)

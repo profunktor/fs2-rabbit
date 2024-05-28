@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package dev.profunktor.fs2rabbit.data
+package dev.profunktor.fs2rabbit.model
 
 import cats.syntax.all._
 import cats.{ApplicativeThrow, Eq}
-import dev.profunktor.fs2rabbit.data.codec.{AmqpFieldDecoder, AmqpFieldEncoder}
-import dev.profunktor.fs2rabbit.model.AmqpFieldValue
+import dev.profunktor.fs2rabbit.model.Headers.MissingHeader
+import dev.profunktor.fs2rabbit.model.codec.{AmqpFieldDecoder, AmqpFieldEncoder}
 
 import scala.util.Try
 
@@ -82,12 +82,12 @@ case class Headers(toMap: Map[HeaderKey, AmqpFieldValue]) {
     append(kv._1, kv._2)
 
   def append[T: AmqpFieldEncoder](key: HeaderKey, value: T): Headers =
-    appendMap(Map((key, AmqpFieldEncoder[T].encode(value))))
+    appendAll(Map((key, AmqpFieldEncoder[T].encode(value))))
 
   def ++(that: Headers): Headers =
-    appendMap(that.toMap)
+    appendAll(that.toMap)
 
-  def appendMap(that: Map[HeaderKey, AmqpFieldValue]): Headers =
+  def appendAll(that: Map[HeaderKey, AmqpFieldValue]): Headers =
     Headers(toMap ++ that)
 
   // prepend
@@ -95,9 +95,9 @@ case class Headers(toMap: Map[HeaderKey, AmqpFieldValue]) {
     prepend(pair._1, pair._2)
 
   def prepend[T: AmqpFieldEncoder](key: HeaderKey, value: T): Headers =
-    prependMap(Map((key, AmqpFieldEncoder[T].encode(value))))
+    prependAll(Map((key, AmqpFieldEncoder[T].encode(value))))
 
-  def prependMap(that: Map[HeaderKey, AmqpFieldValue]): Headers =
+  def prependAll(that: Map[HeaderKey, AmqpFieldValue]): Headers =
     Headers(that ++ toMap)
 
   // remove
@@ -105,7 +105,6 @@ case class Headers(toMap: Map[HeaderKey, AmqpFieldValue]) {
     Headers(toMap -- (key +: keys))
 
   // as
-
   /** Decodes the value of the mandatory header to the specified type `T`.
     *   - If the header is missing, it will raise a `MissingHeader` error.
     *   - If the decoding fails, it will raise a `DecodingError` error.
@@ -157,10 +156,12 @@ case class Headers(toMap: Map[HeaderKey, AmqpFieldValue]) {
     toMap.get(name)
 
   // backwards compatibility - to remove in the future versions
+  // TODO Choose the version
   @deprecated("Use getAs[F, AmqpFieldValue] instead", "2.0.0")
   def get(name: HeaderKey): Option[AmqpFieldValue] =
     getOptRaw(name)
 
+  // TODO Choose the version
   @deprecated("Use getAs[F, AmqpFieldValue] instead", "2.0.0")
   def apply[F[_]: ApplicativeThrow](name: HeaderKey): AmqpFieldValue =
     getOptRaw(name).getOrElse(throw new MissingHeader(name))
@@ -170,6 +171,8 @@ object Headers extends HeadersSyntax {
   val empty: Headers                                         = new Headers(Map.empty)
   def apply(values: Header*): Headers                        = Headers(values.toMap)
   def apply(values: Map[HeaderKey, AmqpFieldValue]): Headers = new Headers(values)
+
+  class MissingHeader(name: String) extends RuntimeException(s"Missing header: $name")
 
   private[fs2rabbit] def unsafeFromMap(values: Map[String, AnyRef]): Headers =
     Headers(values.map { case (k, v) => k -> AmqpFieldValue.unsafeFrom(v) })
