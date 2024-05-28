@@ -18,6 +18,7 @@ package dev.profunktor.fs2rabbit.effects
 import cats.data.Kleisli
 import cats.implicits._
 import cats.{Applicative, ApplicativeError, ApplicativeThrow}
+import dev.profunktor.fs2rabbit.model.codec.AmqpFieldDecoder
 import dev.profunktor.fs2rabbit.model.{AmqpFieldValue, AmqpProperties, ExchangeName, RoutingKey}
 
 object EnvelopeDecoder extends EnvelopeDecoderInstances {

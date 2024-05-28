@@ -14,6 +14,13 @@
  * limitations under the License.
  */
 
-package dev.profunktor.fs2rabbit.data
+package dev.profunktor.fs2rabbit.model
 
-class MissingHeader(name: String) extends RuntimeException(s"Missing header: $name")
+case class PublishReturn(
+    replyCode: ReplyCode,
+    replyText: ReplyText,
+    exchange: ExchangeName,
+    routingKey: RoutingKey,
+    properties: AmqpProperties,
+    body: AmqpBody
+)

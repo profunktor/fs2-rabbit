@@ -33,7 +33,7 @@ import scala.concurrent.Future
 import cats.effect.unsafe.implicits.global
 import cats.effect.kernel.Deferred
 import cats.data.Kleisli
-import dev.profunktor.fs2rabbit.data.Headers
+import dev.profunktor.fs2rabbit.model.Headers
 
 trait Fs2RabbitSpec { self: BaseSpec =>
 

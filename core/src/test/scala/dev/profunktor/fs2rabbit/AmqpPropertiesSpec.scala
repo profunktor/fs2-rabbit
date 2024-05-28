@@ -18,7 +18,7 @@ package dev.profunktor.fs2rabbit
 
 import java.util.Date
 import com.rabbitmq.client.AMQP
-import dev.profunktor.fs2rabbit.data.Headers
+import dev.profunktor.fs2rabbit.model.Headers
 import dev.profunktor.fs2rabbit.model.AmqpFieldValue._
 import dev.profunktor.fs2rabbit.model.{AmqpFieldValue, AmqpProperties, DeliveryMode, ShortString}
 import org.scalacheck.Arbitrary.arbitrary
