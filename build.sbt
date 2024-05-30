@@ -1,9 +1,9 @@
 import Dependencies._
 import microsites.ExtraMdFileConfig
 
-ThisBuild / name               := """fs2-rabbit"""
+ThisBuild / name               := "fs2-rabbit"
 ThisBuild / scalaVersion       := "2.13.12"
-ThisBuild / crossScalaVersions := List("2.12.19", "2.13.12", "3.3.1")
+ThisBuild / crossScalaVersions := List("2.12.19", "2.13.12", "3.3.3")
 ThisBuild / versionScheme      := Some("semver-spec")
 ThisBuild / organization       := "dev.profunktor"
 ThisBuild / homepage           := Some(url("https://fs2-rabbit.profunktor.dev/"))
@@ -56,7 +56,7 @@ val commonSettings = List(
   libraryDependencies ++= commonDependencies(scalaVersion.value),
   resolvers += "Apache public" at "https://repository.apache.org/content/groups/public/",
   scalafmtOnCompile     := true,
-  mimaPreviousArtifacts := Set(organization.value %% moduleName.value % "5.1.0")
+  mimaPreviousArtifacts := previousStableVersion.value.map(organization.value %% moduleName.value % _).toSet
 )
 
 def CoreDependencies(scalaVersionStr: String): List[ModuleID] =
@@ -92,10 +92,11 @@ def TestsDependencies(scalaVersionStr: String): List[ModuleID] =
   )
 
 lazy val noPublish = List(
-  publish         := {},
-  publishLocal    := {},
-  publishArtifact := false,
-  publish / skip  := true
+  publish            := {},
+  publishLocal       := {},
+  publishArtifact    := false,
+  publish / skip     := true,
+  crossScalaVersions := Nil
 )
 
 lazy val `fs2-rabbit-root` = project

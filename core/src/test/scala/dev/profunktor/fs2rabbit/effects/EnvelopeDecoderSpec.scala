@@ -31,11 +31,14 @@ import cats.effect.unsafe.implicits.global
 
 class EnvelopeDecoderSpec extends AsyncFunSuite {
 
+  import EnvelopeDecoder._
   // Available instances of EnvelopeDecoder for any ApplicativeError[F, Throwable]
   EnvelopeDecoder[Either[Throwable, *], String]
   EnvelopeDecoder[SyncIO, String]
   EnvelopeDecoder[EitherT[IO, String, *], String]
   EnvelopeDecoder[Try, String]
+  EnvelopeDecoder[Try, Option[String]]
+  EnvelopeDecoder[Try, Either[Throwable, String]]
 
   test("should decode a UTF-8 string") {
     val msg = "hello world!"
@@ -82,6 +85,34 @@ class EnvelopeDecoderSpec extends AsyncFunSuite {
       )
       .flatMap { result =>
         IO(assert(result != msg))
+      }
+      .unsafeToFuture()
+  }
+
+  test("should decode a UTF-8 string - Attempt") {
+    val msg = "hello world!"
+    val raw = msg.getBytes(StandardCharsets.UTF_8)
+
+    EnvelopeDecoder[IO, Either[Throwable, String]]
+      .run(
+        AmqpEnvelope(DeliveryTag(0L), raw, AmqpProperties.empty, ExchangeName("test"), RoutingKey("test.route"), false)
+      )
+      .flatMap { result =>
+        IO(assert(result == Right(msg)))
+      }
+      .unsafeToFuture()
+  }
+
+  test("should decode a UTF-8 string - Attempt option") {
+    val msg = "hello world!"
+    val raw = msg.getBytes(StandardCharsets.UTF_8)
+
+    EnvelopeDecoder[IO, Option[String]]
+      .run(
+        AmqpEnvelope(DeliveryTag(0L), raw, AmqpProperties.empty, ExchangeName("test"), RoutingKey("test.route"), false)
+      )
+      .flatMap { result =>
+        IO(assert(result == Option(msg)))
       }
       .unsafeToFuture()
   }
