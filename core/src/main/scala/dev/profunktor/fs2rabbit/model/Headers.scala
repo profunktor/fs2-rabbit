@@ -48,8 +48,8 @@ import scala.util.Try
   *
   * ==Example==
   * {{{
-  *   import dev.profunktor.fs2rabbit.data.Headers
-  *   import dev.profunktor.fs2rabbit.data.Headers._
+  *   import dev.profunktor.fs2rabbit.model.Headers
+  *   import dev.profunktor.fs2rabbit.model.Headers._
   *
   *   val headers = Headers(
   *    "x-custom-header" := "value", // StringVal

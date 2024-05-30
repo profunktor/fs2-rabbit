@@ -17,14 +17,14 @@
 package dev.profunktor.fs2rabbit.model.codec
 
 import cats.Functor
-import cats.data.{NonEmptyList, NonEmptySeq, NonEmptySet}
+import cats.data.{NonEmptyList, NonEmptySeq}
 import cats.syntax.all._
 import dev.profunktor.fs2rabbit.model.codec.AmqpFieldDecoder.DecodingError
 import dev.profunktor.fs2rabbit.model.{AmqpFieldValue, ShortString}
 
 import java.time.Instant
 import java.util.Date
-import scala.collection.immutable.SortedSet
+import scala.collection._
 
 trait AmqpFieldDecoder[T] { $this =>
 
@@ -193,12 +193,7 @@ sealed trait AmqpFieldDecoderInstances {
     )
 
   implicit def nesDecoder[T: AmqpFieldDecoder]: AmqpFieldDecoder[NonEmptySeq[T]] =
-    seqDecoder[T].emap(seq =>
-      NonEmptySeq.fromSeq(seq).toRight(DecodingError.expectedButGot("NonEmptySeq", "empty seq"))
-    )
-
-  implicit def neSortedSetDecoder[T: AmqpFieldDecoder: Ordering]: AmqpFieldDecoder[NonEmptySet[T]] =
-    setDecoder[T].emap(set =>
-      NonEmptySet.fromSet(SortedSet.from(set)).toRight(DecodingError.expectedButGot("NonEmptySeq", "empty seq"))
+    seqDecoder[T].emap((seq: Seq[T]) =>
+      NonEmptySeq.fromSeq(seq.toList).toRight(DecodingError.expectedButGot("NonEmptySeq", "empty seq"))
     )
 }
