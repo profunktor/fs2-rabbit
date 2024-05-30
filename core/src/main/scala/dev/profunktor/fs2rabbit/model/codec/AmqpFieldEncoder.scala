@@ -18,7 +18,7 @@ package dev.profunktor.fs2rabbit.model.codec
 
 import cats.Contravariant
 import cats.data.{NonEmptyList, NonEmptySeq, NonEmptySet}
-import dev.profunktor.fs2rabbit.model.AmqpFieldValue.ArrayVal
+import dev.profunktor.fs2rabbit.model.AmqpFieldValue.{ArrayVal, DecimalVal}
 import dev.profunktor.fs2rabbit.model.{AmqpFieldValue, ShortString}
 import scodec.bits.ByteVector
 
@@ -83,8 +83,8 @@ sealed trait FieldEncoderInstances {
   implicit val bigDecimalEncoder: AmqpFieldEncoder[BigDecimal] =
     (value: BigDecimal) =>
       AmqpFieldValue.DecimalVal.from(value) match {
-        case Some(decimalVal) => decimalVal
-        case None             => AmqpFieldValue.NullVal
+        case Some(decimalVal: DecimalVal) => decimalVal
+        case None                         => AmqpFieldValue.NullVal
       }
 
   implicit val bigIntEncoder: AmqpFieldEncoder[BigInt] =

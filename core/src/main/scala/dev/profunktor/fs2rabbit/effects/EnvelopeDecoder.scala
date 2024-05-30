@@ -79,11 +79,11 @@ object EnvelopeDecoder extends EnvelopeDecoderInstances {
 
   @deprecated("Use headerAs[F, collection.Seq[Any]] instead", "2.0.0")
   def arrayHeader[F[_]: ApplicativeThrow](name: String): EnvelopeDecoder[F, collection.Seq[Any]] =
-    headerAs[F, collection.Seq[Any]](name)
+    headerAs[F, collection.Seq[Any]](name)(ApplicativeThrow[F], AmqpFieldDecoder.collectionSeqDecoder[Any])
 
   @deprecated("Use optHeaderAs[F, collection.Seq[T]] instead", "2.0.0")
   def optArrayHeader[F[_]: ApplicativeThrow](name: String): EnvelopeDecoder[F, Option[collection.Seq[Any]]] =
-    optHeaderAs[F, collection.Seq[Any]](name)
+    optHeaderAs[F, collection.Seq[Any]](name)(ApplicativeThrow[F], AmqpFieldDecoder.collectionSeqDecoder[Any])
 }
 
 sealed trait EnvelopeDecoderInstances {
