@@ -14,7 +14,7 @@ object Dependencies {
     val zioCats          = "3.2.9.1"
     val scodec           = "1.2.0"
     val dropwizard       = "4.2.25"
-    val collectionCompat = "2.11.0"
+    val collectionCompat = "2.12.0"
 
     val kindProjector = "0.13.3"
 
