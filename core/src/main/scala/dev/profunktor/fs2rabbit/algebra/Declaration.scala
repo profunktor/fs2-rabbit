@@ -17,7 +17,7 @@
 package dev.profunktor.fs2rabbit.algebra
 
 import cats.effect.Sync
-import cats.syntax.functor._
+import cats.syntax.all._
 import dev.profunktor.fs2rabbit.arguments._
 import dev.profunktor.fs2rabbit.config.declaration.{DeclarationExchangeConfig, DeclarationQueueConfig}
 import dev.profunktor.fs2rabbit.effects.BoolValue.syntax._
@@ -63,26 +63,30 @@ object Declaration {
       }
 
     override def declareQueue(channel: AMQPChannel, config: DeclarationQueueConfig): F[Unit] =
-      Sync[F].blocking {
-        channel.value.queueDeclare(
-          config.queueName.value,
-          config.durable.isTrue,
-          config.exclusive.isTrue,
-          config.autoDelete.isTrue,
-          config.arguments
-        )
-      }.void
+      Sync[F].fromEither(config.validatedArguments).flatMap { args =>
+        Sync[F].blocking {
+          channel.value.queueDeclare(
+            config.queueName.value,
+            config.durable.isTrue,
+            config.exclusive.isTrue,
+            config.autoDelete.isTrue,
+            args
+          )
+        }.void
+      }
 
     override def declareQueueNoWait(channel: AMQPChannel, config: DeclarationQueueConfig): F[Unit] =
-      Sync[F].blocking {
-        channel.value.queueDeclareNoWait(
-          config.queueName.value,
-          config.durable.isTrue,
-          config.exclusive.isTrue,
-          config.autoDelete.isTrue,
-          config.arguments
-        )
-      }.void
+      Sync[F].fromEither(config.validatedArguments).flatMap { args =>
+        Sync[F].blocking {
+          channel.value.queueDeclareNoWait(
+            config.queueName.value,
+            config.durable.isTrue,
+            config.exclusive.isTrue,
+            config.autoDelete.isTrue,
+            args
+          )
+        }.void
+      }
 
     override def declareQueuePassive(channel: AMQPChannel, queueName: QueueName): F[Unit] =
       Sync[F].blocking {
