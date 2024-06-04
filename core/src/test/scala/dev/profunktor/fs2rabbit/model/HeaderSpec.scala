@@ -16,13 +16,18 @@
 
 package dev.profunktor.fs2rabbit.model
 
-import dev.profunktor.fs2rabbit.model.AmqpFieldValue.StringVal
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
 class HeaderSpec extends AnyFunSuite with Matchers {
 
-  test("Header should be a tuple of a String and an AmqpFieldValue") {
-    val header: Header = "key" -> StringVal("value")
+  test("HeaderKey syntax should allow to create a Headers") {
+    Headers(
+      "key" -> "value".asAmqpFieldValue
+    ) shouldEqual (
+      Headers(
+        "key" := "value"
+      )
+    )
   }
 }

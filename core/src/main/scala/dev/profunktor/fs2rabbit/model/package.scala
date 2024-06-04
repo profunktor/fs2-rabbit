@@ -24,12 +24,21 @@ import java.time.Instant
 
 package object model {
   type StreamAckerConsumer[F[_], A] = (AckResult => F[Unit], Stream[F, AmqpEnvelope[A]])
-  type HeaderKey                    = String
-  type Header                       = (String, AmqpFieldValue)
-  object Header {
-    def apply[T: AmqpFieldEncoder](key: String, value: T): Header =
-      (key, AmqpFieldEncoder[T].encode(value))
+
+  type HeaderKey = String
+  object HeaderKey {
+    def apply(key: String): HeaderKey = key
   }
 
   val instantOrderWithSecondPrecision: Order[Instant] = Order.by(_.getEpochSecond)
+
+  implicit class AnyAmqpFieldEncoderOps[A](a: A) {
+    def asAmqpFieldValue(implicit encoder: AmqpFieldEncoder[A]): AmqpFieldValue =
+      encoder.encode(a)
+  }
+
+  implicit class StringAmqpFieldEncoderOps(headerKey: HeaderKey) {
+    def :=[T](value: T)(implicit encoder: AmqpFieldEncoder[T]): (HeaderKey, AmqpFieldValue) =
+      headerKey -> value.asAmqpFieldValue
+  }
 }
