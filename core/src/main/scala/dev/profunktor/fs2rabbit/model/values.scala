@@ -59,6 +59,19 @@ object ConsumerTag                    extends (String => ConsumerTag) {
   implicit val consumerTagOrder: Order[ConsumerTag] = Order.by(_.value)
 }
 
+sealed trait QueueType extends Product with Serializable {
+  def asString: String = this match {
+    case QueueType.Classic => "classic"
+    case QueueType.Quorum  => "quorum"
+    case QueueType.Stream  => "stream"
+  }
+}
+object QueueType {
+  case object Classic extends QueueType
+  case object Quorum  extends QueueType
+  case object Stream  extends QueueType
+}
+
 sealed trait ExchangeType extends Product with Serializable {
   def asString: String = this match {
     case ExchangeType.Direct              => "direct"

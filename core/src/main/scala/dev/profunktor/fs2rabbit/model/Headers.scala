@@ -17,7 +17,7 @@
 package dev.profunktor.fs2rabbit.model
 
 import cats.syntax.all._
-import cats.{ApplicativeThrow, Eq}
+import cats.{ApplicativeThrow, Eq, Show}
 import dev.profunktor.fs2rabbit.model.Headers.MissingHeader
 import dev.profunktor.fs2rabbit.model.codec.{AmqpFieldDecoder, AmqpFieldEncoder}
 
@@ -165,11 +165,20 @@ case class Headers(toMap: Map[HeaderKey, AmqpFieldValue]) {
   @deprecated("Use getAs[F, AmqpFieldValue] instead", "2.0.0")
   def apply[F[_]: ApplicativeThrow](name: HeaderKey): AmqpFieldValue =
     getOptRaw(name).getOrElse(throw new MissingHeader(name))
+
+  override def toString: String =
+    Headers.show.show(this)
+
+  override final def equals(obj: Any): Boolean =
+    obj match {
+      case that: Headers => Headers.eq.eqv(this, that)
+      case _             => false
+    }
 }
-object Headers extends HeadersSyntax {
+object Headers {
 
   val empty: Headers                                         = new Headers(Map.empty)
-  def apply(values: Header*): Headers                        = Headers(values.toMap)
+  def apply(values: (HeaderKey, AmqpFieldValue)*): Headers   = Headers(values.toMap)
   def apply(values: Map[HeaderKey, AmqpFieldValue]): Headers = new Headers(values)
 
   class MissingHeader(name: String) extends RuntimeException(s"Missing header: $name")
@@ -178,13 +187,6 @@ object Headers extends HeadersSyntax {
     Headers(values.map { case (k, v) => k -> AmqpFieldValue.unsafeFrom(v) })
 
   // instances
-  implicit val headersEq: Eq[Headers] =
-    Eq[Map[HeaderKey, AmqpFieldValue]]
-      .contramap(_.toMap)
-}
-
-private[fs2rabbit] sealed trait HeadersSyntax {
-  implicit class HeaderKeyOps(private val key: HeaderKey) {
-    def :=[T: AmqpFieldEncoder](value: T): (HeaderKey, AmqpFieldValue) = (key, AmqpFieldEncoder[T].encode(value))
-  }
+  implicit val show: Show[Headers] = Show.show(h => s"Headers(${h.toMap.mkString(", ")})")
+  implicit val eq: Eq[Headers]     = Eq.by(_.toMap)
 }

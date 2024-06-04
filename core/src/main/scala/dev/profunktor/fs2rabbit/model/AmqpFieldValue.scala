@@ -54,6 +54,12 @@ sealed trait AmqpFieldValue extends Product with Serializable {
     * [[com.rabbitmq.client.impl.ValueWriter]].
     */
   def toValueWriterCompatibleJava: AnyRef
+
+  override final def equals(obj: Any): Boolean =
+    obj match {
+      case that: AmqpFieldValue => AmqpFieldValue.amqpFieldValueEq.eqv(this, that)
+      case _                    => false
+    }
 }
 
 object AmqpFieldValue {
