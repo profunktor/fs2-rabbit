@@ -22,7 +22,7 @@ import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.{Applicative, Functor}
 import com.rabbitmq.client.{AMQP, Consumer, DefaultConsumer, Envelope, ShutdownSignalException}
-import dev.profunktor.fs2rabbit.arguments.{Arguments, _}
+import dev.profunktor.fs2rabbit.arguments._
 import dev.profunktor.fs2rabbit.model._
 
 import scala.util.{Failure, Success, Try}

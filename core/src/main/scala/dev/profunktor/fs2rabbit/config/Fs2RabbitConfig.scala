@@ -16,11 +16,10 @@
 
 package dev.profunktor.fs2rabbit.config
 
-import java.util.concurrent.TimeUnit
-
 import cats.data.NonEmptyList
 import com.rabbitmq.client.ConnectionFactory
 
+import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.FiniteDuration
 
 case class Fs2RabbitNodeConfig(

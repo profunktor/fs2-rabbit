@@ -52,7 +52,7 @@ object ResilientStream {
   ): Stream[F, Unit] =
     program.handleErrorWith {
       case NonFatal(err) =>
-        val delay = retryDelay * Math.pow(count, 2).toInt
+        val delay = retryDelay * Math.pow(count.toDouble, 2).toLong
         Stream.eval(
           Log[F].error(err.getMessage) *> Log[F].info(s"Restarting in $delay...")
         ) >>

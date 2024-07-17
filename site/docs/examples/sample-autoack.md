@@ -39,7 +39,7 @@ class AutoAckFlow[F[_]: Async, A](
   val jsonPipe: Pipe[Pure, AmqpMessage[Person], AmqpMessage[String]] = _.map(jsonEncode[Person])
 
   val simpleMessage =
-    AmqpMessage("Hey!", AmqpProperties(headers = Map("demoId" -> LongVal(123), "app" -> StringVal("fs2RabbitDemo"))))
+    AmqpMessage("Hey!", AmqpProperties(headers = Headers("demoId" -> LongVal(123), "app" -> StringVal("fs2RabbitDemo"))))
   val classMessage = AmqpMessage(Person(1L, "Sherlock", Address(212, "Baker St")), AmqpProperties.empty)
 
   val flow: Stream[F, Unit] =
