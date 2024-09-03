@@ -43,10 +43,10 @@ Check the [official guide](https://fs2-rabbit.profunktor.dev/guide.html) for upd
 
 ## Running tests locally
 
-Start a `RabbitMQ` instance using `docker-compose` (recommended):
+Start a `RabbitMQ` instance using `docker compose` (recommended):
 
 ```bash
-> docker-compose up
+> docker compose up
 > sbt +test
 ```
 
