@@ -15,7 +15,7 @@ jobs:
     - uses: coursier/setup-action@v1
 
     - name: Starting up RabbitMQ
-      run: docker-compose up -d
+      run: docker compose up -d
 
     - name: Cache Coursier dependencies
       uses: actions/cache@v4
@@ -37,7 +37,7 @@ jobs:
       run: sbt -J-Xms4G -J-Xmx4G buildFs2Rabbit
 
     - name: Shutting down RabbitMQ
-      run: docker-compose down
+      run: docker compose down
 
   migration-check:
     runs-on: ubuntu-latest
