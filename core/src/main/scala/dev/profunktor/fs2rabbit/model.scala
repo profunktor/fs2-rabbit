@@ -93,8 +93,20 @@ object model {
         extends ExchangeType // for use with the plugin https://github.com/rabbitmq/rabbitmq-delayed-message-exchange/
   }
 
-  sealed abstract class DeliveryMode(val value: Int) extends Product with Serializable
+  sealed trait QueueType extends Product with Serializable {
+    def asString: String = this match {
+      case QueueType.Classic => "classic"
+      case QueueType.Quorum  => "quorum"
+      case QueueType.Stream  => "stream"
+    }
+  }
+  object QueueType {
+    case object Classic extends QueueType
+    case object Quorum  extends QueueType
+    case object Stream  extends QueueType
+  }
 
+  sealed abstract class DeliveryMode(val value: Int) extends Product with Serializable
   object DeliveryMode {
     case object NonPersistent extends DeliveryMode(1)
     case object Persistent    extends DeliveryMode(2)

@@ -133,6 +133,7 @@ object ConnectionResource {
         factory.setConnectionTimeout(conf.connectionTimeout.toMillis.toInt)
         factory.setRequestedHeartbeat(conf.requestedHeartbeat.toSeconds.toInt)
         factory.setAutomaticRecoveryEnabled(conf.automaticRecovery)
+        factory.setTopologyRecoveryEnabled(conf.automaticTopologyRecovery)
         if (conf.ssl) sslCtx.fold(factory.useSslProtocol())(factory.useSslProtocol)
         factory.setSaslConfig(saslConf)
         conf.username.foreach(factory.setUsername)

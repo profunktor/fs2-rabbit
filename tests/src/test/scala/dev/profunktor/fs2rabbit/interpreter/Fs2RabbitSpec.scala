@@ -69,7 +69,7 @@ trait Fs2RabbitSpec { self: BaseSpec =>
     createConnectionChannel.use { implicit channel =>
       randomQueueData
         .flatMap { case (q, x, _) =>
-          declareQueue(DeclarationQueueConfig(q, Durable, Exclusive, AutoDelete, Map.empty)) *>
+          declareQueue(DeclarationQueueConfig(q, Durable, Exclusive, AutoDelete, Map.empty, None)) *>
             declareExchange(x, ExchangeType.Topic)
         }
         .as(emptyAssertion)
