@@ -19,16 +19,23 @@ package dev.profunktor.fs2rabbit.model.codec
 import cats.Functor
 import cats.data.{NonEmptyList, NonEmptySeq}
 import cats.syntax.all._
+import dev.profunktor.fs2rabbit.model.AmqpFieldValue.ByteArrayVal
 import dev.profunktor.fs2rabbit.model.codec.AmqpFieldDecoder.DecodingError
 import dev.profunktor.fs2rabbit.model.{AmqpFieldValue, ShortString}
 
 import java.time.Instant
 import java.util.Date
-import scala.collection._
+import scala.reflect.ClassTag
 
 trait AmqpFieldDecoder[T] { $this =>
 
   def decode(value: AmqpFieldValue): Either[DecodingError, T]
+
+  def option: AmqpFieldDecoder[Option[T]] =
+    either.map(_.toOption)
+
+  def either: AmqpFieldDecoder[Either[DecodingError, T]] =
+    AmqpFieldDecoder.instance(value => decode(value).asRight)
 
   final def map[U](f: T => U): AmqpFieldDecoder[U] =
     AmqpFieldDecoder.instance(t => $this.decode(t).map(f))
@@ -37,7 +44,7 @@ trait AmqpFieldDecoder[T] { $this =>
     AmqpFieldDecoder.instance(t => $this.decode(t).flatMap(f))
 }
 object AmqpFieldDecoder extends AmqpFieldDecoderInstances {
-  case class DecodingError(msg: String, cause: Option[Throwable] = None) extends Throwable
+  case class DecodingError(msg: String, cause: Option[Throwable] = None) extends Throwable(msg, cause.orNull)
   object DecodingError {
     def expectedButGot(expected: String, got: String): DecodingError =
       new DecodingError(s"Expected $expected, but got $got")
@@ -54,8 +61,10 @@ object AmqpFieldDecoder extends AmqpFieldDecoderInstances {
 }
 sealed trait AmqpFieldDecoderInstances {
 
-  implicit val amqpFieldValueDecoder: AmqpFieldDecoder[AmqpFieldValue] =
-    AmqpFieldDecoder.instance(_.asRight)
+  implicit def amqpFieldValueDecoder[T <: AmqpFieldValue]: AmqpFieldDecoder[T] =
+    AmqpFieldDecoder.instance(v =>
+      Either.catchNonFatal(v.asInstanceOf[T]).leftMap(err => DecodingError("Error decoding AmqpFieldValue", Some(err)))
+    )
 
   implicit val anyDecoder: AmqpFieldDecoder[Any] =
     AmqpFieldDecoder.instance(_.asRight)
@@ -69,7 +78,7 @@ sealed trait AmqpFieldDecoderInstances {
   implicit val stringDecoder: AmqpFieldDecoder[String] =
     AmqpFieldDecoder.instance {
       case AmqpFieldValue.StringVal(value) => value.asRight
-      case other                           => other.toString.asRight
+      case other                           => DecodingError.expectedButGot("StringVal", other.toString).asLeft
     }
 
   implicit val instantDecoder: AmqpFieldDecoder[Instant] =
@@ -165,16 +174,20 @@ sealed trait AmqpFieldDecoderInstances {
       case other                          => DecodingError.expectedButGot("TableVal", other.toString).asLeft
     }
 
-  implicit def optionDecoder: AmqpFieldDecoder[Option[AmqpFieldValue]] =
-    AmqpFieldDecoder.instance {
-      case AmqpFieldValue.NullVal => None.asRight
-      case other                  => Some(other).asRight
-    }
+  implicit def optionDecoder[T: AmqpFieldDecoder]: AmqpFieldDecoder[Option[T]] =
+    AmqpFieldDecoder[T].option
 
-  implicit val byteArrayDecoder: AmqpFieldDecoder[Array[Byte]] =
+  implicit def eitherDecoder[T: AmqpFieldDecoder]: AmqpFieldDecoder[Either[DecodingError, T]] =
+    AmqpFieldDecoder[T].either
+
+  implicit def arrayDecoder[T: AmqpFieldDecoder: ClassTag]: AmqpFieldDecoder[Array[T]] =
     AmqpFieldDecoder.instance {
-      case AmqpFieldValue.ByteArrayVal(value) => value.toArray.asRight
-      case other                              => DecodingError.expectedButGot("ByteArrayVal", other.toString).asLeft
+      case AmqpFieldValue.ArrayVal(value)                                  =>
+        value.traverse(AmqpFieldDecoder[T].decode).map(_.toArray[T])
+      case ByteArrayVal(value) if implicitly[ClassTag[T]] == ClassTag.Byte =>
+        value.toArray.asInstanceOf[Array[T]].asRight
+      case other                                                           =>
+        DecodingError.expectedButGot("ArrayVal", other.toString).asLeft
     }
 
   implicit def collectionSeqDecoder[T: AmqpFieldDecoder]: AmqpFieldDecoder[collection.Seq[T]] =
