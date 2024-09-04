@@ -62,12 +62,12 @@ class AmqpFieldEncoderSpec extends AnyFunSuite with Matchers {
   // cats collections
   testAmqpFieldDecoder[NonEmptyList[Int]](
     ArrayVal(List(IntVal(1), IntVal(2)).toVector),
-    Right(NonEmptyList[Int](1, List(2)))
+    Right(NonEmptyList.of[Int](1, 2))
   )
 
   testAmqpFieldDecoder[NonEmptySeq[Int]](
     ArrayVal(List(IntVal(1), IntVal(2)).toVector),
-    Right(NonEmptySeq[Int](1, Seq(2)))
+    Right(NonEmptySeq.of[Int](1, 2))
   )
 
   @inline
