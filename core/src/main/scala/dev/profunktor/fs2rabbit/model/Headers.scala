@@ -77,32 +77,31 @@ import scala.util.Try
   */
 case class Headers(toMap: Map[HeaderKey, AmqpFieldValue]) {
 
-  // append
-  def :+[T: AmqpFieldEncoder](kv: (HeaderKey, T)): Headers =
-    append(kv._1, kv._2)
+  def exists(p: ((HeaderKey, AmqpFieldValue)) => Boolean): Boolean =
+    toMap.exists(p)
 
-  def append[T: AmqpFieldEncoder](key: HeaderKey, value: T): Headers =
-    appendAll(Map((key, AmqpFieldEncoder[T].encode(value))))
+  def contains(key: HeaderKey): Boolean =
+    toMap.contains(key)
+
+  // add
+  def +(kv: (HeaderKey, AmqpFieldValue)): Headers =
+    updated(kv._1, kv._2)
+
+  def updated[T: AmqpFieldEncoder](key: HeaderKey, value: T): Headers =
+    Headers(toMap.updated(key, AmqpFieldEncoder[T].encode(value)))
 
   def ++(that: Headers): Headers =
-    appendAll(that.toMap)
-
-  def appendAll(that: Map[HeaderKey, AmqpFieldValue]): Headers =
-    Headers(toMap ++ that)
-
-  // prepend
-  def +:[T: AmqpFieldEncoder](pair: (HeaderKey, T)): Headers =
-    prepend(pair._1, pair._2)
-
-  def prepend[T: AmqpFieldEncoder](key: HeaderKey, value: T): Headers =
-    prependAll(Map((key, AmqpFieldEncoder[T].encode(value))))
-
-  def prependAll(that: Map[HeaderKey, AmqpFieldValue]): Headers =
-    Headers(that ++ toMap)
+    Headers(toMap ++ that.toMap)
 
   // remove
   def remove(key: HeaderKey, keys: HeaderKey*): Headers =
     Headers(toMap -- (key +: keys))
+
+  def -(key: HeaderKey): Headers =
+    remove(key)
+
+  def --(that: Headers): Headers =
+    Headers(toMap -- that.toMap.keys)
 
   // as
   /** Decodes the value of the mandatory header to the specified type `T`.
@@ -112,7 +111,7 @@ case class Headers(toMap: Map[HeaderKey, AmqpFieldValue]) {
     *   the name of the header
     */
   def getAs[F[_], T: AmqpFieldDecoder](name: HeaderKey)(implicit F: ApplicativeThrow[F]): F[T] =
-    F.fromEither(getRaw[Either[Throwable, *]](name).flatMap(_.as[T]))
+    F.fromEither(get[Either[Throwable, *]](name).flatMap(_.as[T]))
 
   /** Decodes the value of the optional header to the specified type `T`.
     *   - If the header is missing, it will return `None`.
@@ -133,7 +132,7 @@ case class Headers(toMap: Map[HeaderKey, AmqpFieldValue]) {
     *   the name of the header
     */
   def getOptAsF[F[_], T: AmqpFieldDecoder](name: HeaderKey)(implicit F: ApplicativeThrow[F]): F[Option[T]] =
-    F.fromEither(getOptRaw(name).map(_.as[T]).sequence)
+    F.fromEither(getOpt(name).map(_.as[T]).sequence)
 
   // raw
   /** Returns the raw value of the mandatory header.
@@ -141,10 +140,10 @@ case class Headers(toMap: Map[HeaderKey, AmqpFieldValue]) {
     * @param name
     *   the name of the header
     */
-  def getRaw[F[_]](name: HeaderKey)(implicit F: ApplicativeThrow[F]): F[AmqpFieldValue] =
-    getOptRaw(name) match {
+  def get[F[_]](name: HeaderKey)(implicit F: ApplicativeThrow[F]): F[AmqpFieldValue] =
+    getOpt(name) match {
       case Some(value) => F.pure(value)
-      case None        => F.raiseError(new MissingHeader(name))
+      case None        => F.raiseError(MissingHeader(name))
     }
 
   /** Returns the raw optional value of the header.
@@ -152,19 +151,8 @@ case class Headers(toMap: Map[HeaderKey, AmqpFieldValue]) {
     * @param name
     *   the name of the header
     */
-  def getOptRaw(name: HeaderKey): Option[AmqpFieldValue] =
+  def getOpt(name: HeaderKey): Option[AmqpFieldValue] =
     toMap.get(name)
-
-  // backwards compatibility - to remove in the future versions
-  // TODO Choose the version
-  @deprecated("Use getAs[F, AmqpFieldValue] instead", "2.0.0")
-  def get(name: HeaderKey): Option[AmqpFieldValue] =
-    getOptRaw(name)
-
-  // TODO Choose the version
-  @deprecated("Use getAs[F, AmqpFieldValue] instead", "2.0.0")
-  def apply[F[_]: ApplicativeThrow](name: HeaderKey): AmqpFieldValue =
-    getOptRaw(name).getOrElse(throw new MissingHeader(name))
 
   override def toString: String =
     Headers.show.show(this)
@@ -181,7 +169,7 @@ object Headers {
   def apply(values: (HeaderKey, AmqpFieldValue)*): Headers   = Headers(values.toMap)
   def apply(values: Map[HeaderKey, AmqpFieldValue]): Headers = new Headers(values)
 
-  class MissingHeader(name: String) extends RuntimeException(s"Missing header: $name")
+  case class MissingHeader(name: String) extends RuntimeException(s"Missing header: $name")
 
   private[fs2rabbit] def unsafeFromMap(values: Map[String, AnyRef]): Headers =
     Headers(values.map { case (k, v) => k -> AmqpFieldValue.unsafeFrom(v) })

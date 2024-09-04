@@ -79,7 +79,13 @@ sealed trait AmqpFieldDecoderInstances {
     }
 
   implicit val dateDecoder: AmqpFieldDecoder[Date] =
-    instantDecoder.map(Date.from)
+    instantDecoder.emap { instant =>
+      Either
+        .catchNonFatal(
+          Date.from(instant)
+        )
+        .leftMap(err => DecodingError("Error decoding Date", Some(err)))
+    }
 
   implicit val booleanDecoder: AmqpFieldDecoder[Boolean] =
     AmqpFieldDecoder.instance {
@@ -177,7 +183,7 @@ sealed trait AmqpFieldDecoderInstances {
       case other                           => DecodingError.expectedButGot(s"ArrayVal", other.toString).asLeft
     }
 
-  implicit def seqDecoder[T: AmqpFieldDecoder]: AmqpFieldDecoder[Seq[T]] =
+  implicit def seqDecoder[T: AmqpFieldDecoder]: AmqpFieldDecoder[immutable.Seq[T]] =
     collectionSeqDecoder[T].map(_.toSeq)
 
   implicit def listDecoder[T: AmqpFieldDecoder]: AmqpFieldDecoder[List[T]] =
