@@ -55,7 +55,7 @@ import scala.util.Try
   *    "x-custom-header" := "value", // StringVal
   *    "x-custom-header-2" := 123 // IntVal
   *   )
-  *     .append("x-custom-header-3", 123L) // LongVal
+  *     .updated("x-custom-header-3", 123L) // LongVal
   *     .remove("x-custom-header-3")
   *   /*
   *   * OR
@@ -63,7 +63,7 @@ import scala.util.Try
   *   *    "x-custom-header" -> StringVal("value"),
   *   *    "x-custom-header-2" -> IntVal(123)
   *   *   )
-  *   *   .append("x-custom-header-3", LongVal(123L))
+  *   *   .updated("x-custom-header-3", LongVal(123L))
   *   *   .remove("x-custom-header-3")
   *   */
   *
