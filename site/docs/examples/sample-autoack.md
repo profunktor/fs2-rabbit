@@ -104,6 +104,7 @@ At the edge of out program we define our effect, `monix.eval.Task` in this case,
 //    requeueOnReject = false,
 //    internalQueueSize = Some(500),
 //    requestedHeartbeat = 60,
+//    automaticTopologyRecovery = true,
 //    automaticRecovery = true
 //  )
 //

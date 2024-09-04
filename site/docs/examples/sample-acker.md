@@ -118,6 +118,7 @@ object IOAckerConsumer extends IOApp {
     internalQueueSize = Some(500),
     requestedHeartbeat = 60.seconds,
     automaticRecovery = true,
+    automaticTopologyRecovery = true,
     clientProvidedConnectionName = Some("app:rabbit")
   )
 
