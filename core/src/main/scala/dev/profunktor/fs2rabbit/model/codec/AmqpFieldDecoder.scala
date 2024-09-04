@@ -183,7 +183,7 @@ sealed trait AmqpFieldDecoderInstances {
       case other                           => DecodingError.expectedButGot(s"ArrayVal", other.toString).asLeft
     }
 
-  implicit def seqDecoder[T: AmqpFieldDecoder]: AmqpFieldDecoder[immutable.Seq[T]] =
+  implicit def seqDecoder[T: AmqpFieldDecoder]: AmqpFieldDecoder[Seq[T]] =
     collectionSeqDecoder[T].map(_.toSeq)
 
   implicit def listDecoder[T: AmqpFieldDecoder]: AmqpFieldDecoder[List[T]] =
