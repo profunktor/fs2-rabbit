@@ -16,7 +16,7 @@
 
 package dev.profunktor.fs2rabbit.model.codec
 
-import cats.Functor
+import cats.MonadError
 import cats.data.{NonEmptyList, NonEmptySeq}
 import cats.syntax.all._
 import dev.profunktor.fs2rabbit.model.AmqpFieldValue.ByteArrayVal
@@ -32,9 +32,9 @@ trait AmqpFieldDecoder[T] { $this =>
   def decode(value: AmqpFieldValue): Either[DecodingError, T]
 
   def option: AmqpFieldDecoder[Option[T]] =
-    either.map(_.toOption)
+    attempt.map(_.toOption)
 
-  def either: AmqpFieldDecoder[Either[DecodingError, T]] =
+  def attempt: AmqpFieldDecoder[Either[DecodingError, T]] =
     AmqpFieldDecoder.instance(value => decode(value).asRight)
 
   final def map[U](f: T => U): AmqpFieldDecoder[U] =
@@ -55,9 +55,28 @@ object AmqpFieldDecoder extends AmqpFieldDecoderInstances {
   def instance[T](decoder: AmqpFieldValue => Either[DecodingError, T]): AmqpFieldDecoder[T] =
     (value: AmqpFieldValue) => decoder(value)
 
-  implicit val functorInstance: Functor[AmqpFieldDecoder] = new Functor[AmqpFieldDecoder] {
-    def map[A, B](fa: AmqpFieldDecoder[A])(f: A => B): AmqpFieldDecoder[B] = fa.map(f)
-  }
+  implicit val monadError: MonadError[AmqpFieldDecoder, DecodingError] =
+    new MonadError[AmqpFieldDecoder, DecodingError] {
+
+      def pure[A](x: A): AmqpFieldDecoder[A] = instance(_ => x.asRight)
+
+      def flatMap[A, B](fa: AmqpFieldDecoder[A])(f: A => AmqpFieldDecoder[B]): AmqpFieldDecoder[B] =
+        instance(value => fa.decode(value).flatMap(f(_).decode(value)))
+
+      def tailRecM[A, B](a: A)(f: A => AmqpFieldDecoder[Either[A, B]]): AmqpFieldDecoder[B] =
+        instance(value =>
+          f(a).decode(value).flatMap {
+            case Left(a1) => tailRecM(a1)(f).decode(value)
+            case Right(b) => b.asRight
+          }
+        )
+
+      def raiseError[A](e: DecodingError): AmqpFieldDecoder[A] =
+        instance(_ => e.asLeft)
+
+      def handleErrorWith[A](fa: AmqpFieldDecoder[A])(f: DecodingError => AmqpFieldDecoder[A]): AmqpFieldDecoder[A] =
+        instance(value => fa.decode(value).leftFlatMap(f(_).decode(value)))
+    }
 }
 sealed trait AmqpFieldDecoderInstances {
 
@@ -178,7 +197,7 @@ sealed trait AmqpFieldDecoderInstances {
     AmqpFieldDecoder[T].option
 
   implicit def eitherDecoder[T: AmqpFieldDecoder]: AmqpFieldDecoder[Either[DecodingError, T]] =
-    AmqpFieldDecoder[T].either
+    AmqpFieldDecoder[T].attempt
 
   implicit def arrayDecoder[T: AmqpFieldDecoder: ClassTag]: AmqpFieldDecoder[Array[T]] =
     AmqpFieldDecoder.instance {
