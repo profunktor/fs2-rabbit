@@ -30,7 +30,10 @@ object ShortString {
     str.getBytes("utf-8").length <= MaxByteLength
 
   def from(str: String): Option[ShortString] =
-    Option.when(isValid(str))(new ShortString(str) {})
+    if(isValid(str))
+      Some(new ShortString(str) {})
+    else
+      None
 
   /** This bypasses the safety check that [[from]] has. This is meant only for situations where you are certain the
     * string cannot be larger than [[MaxByteLength]] (e.g. string literals).
