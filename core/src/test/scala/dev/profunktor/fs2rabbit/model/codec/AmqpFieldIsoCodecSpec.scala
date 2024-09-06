@@ -28,15 +28,14 @@ import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 
 import java.time.Instant
 import java.util.Date
-import scala.reflect.ClassTag
-import scala.reflect.runtime.universe._
+import scala.reflect.{ClassTag, classTag}
 
 class AmqpFieldIsoCodecSpec extends AnyFunSuite with Matchers {
 
-  import ScalaCheckPropertyChecks._
   import AmqpPropertiesArbs._
   import CatsCollectionsArbs._
   import RabbitStdDataArbs._
+  import ScalaCheckPropertyChecks._
 
   implicit val decodingErrorArb: Arbitrary[DecodingError] =
     Arbitrary(Arbitrary.arbitrary[String].map(DecodingError(_)))
@@ -45,6 +44,7 @@ class AmqpFieldIsoCodecSpec extends AnyFunSuite with Matchers {
   testAmqpFieldCodecIso[Unit]
   testAmqpFieldCodecIso[StringVal]
   testAmqpFieldCodecIso[AmqpFieldValue]
+  testAmqpFieldCodecIso[DecodingError]
 
   // time
   testAmqpFieldCodecIso[Instant]
@@ -70,7 +70,6 @@ class AmqpFieldIsoCodecSpec extends AnyFunSuite with Matchers {
   testAmqpFieldCodecIso[Option[String]]
 
   // either
-  testAmqpFieldCodecIso[Either[DecodingError, Int]]
   testAmqpFieldCodecIso[Either[String, Int]]
 
   // array
@@ -86,8 +85,8 @@ class AmqpFieldIsoCodecSpec extends AnyFunSuite with Matchers {
 
   // noinspection UnitMethodIsParameterless
   @inline
-  private def testAmqpFieldCodecIso[A: AmqpFieldEncoder: AmqpFieldDecoder: Arbitrary: TypeTag]: Unit = {
-    val tpeName = typeOf[A].toString
+  private def testAmqpFieldCodecIso[A: AmqpFieldEncoder: AmqpFieldDecoder: Arbitrary: ClassTag]: Unit = {
+    val tpeName = classTag[A].runtimeClass.getName.capitalize
     test(s"Codes for [$tpeName] should be isomorphic") {
       forAll { (value: A) =>
         AmqpFieldDecoder[A].decode(AmqpFieldEncoder[A].encode(value)) shouldBe Right(value)
@@ -97,8 +96,8 @@ class AmqpFieldIsoCodecSpec extends AnyFunSuite with Matchers {
 
   // noinspection UnitMethodIsParameterless
   @inline
-  private def testAmqpFieldArrayCodecIso[T: AmqpFieldEncoder: AmqpFieldDecoder: Arbitrary: TypeTag: ClassTag]: Unit = {
-    val tpeName = typeOf[T].toString
+  private def testAmqpFieldArrayCodecIso[T: AmqpFieldEncoder: AmqpFieldDecoder: Arbitrary: ClassTag]: Unit = {
+    val tpeName = classTag[T].runtimeClass.getName.capitalize
     test(s"Codes for Array[$tpeName] should be isomorphic") {
       forAll { (value: Array[T]) =>
         AmqpFieldDecoder[Array[T]].decode(AmqpFieldEncoder[Array[T]].encode(value)).toOption.get.sameElements(value)
