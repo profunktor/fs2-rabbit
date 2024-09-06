@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2023 ProfunKtor
+ * Copyright 2017-2024 ProfunKtor
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,11 +16,10 @@
 
 package dev.profunktor.fs2rabbit.config
 
-import java.util.concurrent.TimeUnit
-
 import cats.data.NonEmptyList
 import com.rabbitmq.client.ConnectionFactory
 
+import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.FiniteDuration
 
 case class Fs2RabbitNodeConfig(
@@ -40,6 +39,7 @@ case class Fs2RabbitConfig(
     internalQueueSize: Option[Int],
     requestedHeartbeat: FiniteDuration,
     automaticRecovery: Boolean,
+    automaticTopologyRecovery: Boolean,
     clientProvidedConnectionName: Option[String]
 )
 
@@ -57,6 +57,7 @@ object Fs2RabbitConfig {
       internalQueueSize: Option[Int],
       requestedHeartbeat: FiniteDuration = FiniteDuration(ConnectionFactory.DEFAULT_HEARTBEAT, TimeUnit.SECONDS),
       automaticRecovery: Boolean = true,
+      automaticTopologyRecovery: Boolean = true,
       clientProvidedConnectionName: Option[String] = None
   ): Fs2RabbitConfig = Fs2RabbitConfig(
     nodes = NonEmptyList.one(Fs2RabbitNodeConfig(host, port)),
@@ -70,6 +71,7 @@ object Fs2RabbitConfig {
     internalQueueSize = internalQueueSize,
     requestedHeartbeat = requestedHeartbeat,
     automaticRecovery = automaticRecovery,
-    clientProvidedConnectionName = clientProvidedConnectionName
+    clientProvidedConnectionName = clientProvidedConnectionName,
+    automaticTopologyRecovery = automaticTopologyRecovery
   )
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2023 ProfunKtor
+ * Copyright 2017-2024 ProfunKtor
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,10 @@
 
 package dev.profunktor.fs2rabbit
 
+import dev.profunktor.fs2rabbit.model.Headers
+
 import java.time.Instant
 import java.util.Date
-
 import dev.profunktor.fs2rabbit.model.AmqpFieldValue._
 import dev.profunktor.fs2rabbit.model._
 import org.scalacheck.Arbitrary._
@@ -57,7 +58,7 @@ package object testkit {
       replyTo         <- Gen.option(Gen.identifier)
       clusterId       <- Gen.option(Gen.identifier)
       timestamp       <- Gen.option(arbitrary[Instant])
-      headers         <- arbitrary[Map[String, AmqpFieldValue]]
+      headers         <- arbitrary[Map[String, AmqpFieldValue]].map(Headers(_))
     } yield AmqpProperties(
       contentType = contentType,
       contentEncoding = contentEncoding,

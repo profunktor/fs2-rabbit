@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2023 ProfunKtor
+ * Copyright 2017-2024 ProfunKtor
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,11 +30,10 @@ import org.scalatest.Assertion
 import scala.concurrent.duration._
 import scala.util.Random
 import scala.concurrent.Future
-
 import cats.effect.unsafe.implicits.global
-
 import cats.effect.kernel.Deferred
 import cats.data.Kleisli
+import dev.profunktor.fs2rabbit.model.Headers
 
 trait Fs2RabbitSpec { self: BaseSpec =>
 
@@ -69,7 +68,7 @@ trait Fs2RabbitSpec { self: BaseSpec =>
     createConnectionChannel.use { implicit channel =>
       randomQueueData
         .flatMap { case (q, x, _) =>
-          declareQueue(DeclarationQueueConfig(q, Durable, Exclusive, AutoDelete, Map.empty)) *>
+          declareQueue(DeclarationQueueConfig(q, Durable, Exclusive, AutoDelete, Map.empty, None)) *>
             declareExchange(x, ExchangeType.Topic)
         }
         .as(emptyAssertion)
@@ -748,7 +747,7 @@ trait Fs2RabbitSpec { self: BaseSpec =>
       AmqpMessage(
         i,
         AmqpProperties(headers =
-          Map("demoId" -> AmqpFieldValue.LongVal(123), "app" -> AmqpFieldValue.StringVal("fs2RabbitTest"))
+          Headers("demoId" -> AmqpFieldValue.LongVal(123), "app" -> AmqpFieldValue.StringVal("fs2RabbitTest"))
         )
       )
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2023 ProfunKtor
+ * Copyright 2017-2024 ProfunKtor
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 package dev.profunktor.fs2rabbit.config
 
 import dev.profunktor.fs2rabbit.arguments.Arguments
-import dev.profunktor.fs2rabbit.model.{ExchangeName, ExchangeType, QueueName}
+import dev.profunktor.fs2rabbit.model.{ExchangeName, ExchangeType, QueueName, QueueType}
 
 object declaration {
 
@@ -26,12 +26,44 @@ object declaration {
       durable: DurableCfg,
       exclusive: ExclusiveCfg,
       autoDelete: AutoDeleteCfg,
-      arguments: Arguments
-  )
+      arguments: Arguments,
+      queueType: Option[QueueType]
+  ) {
+
+    lazy val validatedArguments: Either[IllegalArgumentException, Arguments] =
+      queueType match {
+        case Some(_) if arguments.contains("x-queue-type") =>
+          Left(
+            new IllegalArgumentException(
+              "Queue type defined twice. It is set in the arguments and in the DeclarationQueueConfig."
+            )
+          )
+        case Some(queueType)                               =>
+          Right(arguments + ("x-queue-type" -> queueType.asString))
+        case None                                          =>
+          Right(arguments)
+      }
+  }
   object DeclarationQueueConfig {
 
     def default(queueName: QueueName): DeclarationQueueConfig =
-      DeclarationQueueConfig(queueName, NonDurable, NonExclusive, NonAutoDelete, Map.empty)
+      DeclarationQueueConfig(
+        queueName = queueName,
+        durable = NonDurable,
+        exclusive = NonExclusive,
+        autoDelete = NonAutoDelete,
+        arguments = Map.empty,
+        queueType = None
+      )
+
+    def classic(queueName: QueueName): DeclarationQueueConfig =
+      default(queueName).copy(queueType = Some(QueueType.Classic))
+
+    def quorum(queueName: QueueName): DeclarationQueueConfig =
+      default(queueName).copy(queueType = Some(QueueType.Quorum))
+
+    def stream(queueName: QueueName): DeclarationQueueConfig =
+      default(queueName).copy(queueType = Some(QueueType.Stream))
   }
 
   sealed trait DurableCfg extends Product with Serializable

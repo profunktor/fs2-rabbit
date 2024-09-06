@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2023 ProfunKtor
+ * Copyright 2017-2024 ProfunKtor
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,6 +48,7 @@ object DropwizardMetricsDemo extends IOApp.Simple {
     internalQueueSize = Some(500),
     requestedHeartbeat = 60.seconds,
     automaticRecovery = true,
+    automaticTopologyRecovery = true,
     clientProvidedConnectionName = Some("app:drop-wizard-metrics-demo")
   )
 

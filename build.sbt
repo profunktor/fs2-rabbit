@@ -1,11 +1,10 @@
-import com.scalapenos.sbt.prompt.SbtPrompt.autoImport._
-import com.scalapenos.sbt.prompt._
 import Dependencies._
 import microsites.ExtraMdFileConfig
 
-ThisBuild / name               := """fs2-rabbit"""
-ThisBuild / scalaVersion       := "2.13.12"
-ThisBuild / crossScalaVersions := List("2.12.18", "2.13.12", "3.3.1")
+ThisBuild / name               := "fs2-rabbit"
+ThisBuild / scalaVersion       := "2.13.14"
+ThisBuild / crossScalaVersions := List("2.12.19", "2.13.14", "3.3.3")
+ThisBuild / versionScheme      := Some("semver-spec")
 ThisBuild / organization       := "dev.profunktor"
 ThisBuild / homepage           := Some(url("https://fs2-rabbit.profunktor.dev/"))
 ThisBuild / licenses           := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0"))
@@ -19,13 +18,6 @@ ThisBuild / developers         := List(
 )
 
 publish / skip := true
-
-promptTheme := PromptTheme(
-  List(
-    text("[sbt] ", fg(105)),
-    text(_ => "fs2-rabbit", fg(15)).padRight(" λ ")
-  )
-)
 
 def scalaOptions(v: String) =
   CrossVersion.partialVersion(v) match {
@@ -64,7 +56,7 @@ val commonSettings = List(
   libraryDependencies ++= commonDependencies(scalaVersion.value),
   resolvers += "Apache public" at "https://repository.apache.org/content/groups/public/",
   scalafmtOnCompile     := true,
-  mimaPreviousArtifacts := Set(organization.value %% moduleName.value % "5.0.0")
+  mimaPreviousArtifacts := previousStableVersion.value.map(organization.value %% moduleName.value % _).toSet
 )
 
 def CoreDependencies(scalaVersionStr: String): List[ModuleID] =
@@ -100,10 +92,11 @@ def TestsDependencies(scalaVersionStr: String): List[ModuleID] =
   )
 
 lazy val noPublish = List(
-  publish         := {},
-  publishLocal    := {},
-  publishArtifact := false,
-  publish / skip  := true
+  publish            := {},
+  publishLocal       := {},
+  publishArtifact    := false,
+  publish / skip     := true,
+  crossScalaVersions := Nil
 )
 
 lazy val `fs2-rabbit-root` = project

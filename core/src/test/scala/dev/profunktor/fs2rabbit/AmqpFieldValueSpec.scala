@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2023 ProfunKtor
+ * Copyright 2017-2024 ProfunKtor
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,15 +18,18 @@ package dev.profunktor.fs2rabbit
 
 import java.io.{DataInputStream, DataOutputStream, InputStream, OutputStream}
 import java.time.Instant
-
 import com.rabbitmq.client.impl.{ValueReader, ValueWriter}
 import dev.profunktor.fs2rabbit.model.AmqpFieldValue._
 import dev.profunktor.fs2rabbit.model.{AmqpFieldValue, ShortString}
+import dev.profunktor.fs2rabbit.testing.AmqpPropertiesArbs
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.Assertion
 import org.scalatest.matchers.should.Matchers
+import org.scalatestplus.scalacheck.{ScalaCheckPropertyChecks => PropertyChecks}
 
-class AmqpFieldValueSpec extends AnyFlatSpecLike with Matchers with AmqpPropertiesArbitraries {
+class AmqpFieldValueSpec extends AnyFlatSpecLike with PropertyChecks with Matchers {
+
+  import AmqpPropertiesArbs._
 
   it should "convert from and to Java primitive header values" in {
     val intVal    = IntVal(1)

@@ -32,21 +32,23 @@ Check the [official guide](https://fs2-rabbit.profunktor.dev/guide.html) for upd
 
 ## Adopters
 
-| Company | Description |
-| ------- | ----------- |
-| [Cognotekt](http://www.cognotekt.com/en) | Microservice workflow management in Insuretech AI applications. |
-| [ITV](https://www.itv.com/) | Internal microservices interaction. |
-| [Klarna](https://www.klarna.com/us/) | Microservice for Fintech services. |
-| [Philips Lighting](http://www.lighting.philips.com/main/home) | Internal microservices interaction. |
-| [Free2Move](https://free2move.com) | Microservice communication. |
-| [Descartes Kontainers](https://kontainers.com) | Microservice workflow management - Logistics applications. |
+| Company                                                       | Description                                                     |
+|---------------------------------------------------------------|-----------------------------------------------------------------|
+| [Cognotekt](http://www.cognotekt.com/en)                      | Microservice workflow management in Insuretech AI applications. |
+| [ITV](https://www.itv.com/)                                   | Internal microservices interaction.                             |
+| [Klarna](https://www.klarna.com/us/)                          | Microservice for Fintech services.                              |
+| [Philips Lighting](http://www.lighting.philips.com/main/home) | Internal microservices interaction.                             |
+| [Free2Move](https://free2move.com)                            | Microservice communication.                                     |
+| [Descartes Kontainers](https://kontainers.com)                | Microservice workflow management - Logistics applications.      |
+| [Codacy](https://www.codacy.com)                              | Internal microservices interaction.                             |
+| [Budgetbakers](https://budgetbakers.com)                      | Internal microservices communication - Fintech                  |
 
 ## Running tests locally
 
-Start a `RabbitMQ` instance using `docker-compose` (recommended):
+Start a `RabbitMQ` instance using `docker compose` (recommended):
 
 ```bash
-> docker-compose up
+> docker compose up
 > sbt +test
 ```
 

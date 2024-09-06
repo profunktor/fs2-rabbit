@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2023 ProfunKtor
+ * Copyright 2017-2024 ProfunKtor
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,13 +15,14 @@
  */
 
 package dev.profunktor.fs2rabbit.effects
-import cats.{Applicative, ApplicativeThrow}
 import cats.data.Kleisli
-import dev.profunktor.fs2rabbit.model.{AmqpFieldValue, AmqpProperties, ExchangeName, RoutingKey}
-import dev.profunktor.fs2rabbit.model.AmqpFieldValue._
 import cats.implicits._
+import cats.{Applicative, ApplicativeError, ApplicativeThrow}
+import dev.profunktor.fs2rabbit.model.codec.AmqpFieldDecoder
+import dev.profunktor.fs2rabbit.model.{AmqpFieldValue, AmqpProperties, ExchangeName, HeaderKey, Headers, RoutingKey}
 
-object EnvelopeDecoder {
+object EnvelopeDecoder extends EnvelopeDecoderInstances {
+
   def apply[F[_], A](implicit e: EnvelopeDecoder[F, A]): EnvelopeDecoder[F, A] = e
 
   def properties[F[_]: Applicative]: EnvelopeDecoder[F, AmqpProperties] =
@@ -39,45 +40,64 @@ object EnvelopeDecoder {
   def redelivered[F[_]: Applicative]: EnvelopeDecoder[F, Boolean] =
     Kleisli(e => e.redelivered.pure[F])
 
-  def header[F[_]](name: String)(implicit F: ApplicativeThrow[F]): EnvelopeDecoder[F, AmqpFieldValue] =
-    Kleisli(e => F.catchNonFatal(e.properties.headers(name)))
+  // header
+  def headers[F[_]: ApplicativeThrow]: EnvelopeDecoder[F, Headers] =
+    Kleisli(_.properties.headers.pure[F])
 
-  def optHeader[F[_]: Applicative](name: String): EnvelopeDecoder[F, Option[AmqpFieldValue]] =
-    Kleisli(_.properties.headers.get(name).pure[F])
+  def header[F[_]: ApplicativeThrow](key: String): EnvelopeDecoder[F, AmqpFieldValue] =
+    Kleisli(_.properties.headers.get[F](key))
 
+  def headerAs[F[_]: ApplicativeThrow, T: AmqpFieldDecoder](key: HeaderKey): EnvelopeDecoder[F, T] =
+    Kleisli(_.properties.headers.getAs[F, T](key))
+
+  def optHeader[F[_]: Applicative](key: HeaderKey): EnvelopeDecoder[F, Option[AmqpFieldValue]] =
+    Kleisli(_.properties.headers.getOpt(key).pure[F])
+
+  def optHeaderAs[F[_]: ApplicativeThrow, T: AmqpFieldDecoder](key: HeaderKey): EnvelopeDecoder[F, Option[T]] =
+    Kleisli(_.properties.headers.getOptAsF[F, T](key))
+
+  @deprecated("Use headerAs[F, String] instead", "5.3.0")
   def stringHeader[F[_]: ApplicativeThrow](name: String): EnvelopeDecoder[F, String] =
-    headerPF[F, String](name) { case StringVal(a) => a }
+    headerAs[F, String](name)
 
+  @deprecated("Use headerAs[F, Int] instead", "5.3.0")
   def intHeader[F[_]: ApplicativeThrow](name: String): EnvelopeDecoder[F, Int] =
-    headerPF[F, Int](name) { case IntVal(a) => a }
+    headerAs[F, Int](name)
 
+  @deprecated("Use headerAs[F, Long] instead", "5.3.0")
   def longHeader[F[_]: ApplicativeThrow](name: String): EnvelopeDecoder[F, Long] =
-    headerPF[F, Long](name) { case LongVal(a) => a }
+    headerAs[F, Long](name)
 
-  def arrayHeader[F[_]: ApplicativeThrow](name: String): EnvelopeDecoder[F, collection.Seq[Any]] =
-    headerPF[F, collection.Seq[Any]](name) { case ArrayVal(a) => a }
-
+  @deprecated("Use optHeaderAs[F, String] instead", "5.3.0")
   def optStringHeader[F[_]: ApplicativeThrow](name: String): EnvelopeDecoder[F, Option[String]] =
-    optHeaderPF[F, String](name) { case StringVal(a) => a }
+    optHeaderAs[F, String](name)
 
+  @deprecated("Use optHeaderAs[F, Int] instead", "5.3.0")
   def optIntHeader[F[_]: ApplicativeThrow](name: String): EnvelopeDecoder[F, Option[Int]] =
-    optHeaderPF[F, Int](name) { case IntVal(a) => a }
+    optHeaderAs[F, Int](name)
 
+  @deprecated("Use optHeaderAs[F, Long] instead", "5.3.0")
   def optLongHeader[F[_]: ApplicativeThrow](name: String): EnvelopeDecoder[F, Option[Long]] =
-    optHeaderPF[F, Long](name) { case LongVal(a) => a }
+    optHeaderAs[F, Long](name)
 
+  @deprecated("Use headerAs[F, collection.Seq[Any]] instead", "5.3.0")
+  def arrayHeader[F[_]: ApplicativeThrow](name: String): EnvelopeDecoder[F, collection.Seq[Any]] =
+    headerAs[F, collection.Seq[Any]](name)(ApplicativeThrow[F], AmqpFieldDecoder.collectionSeqDecoder[Any])
+
+  @deprecated("Use optHeaderAs[F, collection.Seq[Any]] instead", "5.3.0")
   def optArrayHeader[F[_]: ApplicativeThrow](name: String): EnvelopeDecoder[F, Option[collection.Seq[Any]]] =
-    optHeaderPF[F, collection.Seq[Any]](name) { case ArrayVal(a) => a }
+    optHeaderAs[F, collection.Seq[Any]](name)(ApplicativeThrow[F], AmqpFieldDecoder.collectionSeqDecoder[Any])
+}
 
-  private def headerPF[F[_], A](
-      name: String
-  )(pf: PartialFunction[AmqpFieldValue, A])(implicit F: ApplicativeThrow[F]): EnvelopeDecoder[F, A] =
-    Kleisli { env =>
-      F.catchNonFatal(pf(env.properties.headers(name)))
-    }
+sealed trait EnvelopeDecoderInstances {
 
-  private def optHeaderPF[F[_], A](name: String)(pf: PartialFunction[AmqpFieldValue, A])(implicit
-      F: ApplicativeThrow[F]
+  implicit def decoderAttempt[F[_], E: ApplicativeError[F, *], A](implicit
+      decoder: EnvelopeDecoder[F, A]
+  ): EnvelopeDecoder[F, Either[E, A]] =
+    decoder.attempt
+
+  implicit def decoderOption[F[_], E: ApplicativeError[F, *], A](implicit
+      decoder: EnvelopeDecoder[F, A]
   ): EnvelopeDecoder[F, Option[A]] =
-    Kleisli(_.properties.headers.get(name).traverse(h => F.catchNonFatal(pf(h))))
+    decoder.attempt.map(_.toOption)
 }
