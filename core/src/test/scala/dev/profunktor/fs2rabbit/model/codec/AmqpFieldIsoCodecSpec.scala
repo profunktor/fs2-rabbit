@@ -24,15 +24,16 @@ import dev.profunktor.fs2rabbit.testing._
 import org.scalacheck.Arbitrary
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
-import org.scalatestplus.scalacheck.{ScalaCheckPropertyChecks => PropertyChecks}
+import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 
 import java.time.Instant
 import java.util.Date
 import scala.reflect.ClassTag
 import scala.reflect.runtime.universe._
 
-class AmqpFieldIsoCodecSpec extends AnyFunSuite with PropertyChecks with Matchers {
+class AmqpFieldIsoCodecSpec extends AnyFunSuite with Matchers {
 
+  import ScalaCheckPropertyChecks._
   import AmqpPropertiesArbs._
   import CatsCollectionsArbs._
   import RabbitStdDataArbs._
