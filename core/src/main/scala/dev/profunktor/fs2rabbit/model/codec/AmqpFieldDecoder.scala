@@ -37,10 +37,10 @@ trait AmqpFieldDecoder[T] { $this =>
   def attempt: AmqpFieldDecoder[Either[DecodingError, T]] =
     AmqpFieldDecoder.instance(value => decode(value).asRight)
 
-  final def map[U](f: T => U): AmqpFieldDecoder[U] =
+  def map[U](f: T => U): AmqpFieldDecoder[U] =
     AmqpFieldDecoder.instance(t => $this.decode(t).map(f))
 
-  final def emap[U](f: T => Either[DecodingError, U]): AmqpFieldDecoder[U] =
+  def emap[U](f: T => Either[DecodingError, U]): AmqpFieldDecoder[U] =
     AmqpFieldDecoder.instance(t => $this.decode(t).flatMap(f))
 }
 object AmqpFieldDecoder extends AmqpFieldDecoderInstances {
@@ -196,8 +196,16 @@ sealed trait AmqpFieldDecoderInstances {
   implicit def optionDecoder[T: AmqpFieldDecoder]: AmqpFieldDecoder[Option[T]] =
     AmqpFieldDecoder[T].option
 
-  implicit def eitherDecoder[T: AmqpFieldDecoder]: AmqpFieldDecoder[Either[DecodingError, T]] =
-    AmqpFieldDecoder[T].attempt
+  implicit val decodingErrorDecoder: AmqpFieldDecoder[DecodingError] =
+    stringDecoder.map(DecodingError(_))
+
+  implicit def eitherDecoder[L: AmqpFieldDecoder, R: AmqpFieldDecoder]: AmqpFieldDecoder[Either[L, R]] =
+    AmqpFieldDecoder.instance(value =>
+      AmqpFieldDecoder[R]
+        .decode(value)
+        .map(Right(_))
+        .orElse(AmqpFieldDecoder[L].decode(value).map(Left(_)))
+    )
 
   implicit def arrayDecoder[T: AmqpFieldDecoder: ClassTag]: AmqpFieldDecoder[Array[T]] =
     AmqpFieldDecoder.instance {

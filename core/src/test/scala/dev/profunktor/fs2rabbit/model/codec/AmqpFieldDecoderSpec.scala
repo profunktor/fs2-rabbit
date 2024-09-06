@@ -29,7 +29,7 @@ import java.time.temporal.ChronoUnit
 import java.util.Date
 import scala.reflect.ClassTag
 
-class AmqpFieldEncoderSpec extends AnyFunSuite with Matchers {
+class AmqpFieldDecoderSpec extends AnyFunSuite with Matchers {
 
   // miscelaneous
   testAmqpFieldDecoder[Unit](NullVal, Right(()))
@@ -87,7 +87,7 @@ class AmqpFieldEncoderSpec extends AnyFunSuite with Matchers {
   )
 
   @inline
-  def testAmqpFieldDecoder[T: AmqpFieldDecoder: ClassTag](
+  private def testAmqpFieldDecoder[T: AmqpFieldDecoder: ClassTag](
       value: AmqpFieldValue,
       expected: Either[DecodingError, T]
   ): Unit = {
@@ -98,7 +98,7 @@ class AmqpFieldEncoderSpec extends AnyFunSuite with Matchers {
   }
 
   @inline
-  def testAmqpFieldDecoderArray[T: AmqpFieldDecoder: ClassTag](
+  private def testAmqpFieldDecoderArray[T: AmqpFieldDecoder: ClassTag](
       value: AmqpFieldValue,
       expected: Either[DecodingError, Array[T]]
   ): Unit = {

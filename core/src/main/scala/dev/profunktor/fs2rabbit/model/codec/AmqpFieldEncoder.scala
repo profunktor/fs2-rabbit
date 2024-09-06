@@ -19,6 +19,7 @@ package dev.profunktor.fs2rabbit.model.codec
 import cats.Contravariant
 import cats.data.{NonEmptyList, NonEmptySeq, NonEmptySet}
 import dev.profunktor.fs2rabbit.model.AmqpFieldValue.{ArrayVal, DecimalVal}
+import dev.profunktor.fs2rabbit.model.codec.AmqpFieldDecoder.DecodingError
 import dev.profunktor.fs2rabbit.model.{AmqpFieldValue, ShortString}
 import scodec.bits.ByteVector
 
@@ -46,6 +47,9 @@ sealed trait FieldEncoderInstances {
 
   implicit def amqpFieldValueEncoder[A <: AmqpFieldValue]: AmqpFieldEncoder[A] =
     AmqpFieldEncoder.instance(identity)
+
+  implicit val unitEncoder: AmqpFieldEncoder[Unit] =
+    (_: Unit) => AmqpFieldValue.NullVal
 
   implicit val nullEncoder: AmqpFieldEncoder[Null] =
     (_: Null) => AmqpFieldValue.NullVal
@@ -90,6 +94,9 @@ sealed trait FieldEncoderInstances {
   implicit val bigIntEncoder: AmqpFieldEncoder[BigInt] =
     bigDecimalEncoder.contramap(BigDecimal(_))
 
+  implicit val decodingErrorEncoder: AmqpFieldEncoder[DecodingError] =
+    stringEncoder.contramap(_.getMessage)
+
   // collections
   implicit val mapEncoder: AmqpFieldEncoder[Map[ShortString, AmqpFieldValue]] =
     (value: Map[ShortString, AmqpFieldValue]) => AmqpFieldValue.TableVal(value)
@@ -99,14 +106,25 @@ sealed trait FieldEncoderInstances {
     case None    => AmqpFieldValue.NullVal
   }
 
+  implicit def eitherEncoder[L: AmqpFieldEncoder, R: AmqpFieldEncoder]: AmqpFieldEncoder[Either[L, R]] = {
+    case Left(l)  => AmqpFieldEncoder[L].encode(l)
+    case Right(r) => AmqpFieldEncoder[R].encode(r)
+  }
+
   implicit val byteVectorEncoder: AmqpFieldEncoder[ByteVector] =
     (value: ByteVector) => AmqpFieldValue.ByteArrayVal(value)
 
   implicit val byteArrayEncoder: AmqpFieldEncoder[Array[Byte]] =
     byteVectorEncoder.contramap(ByteVector(_))
 
+  implicit def arrayEncoder[T: AmqpFieldEncoder]: AmqpFieldEncoder[Array[T]] =
+    AmqpFieldEncoder.instance[Array[T]](v => ArrayVal(v.map(AmqpFieldEncoder[T].encode(_)).toVector))
+
   implicit def seqFieldEncoder[S[X] <: Seq[X], T: AmqpFieldEncoder]: AmqpFieldEncoder[S[T]] =
     AmqpFieldEncoder.instance[S[T]](v => ArrayVal(v.map(AmqpFieldEncoder[T].encode(_)).toVector))
+
+  implicit def setFieldEncoder[T: AmqpFieldEncoder]: AmqpFieldEncoder[Set[T]] =
+    AmqpFieldEncoder.instance[Set[T]](v => ArrayVal(v.map(AmqpFieldEncoder[T].encode(_)).toVector))
 
   // cats collections
   implicit def nelFieldEncoder[T: AmqpFieldEncoder]: AmqpFieldEncoder[NonEmptyList[T]] =
