@@ -31,6 +31,7 @@ val config = Fs2RabbitConfig(
   internalQueueSize = Some(500),
   requestedHeartbeat = 30.seconds,
   automaticRecovery = true,
+  automaticTopologyRecovery = true,
   clientProvidedConnectionName = Some("app:rabbit")
 )
 ```

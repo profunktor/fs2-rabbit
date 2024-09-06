@@ -60,6 +60,7 @@ class Demo extends IOApp {
     connectionTimeout = 3.seconds,
     requeueOnNack = false,
     requeueOnReject = false,
+    automaticTopologyRecovery = true,
     internalQueueSize = Some(500)
   )
 
