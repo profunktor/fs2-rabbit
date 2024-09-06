@@ -14,10 +14,7 @@ object Dependencies {
     val zioCats          = "3.2.9.1"
     val scodec           = "1.2.0"
     val dropwizard       = "4.2.25"
-    val collectionCompat = "2.12.0"
-
     val kindProjector = "0.13.3"
-
     val scalaTest               = "3.2.19"
     val scalaCheck              = "1.18.1"
     val scalaTestPlusScalaCheck = "3.2.14.0"
@@ -31,7 +28,6 @@ object Dependencies {
     lazy val catsEffect       = "org.typelevel"          %% "cats-effect"             % Version.catsEffect
     lazy val fs2Core          = "co.fs2"                 %% "fs2-core"                % Version.fs2
     lazy val scodecCats       = "org.scodec"             %% "scodec-cats"             % Version.scodec
-    lazy val collectionCompat = "org.scala-lang.modules" %% "scala-collection-compat" % Version.collectionCompat
 
     // Compiler
     lazy val kindProjector = "org.typelevel" % "kind-projector" % Version.kindProjector cross CrossVersion.full
