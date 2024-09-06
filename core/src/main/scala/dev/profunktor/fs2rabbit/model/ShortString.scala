@@ -26,12 +26,11 @@ sealed abstract case class ShortString private (str: String)
 object ShortString {
   val MaxByteLength = 255
 
+  def isValid(str: String): Boolean =
+    str.getBytes("utf-8").length <= MaxByteLength
+
   def from(str: String): Option[ShortString] =
-    if (str.getBytes("utf-8").length <= MaxByteLength) {
-      Some(new ShortString(str) {})
-    } else {
-      None
-    }
+    Option.when(isValid(str))(new ShortString(str) {})
 
   /** This bypasses the safety check that [[from]] has. This is meant only for situations where you are certain the
     * string cannot be larger than [[MaxByteLength]] (e.g. string literals).
