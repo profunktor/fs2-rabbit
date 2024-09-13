@@ -67,8 +67,8 @@ import scala.util.Try
   *   *   .remove("x-custom-header-3")
   *   */
   *
-  *   headers.getRaw[IO]("x-custom-header") // IO(StringVal("value"))
-  *   headers.getOptRaw("x-custom-header") // Some(StringVal("value"))
+  *   headers.get[IO]("x-custom-header") // IO(StringVal("value"))
+  *   headers.getOpt("x-custom-header") // Some(StringVal("value"))
   *
   *   headers.getAs[IO, String]("x-custom-header") // IO("value")
   *   headers.getOptAs[String]("x-custom-header") // Some("value")
