@@ -140,6 +140,12 @@ object AmqpPropertiesArbs {
       )
       .map(Headers(_))
 
+  implicit val arbShortString: Arbitrary[ShortString] = Arbitrary[ShortString] {
+    Gen.alphaStr
+      .filter(ShortString.isValid)
+      .map(ShortString.unsafeFrom)
+  }
+
   implicit val amqpProperties: Arbitrary[AmqpProperties] = Arbitrary[AmqpProperties] {
     for {
       contentType     <- Gen.option(Gen.alphaStr)

@@ -17,7 +17,7 @@
 package dev.profunktor.fs2rabbit.model.codec
 
 import cats.data.{NonEmptyList, NonEmptySeq}
-import dev.profunktor.fs2rabbit.model.AmqpFieldValue
+import dev.profunktor.fs2rabbit.model.{AmqpFieldValue, ShortString}
 import dev.profunktor.fs2rabbit.model.AmqpFieldValue._
 import dev.profunktor.fs2rabbit.model.codec.AmqpFieldDecoder.DecodingError
 import dev.profunktor.fs2rabbit.testing._
@@ -78,6 +78,9 @@ class AmqpFieldIsoCodecSpec extends AnyFunSuite with Matchers {
 
   testAmqpFieldCodecIso[List[Int]]
   testAmqpFieldCodecIso[Set[Int]]
+
+  // map
+  testAmqpFieldCodecIso[Map[ShortString, AmqpFieldValue]]
 
   // cats collections
   testAmqpFieldCodecIso[NonEmptyList[Int]]
