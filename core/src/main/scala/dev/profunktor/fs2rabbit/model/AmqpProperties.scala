@@ -81,7 +81,7 @@ object AmqpProperties {
       contentType = Option(basicProps.getContentType),
       contentEncoding = Option(basicProps.getContentEncoding),
       priority = Option[Integer](basicProps.getPriority).map(Int.unbox),
-      deliveryMode = Option(basicProps.getDeliveryMode).map(DeliveryMode.from(_)),
+      deliveryMode = Option(basicProps.getDeliveryMode).map(DeliveryMode.unsafeFromInt(_)),
       correlationId = Option(basicProps.getCorrelationId),
       messageId = Option(basicProps.getMessageId),
       `type` = Option(basicProps.getType),

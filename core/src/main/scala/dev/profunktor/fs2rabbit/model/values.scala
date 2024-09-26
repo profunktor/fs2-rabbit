@@ -95,9 +95,18 @@ object DeliveryMode {
   case object NonPersistent extends DeliveryMode(1)
   case object Persistent    extends DeliveryMode(2)
 
-  def from(value: Int): DeliveryMode = value match {
-    case 1 => NonPersistent
-    case 2 => Persistent
+  @deprecated("Use fromInt or unsafeFromInt", "5.3.0")
+  def from(value: Int): DeliveryMode =
+    unsafeFromInt(value)
+
+  def unsafeFromInt(value: Int): DeliveryMode =
+    fromInt(value)
+      .getOrElse(throw new IllegalArgumentException(s"Invalid delivery mode from Int: $value"))
+
+  def fromInt(value: Int): Option[DeliveryMode] = value match {
+    case 1 => Some(NonPersistent)
+    case 2 => Some(Persistent)
+    case _ => None
   }
 
   implicit val deliveryModeOrder: Order[DeliveryMode] = Order.by(_.value)

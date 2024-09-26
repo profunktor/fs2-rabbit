@@ -27,15 +27,33 @@ object deletion {
   )
 
   object DeletionQueueConfig {
+
+    @deprecated("Use ifUnusedAndEmpty instead", "5.3.0")
     def default(queueName: QueueName): DeletionQueueConfig =
+      onlyIfUnusedAndEmpty(queueName)
+
+    def onlyIfUnusedAndEmpty(queueName: QueueName): DeletionQueueConfig =
       DeletionQueueConfig(queueName, Unused, Empty)
+
+    def evenIfUsedButEmpty(queueName: QueueName): DeletionQueueConfig =
+      DeletionQueueConfig(queueName, Used, Empty)
+
+    def evenIfUsedAndNonEmpty(queueName: QueueName): DeletionQueueConfig =
+      DeletionQueueConfig(queueName, Used, NonEmpty)
   }
 
   final case class DeletionExchangeConfig(exchangeName: ExchangeName, ifUnused: IfUnusedCfg)
-
   object DeletionExchangeConfig {
+
+    @deprecated("Use ifUnused instead", "5.3.0")
     def default(exchangeName: ExchangeName): DeletionExchangeConfig =
+      onlyIfUnused(exchangeName)
+
+    def onlyIfUnused(exchangeName: ExchangeName): DeletionExchangeConfig =
       DeletionExchangeConfig(exchangeName, Unused)
+
+    def evenIfUsed(exchangeName: ExchangeName): DeletionExchangeConfig =
+      DeletionExchangeConfig(exchangeName, Used)
   }
 
   sealed trait IfEmptyCfg extends Product with Serializable

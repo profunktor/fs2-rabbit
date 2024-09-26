@@ -16,11 +16,12 @@
 
 package dev.profunktor.fs2rabbit.config
 
-import dev.profunktor.fs2rabbit.arguments.Arguments
+import dev.profunktor.fs2rabbit.arguments.{Arguments, SafeArg}
 import dev.profunktor.fs2rabbit.model.{ExchangeName, ExchangeType, QueueName, QueueType}
 
 object declaration {
 
+  // ----- Queue Config -----
   final case class DeclarationQueueConfig(
       queueName: QueueName,
       durable: DurableCfg,
@@ -43,6 +44,35 @@ object declaration {
         case None                                          =>
           Right(arguments)
       }
+
+    // arguments
+    def withArguments(arguments: Arguments): DeclarationQueueConfig =
+      copy(arguments = arguments)
+
+    def withArguments(arguments: (String, SafeArg)*): DeclarationQueueConfig =
+      withArguments(arguments.toMap)
+
+    // durable
+    def withDurable: DeclarationQueueConfig =
+      copy(durable = Durable)
+
+    def withNonDurable: DeclarationQueueConfig =
+      copy(durable = NonDurable)
+
+    // autoDelete
+    def withAutoDelete: DeclarationQueueConfig =
+      copy(autoDelete = AutoDelete)
+
+    def withNonAutoDelete: DeclarationQueueConfig =
+      copy(autoDelete = NonAutoDelete)
+
+    // exclusive
+    def withExclusive: DeclarationQueueConfig =
+      copy(exclusive = Exclusive)
+
+    def withNonExclusive: DeclarationQueueConfig =
+      copy(exclusive = NonExclusive)
+
   }
   object DeclarationQueueConfig {
 
@@ -78,6 +108,7 @@ object declaration {
   case object AutoDelete     extends AutoDeleteCfg
   case object NonAutoDelete  extends AutoDeleteCfg
 
+  // ----- Exchange Config -----
   final case class DeclarationExchangeConfig(
       exchangeName: ExchangeName,
       exchangeType: ExchangeType,
@@ -85,12 +116,48 @@ object declaration {
       autoDelete: AutoDeleteCfg,
       internal: InternalCfg,
       arguments: Arguments
-  )
+  ) {
+
+    // arguments
+    def withArguments(arguments: Arguments): DeclarationExchangeConfig =
+      copy(arguments = arguments)
+
+    def withArguments(arguments: (String, SafeArg)*): DeclarationExchangeConfig =
+      withArguments(arguments.toMap)
+
+    // durable
+    def withDurable: DeclarationExchangeConfig =
+      copy(durable = Durable)
+
+    def withNonDurable: DeclarationExchangeConfig =
+      copy(durable = NonDurable)
+
+    // autoDelete
+    def withAutoDelete: DeclarationExchangeConfig =
+      copy(autoDelete = AutoDelete)
+
+    def withNonAutoDelete: DeclarationExchangeConfig =
+      copy(autoDelete = NonAutoDelete)
+
+    // internal
+    def withInternal: DeclarationExchangeConfig =
+      copy(internal = Internal)
+
+    def withNonInternal: DeclarationExchangeConfig =
+      copy(internal = NonInternal)
+  }
 
   object DeclarationExchangeConfig {
 
     def default(exchangeName: ExchangeName, exchangeType: ExchangeType): DeclarationExchangeConfig =
-      DeclarationExchangeConfig(exchangeName, exchangeType, NonDurable, NonAutoDelete, NonInternal, Map.empty)
+      DeclarationExchangeConfig(
+        exchangeName = exchangeName,
+        exchangeType = exchangeType,
+        durable = NonDurable,
+        autoDelete = NonAutoDelete,
+        internal = NonInternal,
+        arguments = Map.empty
+      )
   }
 
   sealed trait InternalCfg extends Product with Serializable

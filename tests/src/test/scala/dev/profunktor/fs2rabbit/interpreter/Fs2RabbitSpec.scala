@@ -392,8 +392,8 @@ trait Fs2RabbitSpec { self: BaseSpec =>
         (q, x, _) = qxrk
         _        <- declareExchange(x, ExchangeType.Direct)
         _        <- declareQueue(DeclarationQueueConfig.default(q))
-        _        <- deleteQueue(DeletionQueueConfig.default(q))
-        _        <- deleteQueueNoWait(DeletionQueueConfig.default(q))
+        _        <- deleteQueue(DeletionQueueConfig.onlyIfUnusedAndEmpty(q))
+        _        <- deleteQueueNoWait(DeletionQueueConfig.onlyIfUnusedAndEmpty(q))
         consumer <- createAutoAckConsumer(q)
         _        <- consumer.attempt
                       .take(1)
@@ -415,7 +415,7 @@ trait Fs2RabbitSpec { self: BaseSpec =>
     createConnectionChannel.use { implicit channel =>
       mkRandomString.map(ExchangeName).flatMap { exchange =>
         declareExchange(exchange, ExchangeType.Direct) *>
-          deleteExchangeNoWait(DeletionExchangeConfig.default(exchange)).attempt.map(_ shouldBe a[Right[_, _]])
+          deleteExchangeNoWait(DeletionExchangeConfig.onlyIfUnused(exchange)).attempt.map(_ shouldBe a[Right[_, _]])
       }
     }
   }
