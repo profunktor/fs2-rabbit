@@ -125,7 +125,7 @@ object ConnectionResource {
   ): F[Connection[Resource[F, *]]] =
     Sync[F]
       .delay {
-        val factory   = new ConnectionFactory()
+        val factory   = conf.connectionFactory.getOrElse(new ConnectionFactory())
         val firstNode = conf.nodes.head
         factory.setHost(firstNode.host)
         factory.setPort(firstNode.port)

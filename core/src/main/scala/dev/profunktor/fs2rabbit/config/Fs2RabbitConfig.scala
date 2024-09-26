@@ -40,7 +40,8 @@ case class Fs2RabbitConfig(
     requestedHeartbeat: FiniteDuration,
     automaticRecovery: Boolean,
     automaticTopologyRecovery: Boolean,
-    clientProvidedConnectionName: Option[String]
+    clientProvidedConnectionName: Option[String],
+    connectionFactory: Option[ConnectionFactory]
 )
 
 object Fs2RabbitConfig {
@@ -58,7 +59,8 @@ object Fs2RabbitConfig {
       requestedHeartbeat: FiniteDuration = FiniteDuration(ConnectionFactory.DEFAULT_HEARTBEAT, TimeUnit.SECONDS),
       automaticRecovery: Boolean = true,
       automaticTopologyRecovery: Boolean = true,
-      clientProvidedConnectionName: Option[String] = None
+      clientProvidedConnectionName: Option[String] = None,
+      connectionFactory: Option[ConnectionFactory] = None
   ): Fs2RabbitConfig = Fs2RabbitConfig(
     nodes = NonEmptyList.one(Fs2RabbitNodeConfig(host, port)),
     virtualHost = virtualHost,
@@ -72,6 +74,7 @@ object Fs2RabbitConfig {
     requestedHeartbeat = requestedHeartbeat,
     automaticRecovery = automaticRecovery,
     clientProvidedConnectionName = clientProvidedConnectionName,
-    automaticTopologyRecovery = automaticTopologyRecovery
+    automaticTopologyRecovery = automaticTopologyRecovery,
+    connectionFactory = connectionFactory
   )
 }
