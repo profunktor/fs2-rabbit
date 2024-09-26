@@ -134,6 +134,7 @@ object ConnectionResource {
         factory.setRequestedHeartbeat(conf.requestedHeartbeat.toSeconds.toInt)
         factory.setAutomaticRecoveryEnabled(conf.automaticRecovery)
         factory.setTopologyRecoveryEnabled(conf.automaticTopologyRecovery)
+        factory.setMaxInboundMessageBodySize(conf.maxInboundMessageBodySizeBytes)
         if (conf.ssl) sslCtx.fold(factory.useSslProtocol())(factory.useSslProtocol)
         factory.setSaslConfig(saslConf)
         conf.username.foreach(factory.setUsername)

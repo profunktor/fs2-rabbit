@@ -41,10 +41,14 @@ case class Fs2RabbitConfig(
     automaticRecovery: Boolean,
     automaticTopologyRecovery: Boolean,
     clientProvidedConnectionName: Option[String],
+    maxInboundMessageBodySizeBytes: Int,
     connectionFactory: Option[ConnectionFactory]
 )
 
 object Fs2RabbitConfig {
+
+  val defaultMaxInboundMessageBodySizeBytes: Int = 1_048_576 * 64
+
   def apply(
       host: String,
       port: Int,
@@ -60,6 +64,7 @@ object Fs2RabbitConfig {
       automaticRecovery: Boolean = true,
       automaticTopologyRecovery: Boolean = true,
       clientProvidedConnectionName: Option[String] = None,
+      maxInboundMessageBodySizeBytes: Int = defaultMaxInboundMessageBodySizeBytes,
       connectionFactory: Option[ConnectionFactory] = None
   ): Fs2RabbitConfig = Fs2RabbitConfig(
     nodes = NonEmptyList.one(Fs2RabbitNodeConfig(host, port)),
@@ -75,6 +80,7 @@ object Fs2RabbitConfig {
     automaticRecovery = automaticRecovery,
     clientProvidedConnectionName = clientProvidedConnectionName,
     automaticTopologyRecovery = automaticTopologyRecovery,
+    maxInboundMessageBodySizeBytes = maxInboundMessageBodySizeBytes,
     connectionFactory = connectionFactory
   )
 }
