@@ -47,7 +47,7 @@ case class Fs2RabbitConfig(
 
 object Fs2RabbitConfig {
 
-  val defaultMaxInboundMessageBodySizeBytes: Int = 1_048_576 * 64
+  val defaultMaxInboundMessageBodySizeBytes: Int = 1048576 * 64 // 64MB
 
   def apply(
       host: String,
