@@ -1,12 +1,13 @@
 ---
 layout: docs
-title:  "Single AckerConsumer"
+title: "Single AckerConsumer"
 number: 16
 ---
 
 # Single AckerConsumer
 
-Here we create a single `AckerConsumer`, a single `Publisher` and finally we publish two messages: a simple `String` message and a `Json` message by using the `fs2-rabbit-circe` extension.
+Here we create a single `AckerConsumer`, a single `Publisher` and finally we publish two messages: a simple `String`
+message and a `Json` message by using the `fs2-rabbit-circe` extension.
 
 ```scala mdoc:silent
 import java.nio.charset.StandardCharsets.UTF_8
@@ -22,19 +23,21 @@ import dev.profunktor.fs2rabbit.model.AmqpFieldValue.{LongVal, StringVal}
 import dev.profunktor.fs2rabbit.model._
 import fs2.{Pipe, Pure, Stream}
 
-class Flow[F[_]: Concurrent, A](
-    consumer: Stream[F, AmqpEnvelope[A]],
-    acker: AckResult => F[Unit],
-    logger: Pipe[F, AmqpEnvelope[A], AckResult],
-    publisher: AmqpMessage[String] => F[Unit]
-) {
+class Flow[F[_] : Concurrent, A](
+                                  consumer: Stream[F, AmqpEnvelope[A]],
+                                  acker: AckResult => F[Unit],
+                                  logger: Pipe[F, AmqpEnvelope[A], AckResult],
+                                  publisher: AmqpMessage[String] => F[Unit]
+                                ) {
 
   import io.circe.generic.auto._
 
   case class Address(number: Int, streetName: String)
+
   case class Person(id: Long, name: String, address: Address)
 
   private val jsonEncoder = new Fs2JsonEncoder
+
   import jsonEncoder.jsonEncode
 
   val jsonPipe: Pipe[Pure, AmqpMessage[Person], AmqpMessage[String]] = _.map(jsonEncode[Person])
@@ -52,11 +55,11 @@ class Flow[F[_]: Concurrent, A](
 
 }
 
-class AckerConsumerDemo[F[_]: Async](R: RabbitClient[F]) {
+class AckerConsumerDemo[F[_] : Async](R: RabbitClient[F]) {
 
-  private val queueName    = QueueName("testQ")
+  private val queueName = QueueName("testQ")
   private val exchangeName = ExchangeName("testEX")
-  private val routingKey   = RoutingKey("testRK")
+  private val routingKey = RoutingKey("testRK")
   implicit val stringMessageEncoder =
     Kleisli[F, AmqpMessage[String], AmqpMessage[Array[Byte]]](s => s.copy(payload = s.payload.getBytes(UTF_8)).pure[F])
 
@@ -75,13 +78,13 @@ class AckerConsumerDemo[F[_]: Async](R: RabbitClient[F]) {
       _ <- R.declareExchange(exchangeName, ExchangeType.Topic)
       _ <- R.bindQueue(queueName, exchangeName, routingKey)
       publisher <- R.createPublisherWithListener[AmqpMessage[String]](exchangeName,
-                                                                      routingKey,
-                                                                      publishingFlag,
-                                                                      publishingListener)
-      ackerConsumer     <- R.createAckerConsumer[String](queueName)
+        routingKey,
+        publishingFlag,
+        publishingListener)
+      ackerConsumer <- R.createAckerConsumer[String](queueName)
       (acker, consumer) = ackerConsumer
-      result            = new Flow[F, String](consumer, acker, logPipe, publisher).flow
-      _                 <- result.compile.drain
+      result = new Flow[F, String](consumer, acker, logPipe, publisher).flow
+      _ <- result.compile.drain
     } yield ()
   }
 }
@@ -119,15 +122,17 @@ object IOAckerConsumer extends IOApp {
     requestedHeartbeat = 60.seconds,
     automaticRecovery = true,
     automaticTopologyRecovery = true,
-    clientProvidedConnectionName = Some("app:rabbit")
+    maxInboundMessageBodySizeBytes = Fs2RabbitConfig.defaultMaxInboundMessageBodySizeBytes,
+    clientProvidedConnectionName = Some("app:rabbit"),
+    connectionFactory = None
   )
 
   override def run(args: List[String]): IO[ExitCode] =
-      RabbitClient.default[IO](config).resource.use { client =>
-        ResilientStream
-          .runF(new AckerConsumerDemo[IO](client).program)
-          .as(ExitCode.Success)
-      }
+    RabbitClient.default[IO](config).resource.use { client =>
+      ResilientStream
+        .runF(new AckerConsumerDemo[IO](client).program)
+        .as(ExitCode.Success)
+    }
 
 }
 ```

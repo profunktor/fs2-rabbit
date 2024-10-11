@@ -1,12 +1,14 @@
 ---
 layout: docs
-title:  "Configuration"
+title: "Configuration"
 number: 1
 ---
 
 # Configuration
 
-The main `RabbitMQ` configuration should be defined as `Fs2RabbitConfig`. You choose how to get the information, either from an `application.conf` file, from the environment or provided by an external system. A popular option that fits well the tech stack is [Pure Config](https://pureconfig.github.io/).
+The main `RabbitMQ` configuration should be defined as `Fs2RabbitConfig`. You choose how to get the information, either
+from an `application.conf` file, from the environment or provided by an external system. A popular option that fits well
+the tech stack is [Pure Config](https://pureconfig.github.io/).
 
 ```scala mdoc:silent
 import cats.data.NonEmptyList
@@ -32,10 +34,16 @@ val config = Fs2RabbitConfig(
   requestedHeartbeat = 30.seconds,
   automaticRecovery = true,
   automaticTopologyRecovery = true,
-  clientProvidedConnectionName = Some("app:rabbit")
+  maxInboundMessageBodySizeBytes = Fs2RabbitConfig.defaultMaxInboundMessageBodySizeBytes,
+  clientProvidedConnectionName = Some("app:rabbit"),
+  connectionFactory = None
 )
 ```
 
-The `internalQueueSize` indicates the size of the fs2's bounded queue used internally to communicate with the AMQP Java driver.
-The `automaticRecovery` indicates whether the AMQP Java driver should try to [recover broken connections](https://www.rabbitmq.com/api-guide.html#recovery).
-The `requestedHeartbeat` indicates [heartbeat timeout](https://www.rabbitmq.com/heartbeats.html#using-heartbeats-in-java). Should be non-zero and lower than 60.
+The `internalQueueSize` indicates the size of the fs2's bounded queue used internally to communicate with the AMQP Java
+driver.
+The `automaticRecovery` indicates whether the AMQP Java driver should try
+to [recover broken connections](https://www.rabbitmq.com/api-guide.html#recovery).
+The `requestedHeartbeat`
+indicates [heartbeat timeout](https://www.rabbitmq.com/heartbeats.html#using-heartbeats-in-java). Should be non-zero and
+lower than 60.
