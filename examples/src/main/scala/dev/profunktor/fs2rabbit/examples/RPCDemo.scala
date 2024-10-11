@@ -51,7 +51,9 @@ object RPCDemo extends IOApp.Simple {
     requestedHeartbeat = 60.seconds,
     automaticRecovery = true,
     automaticTopologyRecovery = true,
-    clientProvidedConnectionName = Some("app:rpc-demo")
+    maxInboundMessageBodySizeBytes = Fs2RabbitConfig.defaultMaxInboundMessageBodySizeBytes,
+    clientProvidedConnectionName = Some("app:rpc-demo"),
+    connectionFactory = None
   )
 
   def run: IO[Unit] =

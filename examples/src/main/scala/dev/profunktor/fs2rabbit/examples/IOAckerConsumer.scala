@@ -39,7 +39,9 @@ object IOAckerConsumer extends IOApp.Simple {
     requestedHeartbeat = 60.seconds,
     automaticRecovery = true,
     automaticTopologyRecovery = true,
-    clientProvidedConnectionName = Some("app:io-acker-consumer")
+    clientProvidedConnectionName = Some("app:io-acker-consumer"),
+    maxInboundMessageBodySizeBytes = Fs2RabbitConfig.defaultMaxInboundMessageBodySizeBytes,
+    connectionFactory = None
   )
 
   override def run: IO[Unit] =

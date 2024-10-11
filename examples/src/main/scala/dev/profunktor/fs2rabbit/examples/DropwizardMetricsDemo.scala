@@ -49,7 +49,9 @@ object DropwizardMetricsDemo extends IOApp.Simple {
     requestedHeartbeat = 60.seconds,
     automaticRecovery = true,
     automaticTopologyRecovery = true,
-    clientProvidedConnectionName = Some("app:drop-wizard-metrics-demo")
+    clientProvidedConnectionName = Some("app:drop-wizard-metrics-demo"),
+    maxInboundMessageBodySizeBytes = Fs2RabbitConfig.defaultMaxInboundMessageBodySizeBytes,
+    connectionFactory = None
   )
 
   private val queueName    = QueueName("testQ")
