@@ -37,6 +37,7 @@ class RabbitSuite extends BaseSpec with Fs2RabbitSpec {
       requeueOnReject = false,
       requestedHeartbeat = 60.seconds,
       internalQueueSize = 500.some,
+      maxInboundMessageBodySizeBytes = Fs2RabbitConfig.defaultMaxInboundMessageBodySizeBytes,
       clientProvidedConnectionName = "app:rabbit-suite".some
     )
 

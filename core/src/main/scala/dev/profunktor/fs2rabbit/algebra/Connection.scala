@@ -125,7 +125,7 @@ object ConnectionResource {
   ): F[Connection[Resource[F, *]]] =
     Sync[F]
       .delay {
-        val factory   = new ConnectionFactory()
+        val factory   = conf.connectionFactory.getOrElse(new ConnectionFactory())
         val firstNode = conf.nodes.head
         factory.setHost(firstNode.host)
         factory.setPort(firstNode.port)
@@ -134,6 +134,7 @@ object ConnectionResource {
         factory.setRequestedHeartbeat(conf.requestedHeartbeat.toSeconds.toInt)
         factory.setAutomaticRecoveryEnabled(conf.automaticRecovery)
         factory.setTopologyRecoveryEnabled(conf.automaticTopologyRecovery)
+        factory.setMaxInboundMessageBodySize(conf.maxInboundMessageBodySizeBytes)
         if (conf.ssl) sslCtx.fold(factory.useSslProtocol())(factory.useSslProtocol)
         factory.setSaslConfig(saslConf)
         conf.username.foreach(factory.setUsername)

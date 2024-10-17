@@ -40,10 +40,15 @@ case class Fs2RabbitConfig(
     requestedHeartbeat: FiniteDuration,
     automaticRecovery: Boolean,
     automaticTopologyRecovery: Boolean,
-    clientProvidedConnectionName: Option[String]
+    clientProvidedConnectionName: Option[String],
+    maxInboundMessageBodySizeBytes: Int,
+    connectionFactory: Option[ConnectionFactory]
 )
 
 object Fs2RabbitConfig {
+
+  val defaultMaxInboundMessageBodySizeBytes: Int = 1048576 * 64 // 64MB
+
   def apply(
       host: String,
       port: Int,
@@ -58,7 +63,9 @@ object Fs2RabbitConfig {
       requestedHeartbeat: FiniteDuration = FiniteDuration(ConnectionFactory.DEFAULT_HEARTBEAT, TimeUnit.SECONDS),
       automaticRecovery: Boolean = true,
       automaticTopologyRecovery: Boolean = true,
-      clientProvidedConnectionName: Option[String] = None
+      clientProvidedConnectionName: Option[String] = None,
+      maxInboundMessageBodySizeBytes: Int = defaultMaxInboundMessageBodySizeBytes,
+      connectionFactory: Option[ConnectionFactory] = None
   ): Fs2RabbitConfig = Fs2RabbitConfig(
     nodes = NonEmptyList.one(Fs2RabbitNodeConfig(host, port)),
     virtualHost = virtualHost,
@@ -72,6 +79,8 @@ object Fs2RabbitConfig {
     requestedHeartbeat = requestedHeartbeat,
     automaticRecovery = automaticRecovery,
     clientProvidedConnectionName = clientProvidedConnectionName,
-    automaticTopologyRecovery = automaticTopologyRecovery
+    automaticTopologyRecovery = automaticTopologyRecovery,
+    maxInboundMessageBodySizeBytes = maxInboundMessageBodySizeBytes,
+    connectionFactory = connectionFactory
   )
 }

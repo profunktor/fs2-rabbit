@@ -30,7 +30,7 @@ object ShortString {
     str.getBytes("utf-8").length <= MaxByteLength
 
   def from(str: String): Option[ShortString] =
-    if(isValid(str))
+    if (isValid(str))
       Some(new ShortString(str) {})
     else
       None
