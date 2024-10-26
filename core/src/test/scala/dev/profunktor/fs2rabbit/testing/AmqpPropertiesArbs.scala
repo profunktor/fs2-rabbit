@@ -166,7 +166,7 @@ object AmqpPropertiesArbs {
       contentType,
       contentEncoding,
       priority,
-      deliveryMode.map(DeliveryMode.from),
+      deliveryMode.map(DeliveryMode.unsafeFromInt),
       correlationId,
       messageId,
       messageType,
