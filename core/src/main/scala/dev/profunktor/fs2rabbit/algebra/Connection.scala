@@ -33,6 +33,7 @@ import dev.profunktor.fs2rabbit.model.AMQPConnection
 import dev.profunktor.fs2rabbit.model.RabbitChannel
 import dev.profunktor.fs2rabbit.model.RabbitConnection
 
+import java.util
 import java.util.Collections
 import java.util.concurrent.AbstractExecutorService
 import java.util.concurrent.ExecutorService
@@ -45,47 +46,6 @@ import java.util.concurrent.Executors
 
 object ConnectionResource {
   type ConnectionResource[F[_]] = Connection[Resource[F, *]]
-
-  @deprecated(message = "Use `make` with explicit ExecutionContext", since = "5.0.0")
-  def make[F[_]: Sync: Log](
-      conf: Fs2RabbitConfig,
-      sslCtx: Option[SSLContext] = None,
-      // Unlike SSLContext, SaslConfig is not optional because it is always set
-      // by the underlying Java library, even if the user doesn't set it.
-      saslConf: SaslConfig = DefaultSaslConfig.PLAIN,
-      metricsCollector: Option[MetricsCollector] = None,
-      threadFactory: Option[F[ThreadFactory]] = None
-  ): F[Connection[Resource[F, *]]] = {
-    val addThreadFactory: F[ConnectionFactory => Unit] =
-      threadFactory.fold(Sync[F].pure((_: ConnectionFactory) => ())) { threadFact =>
-        threadFact.map { tf => (cf: ConnectionFactory) =>
-          cf.setThreadFactory(tf)
-        }
-      }
-
-    val numOfThreads            = Runtime.getRuntime().availableProcessors() * 2
-    val esF: F[ExecutorService] = threadFactory
-      .fold(Executors.newFixedThreadPool(numOfThreads).pure[F]) {
-        _.map(Executors.newFixedThreadPool(numOfThreads, _))
-      }
-      .map { es =>
-        val _ = sys.addShutdownHook(es.shutdown())
-        es
-      }
-
-    for {
-      es   <- esF
-      fn   <- addThreadFactory
-      conn <- _make(
-                conf,
-                Some(ExecutionContext.fromExecutorService(es)),
-                sslCtx,
-                saslConf,
-                metricsCollector,
-                fn
-              )
-    } yield conn
-  }
 
   def make[F[_]: Sync: Log](
       conf: Fs2RabbitConfig,
@@ -185,10 +145,10 @@ object ConnectionResource {
       case es: ExecutorService => es
       case _                   =>
         new AbstractExecutorService {
-          override def isShutdown                                              = false
-          override def isTerminated                                            = false
-          override def shutdown()                                              = ()
-          override def shutdownNow()                                           = Collections.emptyList[Runnable]
+          override def isShutdown: Boolean                                     = false
+          override def isTerminated: Boolean                                   = false
+          override def shutdown(): Unit                                        = ()
+          override def shutdownNow(): util.List[Runnable]                      = Collections.emptyList[Runnable]
           override def execute(runnable: Runnable): Unit                       = ec execute runnable
           override def awaitTermination(length: Long, unit: TimeUnit): Boolean = false
         }
