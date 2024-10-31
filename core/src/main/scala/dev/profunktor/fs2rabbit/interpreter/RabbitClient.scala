@@ -40,49 +40,6 @@ import javax.net.ssl.SSLContext
 import scala.concurrent.ExecutionContext
 
 object RabbitClient {
-  @deprecated(message = "Use `default` to create Builder instead", since = "5.0.0")
-  def apply[F[_]: Async](
-      config: Fs2RabbitConfig,
-      dispatcher: Dispatcher[F],
-      sslContext: Option[SSLContext] = None,
-      // Unlike SSLContext, SaslConfig is not optional because it is always set
-      // by the underlying Java library, even if the user doesn't set it.
-      saslConfig: SaslConfig = DefaultSaslConfig.PLAIN,
-      metricsCollector: Option[MetricsCollector] = None,
-      threadFactory: Option[F[ThreadFactory]] = None
-  ): F[RabbitClient[F]] = {
-    val internalQ         = new LiveInternalQueue[F](config.internalQueueSize.getOrElse(500))
-    val connection        = ConnectionResource.make(config, sslContext, saslConfig, metricsCollector, threadFactory)
-    val consumingProgram  = AckConsumingProgram.make[F](config, internalQ, dispatcher)
-    val publishingProgram = PublishingProgram.make[F](dispatcher)
-    val bindingClient     = Binding.make[F]
-    val declarationClient = Declaration.make[F]
-    val deletionClient    = Deletion.make[F]
-
-    connection.map { conn =>
-      new RabbitClient[F](
-        conn,
-        bindingClient,
-        declarationClient,
-        deletionClient,
-        consumingProgram,
-        publishingProgram
-      )
-    }
-  }
-
-  @deprecated(message = "Use `default` to create Builder instead", since = "5.0.0")
-  def resource[F[_]: Async](
-      config: Fs2RabbitConfig,
-      sslContext: Option[SSLContext] = None,
-      // Unlike SSLContext, SaslConfig is not optional because it is always set
-      // by the underlying Java library, even if the user doesn't set it.
-      saslConfig: SaslConfig = DefaultSaslConfig.PLAIN,
-      metricsCollector: Option[MetricsCollector] = None,
-      threadFactory: Option[F[ThreadFactory]] = None
-  ): Resource[F, RabbitClient[F]] = Dispatcher.parallel[F](await = false).evalMap { dispatcher =>
-    apply[F](config, dispatcher, sslContext, saslConfig, metricsCollector, threadFactory)
-  }
 
   sealed abstract class Builder[F[_]: Async] private[RabbitClient] (
       config: Fs2RabbitConfig,
