@@ -3,21 +3,18 @@ import sbt._
 object Dependencies {
 
   object Version {
-    val cats             = "2.10.0"
-    val catsEffect       = "3.5.5"
-    val fs2              = "3.11.0"
-    val circe            = "0.14.10"
-    val amqpClient       = "5.22.0"
-    val logback          = "1.5.12"
-    val monix            = "3.3.0"
-    val zio              = "1.0.18"
-    val zioCats          = "3.2.9.1"
-    val scodec           = "1.2.0"
-    val dropwizard       = "4.2.25"
-    val collectionCompat = "2.12.0"
-
-    val kindProjector = "0.13.3"
-
+    val cats                    = "2.10.0"
+    val catsEffect              = "3.5.5"
+    val fs2                     = "3.11.0"
+    val circe                   = "0.14.10"
+    val amqpClient              = "5.22.0"
+    val logback                 = "1.5.12"
+    val monix                   = "3.3.0"
+    val zio                     = "1.0.18"
+    val zioCats                 = "3.2.9.1"
+    val scodec                  = "1.2.0"
+    val dropwizard              = "4.2.25"
+    val kindProjector           = "0.13.3"
     val scalaTest               = "3.2.19"
     val scalaCheck              = "1.18.1"
     val scalaTestPlusScalaCheck = "3.2.14.0"
@@ -27,11 +24,10 @@ object Dependencies {
   object Libraries {
     def circe(artifact: String): ModuleID = "io.circe" %% artifact % Version.circe
 
-    lazy val amqpClient       = "com.rabbitmq"            % "amqp-client"             % Version.amqpClient
-    lazy val catsEffect       = "org.typelevel"          %% "cats-effect"             % Version.catsEffect
-    lazy val fs2Core          = "co.fs2"                 %% "fs2-core"                % Version.fs2
-    lazy val scodecCats       = "org.scodec"             %% "scodec-cats"             % Version.scodec
-    lazy val collectionCompat = "org.scala-lang.modules" %% "scala-collection-compat" % Version.collectionCompat
+    lazy val amqpClient = "com.rabbitmq"   % "amqp-client" % Version.amqpClient
+    lazy val catsEffect = "org.typelevel" %% "cats-effect" % Version.catsEffect
+    lazy val fs2Core    = "co.fs2"        %% "fs2-core"    % Version.fs2
+    lazy val scodecCats = "org.scodec"    %% "scodec-cats" % Version.scodec
 
     // Compiler
     lazy val kindProjector = "org.typelevel" % "kind-projector" % Version.kindProjector cross CrossVersion.full
