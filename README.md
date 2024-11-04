@@ -13,8 +13,8 @@ the [RabbitMq Java Client](https://github.com/rabbitmq/rabbitmq-java-client).
 ## Dependencies
 
 > [!NOTE]
-> - From `3.6.0` onwards, the library is published only for Scala `3.x` and `2.13.x`
-> - For Scala `2.12.x` use the latest `<= 3.5.x` versions.
+> - From `5.4.0` onwards, the library is published only for Scala `3.x` and `2.13.x`
+> - For Scala `2.12.x` use the latest `<= 5.3.x` versions.
 > - Previous artifacts `<= 2.0.0-RC1` were published using the `com.github.gvolpe` group id (see [migration
     guide](https://github.com/profunktor/fs2-rabbit/wiki/Migration-guide-(Vim)))
 
