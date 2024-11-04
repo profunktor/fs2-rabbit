@@ -7,9 +7,16 @@ fs2-rabbit
 [![MergifyStatus](https://img.shields.io/endpoint.svg?url=https://gh.mergify.io/badges/profunktor/fs2-rabbit&style=flat)](https://mergify.io)
 [![Scala Steward badge](https://img.shields.io/badge/Scala_Steward-helping-brightgreen.svg?style=flat&logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAQCAMAAAARSr4IAAAAVFBMVEUAAACHjojlOy5NWlrKzcYRKjGFjIbp293YycuLa3pYY2LSqql4f3pCUFTgSjNodYRmcXUsPD/NTTbjRS+2jomhgnzNc223cGvZS0HaSD0XLjbaSjElhIr+AAAAAXRSTlMAQObYZgAAAHlJREFUCNdNyosOwyAIhWHAQS1Vt7a77/3fcxxdmv0xwmckutAR1nkm4ggbyEcg/wWmlGLDAA3oL50xi6fk5ffZ3E2E3QfZDCcCN2YtbEWZt+Drc6u6rlqv7Uk0LdKqqr5rk2UCRXOk0vmQKGfc94nOJyQjouF9H/wCc9gECEYfONoAAAAASUVORK5CYII=)](https://scala-steward.org)
 
-Stream-based library for [RabbitMQ](https://www.rabbitmq.com/) built-in on top of [Fs2](http://fs2.io/) and the [RabbitMq Java Client](https://github.com/rabbitmq/rabbitmq-java-client).
+Stream-based library for [RabbitMQ](https://www.rabbitmq.com/) built-in on top of [Fs2](http://fs2.io/) and
+the [RabbitMq Java Client](https://github.com/rabbitmq/rabbitmq-java-client).
 
 ## Dependencies
+
+> [!NOTE]
+> - From `3.6.0` onwards, the library is published only for Scala `3.x` and `2.13.x`
+> - For Scala `2.12.x` use the latest `<= 3.5.x` versions.
+> - Previous artifacts `<= 2.0.0-RC1` were published using the `com.github.gvolpe` group id (see [migration
+    guide](https://github.com/profunktor/fs2-rabbit/wiki/Migration-guide-(Vim)))
 
 Add this to your build.sbt:
 
@@ -22,9 +29,6 @@ And this one if you would like to have Json support:
 ```scala
 libraryDependencies += "dev.profunktor" %% "fs2-rabbit-circe" % Version
 ```
-
-Note: previous artifacts `<= 2.0.0-RC1` were published using the `com.github.gvolpe` group id (see [migration
-guide](https://github.com/profunktor/fs2-rabbit/wiki/Migration-guide-(Vim)))
 
 ## Usage Guide
 
