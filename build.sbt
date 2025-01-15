@@ -4,11 +4,11 @@ import scala.collection.immutable
 
 ThisBuild / name               := "fs2-rabbit"
 ThisBuild / scalaVersion       := "2.13.15"
-ThisBuild / crossScalaVersions := List("2.13.15", "3.3.4", "3.5.2")
+ThisBuild / crossScalaVersions := List("2.13.16", "3.3.4", "3.6.3")
 ThisBuild / versionScheme      := Some("semver-spec")
 ThisBuild / organization       := "dev.profunktor"
 ThisBuild / homepage           := Some(url("https://fs2-rabbit.profunktor.dev/"))
-ThisBuild / licenses           := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0"))
+ThisBuild / licenses           := List(License.Apache2)
 ThisBuild / developers         := List(
   Developer(
     "gvolpe",
@@ -47,7 +47,7 @@ def commonDependencies(v: String): Seq[ModuleID] =
 val commonSettings = List(
   organizationName      := "ProfunKtor",
   startYear             := Some(2017),
-  licenses += ("Apache-2.0", new URL("https://www.apache.org/licenses/LICENSE-2.0.txt")),
+  licenses += License.Apache2,
   homepage              := Some(url("https://fs2-rabbit.profunktor.dev/")),
   headerLicense         := Some(HeaderLicense.ALv2(s"${startYear.value.get}-${java.time.Year.now}", "ProfunKtor")),
   Compile / doc / scalacOptions ++= List("-no-link-warnings"),
