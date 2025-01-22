@@ -4,8 +4,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: java setup
+      - name: Setup Scala using Coursier
         uses: coursier/setup-action@v1
+        with:
+          apps: sbt
 
       - uses: olafurpg/setup-gpg@v3
       - env:
@@ -15,6 +17,7 @@ jobs:
           SONATYPE_USERNAME: "${{ secrets.SONATYPE_USERNAME }}"
         name: "Publish ${{ github.ref }}"
         run: sbt ci-release
+
 name: Release
 on:
   push:
