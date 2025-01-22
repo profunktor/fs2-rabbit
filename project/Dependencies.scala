@@ -3,12 +3,12 @@ import sbt._
 object Dependencies {
 
   object Version {
-    val cats                    = "2.12.0"
+    val cats                    = "2.13.0"
     val catsEffect              = "3.5.7"
     val fs2                     = "3.11.0"
     val circe                   = "0.14.10"
     val amqpClient              = "5.24.0"
-    val logback                 = "1.5.12"
+    val logback                 = "1.5.16"
     val monix                   = "3.3.0"
     val zio                     = "1.0.18"
     val zioCats                 = "3.2.9.1"
