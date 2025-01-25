@@ -43,19 +43,16 @@ class AmqpFieldValueSpec extends AnyFlatSpecLike with PropertyChecks with Matche
     AmqpFieldValue.unsafeFrom("fs2") should be(StringVal("fs2"))
     AmqpFieldValue.unsafeFrom(arrayVal.toValueWriterCompatibleJava) should be(arrayVal)
   }
-  it should "preserve the same value after a round-trip through impure and from" in {
+  it should "preserve the same value after a round-trip through impure and from" in
     forAll { (amqpHeaderVal: AmqpFieldValue) =>
       AmqpFieldValue.unsafeFrom(amqpHeaderVal.toValueWriterCompatibleJava) == amqpHeaderVal
     }
-  }
 
-  it should "preserve the same values after a round-trip through the Java ValueReader and ValueWriter" in {
+  it should "preserve the same values after a round-trip through the Java ValueReader and ValueWriter" in
     forAll(assertThatValueIsPreservedThroughJavaWriteAndRead _)
-  }
 
-  it should "preserve a specific StringVal that previously failed after a round-trip through the Java ValueReader and ValueWriter" in {
+  it should "preserve a specific StringVal that previously failed after a round-trip through the Java ValueReader and ValueWriter" in
     assertThatValueIsPreservedThroughJavaWriteAndRead(StringVal("kyvmqzlbjivLqQFukljghxdowkcmjklgSeybdy"))
-  }
 
   it should "preserve a specific DateVal created from an Instant that has millisecond accuracy after a round-trip through the Java ValueReader and ValueWriter" in {
     val instant   = Instant.parse("4000-11-03T20:17:29.57Z")
