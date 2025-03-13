@@ -1,7 +1,7 @@
 resolvers += Classpaths.sbtPluginReleases
 resolvers += "Typesafe Repository" at "https://repo.typesafe.com/typesafe/releases/"
 
-addSbtPlugin("com.github.sbt"    % "sbt-ci-release"  % "1.9.2")
+addSbtPlugin("com.github.sbt"    % "sbt-ci-release"  % "1.9.3")
 addSbtPlugin("de.heikoseeberger" % "sbt-header"      % "5.10.0")
 addSbtPlugin("com.47deg"         % "sbt-microsites"  % "1.4.4")
 addSbtPlugin("org.scalameta"     % "sbt-mdoc"        % "2.6.5")
