@@ -27,12 +27,11 @@ class AmqpPropertiesSpec extends AnyFlatSpecLike with PropertyChecks with Matche
 
   import AmqpPropertiesArbs._
 
-  it should s"convert from and to Java AMQP.BasicProperties" in {
+  it should s"convert from and to Java AMQP.BasicProperties" in
     forAll { (amqpProperties: AmqpProperties) =>
       val basicProps = amqpProperties.asBasicProps
       AmqpProperties.unsafeFrom(basicProps) should be(amqpProperties)
     }
-  }
 
   it should "create an empty amqp properties" in {
     AmqpProperties.empty should be(
