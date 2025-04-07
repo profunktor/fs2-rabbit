@@ -1,0 +1,43 @@
+name: Publish Documentation
+
+on:
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy-docs:
+    name: Build and Deploy Docs
+    runs-on: ubuntu-latest
+
+    # Grant permissions for the GITHUB_TOKEN to push to gh-pages
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Scala using Coursier
+        uses: coursier/setup-action@v1
+        with:
+          apps: sbt
+
+      # needed for Jekyll
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.0'
+
+      - name: Install Jekyll
+        run: gem install jekyll -v 4.1.0
+
+      - name: Publish Microsite
+        run: sbt microsite/publishMicrosite
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
