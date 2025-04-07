@@ -2,8 +2,7 @@
 
 <p><a href="https://github.com/profunktor/fs2-rabbit/actions"><img src="https://github.com/profunktor/fs2-rabbit/workflows/Build/badge.svg" alt="CI Status" /></a>
 <a href="https://gitter.im/profunktor-dev/fs2-rabbit"><img src="https://badges.gitter.im/profunktor-dev/fs2-rabbit.svg" alt="Gitter Chat" /></a>
-<a href="http://search.maven.org/#search%7Cga%7C1%7Cfs2-rabbit"><img src="https://img.shields.io/maven-central/v/dev.profunktor/fs2-rabbit_2.12.svg" alt="Maven Central" /></a> <a href="https://typelevel.org/cats/"><img src="https://typelevel.org/cats/img/cats-badge.svg" height="40px" align="right" alt="Cats friendly" /></a>
-<a href="https://mergify.io"><img src="https://img.shields.io/endpoint.svg?url=https://gh.mergify.io/badges/profunktor/fs2-rabbit&amp;style=flat" alt="MergifyStatus" /></a>
+<a href="http://search.maven.org/#search%7Cga%7C1%7Cfs2-rabbit"><img src="https://img.shields.io/maven-central/v/dev.profunktor/fs2-rabbit_2.13.svg" alt="Maven Central" /></a> <a href="https://typelevel.org/cats/"><img src="https://typelevel.org/cats/img/cats-badge.svg" height="40px" align="right" alt="Cats friendly" /></a>
 <a href="https://scala-steward.org"><img src="https://img.shields.io/badge/Scala_Steward-helping-brightgreen.svg?style=flat&amp;logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAQCAMAAAARSr4IAAAAVFBMVEUAAACHjojlOy5NWlrKzcYRKjGFjIbp293YycuLa3pYY2LSqql4f3pCUFTgSjNodYRmcXUsPD/NTTbjRS+2jomhgnzNc223cGvZS0HaSD0XLjbaSjElhIr+AAAAAXRSTlMAQObYZgAAAHlJREFUCNdNyosOwyAIhWHAQS1Vt7a77/3fcxxdmv0xwmckutAR1nkm4ggbyEcg/wWmlGLDAA3oL50xi6fk5ffZ3E2E3QfZDCcCN2YtbEWZt+Drc6u6rlqv7Uk0LdKqqr5rk2UCRXOk0vmQKGfc94nOJyQjouF9H/wCc9gECEYfONoAAAAASUVORK5CYII=" alt="Scala Steward badge" /></a></p>
 
 <p>Stream-based library for <a href="https://www.rabbitmq.com/">RabbitMQ</a> built-in on top of <a href="http://fs2.io/">Fs2</a> and
@@ -12,13 +11,10 @@ the <a href="https://github.com/rabbitmq/rabbitmq-java-client">RabbitMq Java Cli
 <h2 id="dependencies">Dependencies</h2>
 
 <blockquote>
-  <p>[!NOTE]</p>
-  <ul>
-    <li>From <code class="language-plaintext highlighter-rouge">5.4.0</code> onwards, the library is published only for Scala <code class="language-plaintext highlighter-rouge">3.x</code> and <code class="language-plaintext highlighter-rouge">2.13.x</code></li>
-    <li>For Scala <code class="language-plaintext highlighter-rouge">2.12.x</code> use the latest <code class="language-plaintext highlighter-rouge">&lt;= 5.3.x</code> versions.</li>
-    <li>Previous artifacts <code class="language-plaintext highlighter-rouge">&lt;= 2.0.0-RC1</code> were published using the <code class="language-plaintext highlighter-rouge">com.github.gvolpe</code> group id (see <a href="https://github.com/profunktor/fs2-rabbit/wiki/Migration-guide-(Vim)">migration
-  guide</a>)</li>
-  </ul>
+  <p>From <code class="language-plaintext highlighter-rouge">5.4.0</code> onwards, the library is published only for Scala <code class="language-plaintext highlighter-rouge">3.x</code> and <code class="language-plaintext highlighter-rouge">2.13.x</code> <br />
+For Scala <code class="language-plaintext highlighter-rouge">2.12.x</code> use the latest <code class="language-plaintext highlighter-rouge">&lt;= 5.3.x</code> versions. <br />
+Previous artifacts <code class="language-plaintext highlighter-rouge">&lt;= 2.0.0-RC1</code> were published using the <code class="language-plaintext highlighter-rouge">com.github.gvolpe</code> group id (see <a href="https://github.com/profunktor/fs2-rabbit/wiki/Migration-guide-(Vim)">migration
+    guide</a>) <br /></p>
 </blockquote>
 
 <p>Add this to your build.sbt:</p>
