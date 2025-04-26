@@ -6,11 +6,11 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1745672885,
-        "narHash": "sha256-43jVYHCgLpbQ2+zt7x3w0+5u6J5gZNY6uA0DiFSm2k8=",
+        "lastModified": 1745673579,
+        "narHash": "sha256-32GDvwSoCILq+4biRBxuW22dptRKbd5LBwL2lS68RjY=",
         "owner": "profunktor",
         "repo": "dev-tools",
-        "rev": "0b7235f3a72a5ed5ec2a7c928ef00d4e3d3203b7",
+        "rev": "1fb6f8a1bc0ef1f506d5be7353f765837c9287f8",
         "type": "github"
       },
       "original": {

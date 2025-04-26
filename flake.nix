@@ -4,6 +4,6 @@
   inputs.dev-tools.url = github:profunktor/dev-tools;
 
   outputs = { dev-tools, ... }: {
-    inherit (dev-tools) devShell packages;
+    inherit (dev-tools) devShells packages;
   };
 }
