@@ -4,7 +4,7 @@ import scala.collection.immutable
 
 ThisBuild / name               := "fs2-rabbit"
 ThisBuild / scalaVersion       := "2.13.16"
-ThisBuild / crossScalaVersions := List("2.13.16", "3.3.5", "3.6.4")
+ThisBuild / crossScalaVersions := List("2.13.16", "3.3.6", "3.6.4")
 ThisBuild / versionScheme      := Some("semver-spec")
 ThisBuild / organization       := "dev.profunktor"
 ThisBuild / homepage           := Some(url("https://fs2-rabbit.profunktor.dev/"))
