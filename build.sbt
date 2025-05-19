@@ -18,6 +18,8 @@ ThisBuild / developers         := List(
   )
 )
 
+ThisBuild / sonatypeCredentialHost := xerial.sbt.Sonatype.sonatypeCentralHost
+
 publish / skip := true
 
 def scalaOptions(v: String): immutable.Seq[String] =
