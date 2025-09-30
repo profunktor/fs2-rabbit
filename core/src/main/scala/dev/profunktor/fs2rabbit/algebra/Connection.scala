@@ -23,7 +23,6 @@ import cats.implicits._
 import cats.~>
 import com.rabbitmq.client.Address
 import com.rabbitmq.client.ConnectionFactory
-import com.rabbitmq.client.DefaultSaslConfig
 import com.rabbitmq.client.MetricsCollector
 import com.rabbitmq.client.SaslConfig
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
@@ -42,7 +41,6 @@ import java.util.concurrent.TimeUnit
 import javax.net.ssl.SSLContext
 import scala.concurrent.ExecutionContext
 import scala.jdk.CollectionConverters._
-import java.util.concurrent.Executors
 
 object ConnectionResource {
   type ConnectionResource[F[_]] = Connection[Resource[F, *]]

@@ -87,6 +87,7 @@ import com.codahale.metrics.jmx.JmxReporter
 import com.rabbitmq.client.impl.StandardMetricsCollector
 import dev.profunktor.fs2rabbit.config.declaration.{DeclarationExchangeConfig, DeclarationQueueConfig}
 import dev.profunktor.fs2rabbit.config.{Fs2RabbitConfig, Fs2RabbitNodeConfig}
+import dev.profunktor.fs2rabbit.effects.MessageEncoder
 import dev.profunktor.fs2rabbit.interpreter.RabbitClient
 import dev.profunktor.fs2rabbit.model.AckResult.Ack
 import dev.profunktor.fs2rabbit.model.ExchangeType.Topic
@@ -120,10 +121,8 @@ object DropwizardMetricsDemo extends IOApp {
 
   val simpleMessage = AmqpMessage("Hey!", AmqpProperties.empty)
 
-  implicit val stringMessageEncoder =
-    Kleisli[IO, AmqpMessage[String], AmqpMessage[Array[Byte]]] { s =>
-      s.copy(payload = s.payload.getBytes(UTF_8)).pure[IO]
-    }
+  implicit val stringMessageEncoder: MessageEncoder[IO, AmqpMessage[String]] =
+    Kleisli[IO, AmqpMessage[String], AmqpMessage[Array[Byte]]](s => s.copy(payload = s.payload.getBytes(UTF_8)).pure[IO])
 
   override def run(args: List[String]): IO[ExitCode] = {
     val registry            = new MetricRegistry

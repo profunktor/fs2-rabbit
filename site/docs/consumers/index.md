@@ -34,8 +34,10 @@ implicit def bytesDecoder[F[_]: Applicative]: EnvelopeDecoder[F, Array[Byte]] =
 You can write all your `EnvelopeDecoder` instances this way, but it's usually easier to make use of existing instances. `Kleisli` forms a Monad, so you can use all the usual combinators like `map`:
 
 ```scala mdoc:silent
+type WithThrowableError[F[_]] = ApplicativeError[F, Throwable]
+
 case class Foo(s: String)
-implicit def fooDecoder[F[_]: ApplicativeError[*[_], Throwable]]: EnvelopeDecoder[F, Foo] =
+implicit def fooDecoder[F[_]: WithThrowableError]: EnvelopeDecoder[F, Foo] =
   EnvelopeDecoder[F, String].map(Foo.apply)
 ```
 
