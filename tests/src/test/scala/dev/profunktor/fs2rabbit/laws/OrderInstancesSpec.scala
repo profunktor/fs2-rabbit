@@ -18,13 +18,13 @@ package dev.profunktor.fs2rabbit.laws
 
 import java.time.Instant
 
-import cats._
-import cats.implicits._
-import cats.kernel.laws.discipline._
-import dev.profunktor.fs2rabbit.model.AmqpFieldValue._
-import dev.profunktor.fs2rabbit.model._
-import dev.profunktor.fs2rabbit.testkit._
-import org.scalacheck.Arbitrary._
+import cats.*
+import cats.implicits.*
+import cats.kernel.laws.discipline.*
+import dev.profunktor.fs2rabbit.model.AmqpFieldValue.*
+import dev.profunktor.fs2rabbit.model.*
+import dev.profunktor.fs2rabbit.testkit.*
+import org.scalacheck.Arbitrary.*
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import org.typelevel.discipline.scalatest.FunSpecDiscipline

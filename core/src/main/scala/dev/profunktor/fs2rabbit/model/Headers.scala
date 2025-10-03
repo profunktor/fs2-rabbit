@@ -16,7 +16,7 @@
 
 package dev.profunktor.fs2rabbit.model
 
-import cats.syntax.all._
+import cats.syntax.all.*
 import cats.{ApplicativeThrow, Eq, Show}
 import dev.profunktor.fs2rabbit.model.Headers.MissingHeader
 import dev.profunktor.fs2rabbit.model.codec.{AmqpFieldDecoder, AmqpFieldEncoder}

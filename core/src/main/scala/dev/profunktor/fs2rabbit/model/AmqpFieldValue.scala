@@ -16,17 +16,17 @@
 
 package dev.profunktor.fs2rabbit.model
 
-import cats._
-import cats.implicits._
+import cats.*
+import cats.implicits.*
 import com.rabbitmq.client.LongString
 import dev.profunktor.fs2rabbit.model.codec.AmqpFieldDecoder
 import scodec.bits.ByteVector
-import scodec.interop.cats._
+import scodec.interop.cats.*
 
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.Date
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 /** This hierarchy is meant to reflect the output of [[com.rabbitmq.client.impl.ValueReader.readFieldValue]] in a
   * type-safe way.

@@ -16,8 +16,8 @@
 
 package dev.profunktor.fs2rabbit.model
 
-import cats._
-import cats.implicits._
+import cats.*
+import cats.implicits.*
 import cats.kernel.CommutativeSemigroup
 import com.rabbitmq.client.{Channel, Connection}
 import dev.profunktor.fs2rabbit.arguments.Arguments

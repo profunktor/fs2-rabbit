@@ -17,9 +17,9 @@
 package dev.profunktor.fs2rabbit.algebra
 
 import cats.effect.Sync
-import cats.syntax.functor._
-import dev.profunktor.fs2rabbit.arguments._
-import dev.profunktor.fs2rabbit.model._
+import cats.syntax.functor.*
+import dev.profunktor.fs2rabbit.arguments.*
+import dev.profunktor.fs2rabbit.model.*
 
 object Binding {
   def make[F[_]: Sync]: Binding[F] =

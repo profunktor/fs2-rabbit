@@ -17,10 +17,10 @@
 package dev.profunktor.fs2rabbit.algebra
 
 import cats.effect.Sync
-import cats.syntax.functor._
+import cats.syntax.functor.*
 import dev.profunktor.fs2rabbit.config.deletion
 import dev.profunktor.fs2rabbit.config.deletion.{DeletionExchangeConfig, DeletionQueueConfig}
-import dev.profunktor.fs2rabbit.effects.BoolValue.syntax._
+import dev.profunktor.fs2rabbit.effects.BoolValue.syntax.*
 import dev.profunktor.fs2rabbit.model.AMQPChannel
 
 object Deletion {

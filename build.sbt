@@ -24,8 +24,8 @@ publish / skip := true
 
 def scalaOptions(v: String): immutable.Seq[String] =
   CrossVersion.partialVersion(v) match {
-    case Some((2, 13)) => List("-Xsource:3", "-Wconf:msg=access modifiers:s")
-    case Some((3, _))  => List("-source:3.0-migration")
+    case Some((2, 13)) => List("-Xsource:3", "-Wconf:msg=access modifiers:w")
+    case Some((3, _))  => List("-source:3.3-migration")
     case _             => List("-Xmax-classfile-name", "100")
   }
 

@@ -21,11 +21,11 @@ import dev.profunktor.fs2rabbit.model.{AmqpProperties, Headers}
 import dev.profunktor.fs2rabbit.testing.AmqpPropertiesArbs
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
-import org.scalatestplus.scalacheck.{ScalaCheckPropertyChecks => PropertyChecks}
+import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks as PropertyChecks
 
 class AmqpPropertiesSpec extends AnyFlatSpecLike with PropertyChecks with Matchers {
 
-  import AmqpPropertiesArbs._
+  import AmqpPropertiesArbs.*
 
   it should s"convert from and to Java AMQP.BasicProperties" in
     forAll { (amqpProperties: AmqpProperties) =>

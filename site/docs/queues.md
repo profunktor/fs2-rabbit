@@ -14,10 +14,10 @@ Declaring a `Queue` will either create a new one or, in case a queue of that nam
 
 ```scala mdoc:silent
 import cats.effect.IO
-import cats.implicits._
-import dev.profunktor.fs2rabbit.config.declaration._
+import cats.implicits.*
+import dev.profunktor.fs2rabbit.config.declaration.*
 import dev.profunktor.fs2rabbit.interpreter.RabbitClient
-import dev.profunktor.fs2rabbit.model._
+import dev.profunktor.fs2rabbit.model.*
 
 val q1 = QueueName("q1")
 val q2 = QueueName("q2")

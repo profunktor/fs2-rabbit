@@ -16,18 +16,18 @@
 
 package dev.profunktor.fs2rabbit.interpreter
 
-import cats.effect._
-import cats.implicits._
+import cats.effect.*
+import cats.implicits.*
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
-import dev.profunktor.fs2rabbit.config.declaration._
+import dev.profunktor.fs2rabbit.config.declaration.*
 import dev.profunktor.fs2rabbit.config.deletion.{DeletionExchangeConfig, DeletionQueueConfig}
 import dev.profunktor.fs2rabbit.model.AckResult.{Ack, NAck, Reject}
-import dev.profunktor.fs2rabbit.model._
+import dev.profunktor.fs2rabbit.model.*
 import dev.profunktor.fs2rabbit.BaseSpec
 import fs2.Stream
 import org.scalatest.Assertion
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.util.Random
 import scala.concurrent.Future
 import cats.effect.unsafe.implicits.global
@@ -42,7 +42,7 @@ trait Fs2RabbitSpec { self: BaseSpec =>
   val emptyAssertion: Assertion = true shouldBe true
 
   it should "create a connection and a queue with default arguments" in withRabbit { interpreter =>
-    import interpreter._
+    import interpreter.*
 
     createConnectionChannel.use { implicit channel =>
       randomQueueData
@@ -55,7 +55,7 @@ trait Fs2RabbitSpec { self: BaseSpec =>
   }
 
   it should "create a connection and a random queue" in withRabbit { interpreter =>
-    import interpreter._
+    import interpreter.*
 
     createConnectionChannel.use { implicit channel =>
       declareQueue.map(_.value should not be empty)
@@ -63,7 +63,7 @@ trait Fs2RabbitSpec { self: BaseSpec =>
   }
 
   it should "create a connection and a queue with options enabled" in withRabbit { interpreter =>
-    import interpreter._
+    import interpreter.*
 
     createConnectionChannel.use { implicit channel =>
       randomQueueData
@@ -76,7 +76,7 @@ trait Fs2RabbitSpec { self: BaseSpec =>
   }
 
   it should "create a connection and a queue (no wait)" in withRabbit { interpreter =>
-    import interpreter._
+    import interpreter.*
 
     createConnectionChannel.use { implicit channel =>
       randomQueueData
@@ -89,7 +89,7 @@ trait Fs2RabbitSpec { self: BaseSpec =>
   }
 
   it should "create a connection and a passive queue" in withRabbit { interpreter =>
-    import interpreter._
+    import interpreter.*
 
     createConnectionChannel.use { implicit channel =>
       mkRandomString
@@ -103,7 +103,7 @@ trait Fs2RabbitSpec { self: BaseSpec =>
   }
 
   it should "return an error during creation of a passive queue if queue doesn't exist" in withRabbit { interpreter =>
-    import interpreter._
+    import interpreter.*
 
     createConnectionChannel.use { implicit channel =>
       for {
@@ -115,7 +115,7 @@ trait Fs2RabbitSpec { self: BaseSpec =>
 
   it should "return an error during creation of a passive exchange if exchange doesn't exist" in withRabbit {
     interpreter =>
-      import interpreter._
+      import interpreter.*
 
       createConnectionChannel.use { implicit channel =>
         for {
@@ -126,7 +126,7 @@ trait Fs2RabbitSpec { self: BaseSpec =>
   }
 
   it should "create a connection and an exchange" in withRabbit { interpreter =>
-    import interpreter._
+    import interpreter.*
 
     createConnectionChannel.use { implicit channel =>
       randomQueueData
@@ -139,7 +139,7 @@ trait Fs2RabbitSpec { self: BaseSpec =>
   }
 
   it should "create a connection and an exchange (no wait)" in withRabbit { interpreter =>
-    import interpreter._
+    import interpreter.*
 
     createConnectionChannel.use { implicit channel =>
       randomQueueData
@@ -152,7 +152,7 @@ trait Fs2RabbitSpec { self: BaseSpec =>
   }
 
   it should "create a connection and declare an exchange passively" in withRabbit { interpreter =>
-    import interpreter._
+    import interpreter.*
 
     createConnectionChannel.use { implicit channel =>
       mkRandomString
@@ -166,7 +166,7 @@ trait Fs2RabbitSpec { self: BaseSpec =>
   }
 
   it should "return an error as the result of 'basicCancel' if consumer doesn't exist" in withRabbit { interpreter =>
-    import interpreter._
+    import interpreter.*
 
     createConnectionChannel.use { implicit channel =>
       for {
@@ -182,7 +182,7 @@ trait Fs2RabbitSpec { self: BaseSpec =>
   }
 
   it should "create an acker consumer and verify both envelope and ack result" in withRabbit { interpreter =>
-    import interpreter._
+    import interpreter.*
 
     createConnectionChannel.use { implicit channel =>
       for {
@@ -209,7 +209,7 @@ trait Fs2RabbitSpec { self: BaseSpec =>
 
   it should "create an acker consumer with ack multiple flag and verify both envelope and ack result" in withRabbit {
     interpreter =>
-      import interpreter._
+      import interpreter.*
 
       createConnectionChannel.use { implicit channel =>
         for {
@@ -235,7 +235,7 @@ trait Fs2RabbitSpec { self: BaseSpec =>
   }
 
   it should "NOT requeue a message in case of NAck when option 'requeueOnNack = false'" in withRabbit { interpreter =>
-    import interpreter._
+    import interpreter.*
 
     createConnectionChannel.use { implicit channel =>
       for {
@@ -262,7 +262,7 @@ trait Fs2RabbitSpec { self: BaseSpec =>
 
   it should "NOT requeue a message in case of Reject when option 'requeueOnReject = false'" in withRabbit {
     interpreter =>
-      import interpreter._
+      import interpreter.*
 
       createConnectionChannel.use { implicit channel =>
         for {
@@ -288,7 +288,7 @@ trait Fs2RabbitSpec { self: BaseSpec =>
   }
 
   it should "create a publisher, an auto-ack consumer, publish a message and consume it" in withRabbit { interpreter =>
-    import interpreter._
+    import interpreter.*
 
     createConnectionChannel.use { implicit channel =>
       for {
@@ -312,7 +312,7 @@ trait Fs2RabbitSpec { self: BaseSpec =>
   }
 
   it should "create an exclusive auto-ack consumer with specific BasicQos" in withRabbit { interpreter =>
-    import interpreter._
+    import interpreter.*
 
     createConnectionChannel.use { implicit channel =>
       for {
@@ -338,7 +338,7 @@ trait Fs2RabbitSpec { self: BaseSpec =>
   }
 
   it should "create an exclusive acker consumer with specific BasicQos" in withRabbit { interpreter =>
-    import interpreter._
+    import interpreter.*
 
     createConnectionChannel.use { implicit channel =>
       for {
@@ -370,7 +370,7 @@ trait Fs2RabbitSpec { self: BaseSpec =>
   }
 
   it should "bind a queue with the nowait parameter set to true" in withRabbit { interpreter =>
-    import interpreter._
+    import interpreter.*
 
     createConnectionChannel.use { implicit channel =>
       randomQueueData
@@ -384,7 +384,7 @@ trait Fs2RabbitSpec { self: BaseSpec =>
   }
 
   it should "try to delete a queue twice (only first time should be okay)" in withRabbit { interpreter =>
-    import interpreter._
+    import interpreter.*
 
     createConnectionChannel.use { implicit channel =>
       for {
@@ -399,7 +399,7 @@ trait Fs2RabbitSpec { self: BaseSpec =>
                       .take(1)
                       .evalMap { either =>
                         IO {
-                          either shouldBe a[Left[_, _]]
+                          either shouldBe a[Left[?, ?]]
                           either.left.value shouldBe a[java.io.IOException]
                         }
                       }
@@ -410,18 +410,18 @@ trait Fs2RabbitSpec { self: BaseSpec =>
   }
 
   it should "delete an exchange successfully" in withRabbit { interpreter =>
-    import interpreter._
+    import interpreter.*
 
     createConnectionChannel.use { implicit channel =>
       mkRandomString.map(ExchangeName).flatMap { exchange =>
         declareExchange(exchange, ExchangeType.Direct) *>
-          deleteExchangeNoWait(DeletionExchangeConfig.onlyIfUnused(exchange)).attempt.map(_ shouldBe a[Right[_, _]])
+          deleteExchangeNoWait(DeletionExchangeConfig.onlyIfUnused(exchange)).attempt.map(_ shouldBe a[Right[?, ?]])
       }
     }
   }
 
   it should "try to unbind a queue when there is no binding" in withRabbit { interpreter =>
-    import interpreter._
+    import interpreter.*
 
     createConnectionChannel.use { implicit channel =>
       randomQueueData
@@ -435,7 +435,7 @@ trait Fs2RabbitSpec { self: BaseSpec =>
   }
 
   it should "unbind a queue" in withRabbit { interpreter =>
-    import interpreter._
+    import interpreter.*
 
     createConnectionChannel.use { implicit channel =>
       randomQueueData
@@ -450,7 +450,7 @@ trait Fs2RabbitSpec { self: BaseSpec =>
   }
 
   it should "bind an exchange to another exchange" in withRabbit { interpreter =>
-    import interpreter._
+    import interpreter.*
 
     createConnectionChannel.use { implicit channel =>
       for {
@@ -486,7 +486,7 @@ trait Fs2RabbitSpec { self: BaseSpec =>
   }
 
   it should "unbind an exchange" in withRabbit { interpreter =>
-    import interpreter._
+    import interpreter.*
 
     createConnectionChannel.use { implicit channel =>
       (mkRandomString.map(RoutingKey), mkRandomString.map(ExchangeName), mkRandomString.map(ExchangeName))
@@ -502,7 +502,7 @@ trait Fs2RabbitSpec { self: BaseSpec =>
 
   it should "requeue a message in case of NAck when option 'requeueOnNack = true'" in withStreamNackRabbit {
     interpreter =>
-      import interpreter._
+      import interpreter.*
 
       Stream.resource(createConnectionChannel).flatMap { implicit channel =>
         for {
@@ -530,7 +530,7 @@ trait Fs2RabbitSpec { self: BaseSpec =>
 
   it should "requeue a message in case of Reject when option 'requeueOnReject = true'" in withStreamRejectRabbit {
     interpreter =>
-      import interpreter._
+      import interpreter.*
 
       Stream.resource(createConnectionChannel).flatMap { implicit channel =>
         for {
@@ -558,7 +558,7 @@ trait Fs2RabbitSpec { self: BaseSpec =>
 
   it should "create a publisher, two auto-ack consumers with different routing keys and assert the routing is correct" in withRabbit {
     interpreter =>
-      import interpreter._
+      import interpreter.*
 
       createConnectionChannel.use { implicit channel =>
         for {
@@ -582,7 +582,7 @@ trait Fs2RabbitSpec { self: BaseSpec =>
                                .last
                                .timeout(1.second)
                                .attempt
-                               .map(_ shouldBe a[Left[_, _]])
+                               .map(_ shouldBe a[Left[?, ?]])
                                .as(msg shouldBe expectedDelivery(msg.deliveryTag, x, rk, "test"))
                            }
                          }
@@ -594,7 +594,7 @@ trait Fs2RabbitSpec { self: BaseSpec =>
 
   it should "create a publisher with listener and flag 'mandatory=true', an auto-ack consumer, publish a message and return to the listener" in withStreamRabbit {
     interpreter =>
-      import interpreter._
+      import interpreter.*
 
       val flag = PublishingFlag(mandatory = true)
 
@@ -622,7 +622,7 @@ trait Fs2RabbitSpec { self: BaseSpec =>
 
   it should "create a routing publisher, an auto-ack consumer, publish a message and consume it" in withRabbit {
     interpreter =>
-      import interpreter._
+      import interpreter.*
 
       createConnectionChannel.use { implicit channel =>
         for {
@@ -647,7 +647,7 @@ trait Fs2RabbitSpec { self: BaseSpec =>
 
   it should "create a routing publisher with listener and flag 'mandatory=true', an auto-ack consumer, publish a message and return to the listener" in withStreamRabbit {
     interpreter =>
-      import interpreter._
+      import interpreter.*
 
       val flag = PublishingFlag(mandatory = true)
 
@@ -673,7 +673,7 @@ trait Fs2RabbitSpec { self: BaseSpec =>
   }
 
   it should "consume published message" in withRabbit { interpreter =>
-    import interpreter._
+    import interpreter.*
 
     val message = "Test text here"
 
@@ -711,7 +711,7 @@ trait Fs2RabbitSpec { self: BaseSpec =>
   }
 
   it should "shutdown the stream when the server closes the channel" in withRabbit { interpreter =>
-    import interpreter._
+    import interpreter.*
     val msg = "will-not-be-acked"
     createConnectionChannel.use { implicit channel =>
       for {
@@ -734,7 +734,7 @@ trait Fs2RabbitSpec { self: BaseSpec =>
 
   it should "preserve order of published messages" in withRabbit { interpreter =>
     import dev.profunktor.fs2rabbit.effects.{EnvelopeDecoder, MessageEncoder}
-    import interpreter._
+    import interpreter.*
 
     implicit val intMessageEncoder: MessageEncoder[IO, AmqpMessage[Int]] =
       Kleisli[IO, AmqpMessage[Int], AmqpMessage[Array[Byte]]](s =>

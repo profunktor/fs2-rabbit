@@ -18,12 +18,12 @@ package dev.profunktor.fs2rabbit.algebra
 
 import cats.effect.kernel.Sync
 import cats.effect.std.Dispatcher
-import cats.syntax.flatMap._
-import cats.syntax.functor._
+import cats.syntax.flatMap.*
+import cats.syntax.functor.*
 import cats.{Applicative, Functor}
 import com.rabbitmq.client.{AMQP, Consumer, DefaultConsumer, Envelope, ShutdownSignalException}
-import dev.profunktor.fs2rabbit.arguments._
-import dev.profunktor.fs2rabbit.model._
+import dev.profunktor.fs2rabbit.arguments.*
+import dev.profunktor.fs2rabbit.model.*
 
 import scala.util.{Failure, Success, Try}
 
@@ -84,7 +84,7 @@ object Consume {
             val redelivered = envelope.isRedeliver
 
             // Calling the Functor instance manually for compatibility
-            import cats.instances.either._
+            import cats.instances.either.*
 
             val envelopeOrErr =
               Functor[Either[Throwable, *]].map(amqpPropertiesOrErr) { props =>

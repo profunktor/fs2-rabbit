@@ -13,9 +13,9 @@ For a given `Fs2 Rabbit` program defined as `Stream[F, Unit]`, a resilient app w
 ```scala mdoc:silent
 import cats.effect.IO
 import dev.profunktor.fs2rabbit.resiliency.ResilientStream
-import fs2._
+import fs2.*
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 val program: Stream[IO, Unit] = Stream.eval(IO.unit)
 

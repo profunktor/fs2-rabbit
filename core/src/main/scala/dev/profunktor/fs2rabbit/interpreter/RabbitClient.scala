@@ -16,14 +16,14 @@
 
 package dev.profunktor.fs2rabbit.interpreter
 
-import cats.effect._
+import cats.effect.*
 import cats.effect.std.Dispatcher
-import cats.implicits._
+import cats.implicits.*
 import com.rabbitmq.client.DefaultSaslConfig
 import com.rabbitmq.client.MetricsCollector
 import com.rabbitmq.client.SaslConfig
 import dev.profunktor.fs2rabbit.algebra.ConnectionResource.ConnectionResource
-import dev.profunktor.fs2rabbit.algebra._
+import dev.profunktor.fs2rabbit.algebra.*
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
 import dev.profunktor.fs2rabbit.config.declaration.DeclarationExchangeConfig
 import dev.profunktor.fs2rabbit.config.declaration.DeclarationQueueConfig
@@ -31,8 +31,8 @@ import dev.profunktor.fs2rabbit.config.deletion.DeletionExchangeConfig
 import dev.profunktor.fs2rabbit.config.deletion.DeletionQueueConfig
 import dev.profunktor.fs2rabbit.effects.EnvelopeDecoder
 import dev.profunktor.fs2rabbit.effects.MessageEncoder
-import dev.profunktor.fs2rabbit.model._
-import dev.profunktor.fs2rabbit.program._
+import dev.profunktor.fs2rabbit.model.*
+import dev.profunktor.fs2rabbit.program.*
 import fs2.Stream
 
 import java.util.concurrent.ThreadFactory

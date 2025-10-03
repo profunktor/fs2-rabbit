@@ -18,7 +18,7 @@ package dev.profunktor.fs2rabbit.laws
 
 import cats.kernel.laws.discipline.CommutativeSemigroupTests
 import dev.profunktor.fs2rabbit.model.DeliveryTag
-import dev.profunktor.fs2rabbit.testkit._
+import dev.profunktor.fs2rabbit.testkit.*
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import org.typelevel.discipline.scalatest.FunSpecDiscipline

@@ -10,7 +10,7 @@ An `AckerConsumer` delegates the responsibility to acknowledge messages to the u
 
 ```scala mdoc:silent
 import cats.effect.IO
-import dev.profunktor.fs2rabbit.model._
+import dev.profunktor.fs2rabbit.model.*
 import dev.profunktor.fs2rabbit.interpreter.RabbitClient
 import fs2.Stream
 

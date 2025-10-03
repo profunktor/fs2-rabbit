@@ -16,11 +16,11 @@
 
 package dev.profunktor.fs2rabbit.algebra
 
-import cats.effect._
+import cats.effect.*
 import cats.effect.std.Dispatcher
-import cats.syntax.functor._
+import cats.syntax.functor.*
 import com.rabbitmq.client.{AMQP, ReturnListener}
-import dev.profunktor.fs2rabbit.model._
+import dev.profunktor.fs2rabbit.model.*
 
 object Publish {
   def make[F[_]: Sync](dispatcher: Dispatcher[F]): Publish[F] =

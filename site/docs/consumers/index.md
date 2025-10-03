@@ -9,10 +9,10 @@ number: 6
 There are two types of consumer: `AutoAck` and `AckerConsumer`. Each of them are parameterized on the effect type (eg. `IO`) and the data type they consume (the payload).
 
 ```scala mdoc:invisible
-import dev.profunktor.fs2rabbit.model._
+import dev.profunktor.fs2rabbit.model.*
 import cats.data.Kleisli
-import cats.implicits._
-import cats._
+import cats.implicits.*
+import cats.*
 import dev.profunktor.fs2rabbit.effects.EnvelopeDecoder
 ```
 
@@ -44,7 +44,7 @@ implicit def fooDecoder[F[_]: WithThrowableError]: EnvelopeDecoder[F, Foo] =
 Another useful combinator is `flatMapF`. For example a decoder for circe's JSON type can be defined as follows:
 
 ```scala mdoc:silent
-import io.circe.parser._
+import io.circe.parser.*
 import io.circe.Json
 implicit def jsonDecoder[F[_]](implicit F: MonadError[F, Throwable]): EnvelopeDecoder[F, Json] =
   EnvelopeDecoder[F, String].flatMapF(s => F.fromEither(parse(s)))

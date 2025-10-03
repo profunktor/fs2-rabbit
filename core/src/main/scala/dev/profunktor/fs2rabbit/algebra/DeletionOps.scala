@@ -17,8 +17,8 @@
 package dev.profunktor.fs2rabbit.algebra
 
 import cats.~>
-import dev.profunktor.fs2rabbit.config.deletion._
-import dev.profunktor.fs2rabbit.model._
+import dev.profunktor.fs2rabbit.config.deletion.*
+import dev.profunktor.fs2rabbit.model.*
 
 private[fs2rabbit] final class DeletionOps[F[_]](val deletion: Deletion[F]) extends AnyVal {
   def mapK[G[_]](fK: F ~> G): Deletion[G] = new Deletion[G] {

@@ -18,8 +18,8 @@ package dev.profunktor.fs2rabbit.examples
 
 import java.nio.charset.StandardCharsets.UTF_8
 import cats.data.Kleisli
-import cats.effect._
-import cats.implicits._
+import cats.effect.*
+import cats.implicits.*
 import dev.profunktor.fs2rabbit.config.declaration.{DeclarationExchangeConfig, DeclarationQueueConfig}
 import dev.profunktor.fs2rabbit.model.Headers
 import dev.profunktor.fs2rabbit.effects.MessageEncoder
@@ -28,8 +28,8 @@ import dev.profunktor.fs2rabbit.json.Fs2JsonEncoder
 import dev.profunktor.fs2rabbit.model.AckResult.Ack
 import dev.profunktor.fs2rabbit.model.AmqpFieldValue.{LongVal, StringVal}
 import dev.profunktor.fs2rabbit.model.ExchangeType.Topic
-import dev.profunktor.fs2rabbit.model._
-import fs2._
+import dev.profunktor.fs2rabbit.model.*
+import fs2.*
 
 class AckerConsumerDemo[F[_]: Async](fs2Rabbit: RabbitClient[F]) {
   private val queueName    = QueueName("testQ")
@@ -77,7 +77,7 @@ class Flow[F[_]: Concurrent, A](
     publisher: AmqpMessage[String] => F[Unit]
 ) {
 
-  import io.circe.generic.auto._
+  import io.circe.generic.auto.*
 
   case class Address(number: Int, streetName: String)
   case class Person(id: Long, name: String, address: Address)

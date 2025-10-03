@@ -17,10 +17,10 @@
 package dev.profunktor.fs2rabbit.program
 
 import cats.{Functor, ~>}
-import cats.implicits._
+import cats.implicits.*
 import dev.profunktor.fs2rabbit.arguments.Arguments
 import dev.profunktor.fs2rabbit.effects.EnvelopeDecoder
-import dev.profunktor.fs2rabbit.model._
+import dev.profunktor.fs2rabbit.model.*
 import fs2.Stream
 
 final class AckConsumingProgramOps[F[_]](val prog: AckConsumingProgram[F]) extends AnyVal {

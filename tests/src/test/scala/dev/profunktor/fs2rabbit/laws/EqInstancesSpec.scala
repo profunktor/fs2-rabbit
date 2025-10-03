@@ -16,11 +16,11 @@
 
 package dev.profunktor.fs2rabbit.laws
 
-import cats.implicits._
+import cats.implicits.*
 import cats.kernel.laws.discipline.EqTests
-import dev.profunktor.fs2rabbit.model.AmqpFieldValue._
-import dev.profunktor.fs2rabbit.model._
-import dev.profunktor.fs2rabbit.testkit._
+import dev.profunktor.fs2rabbit.model.AmqpFieldValue.*
+import dev.profunktor.fs2rabbit.model.*
+import dev.profunktor.fs2rabbit.testkit.*
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import org.typelevel.discipline.scalatest.FunSpecDiscipline

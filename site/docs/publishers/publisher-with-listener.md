@@ -22,7 +22,7 @@ It is simply created by specifying `ExchangeName`, `RoutingKey`, `PublishingFlag
 
 ```scala mdoc:silent
 import cats.effect._
-import dev.profunktor.fs2rabbit.model._
+import dev.profunktor.fs2rabbit.model.*
 import dev.profunktor.fs2rabbit.interpreter.RabbitClient
 
 val exchangeName = ExchangeName("testEX")
@@ -46,7 +46,7 @@ Once you have a `Publisher` you can start publishing messages by calling it:
 
 ```scala mdoc:silent
 import cats.effect.Sync
-import dev.profunktor.fs2rabbit.model._
+import dev.profunktor.fs2rabbit.model.*
 
 def publishSimpleMessage[F[_]: Sync](publisher: String => F[Unit]): F[Unit] = {
   val message = "Hello world!"

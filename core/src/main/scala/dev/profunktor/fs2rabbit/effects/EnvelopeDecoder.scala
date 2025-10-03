@@ -16,7 +16,7 @@
 
 package dev.profunktor.fs2rabbit.effects
 import cats.data.Kleisli
-import cats.implicits._
+import cats.implicits.*
 import cats.{Applicative, ApplicativeError, ApplicativeThrow}
 import dev.profunktor.fs2rabbit.model.codec.AmqpFieldDecoder
 import dev.profunktor.fs2rabbit.model.{AmqpFieldValue, AmqpProperties, ExchangeName, HeaderKey, Headers, RoutingKey}
@@ -82,11 +82,11 @@ object EnvelopeDecoder extends EnvelopeDecoderInstances {
 
   @deprecated("Use headerAs[F, collection.Seq[Any]] instead", "5.3.0")
   def arrayHeader[F[_]: ApplicativeThrow](name: String): EnvelopeDecoder[F, collection.Seq[Any]] =
-    headerAs[F, collection.Seq[Any]](name)(ApplicativeThrow[F], AmqpFieldDecoder.collectionSeqDecoder[Any])
+    headerAs[F, collection.Seq[Any]](name)(using ApplicativeThrow[F], AmqpFieldDecoder.collectionSeqDecoder[Any])
 
   @deprecated("Use optHeaderAs[F, collection.Seq[Any]] instead", "5.3.0")
   def optArrayHeader[F[_]: ApplicativeThrow](name: String): EnvelopeDecoder[F, Option[collection.Seq[Any]]] =
-    optHeaderAs[F, collection.Seq[Any]](name)(ApplicativeThrow[F], AmqpFieldDecoder.collectionSeqDecoder[Any])
+    optHeaderAs[F, collection.Seq[Any]](name)(using ApplicativeThrow[F], AmqpFieldDecoder.collectionSeqDecoder[Any])
 }
 
 sealed trait EnvelopeDecoderInstances {

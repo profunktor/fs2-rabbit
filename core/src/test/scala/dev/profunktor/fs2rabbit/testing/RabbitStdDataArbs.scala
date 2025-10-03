@@ -17,7 +17,7 @@
 package dev.profunktor.fs2rabbit.testing
 
 import dev.profunktor.fs2rabbit.model.AmqpFieldValue.{DecimalVal, TimestampVal}
-import org.scalacheck._
+import org.scalacheck.*
 
 import java.time.Instant
 import java.util.Date

@@ -17,7 +17,7 @@
 package dev.profunktor.fs2rabbit.algebra
 
 import dev.profunktor.fs2rabbit.effects.EnvelopeDecoder
-import dev.profunktor.fs2rabbit.model._
+import dev.profunktor.fs2rabbit.model.*
 import fs2.Stream
 
 object AckConsumingStream {

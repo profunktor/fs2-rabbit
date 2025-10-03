@@ -18,7 +18,7 @@ package dev.profunktor.fs2rabbit.algebra
 
 import cats.~>
 import dev.profunktor.fs2rabbit.config.declaration.{DeclarationExchangeConfig, DeclarationQueueConfig}
-import dev.profunktor.fs2rabbit.model._
+import dev.profunktor.fs2rabbit.model.*
 
 private[fs2rabbit] final class DeclarationOps[F[_]](val declaration: Declaration[F]) extends AnyVal {
   def mapK[G[_]](fK: F ~> G): Declaration[G] = new Declaration[G] {

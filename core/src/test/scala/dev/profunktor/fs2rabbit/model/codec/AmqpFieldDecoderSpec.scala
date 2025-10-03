@@ -18,7 +18,7 @@ package dev.profunktor.fs2rabbit.model.codec
 
 import cats.data.{NonEmptyList, NonEmptySeq}
 import dev.profunktor.fs2rabbit.model.AmqpFieldValue
-import dev.profunktor.fs2rabbit.model.AmqpFieldValue._
+import dev.profunktor.fs2rabbit.model.AmqpFieldValue.*
 import dev.profunktor.fs2rabbit.model.codec.AmqpFieldDecoder.DecodingError
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers

@@ -16,13 +16,13 @@
 
 package dev.profunktor.fs2rabbit.model
 
-import cats._
-import cats.implicits._
+import cats.*
+import cats.implicits.*
 import com.rabbitmq.client.AMQP
 
 import java.time.Instant
 import java.util.Date
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 case class AmqpProperties(
     contentType: Option[String] = None,

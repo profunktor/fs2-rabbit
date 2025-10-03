@@ -17,7 +17,7 @@
 package dev.profunktor.fs2rabbit.effects
 
 import cats.effect.Sync
-import cats.syntax.functor._
+import cats.syntax.functor.*
 import fs2.{Pipe, Stream}
 
 trait StreamEval[F[_]] {
