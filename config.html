@@ -5,7 +5,7 @@
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="nn">cats.data.NonEmptyList</span>
 <span class="k">import</span> <span class="nn">dev.profunktor.fs2rabbit.config.</span><span class="o">{</span><span class="nc">Fs2RabbitConfig</span><span class="o">,</span> <span class="nc">Fs2RabbitNodeConfig</span><span class="o">}</span>
 
-<span class="k">import</span> <span class="nn">scala.concurrent.duration._</span>
+<span class="k">import</span> <span class="nn">scala.concurrent.duration.</span><span class="o">*</span>
 
 <span class="k">val</span> <span class="nv">config</span> <span class="k">=</span> <span class="nc">Fs2RabbitConfig</span><span class="o">(</span>
   <span class="n">virtualHost</span> <span class="k">=</span> <span class="s">"/"</span><span class="o">,</span>

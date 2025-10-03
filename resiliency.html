@@ -6,9 +6,9 @@
 
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="nn">cats.effect.IO</span>
 <span class="k">import</span> <span class="nn">dev.profunktor.fs2rabbit.resiliency.ResilientStream</span>
-<span class="k">import</span> <span class="nn">fs2._</span>
+<span class="k">import</span> <span class="nn">fs2.</span><span class="o">*</span>
 
-<span class="k">import</span> <span class="nn">scala.concurrent.duration._</span>
+<span class="k">import</span> <span class="nn">scala.concurrent.duration.</span><span class="o">*</span>
 
 <span class="k">val</span> <span class="nv">program</span><span class="k">:</span> <span class="kt">Stream</span><span class="o">[</span><span class="kt">IO</span>, <span class="kt">Unit</span><span class="o">]</span> <span class="k">=</span> <span class="nv">Stream</span><span class="o">.</span><span class="py">eval</span><span class="o">(</span><span class="nv">IO</span><span class="o">.</span><span class="py">unit</span><span class="o">)</span>
 

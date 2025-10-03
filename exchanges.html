@@ -8,9 +8,9 @@
 If the <code class="language-plaintext highlighter-rouge">Exchange</code> already exists, but has different properties (type, internal, …) the action will fail.</p>
 
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="nn">cats.effect.IO</span>
-<span class="k">import</span> <span class="nn">cats.implicits._</span>
+<span class="k">import</span> <span class="nn">cats.implicits.</span><span class="o">*</span>
 <span class="k">import</span> <span class="nn">dev.profunktor.fs2rabbit.interpreter.RabbitClient</span>
-<span class="k">import</span> <span class="nn">dev.profunktor.fs2rabbit.model._</span>
+<span class="k">import</span> <span class="nn">dev.profunktor.fs2rabbit.model.</span><span class="o">*</span>
 
 <span class="k">val</span> <span class="nv">x1</span> <span class="k">=</span> <span class="nc">ExchangeName</span><span class="o">(</span><span class="s">"x1"</span><span class="o">)</span>
 <span class="k">val</span> <span class="nv">x2</span> <span class="k">=</span> <span class="nc">ExchangeName</span><span class="o">(</span><span class="s">"x2"</span><span class="o">)</span>
@@ -26,7 +26,7 @@ If the <code class="language-plaintext highlighter-rouge">Exchange</code> alread
 
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="nn">cats.effect.IO</span>
 <span class="k">import</span> <span class="nn">dev.profunktor.fs2rabbit.interpreter.RabbitClient</span>
-<span class="k">import</span> <span class="nn">dev.profunktor.fs2rabbit.model._</span>
+<span class="k">import</span> <span class="nn">dev.profunktor.fs2rabbit.model.</span><span class="o">*</span>
 
 <span class="k">val</span> <span class="nv">x</span> <span class="k">=</span> <span class="nc">ExchangeName</span><span class="o">(</span><span class="s">"x"</span><span class="o">)</span>
 

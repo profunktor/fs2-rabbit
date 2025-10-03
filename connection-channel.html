@@ -3,7 +3,7 @@
 <p>These two are the primitive datatypes of the underlying <code class="language-plaintext highlighter-rouge">Java AMQP client</code>. What <code class="language-plaintext highlighter-rouge">RabbitClient</code> provides is the guarantee of acquiring, using and releasing both <code class="language-plaintext highlighter-rouge">Connection</code> and <code class="language-plaintext highlighter-rouge">Channel</code> in a safe way by using <code class="language-plaintext highlighter-rouge">Resource</code>. Even in the case of failure it is guaranteed that all the resources will be cleaned up.</p>
 
 <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="nn">cats.effect.</span><span class="o">{</span><span class="nc">IO</span><span class="o">,</span> <span class="nc">Resource</span><span class="o">}</span>
-<span class="k">import</span> <span class="nn">cats.implicits._</span>
+<span class="k">import</span> <span class="nn">cats.implicits.</span><span class="o">*</span>
 <span class="k">import</span> <span class="nn">dev.profunktor.fs2rabbit.interpreter.RabbitClient</span>
 <span class="k">import</span> <span class="nn">dev.profunktor.fs2rabbit.model.AMQPChannel</span>
 

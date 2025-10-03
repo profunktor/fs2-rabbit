@@ -3,7 +3,7 @@
 <p><code class="language-plaintext highlighter-rouge">RabbitClient</code> is the main client that wraps the communication  with <code class="language-plaintext highlighter-rouge">RabbitMQ</code>. The mandatory arguments are a <code class="language-plaintext highlighter-rouge">Fs2RabbitConfig</code> and a <code class="language-plaintext highlighter-rouge">cats.effect.Dispatcher</code> for running effects under the hood. Optionally, you can pass in a custom <code class="language-plaintext highlighter-rouge">SSLContext</code> and <code class="language-plaintext highlighter-rouge">SaslConfig</code>.
 An alternative constructor is provided for creating a <code class="language-plaintext highlighter-rouge">cats.effect.Resource[F, Rabbit[F]]</code> without directly handling the <code class="language-plaintext highlighter-rouge">Dispatcher</code>.</p>
 
-<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="nn">cats.effect._</span>
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="nn">cats.effect.</span><span class="o">*</span>
 <span class="k">import</span> <span class="nn">cats.effect.std.Dispatcher</span>
 <span class="k">import</span> <span class="nn">com.rabbitmq.client.</span><span class="o">{</span><span class="nc">DefaultSaslConfig</span><span class="o">,</span> <span class="nc">SaslConfig</span><span class="o">}</span>
 <span class="k">import</span> <span class="nn">dev.profunktor.fs2rabbit.config.Fs2RabbitConfig</span>
@@ -28,13 +28,13 @@ An alternative constructor is provided for creating a <code class="language-plai
 
 <p>Its creation is effectful so you need to <code class="language-plaintext highlighter-rouge">flatMap</code> and pass it as an argument. For example:</p>
 
-<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="nn">cats.effect._</span>
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="nn">cats.effect.</span><span class="o">*</span>
 <span class="k">import</span> <span class="nn">cats.effect.std.Dispatcher</span>
-<span class="k">import</span> <span class="nn">cats.syntax.functor._</span>
+<span class="k">import</span> <span class="nn">cats.syntax.functor.</span><span class="o">*</span>
 <span class="k">import</span> <span class="nn">dev.profunktor.fs2rabbit.interpreter.RabbitClient</span>
 <span class="k">import</span> <span class="nn">java.util.concurrent.Executors</span>
 
-<span class="k">import</span> <span class="nn">scala.concurrent.duration._</span>
+<span class="k">import</span> <span class="nn">scala.concurrent.duration.</span><span class="o">*</span>
 
 <span class="k">object</span> <span class="nc">Program</span> <span class="o">{</span>
   <span class="k">def</span> <span class="nf">foo</span><span class="o">[</span><span class="kt">F</span><span class="o">[</span><span class="k">_</span><span class="o">]](</span><span class="n">client</span><span class="k">:</span> <span class="kt">RabbitClient</span><span class="o">[</span><span class="kt">F</span><span class="o">])</span><span class="k">:</span> <span class="kt">F</span><span class="o">[</span><span class="kt">Unit</span><span class="o">]</span> <span class="k">=</span> <span class="o">???</span>
