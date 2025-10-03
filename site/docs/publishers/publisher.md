@@ -9,8 +9,8 @@ number: 11
 A `Publisher` is simply created by specifying an `ExchangeName` and a `RoutingKey`:
 
 ```scala mdoc:silent
-import cats.effect._
-import dev.profunktor.fs2rabbit.model._
+import cats.effect.*
+import dev.profunktor.fs2rabbit.model.*
 import dev.profunktor.fs2rabbit.interpreter.RabbitClient
 
 val exchangeName = ExchangeName("testEX")
@@ -30,7 +30,7 @@ Once you have a `Publisher` you can start publishing messages by simpy calling i
 
 ```scala mdoc:silent
 import cats.effect.Sync
-import dev.profunktor.fs2rabbit.model._
+import dev.profunktor.fs2rabbit.model.*
 
 def publishSimpleMessage[F[_]: Sync](publisher: String => F[Unit]): F[Unit] =
   publisher("Hello world!")

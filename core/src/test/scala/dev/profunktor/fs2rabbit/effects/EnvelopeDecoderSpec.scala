@@ -20,8 +20,8 @@ import java.nio.charset.StandardCharsets
 
 import cats.data.EitherT
 import cats.effect.{IO, SyncIO}
-import cats.instances.either._
-import cats.instances.try_._
+import cats.instances.either.*
+import cats.instances.try_.*
 import dev.profunktor.fs2rabbit.model.{AmqpEnvelope, AmqpProperties, DeliveryTag, ExchangeName, RoutingKey}
 import org.scalatest.funsuite.AsyncFunSuite
 
@@ -31,7 +31,7 @@ import cats.effect.unsafe.implicits.global
 
 class EnvelopeDecoderSpec extends AsyncFunSuite {
 
-  import EnvelopeDecoder._
+  import EnvelopeDecoder.*
   // Available instances of EnvelopeDecoder for any ApplicativeError[F, Throwable]
   EnvelopeDecoder[Either[Throwable, *], String]
   EnvelopeDecoder[SyncIO, String]

@@ -10,7 +10,7 @@ These two are the primitive datatypes of the underlying `Java AMQP client`. What
 
 ```scala mdoc:silent
 import cats.effect.{IO, Resource}
-import cats.implicits._
+import cats.implicits.*
 import dev.profunktor.fs2rabbit.interpreter.RabbitClient
 import dev.profunktor.fs2rabbit.model.AMQPChannel
 

@@ -18,9 +18,9 @@ package dev.profunktor.fs2rabbit.model.codec
 
 import cats.data.{NonEmptyList, NonEmptySeq}
 import dev.profunktor.fs2rabbit.model.{AmqpFieldValue, ShortString}
-import dev.profunktor.fs2rabbit.model.AmqpFieldValue._
+import dev.profunktor.fs2rabbit.model.AmqpFieldValue.*
 import dev.profunktor.fs2rabbit.model.codec.AmqpFieldDecoder.DecodingError
-import dev.profunktor.fs2rabbit.testing._
+import dev.profunktor.fs2rabbit.testing.*
 import org.scalacheck.Arbitrary
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
@@ -32,10 +32,10 @@ import scala.reflect.{ClassTag, classTag}
 
 class AmqpFieldIsoCodecSpec extends AnyFunSuite with Matchers {
 
-  import AmqpPropertiesArbs._
-  import CatsCollectionsArbs._
-  import RabbitStdDataArbs._
-  import ScalaCheckPropertyChecks._
+  import AmqpPropertiesArbs.*
+  import CatsCollectionsArbs.*
+  import RabbitStdDataArbs.*
+  import ScalaCheckPropertyChecks.*
 
   implicit val decodingErrorArb: Arbitrary[DecodingError] =
     Arbitrary(Arbitrary.arbitrary[String].map(DecodingError(_)))

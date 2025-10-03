@@ -19,10 +19,10 @@ package dev.profunktor.fs2rabbit.resiliency
 import cats.effect.IO
 import cats.effect.kernel.Ref
 import dev.profunktor.fs2rabbit.BaseSpec
-import fs2._
+import fs2.*
 import cats.effect.unsafe.implicits.global
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import org.scalatest.compatible.Assertion
 
 class ResilientStreamSpec extends BaseSpec {

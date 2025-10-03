@@ -12,15 +12,16 @@ Here we create a single `AutoAckConsumer`, a single `Publisher` and finally we p
 import java.nio.charset.StandardCharsets.UTF_8
 
 import cats.data.Kleisli
-import cats.effect._
-import cats.implicits._
+import cats.effect.*
+import cats.implicits.*
 import dev.profunktor.fs2rabbit.config.declaration.DeclarationQueueConfig
+import dev.profunktor.fs2rabbit.effects.MessageEncoder
 import dev.profunktor.fs2rabbit.interpreter.RabbitClient
 import dev.profunktor.fs2rabbit.json.Fs2JsonEncoder
 import dev.profunktor.fs2rabbit.model.AckResult.Ack
 import dev.profunktor.fs2rabbit.model.AmqpFieldValue.{LongVal, StringVal}
-import dev.profunktor.fs2rabbit.model._
-import fs2._
+import dev.profunktor.fs2rabbit.model.*
+import fs2.*
 
 class AutoAckFlow[F[_]: Async, A](
     consumer: Stream[F, AmqpEnvelope[A]],
@@ -56,7 +57,7 @@ class AutoAckConsumerDemo[F[_]: Async](R: RabbitClient[F]) {
   private val queueName    = QueueName("testQ")
   private val exchangeName = ExchangeName("testEX")
   private val routingKey   = RoutingKey("testRK")
-  implicit val stringMessageEncoder =
+  implicit val stringMessageEncoder: MessageEncoder[F, AmqpMessage[String]] =
     Kleisli[F, AmqpMessage[String], AmqpMessage[Array[Byte]]](s => s.copy(payload = s.payload.getBytes(UTF_8)).pure[F])
 
   def logPipe: Pipe[F, AmqpEnvelope[String], AckResult] = _.evalMap { amqpMsg =>

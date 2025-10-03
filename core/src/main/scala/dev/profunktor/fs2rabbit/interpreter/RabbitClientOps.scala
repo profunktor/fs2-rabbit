@@ -20,12 +20,12 @@ import cats.data.EitherT
 import cats.effect.MonadCancelThrow
 import cats.effect.kernel.MonadCancel
 import cats.~>
-import cats.implicits._
+import cats.implicits.*
 import dev.profunktor.fs2rabbit.algebra.ConnectionResource
 
 final class RabbitClientOps[F[_]](val client: RabbitClient[F]) extends AnyVal {
-  import ConnectionResource._
-  def imapK[G[_]](fk: F ~> G)(gk: G ~> F)(implicit F: MonadCancel[F, _], G: MonadCancel[G, _]): RabbitClient[G] =
+  import ConnectionResource.*
+  def imapK[G[_]](fk: F ~> G)(gk: G ~> F)(implicit F: MonadCancel[F, ?], G: MonadCancel[G, ?]): RabbitClient[G] =
     new RabbitClient[G](
       client.connection.mapK(fk),
       client.binding.mapK(fk),

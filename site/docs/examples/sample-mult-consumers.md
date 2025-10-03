@@ -9,11 +9,11 @@ number: 16
 Given two `Consumers` bound to queues with different `RoutingKey`s `RKA` and `RKB` and a single `Publisher` bound to a single `RoutingKey` named `RKA` we will be publishing messages to both queues but expecting to only consume messages published to the `RKA`. The second consumer bound to `RKB` will not receive any messages:
 
 ```scala mdoc:silent
-import cats.effect._
+import cats.effect.*
 import dev.profunktor.fs2rabbit.config.declaration.DeclarationQueueConfig
 import dev.profunktor.fs2rabbit.interpreter.RabbitClient
-import dev.profunktor.fs2rabbit.model._
-import fs2._
+import dev.profunktor.fs2rabbit.model.*
+import fs2.*
 
 val q1  = QueueName("q1")
 val q2  = QueueName("q2")

@@ -9,10 +9,10 @@ number: 6
 There are two types of consumer: `AutoAck` and `AckerConsumer`. Each of them are parameterized on the effect type (eg. `IO`) and the data type they consume (the payload).
 
 ```scala mdoc:invisible
-import dev.profunktor.fs2rabbit.model._
+import dev.profunktor.fs2rabbit.model.*
 import cats.data.Kleisli
-import cats.implicits._
-import cats._
+import cats.implicits.*
+import cats.*
 import dev.profunktor.fs2rabbit.effects.EnvelopeDecoder
 ```
 
@@ -34,15 +34,17 @@ implicit def bytesDecoder[F[_]: Applicative]: EnvelopeDecoder[F, Array[Byte]] =
 You can write all your `EnvelopeDecoder` instances this way, but it's usually easier to make use of existing instances. `Kleisli` forms a Monad, so you can use all the usual combinators like `map`:
 
 ```scala mdoc:silent
+type WithThrowableError[F[_]] = ApplicativeError[F, Throwable]
+
 case class Foo(s: String)
-implicit def fooDecoder[F[_]: ApplicativeError[*[_], Throwable]]: EnvelopeDecoder[F, Foo] =
+implicit def fooDecoder[F[_]: WithThrowableError]: EnvelopeDecoder[F, Foo] =
   EnvelopeDecoder[F, String].map(Foo.apply)
 ```
 
 Another useful combinator is `flatMapF`. For example a decoder for circe's JSON type can be defined as follows:
 
 ```scala mdoc:silent
-import io.circe.parser._
+import io.circe.parser.*
 import io.circe.Json
 implicit def jsonDecoder[F[_]](implicit F: MonadError[F, Throwable]): EnvelopeDecoder[F, Json] =
   EnvelopeDecoder[F, String].flatMapF(s => F.fromEither(parse(s)))

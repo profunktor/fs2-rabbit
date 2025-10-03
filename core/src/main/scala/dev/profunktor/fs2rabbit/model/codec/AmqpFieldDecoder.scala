@@ -18,7 +18,7 @@ package dev.profunktor.fs2rabbit.model.codec
 
 import cats.MonadError
 import cats.data.{NonEmptyList, NonEmptySeq}
-import cats.syntax.all._
+import cats.syntax.all.*
 import dev.profunktor.fs2rabbit.model.AmqpFieldValue.ByteArrayVal
 import dev.profunktor.fs2rabbit.model.codec.AmqpFieldDecoder.DecodingError
 import dev.profunktor.fs2rabbit.model.{AmqpFieldValue, ShortString}

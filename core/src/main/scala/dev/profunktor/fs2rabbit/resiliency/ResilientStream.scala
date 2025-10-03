@@ -17,11 +17,11 @@
 package dev.profunktor.fs2rabbit.resiliency
 
 import cats.effect.Temporal
-import cats.syntax.apply._
+import cats.syntax.apply.*
 import dev.profunktor.fs2rabbit.effects.Log
 import fs2.Stream
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.util.control.NonFatal
 
 /** It provides a resilient run method for an effectful `fs2.Stream` that will run forever with automatic error

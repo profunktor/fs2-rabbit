@@ -23,7 +23,7 @@ import dev.profunktor.fs2rabbit.algebra.{AMQPInternals, Acking, Consume}
 import dev.profunktor.fs2rabbit.arguments.Arguments
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
 import dev.profunktor.fs2rabbit.model.AckResult.{Ack, NAck, Reject}
-import dev.profunktor.fs2rabbit.model._
+import dev.profunktor.fs2rabbit.model.*
 
 object AckingProgram {
   def make[F[_]: Sync](config: Fs2RabbitConfig, dispatcher: Dispatcher[F]): AckingProgram[F] =

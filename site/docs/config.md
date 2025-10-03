@@ -12,7 +12,7 @@ The main `RabbitMQ` configuration should be defined as `Fs2RabbitConfig`. You ch
 import cats.data.NonEmptyList
 import dev.profunktor.fs2rabbit.config.{Fs2RabbitConfig, Fs2RabbitNodeConfig}
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 val config = Fs2RabbitConfig(
   virtualHost = "/",

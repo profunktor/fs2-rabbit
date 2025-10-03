@@ -19,7 +19,7 @@ package dev.profunktor.fs2rabbit.examples
 import java.nio.charset.StandardCharsets.UTF_8
 import cats.data.{Kleisli, NonEmptyList}
 import cats.effect.{IO, IOApp, Resource, Sync}
-import cats.implicits._
+import cats.implicits.*
 import com.codahale.metrics.MetricRegistry
 import com.codahale.metrics.jmx.JmxReporter
 import com.rabbitmq.client.impl.StandardMetricsCollector
@@ -29,10 +29,10 @@ import dev.profunktor.fs2rabbit.effects.MessageEncoder
 import dev.profunktor.fs2rabbit.interpreter.RabbitClient
 import dev.profunktor.fs2rabbit.model.AckResult.Ack
 import dev.profunktor.fs2rabbit.model.ExchangeType.Topic
-import dev.profunktor.fs2rabbit.model._
-import fs2._
+import dev.profunktor.fs2rabbit.model.*
+import fs2.*
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 object DropwizardMetricsDemo extends IOApp.Simple {
 

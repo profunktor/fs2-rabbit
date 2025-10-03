@@ -17,12 +17,12 @@
 package dev.profunktor.fs2rabbit.program
 
 import cats.effect.Sync
-import cats.implicits._
-import dev.profunktor.fs2rabbit.algebra.ConsumingStream._
+import cats.implicits.*
+import dev.profunktor.fs2rabbit.algebra.ConsumingStream.*
 import dev.profunktor.fs2rabbit.algebra.{AMQPInternals, Consume, InternalQueue}
 import dev.profunktor.fs2rabbit.arguments.Arguments
 import dev.profunktor.fs2rabbit.effects.EnvelopeDecoder
-import dev.profunktor.fs2rabbit.model._
+import dev.profunktor.fs2rabbit.model.*
 import fs2.Stream
 
 object ConsumingProgram {

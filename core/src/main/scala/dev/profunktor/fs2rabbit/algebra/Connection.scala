@@ -19,11 +19,10 @@ package dev.profunktor.fs2rabbit.algebra
 import cats.effect.Resource
 import cats.effect.Sync
 import cats.effect.kernel.MonadCancel
-import cats.implicits._
+import cats.implicits.*
 import cats.~>
 import com.rabbitmq.client.Address
 import com.rabbitmq.client.ConnectionFactory
-import com.rabbitmq.client.DefaultSaslConfig
 import com.rabbitmq.client.MetricsCollector
 import com.rabbitmq.client.SaslConfig
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
@@ -41,8 +40,7 @@ import java.util.concurrent.ThreadFactory
 import java.util.concurrent.TimeUnit
 import javax.net.ssl.SSLContext
 import scala.concurrent.ExecutionContext
-import scala.jdk.CollectionConverters._
-import java.util.concurrent.Executors
+import scala.jdk.CollectionConverters.*
 
 object ConnectionResource {
   type ConnectionResource[F[_]] = Connection[Resource[F, *]]
@@ -155,7 +153,7 @@ object ConnectionResource {
     }
 
   implicit class ConnectionResourceOps[F[_]](val cf: ConnectionResource[F]) extends AnyVal {
-    def mapK[G[_]](fk: F ~> G)(implicit F: MonadCancel[F, _], G: MonadCancel[G, _]): ConnectionResource[G] =
+    def mapK[G[_]](fk: F ~> G)(implicit F: MonadCancel[F, ?], G: MonadCancel[G, ?]): ConnectionResource[G] =
       new Connection[Resource[G, *]] {
         def createConnection: Resource[G, AMQPConnection]                       = cf.createConnection.mapK(fk)
         def createChannel(connection: AMQPConnection): Resource[G, AMQPChannel] = cf.createChannel(connection).mapK(fk)

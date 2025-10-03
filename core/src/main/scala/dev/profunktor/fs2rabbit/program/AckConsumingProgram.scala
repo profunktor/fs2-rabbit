@@ -16,15 +16,15 @@
 
 package dev.profunktor.fs2rabbit.program
 
-import cats.effect._
+import cats.effect.*
 import cats.effect.std.Dispatcher
-import cats.implicits._
+import cats.implicits.*
 import dev.profunktor.fs2rabbit.algebra.ConsumingStream.ConsumingStream
 import dev.profunktor.fs2rabbit.algebra.{AckConsuming, Acking, Cancel, Consume, InternalQueue}
 import dev.profunktor.fs2rabbit.arguments.Arguments
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
 import dev.profunktor.fs2rabbit.effects.EnvelopeDecoder
-import dev.profunktor.fs2rabbit.model._
+import dev.profunktor.fs2rabbit.model.*
 import fs2.Stream
 
 object AckConsumingProgram {

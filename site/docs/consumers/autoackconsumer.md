@@ -10,8 +10,8 @@ An `AutoAckConsumer` acknowledges every consumed message automatically, so all y
 
 ```scala mdoc:silent
 import cats.effect.IO
-import cats.implicits._
-import dev.profunktor.fs2rabbit.model._
+import cats.implicits.*
+import dev.profunktor.fs2rabbit.model.*
 import dev.profunktor.fs2rabbit.interpreter.RabbitClient
 import fs2.Stream
 

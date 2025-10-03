@@ -15,9 +15,9 @@
  */
 
 package dev.profunktor.fs2rabbit.model
-import cats._
-import cats.data._
-import cats.implicits._
+import cats.*
+import cats.data.*
+import cats.implicits.*
 import dev.profunktor.fs2rabbit.effects.EnvelopeDecoder
 
 import java.nio.charset.Charset

@@ -17,9 +17,9 @@
 package dev.profunktor.fs2rabbit.program
 
 import cats.{Functor, ~>}
-import cats.implicits._
+import cats.implicits.*
 import dev.profunktor.fs2rabbit.effects.MessageEncoder
-import dev.profunktor.fs2rabbit.model._
+import dev.profunktor.fs2rabbit.model.*
 
 final class PublishingProgramOps[F[_]](val prog: PublishingProgram[F]) extends AnyVal {
   def imapK[G[_]](fk: F ~> G)(gk: G ~> F)(implicit F: Functor[F]): PublishingProgram[G] = new PublishingProgram[G] {

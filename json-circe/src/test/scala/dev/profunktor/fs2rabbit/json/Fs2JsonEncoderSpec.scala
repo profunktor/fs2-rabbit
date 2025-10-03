@@ -18,8 +18,8 @@ package dev.profunktor.fs2rabbit.json
 
 import dev.profunktor.fs2rabbit.model.{AmqpMessage, AmqpProperties}
 import io.circe.Printer
-import io.circe.generic.auto._
-import io.circe.syntax._
+import io.circe.generic.auto.*
+import io.circe.syntax.*
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 

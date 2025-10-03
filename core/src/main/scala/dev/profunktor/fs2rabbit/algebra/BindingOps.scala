@@ -17,7 +17,7 @@
 package dev.profunktor.fs2rabbit.algebra
 
 import cats.~>
-import dev.profunktor.fs2rabbit.model._
+import dev.profunktor.fs2rabbit.model.*
 
 private[fs2rabbit] final class BindingOps[F[_]](val binding: Binding[F]) extends AnyVal {
   def mapK[G[_]](fK: F ~> G): Binding[G] = new Binding[G] {

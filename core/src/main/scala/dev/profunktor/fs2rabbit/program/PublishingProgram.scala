@@ -19,10 +19,10 @@ package dev.profunktor.fs2rabbit.program
 import cats.Applicative
 import cats.effect.Sync
 import cats.effect.std.Dispatcher
-import cats.implicits._
+import cats.implicits.*
 import dev.profunktor.fs2rabbit.algebra.{Publish, Publishing}
 import dev.profunktor.fs2rabbit.effects.MessageEncoder
-import dev.profunktor.fs2rabbit.model._
+import dev.profunktor.fs2rabbit.model.*
 
 object PublishingProgram {
   def make[F[_]: Sync](dispatcher: Dispatcher[F]): PublishingProgram[F] =

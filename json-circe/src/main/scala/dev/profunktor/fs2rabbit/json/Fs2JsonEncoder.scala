@@ -19,7 +19,7 @@ package dev.profunktor.fs2rabbit.json
 import dev.profunktor.fs2rabbit.model.AmqpMessage
 import io.circe.Encoder
 import io.circe.Printer
-import io.circe.syntax._
+import io.circe.syntax.*
 
 /** Stream-based Json Encoder that exposes only one method as a streaming transformation using `fs2.Pipe` and depends on
   * the Circe library.

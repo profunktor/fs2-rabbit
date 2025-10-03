@@ -16,7 +16,7 @@
 
 package dev.profunktor.fs2rabbit.interpreter
 
-import cats.implicits._
+import cats.implicits.*
 import dev.profunktor.fs2rabbit.BaseSpec
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
 

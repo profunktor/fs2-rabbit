@@ -17,7 +17,7 @@
 package dev.profunktor.fs2rabbit.algebra
 
 import dev.profunktor.fs2rabbit.effects.MessageEncoder
-import dev.profunktor.fs2rabbit.model._
+import dev.profunktor.fs2rabbit.model.*
 
 trait Publishing[F[_]] {
 

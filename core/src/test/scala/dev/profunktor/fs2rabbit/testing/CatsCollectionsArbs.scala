@@ -18,7 +18,7 @@ package dev.profunktor.fs2rabbit.testing
 
 import cats.data.{NonEmptyList, NonEmptySeq}
 import org.scalacheck.Arbitrary.arbitrary
-import org.scalacheck._
+import org.scalacheck.*
 
 object CatsCollectionsArbs {
 

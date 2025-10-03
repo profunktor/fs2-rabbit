@@ -16,7 +16,7 @@
 
 package dev.profunktor.fs2rabbit.effects
 
-import dev.profunktor.fs2rabbit.config.declaration._
+import dev.profunktor.fs2rabbit.config.declaration.*
 import dev.profunktor.fs2rabbit.config.deletion.{Empty, IfEmptyCfg, IfUnusedCfg, Unused}
 
 trait BoolValue[A] {

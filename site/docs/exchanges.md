@@ -15,9 +15,9 @@ If the `Exchange` already exists, but has different properties (type, internal, 
 
 ```scala mdoc:silent
 import cats.effect.IO
-import cats.implicits._
+import cats.implicits.*
 import dev.profunktor.fs2rabbit.interpreter.RabbitClient
-import dev.profunktor.fs2rabbit.model._
+import dev.profunktor.fs2rabbit.model.*
 
 val x1 = ExchangeName("x1")
 val x2 = ExchangeName("x2")
@@ -34,7 +34,7 @@ An `Exchange` can be declared passively, meaning that the `Exchange` is required
 ```scala mdoc:silent
 import cats.effect.IO
 import dev.profunktor.fs2rabbit.interpreter.RabbitClient
-import dev.profunktor.fs2rabbit.model._
+import dev.profunktor.fs2rabbit.model.*
 
 val x = ExchangeName("x")
 

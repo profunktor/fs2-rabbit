@@ -17,10 +17,10 @@
 package dev.profunktor.fs2rabbit.algebra
 
 import cats.effect.Sync
-import cats.syntax.all._
-import dev.profunktor.fs2rabbit.arguments._
+import cats.syntax.all.*
+import dev.profunktor.fs2rabbit.arguments.*
 import dev.profunktor.fs2rabbit.config.declaration.{DeclarationExchangeConfig, DeclarationQueueConfig}
-import dev.profunktor.fs2rabbit.effects.BoolValue.syntax._
+import dev.profunktor.fs2rabbit.effects.BoolValue.syntax.*
 import dev.profunktor.fs2rabbit.model.{AMQPChannel, ExchangeName, QueueName}
 
 object Declaration {

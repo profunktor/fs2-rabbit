@@ -19,17 +19,17 @@ package dev.profunktor.fs2rabbit
 import java.io.{DataInputStream, DataOutputStream, InputStream, OutputStream}
 import java.time.Instant
 import com.rabbitmq.client.impl.{ValueReader, ValueWriter}
-import dev.profunktor.fs2rabbit.model.AmqpFieldValue._
+import dev.profunktor.fs2rabbit.model.AmqpFieldValue.*
 import dev.profunktor.fs2rabbit.model.{AmqpFieldValue, ShortString}
 import dev.profunktor.fs2rabbit.testing.AmqpPropertiesArbs
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.Assertion
 import org.scalatest.matchers.should.Matchers
-import org.scalatestplus.scalacheck.{ScalaCheckPropertyChecks => PropertyChecks}
+import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks as PropertyChecks
 
 class AmqpFieldValueSpec extends AnyFlatSpecLike with PropertyChecks with Matchers {
 
-  import AmqpPropertiesArbs._
+  import AmqpPropertiesArbs.*
 
   it should "convert from and to Java primitive header values" in {
     val intVal    = IntVal(1)
@@ -49,7 +49,7 @@ class AmqpFieldValueSpec extends AnyFlatSpecLike with PropertyChecks with Matche
     }
 
   it should "preserve the same values after a round-trip through the Java ValueReader and ValueWriter" in
-    forAll(assertThatValueIsPreservedThroughJavaWriteAndRead _)
+    forAll(assertThatValueIsPreservedThroughJavaWriteAndRead)
 
   it should "preserve a specific StringVal that previously failed after a round-trip through the Java ValueReader and ValueWriter" in
     assertThatValueIsPreservedThroughJavaWriteAndRead(StringVal("kyvmqzlbjivLqQFukljghxdowkcmjklgSeybdy"))

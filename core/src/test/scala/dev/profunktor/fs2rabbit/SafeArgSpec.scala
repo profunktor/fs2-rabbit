@@ -19,11 +19,11 @@ package dev.profunktor.fs2rabbit
 import org.scalacheck.Gen
 import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite
-import org.scalatestplus.scalacheck.{ScalaCheckPropertyChecks => PropertyChecks}
+import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks as PropertyChecks
 
 class SafeArgSpec extends AnyFunSuite with PropertyChecks {
 
-  import arguments._
+  import arguments.*
 
   def safeArg[A](value: A)(implicit ev: SafeArgument[A]): Assertion = {
     assert(ev.toJavaType(value) != null)

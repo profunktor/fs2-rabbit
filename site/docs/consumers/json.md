@@ -11,11 +11,11 @@ A stream-based `Json Decoder` that can be connected to a stream of `AmqpEnvelope
 ```scala mdoc:silent
 import cats.effect.IO
 import dev.profunktor.fs2rabbit.json.Fs2JsonDecoder
-import dev.profunktor.fs2rabbit.model.AckResult._
-import dev.profunktor.fs2rabbit.model._
-import io.circe._
-import io.circe.generic.auto._
-import fs2._
+import dev.profunktor.fs2rabbit.model.AckResult.*
+import dev.profunktor.fs2rabbit.model.*
+import io.circe.*
+import io.circe.generic.auto.*
+import fs2.*
 
 case class Address(number: Int, streetName: String)
 case class Person(id: Long, name: String, address: Address)

@@ -18,8 +18,8 @@ package dev.profunktor.fs2rabbit.examples
 
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
 import dev.profunktor.fs2rabbit.interpreter.RabbitClient
-import zio._
-import zio.interop.catz._
+import zio.*
+import zio.interop.catz.*
 import dev.profunktor.fs2rabbit.resiliency.ResilientStream
 
 import scala.concurrent.duration.DurationInt

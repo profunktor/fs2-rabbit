@@ -16,10 +16,10 @@
 
 package dev.profunktor.fs2rabbit.testing
 
-import dev.profunktor.fs2rabbit.model.AmqpFieldValue._
+import dev.profunktor.fs2rabbit.model.AmqpFieldValue.*
 import dev.profunktor.fs2rabbit.model.{AmqpFieldValue, AmqpProperties, DeliveryMode, Headers, ShortString}
 import org.scalacheck.Arbitrary.arbitrary
-import org.scalacheck._
+import org.scalacheck.*
 import scodec.bits.ByteVector
 
 import java.util.Date
@@ -121,11 +121,11 @@ object AmqpPropertiesArbs {
 
     if (maxDepth <= 0) {
       // This is because Gen.oneOf is overloaded and we need to access its three-argument version
-      Gen.oneOf(nonRecursiveGenerators(0), nonRecursiveGenerators(1), nonRecursiveGenerators.drop(2): _*)
+      Gen.oneOf(nonRecursiveGenerators(0), nonRecursiveGenerators(1), nonRecursiveGenerators.drop(2)*)
     } else {
       val allGenerators = tableVal(maxDepth - 1).arbitrary :: arrayVal(maxDepth - 1).arbitrary :: nonRecursiveGenerators
       Gen.lzy(
-        Gen.oneOf(allGenerators(0), allGenerators(1), allGenerators.drop(2): _*)
+        Gen.oneOf(allGenerators(0), allGenerators(1), allGenerators.drop(2)*)
       )
     }
   }

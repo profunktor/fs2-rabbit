@@ -20,13 +20,13 @@ import java.nio.charset.StandardCharsets.UTF_8
 import java.util.UUID
 
 import cats.data.{Kleisli, NonEmptyList}
-import cats.effect._
-import cats.implicits._
+import cats.effect.*
+import cats.implicits.*
 import dev.profunktor.fs2rabbit.config.declaration.DeclarationQueueConfig
 import dev.profunktor.fs2rabbit.config.{Fs2RabbitConfig, Fs2RabbitNodeConfig}
 import dev.profunktor.fs2rabbit.effects.MessageEncoder
 import dev.profunktor.fs2rabbit.interpreter.RabbitClient
-import dev.profunktor.fs2rabbit.model._
+import dev.profunktor.fs2rabbit.model.*
 import fs2.Stream
 
 import scala.concurrent.duration.DurationInt

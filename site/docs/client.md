@@ -10,7 +10,7 @@ number: 2
 An alternative constructor is provided for creating a `cats.effect.Resource[F, Rabbit[F]]` without directly handling the `Dispatcher`.
 
 ```scala mdoc:silent
-import cats.effect._
+import cats.effect.*
 import cats.effect.std.Dispatcher
 import com.rabbitmq.client.{DefaultSaslConfig, SaslConfig}
 import dev.profunktor.fs2rabbit.config.Fs2RabbitConfig
@@ -36,13 +36,13 @@ object RabbitClient {
 Its creation is effectful so you need to `flatMap` and pass it as an argument. For example:
 
 ```scala mdoc:silent
-import cats.effect._
+import cats.effect.*
 import cats.effect.std.Dispatcher
-import cats.syntax.functor._
+import cats.syntax.functor.*
 import dev.profunktor.fs2rabbit.interpreter.RabbitClient
 import java.util.concurrent.Executors
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 object Program {
   def foo[F[_]](client: RabbitClient[F]): F[Unit] = ???

@@ -11,9 +11,9 @@ A stream-based `Json Encoder` that can be connected to a `Publisher` is provided
 ```scala mdoc:silent
 import cats.effect.IO
 import dev.profunktor.fs2rabbit.json.Fs2JsonEncoder
-import dev.profunktor.fs2rabbit.model._
+import dev.profunktor.fs2rabbit.model.*
 import fs2.Stream
-import io.circe.generic.auto._
+import io.circe.generic.auto.*
 
 case class Address(number: Int, streetName: String)
 case class Person(id: Long, name: String, address: Address)
@@ -21,7 +21,7 @@ case class Person(id: Long, name: String, address: Address)
 object ioEncoder extends Fs2JsonEncoder
 
 def program(publisher: AmqpMessage[String] => IO[Unit]) = {
-  import ioEncoder._
+  import ioEncoder.*
 
   val message = AmqpMessage(Person(1L, "Sherlock", Address(212, "Baker St")), AmqpProperties.empty)
   Stream(message).covary[IO].map(jsonEncode[Person]).evalMap(publisher)

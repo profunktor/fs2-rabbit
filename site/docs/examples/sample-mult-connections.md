@@ -17,12 +17,12 @@ We start by defining three different programs representing each connection, name
 We will be consuming messages from `c1` and `c2`, and publishing the result to `p3` concurrently. Thanks to `fs2` this becomes such a simple case:
 
 ```scala mdoc:silent
-import cats.effect._
-import cats.implicits._
+import cats.effect.*
+import cats.implicits.*
 import dev.profunktor.fs2rabbit.config.declaration.DeclarationQueueConfig
 import dev.profunktor.fs2rabbit.interpreter.RabbitClient
-import dev.profunktor.fs2rabbit.model._
-import fs2._
+import dev.profunktor.fs2rabbit.model.*
+import fs2.*
 
 val q1 = QueueName("q1")
 val ex = ExchangeName("testEX")

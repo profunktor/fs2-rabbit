@@ -20,10 +20,10 @@ import dev.profunktor.fs2rabbit.model.Headers
 
 import java.time.Instant
 import java.util.Date
-import dev.profunktor.fs2rabbit.model.AmqpFieldValue._
-import dev.profunktor.fs2rabbit.model._
-import org.scalacheck.Arbitrary._
-import org.scalacheck._
+import dev.profunktor.fs2rabbit.model.AmqpFieldValue.*
+import dev.profunktor.fs2rabbit.model.*
+import org.scalacheck.Arbitrary.*
+import org.scalacheck.*
 import org.scalacheck.rng.Seed
 import scodec.bits.ByteVector
 
