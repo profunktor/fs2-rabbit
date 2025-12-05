@@ -49,7 +49,7 @@ class AmqpFieldValueSpec extends AnyFlatSpecLike with PropertyChecks with Matche
     }
 
   it should "preserve the same values after a round-trip through the Java ValueReader and ValueWriter" in
-    forAll(assertThatValueIsPreservedThroughJavaWriteAndRead)
+    forAll(assertThatValueIsPreservedThroughJavaWriteAndRead _)
 
   it should "preserve a specific StringVal that previously failed after a round-trip through the Java ValueReader and ValueWriter" in
     assertThatValueIsPreservedThroughJavaWriteAndRead(StringVal("kyvmqzlbjivLqQFukljghxdowkcmjklgSeybdy"))
