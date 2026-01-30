@@ -112,4 +112,87 @@ class AmqpFieldDecoderSpec extends AnyFunSuite with Matchers {
       }
     }
   }
+
+  test("decoders should fail with descriptive error for wrong types") {
+    def assertDecodingError[T: AmqpFieldDecoder](input: AmqpFieldValue, expectedType: String): Unit = {
+      val result = AmqpFieldDecoder[T].decode(input)
+
+      result shouldBe a[Left[_, _]]
+      result.left.toOption.get.getMessage should include(s"Expected $expectedType")
+    }
+
+    assertDecodingError[String](IntVal(42), "StringVal")
+    assertDecodingError[Int](StringVal("not a number"), "IntVal")
+    assertDecodingError[Boolean](StringVal("true"), "BooleanVal")
+    assertDecodingError[Instant](StringVal("2024-01-01"), "TimestampVal")
+    assertDecodingError[Unit](IntVal(0), "NullVal")
+  }
+
+  test("intDecoder should widen from smaller numeric types") {
+    AmqpFieldDecoder[Int].decode(ByteVal(42.toByte)) shouldBe Right(42)
+    AmqpFieldDecoder[Int].decode(ShortVal(1000.toShort)) shouldBe Right(1000)
+  }
+
+  test("longDecoder should widen from smaller numeric types") {
+    AmqpFieldDecoder[Long].decode(ByteVal(42.toByte)) shouldBe Right(42L)
+    AmqpFieldDecoder[Long].decode(ShortVal(1000.toShort)) shouldBe Right(1000L)
+    AmqpFieldDecoder[Long].decode(IntVal(100000)) shouldBe Right(100000L)
+  }
+
+  test("floatDecoder should widen from smaller numeric types") {
+    AmqpFieldDecoder[Float].decode(ByteVal(42.toByte)) shouldBe Right(42.0f)
+    AmqpFieldDecoder[Float].decode(ShortVal(1000.toShort)) shouldBe Right(1000.0f)
+    AmqpFieldDecoder[Float].decode(IntVal(100)) shouldBe Right(100.0f)
+    AmqpFieldDecoder[Float].decode(LongVal(100L)) shouldBe Right(100.0f)
+  }
+
+  test("doubleDecoder should widen from smaller numeric types") {
+    AmqpFieldDecoder[Double].decode(ByteVal(42.toByte)) shouldBe Right(42.0)
+    AmqpFieldDecoder[Double].decode(ShortVal(1000.toShort)) shouldBe Right(1000.0)
+    AmqpFieldDecoder[Double].decode(IntVal(100)) shouldBe Right(100.0)
+    AmqpFieldDecoder[Double].decode(LongVal(100L)) shouldBe Right(100.0)
+    AmqpFieldDecoder[Double].decode(FloatVal(42.5f)) shouldBe Right(42.5)
+  }
+
+  test("bigDecimalDecoder should widen from all numeric types") {
+    AmqpFieldDecoder[BigDecimal].decode(ByteVal(42.toByte)) shouldBe Right(BigDecimal(42))
+    AmqpFieldDecoder[BigDecimal].decode(ShortVal(1000.toShort)) shouldBe Right(BigDecimal(1000))
+    AmqpFieldDecoder[BigDecimal].decode(IntVal(100000)) shouldBe Right(BigDecimal(100000))
+    AmqpFieldDecoder[BigDecimal].decode(LongVal(100000L)) shouldBe Right(BigDecimal(100000L))
+    AmqpFieldDecoder[BigDecimal].decode(FloatVal(42.5f)) shouldBe Right(BigDecimal(42.5))
+    AmqpFieldDecoder[BigDecimal].decode(DoubleVal(42.5)) shouldBe Right(BigDecimal(42.5))
+  }
+
+  test("combinators should transform and handle errors") {
+    val mapDecoder     = AmqpFieldDecoder[Int].map(_ * 2)
+    val emapDecoder    = AmqpFieldDecoder[Int].emap { n =>
+      if (n > 0) Right(n.toString) else Left(DecodingError("must be positive"))
+    }
+    val optionDecoder  = AmqpFieldDecoder[Int].option
+    val attemptDecoder = AmqpFieldDecoder[Int].attempt
+
+    mapDecoder.decode(IntVal(21)) shouldBe Right(42)
+    emapDecoder.decode(IntVal(42)) shouldBe Right("42")
+    emapDecoder.decode(IntVal(-1)) shouldBe a[Left[_, _]]
+    optionDecoder.decode(IntVal(42)) shouldBe Right(Some(42))
+    optionDecoder.decode(StringVal("not int")) shouldBe Right(None)
+    attemptDecoder.decode(IntVal(42)) shouldBe Right(Right(42))
+    attemptDecoder.decode(StringVal("not int")).toOption.get shouldBe a[Left[_, _]]
+  }
+
+  test("non-empty collection decoders should fail for empty arrays") {
+    val nelResult = AmqpFieldDecoder[NonEmptyList[Int]].decode(ArrayVal(Vector.empty))
+    val nesResult = AmqpFieldDecoder[NonEmptySeq[Int]].decode(ArrayVal(Vector.empty))
+
+    nelResult shouldBe a[Left[_, _]]
+    nelResult.left.toOption.get.getMessage should include("empty list")
+    nesResult shouldBe a[Left[_, _]]
+    nesResult.left.toOption.get.getMessage should include("empty seq")
+  }
+
+  test("DecodingError.expectedButGot should format message correctly") {
+    val error = DecodingError.expectedButGot("IntVal", "StringVal(hello)")
+
+    error.getMessage shouldBe "Expected IntVal, but got StringVal(hello)"
+  }
 }

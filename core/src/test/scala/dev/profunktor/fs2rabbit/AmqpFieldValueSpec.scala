@@ -57,6 +57,7 @@ class AmqpFieldValueSpec extends AnyFlatSpecLike with PropertyChecks with Matche
   it should "preserve a specific DateVal created from an Instant that has millisecond accuracy after a round-trip through the Java ValueReader and ValueWriter" in {
     val instant   = Instant.parse("4000-11-03T20:17:29.57Z")
     val myDateVal = TimestampVal.from(instant)
+
     assertThatValueIsPreservedThroughJavaWriteAndRead(myDateVal)
   }
 
@@ -75,12 +76,7 @@ class AmqpFieldValueSpec extends AnyFlatSpecLike with PropertyChecks with Matche
 
   private def createWriterFromQueue(outputResults: collection.mutable.Queue[Byte]): ValueWriter =
     new ValueWriter(
-      new DataOutputStream(
-        new OutputStream {
-          override def write(b: Int): Unit =
-            outputResults.enqueue(b.toByte)
-        }
-      )
+      new DataOutputStream((b: Int) => outputResults.enqueue(b.toByte))
     )
 
   private def createReaderFromQueue(input: collection.mutable.Queue[Byte]): ValueReader = {
@@ -112,5 +108,39 @@ class AmqpFieldValueSpec extends AnyFlatSpecLike with PropertyChecks with Matche
     val reader    = createReaderFromQueue(outputResultsAsTable)
     val readValue = reader.readTable()
     AmqpFieldValue.unsafeFrom(readValue) should be(wrapInDummyTable(amqpHeaderVal))
+  }
+
+  "toValueWriterCompatibleJava" should "return correct Java boxed types for all AmqpFieldValue subtypes" in {
+    import scodec.bits.ByteVector
+
+    ByteVal(42.toByte).toValueWriterCompatibleJava shouldBe java.lang.Byte.valueOf(42.toByte)
+    ShortVal(1000.toShort).toValueWriterCompatibleJava shouldBe java.lang.Short.valueOf(1000.toShort)
+    IntVal(42).toValueWriterCompatibleJava shouldBe java.lang.Integer.valueOf(42)
+    LongVal(42L).toValueWriterCompatibleJava shouldBe java.lang.Long.valueOf(42L)
+    FloatVal(3.14f).toValueWriterCompatibleJava shouldBe java.lang.Float.valueOf(3.14f)
+    DoubleVal(3.14159).toValueWriterCompatibleJava shouldBe java.lang.Double.valueOf(3.14159)
+    BooleanVal(true).toValueWriterCompatibleJava shouldBe java.lang.Boolean.TRUE
+    BooleanVal(false).toValueWriterCompatibleJava shouldBe java.lang.Boolean.FALSE
+    assert(NullVal.toValueWriterCompatibleJava == null)
+
+    val bytes = Array[Byte](1, 2, 3)
+    ByteArrayVal(ByteVector(bytes)).toValueWriterCompatibleJava.sameElements(bytes) shouldBe true
+  }
+
+  "AmqpFieldValue.unsafeFrom" should "convert null to NullVal" in {
+    AmqpFieldValue.unsafeFrom(null) shouldBe NullVal
+  }
+
+  "Eq[AmqpFieldValue]" should "compare values correctly" in {
+    import cats.Eq
+    val eq = Eq[AmqpFieldValue]
+
+    eq.eqv(IntVal(42), IntVal(42)) shouldBe true
+    eq.eqv(StringVal("hello"), StringVal("hello")) shouldBe true
+    eq.eqv(NullVal, NullVal) shouldBe true
+    eq.eqv(IntVal(42), IntVal(43)) shouldBe false
+    eq.eqv(IntVal(42), StringVal("42")) shouldBe false
+    eq.eqv(IntVal(42), LongVal(42L)) shouldBe false
+    eq.eqv(FloatVal(1.0f), DoubleVal(1.0)) shouldBe false
   }
 }
