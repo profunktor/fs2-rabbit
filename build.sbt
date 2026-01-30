@@ -55,6 +55,7 @@ val commonSettings = List(
   Compile / doc / scalacOptions ++= List("-no-link-warnings"),
   scalacOptions ++= scalaOptions(scalaVersion.value),
   scalacOptions --= List("-Wunused:params", "-Xfatal-warnings"),
+  Test / scalacOptions ++= List("-Wconf:msg=unused value:s", "-Wconf:msg=discarded non-Unit value:s"),
   libraryDependencies ++= commonDependencies(scalaVersion.value),
   resolvers += "Apache public" at "https://repository.apache.org/content/groups/public/",
   scalafmtOnCompile     := true,
