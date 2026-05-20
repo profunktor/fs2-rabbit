@@ -54,7 +54,7 @@ val commonSettings = List(
   headerLicense         := Some(HeaderLicense.ALv2(s"${startYear.value.get}-${java.time.Year.now}", "ProfunKtor")),
   Compile / doc / scalacOptions ++= List("-no-link-warnings"),
   scalacOptions ++= scalaOptions(scalaVersion.value),
-  scalacOptions --= List("-Wunused:params", "-Xfatal-warnings"),
+  scalacOptions --= List("-Wunused:params", "-Werror"),
   Test / scalacOptions ++= List("-Wconf:msg=unused value:s", "-Wconf:msg=discarded non-Unit value:s"),
   libraryDependencies ++= commonDependencies(scalaVersion.value),
   resolvers += "Apache public" at "https://repository.apache.org/content/groups/public/",
