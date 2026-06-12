@@ -3,8 +3,8 @@ import microsites.ExtraMdFileConfig
 import scala.collection.immutable
 
 ThisBuild / name               := "fs2-rabbit"
-ThisBuild / scalaVersion       := "3.3.7"
-ThisBuild / crossScalaVersions := List("2.13.18", "3.3.7")
+ThisBuild / scalaVersion       := "3.3.8"
+ThisBuild / crossScalaVersions := List("2.13.18", "3.3.8")
 ThisBuild / versionScheme      := Some("semver-spec")
 ThisBuild / organization       := "dev.profunktor"
 ThisBuild / homepage           := Some(url("https://fs2-rabbit.profunktor.dev/"))
