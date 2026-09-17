@@ -28,6 +28,12 @@ And this one if you would like to have Json support:
 libraryDependencies += "dev.profunktor" %% "fs2-rabbit-circe" % Version
 ```
 
+OpenTelemetry tracing with otel4s is available as a separate module:
+
+```scala
+libraryDependencies += "dev.profunktor" %% "fs2-rabbit-otel4s" % Version
+```
+
 ## Usage Guide
 
 Check the [official guide](https://fs2-rabbit.profunktor.dev/guide.html) for updated compiling examples.
