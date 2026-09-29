@@ -22,6 +22,12 @@ import org.typelevel.otel4s.{Attribute, AttributeKey, Attributes}
 
 private[otel4s] object Semconv {
 
+  final case class ResolvedDestination(
+      template: Option[String],
+      anonymous: Boolean,
+      spanDestination: Option[String]
+  )
+
   object Const {
     val MessagingSystem: Attribute[String] = Attribute("messaging.system", "rabbitmq")
   }
@@ -29,6 +35,7 @@ private[otel4s] object Semconv {
   object Keys {
     val DestinationAnonymous: AttributeKey[Boolean]       = AttributeKey[Boolean]("messaging.destination.anonymous")
     val DestinationName: AttributeKey[String]             = AttributeKey[String]("messaging.destination.name")
+    val DestinationTemplate: AttributeKey[String]         = AttributeKey[String]("messaging.destination.template")
     val OperationName: AttributeKey[String]               = AttributeKey[String]("messaging.operation.name")
     val OperationType: AttributeKey[String]               = AttributeKey[String]("messaging.operation.type")
     val ClientId: AttributeKey[String]                    = AttributeKey[String]("messaging.client.id")
@@ -65,35 +72,54 @@ private[otel4s] object Semconv {
       envelope.redelivered
     )
 
-  def publishAttributes(context: PublishSpanContext, clientId: Option[String]): Attributes = {
+  def publishAttributes(
+      context: PublishSpanContext,
+      clientId: Option[String],
+      destination: ResolvedDestination
+  ): Attributes = {
     val builder = baseBuilder("publish", "send", context.destinationName, clientId)
     builder.addAll(Keys.RabbitDestinationRoutingKey.maybe(nonEmpty(context.routingKey.value)))
     builder.addAll(Keys.MessageId.maybe(context.messageId))
     builder.addAll(Keys.MessageConversationId.maybe(context.conversationId))
+    builder.addAll(Keys.DestinationTemplate.maybe(destination.template))
+    builder.addAll(Keys.DestinationAnonymous.maybe(Option.when(destination.anonymous)(true)))
     builder.result()
   }
 
-  def processAttributes(context: ProcessSpanContext, clientId: Option[String]): Attributes = {
+  def processAttributes(
+      context: ProcessSpanContext,
+      clientId: Option[String],
+      destination: ResolvedDestination
+  ): Attributes = {
     val builder = baseBuilder("process", "process", context.destinationName, clientId)
     builder.addAll(Keys.RabbitDestinationRoutingKey.maybe(nonEmpty(context.routingKey.value)))
     builder.addOne(Keys.RabbitMessageDeliveryTag(context.deliveryTag.value))
     builder.addAll(Keys.MessageId.maybe(context.messageId))
     builder.addAll(Keys.MessageConversationId.maybe(context.conversationId))
-    builder.addAll(Keys.DestinationAnonymous.maybe(Option.when(isGeneratedQueueName(context.queueName.value))(true)))
+    builder.addAll(Keys.DestinationTemplate.maybe(destination.template))
+    builder.addAll(Keys.DestinationAnonymous.maybe(Option.when(destination.anonymous)(true)))
     builder.result()
   }
 
-  def publishLinkAttributes(context: PublishSpanContext): Attributes = {
+  def publishLinkAttributes(
+      context: PublishSpanContext,
+      destination: ResolvedDestination
+  ): Attributes = {
     val builder = Attributes.newBuilder
     builder.addOne(Keys.DestinationName(context.destinationName))
+    builder.addAll(Keys.DestinationTemplate.maybe(destination.template))
     builder.addAll(Keys.RabbitDestinationRoutingKey.maybe(nonEmpty(context.routingKey.value)))
     builder.addAll(Keys.MessageId.maybe(context.messageId))
     builder.result()
   }
 
-  def processLinkAttributes(context: ProcessSpanContext): Attributes = {
+  def processLinkAttributes(
+      context: ProcessSpanContext,
+      destination: ResolvedDestination
+  ): Attributes = {
     val builder = Attributes.newBuilder
     builder.addOne(Keys.DestinationName(context.destinationName))
+    builder.addAll(Keys.DestinationTemplate.maybe(destination.template))
     builder.addAll(Keys.RabbitDestinationRoutingKey.maybe(nonEmpty(context.routingKey.value)))
     builder.addOne(Keys.RabbitMessageDeliveryTag(context.deliveryTag.value))
     builder.addAll(Keys.MessageId.maybe(context.messageId))
@@ -103,9 +129,45 @@ private[otel4s] object Semconv {
   def producerDestinationName(exchangeName: ExchangeName, routingKey: RoutingKey): String =
     joinDestination(exchangeName.value, routingKey.value).getOrElse("amq.default")
 
-  def consumerDestinationName(exchangeName: ExchangeName, routingKey: RoutingKey, queueName: QueueName): String = {
-    val queue = Option.when(queueName.value != routingKey.value)(queueName.value).getOrElse("")
-    joinDestination(exchangeName.value, routingKey.value, queue).getOrElse("amq.default")
+  def resolvePublishDestination(
+      context: PublishSpanContext,
+      queueNameTemplateClassifier: QueueNameTemplateClassifier
+  ): ResolvedDestination = {
+    val isDefaultExchange = context.exchangeName.value.isEmpty
+    val queueName         = QueueName(context.routingKey.value)
+    val template          = if (isDefaultExchange) queueNameTemplateClassifier.classify(queueName) else None
+    val anonymous         = isDefaultExchange && isKnownAnonymousQueue(queueName)
+    ResolvedDestination(
+      template,
+      anonymous,
+      template.orElse(Option.when(!anonymous)(context.destinationName))
+    )
+  }
+
+  def consumerDestinationName(exchangeName: ExchangeName, routingKey: RoutingKey, queueName: QueueName): String =
+    composeConsumerDestination(exchangeName.value, routingKey.value, queueName.value)
+
+  def resolveProcessDestination(
+      context: ProcessSpanContext,
+      queueNameTemplateClassifier: QueueNameTemplateClassifier
+  ): ResolvedDestination = {
+    val template  = queueNameTemplateClassifier.classify(context.queueName).map { queueTemplate =>
+      composeConsumerDestination(context.exchangeName.value, context.routingKey.value, queueTemplate)
+    }
+    val anonymous = isKnownAnonymousQueue(context.queueName)
+    ResolvedDestination(
+      template,
+      anonymous,
+      template.orElse(Option.when(!anonymous)(context.destinationName))
+    )
+  }
+
+  private def isKnownAnonymousQueue(queueName: QueueName): Boolean =
+    QueueNameTemplateClassifier.default.classify(queueName).isDefined
+
+  private def composeConsumerDestination(exchangeName: String, routingKey: String, queueName: String): String = {
+    val queue = Option.when(queueName != routingKey)(queueName).getOrElse("")
+    joinDestination(exchangeName, routingKey, queue).getOrElse("amq.default")
   }
 
   private def baseBuilder(
@@ -131,9 +193,4 @@ private[otel4s] object Semconv {
   private def nonEmpty(value: String): Option[String] =
     Option.when(value.nonEmpty)(value)
 
-  private def isGeneratedQueueName(queue: String): Boolean =
-    queue.startsWith("amq.gen-") || queue.startsWith("spring.gen-") || isCanonicalUuid(queue)
-
-  private def isCanonicalUuid(value: String): Boolean =
-    value.matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
 }

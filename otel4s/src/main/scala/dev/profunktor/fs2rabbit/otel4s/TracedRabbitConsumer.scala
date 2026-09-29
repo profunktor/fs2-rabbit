@@ -59,7 +59,8 @@ object TracedRabbitConsumer {
 
     override def process[B](envelope: AmqpEnvelope[A])(fa: F[B]): F[B] = {
       val spanContext = Semconv.processSpanContext(queueName, envelope)
-      val spanSetup   = config.processSpanSetup(spanContext)
+      val destination = Semconv.resolveProcessDestination(spanContext, config.queueNameTemplateClassifier)
+      val spanSetup   = config.processSpanSetup(spanContext, destination)
 
       Tracer[F]
         .joinOrRoot(envelope.properties.headers)(Tracer[F].currentSpanContext)
@@ -70,13 +71,14 @@ object TracedRabbitConsumer {
             .withSpanKind(SpanKind.Consumer)
             .withFinalizationStrategy(spanSetup.finalizationStrategy)
             .addAttributes(
-              Semconv.processAttributes(spanContext, config.clientId) ++
+              Semconv.processAttributes(spanContext, config.clientId, destination) ++
+                config.serverAttributes ++
                 config.constAttributes ++
                 spanSetup.attributes
             )
 
           creationContext
-            .fold(builder)(context => builder.addLink(context, Semconv.processLinkAttributes(spanContext)))
+            .fold(builder)(context => builder.addLink(context, Semconv.processLinkAttributes(spanContext, destination)))
             .build
             .surround(fa)
         }

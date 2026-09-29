@@ -187,7 +187,8 @@ object TracedRabbitClient {
     )(implicit encoder: MessageEncoder[F, A]): F[Unit] =
       encoder.run(value).flatMap { message =>
         val spanContext = Semconv.publishSpanContext(exchangeName, routingKey, message)
-        val spanSetup   = config.publishSpanSetup(spanContext)
+        val destination = Semconv.resolvePublishDestination(spanContext, config.queueNameTemplateClassifier)
+        val spanSetup   = config.publishSpanSetup(spanContext, destination)
 
         Tracer[F]
           .joinOrRoot(message.properties.headers)(Tracer[F].currentSpanContext)
@@ -199,13 +200,16 @@ object TracedRabbitClient {
               .withSpanKind(spanKind)
               .withFinalizationStrategy(spanSetup.finalizationStrategy)
               .addAttributes(
-                Semconv.publishAttributes(spanContext, config.clientId) ++
+                Semconv.publishAttributes(spanContext, config.clientId, destination) ++
+                  config.serverAttributes ++
                   config.constAttributes ++
                   spanSetup.attributes
               )
 
             creationContext
-              .fold(builder)(context => builder.addLink(context, Semconv.publishLinkAttributes(spanContext)))
+              .fold(builder)(context =>
+                builder.addLink(context, Semconv.publishLinkAttributes(spanContext, destination))
+              )
               .build
               .surround {
                 val publishedMessage = creationContext.fold(

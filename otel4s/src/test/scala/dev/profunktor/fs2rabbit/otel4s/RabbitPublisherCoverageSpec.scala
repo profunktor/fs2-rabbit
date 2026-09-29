@@ -31,10 +31,11 @@ import org.scalatest.flatspec.AnyFlatSpecLike
 import org.typelevel.otel4s.context.propagation.TextMapGetter
 import org.typelevel.otel4s.oteljava.testkit.OtelJavaTestkit
 import org.typelevel.otel4s.semconv.experimental.attributes.MessagingExperimentalAttributes as Messaging
-import org.typelevel.otel4s.trace.{SpanFinalizer, TracerProvider}
+import org.typelevel.otel4s.trace.{SpanFinalizer, Tracer, TracerProvider}
 import org.typelevel.otel4s.{Attribute, Attributes}
 
 import java.util.Collections
+import java.util.concurrent.atomic.AtomicInteger
 
 class RabbitPublisherCoverageSpec extends AnyFlatSpecLike with RabbitTracingTestSupport {
 
@@ -116,6 +117,135 @@ class RabbitPublisherCoverageSpec extends AnyFlatSpecLike with RabbitTracingTest
         val span = spanNamed(spans, "publish orders:failed")
         span.getStatus.getStatusCode shouldBe JavaStatusCode.ERROR
         stringAttribute(span.getAttributes, "error.type") shouldBe Some(classOf[IllegalStateException].getCanonicalName)
+      }
+    }
+
+  it should "use low-cardinality templates when publishing to generated queues through the default exchange" in
+    withTestkit { testkit =>
+      implicit val tracerProvider: TracerProvider[IO] = testkit.tracerProvider
+      val generatedQueues                             = List(
+        "amq.gen-random"                       -> "amq.gen-*",
+        "spring.gen-random"                    -> "spring.gen-*",
+        "123e4567-e89b-12d3-a456-426614174000" -> "{queue_id}"
+      )
+
+      for {
+        published <- Ref[IO].of(Vector.empty[Published])
+        listeners <- Ref[IO].of(Vector.empty[PublishReturn => IO[Unit]])
+        tracer    <- RabbitTracer.create[IO](RabbitTracer.Config.default)
+        client     = tracer.client(rabbitClient(new StubPublishingProgram(published, listeners)))
+        _         <- generatedQueues.foldLeft(IO.unit) { case (result, (queueName, _)) =>
+                       result.flatMap { _ =>
+                         client
+                           .createPublisher[AmqpMessage[Array[Byte]]](ExchangeName(""), RoutingKey(queueName))
+                           .flatMap(_(message()))
+                       }
+                     }
+        _         <- client
+                       .createPublisher[AmqpMessage[Array[Byte]]](ExchangeName("orders"), RoutingKey("amq.gen-random"))
+                       .flatMap(_(message()))
+        spans     <- testkit.finishedSpans
+      } yield {
+        generatedQueues.foreach { case (queueName, queueTemplate) =>
+          val span = spanNamed(spans, s"publish $queueTemplate")
+          stringAttribute(span.getAttributes, Messaging.MessagingDestinationName.name) shouldBe Some(queueName)
+          stringAttribute(span.getAttributes, "messaging.destination.template") shouldBe Some(queueTemplate)
+          booleanAttribute(span.getAttributes, Messaging.MessagingDestinationAnonymous.name) shouldBe Some(true)
+        }
+
+        val namedExchangeSpan = spanNamed(spans, "publish orders:amq.gen-random")
+        stringAttribute(namedExchangeSpan.getAttributes, Messaging.MessagingDestinationName.name) shouldBe
+          Some("orders:amq.gen-random")
+        stringAttribute(namedExchangeSpan.getAttributes, "messaging.destination.template") shouldBe None
+        booleanAttribute(namedExchangeSpan.getAttributes, Messaging.MessagingDestinationAnonymous.name) shouldBe None
+      }
+    }
+
+  it should "omit an anonymous queue from the span name when its template is unavailable" in
+    withTestkit { testkit =>
+      implicit val tracerProvider: TracerProvider[IO] = testkit.tracerProvider
+      val config                                      = RabbitTracer.Config.default
+        .withQueueNameTemplateClassifier(QueueNameTemplateClassifier.indeterminate)
+
+      for {
+        published <- Ref[IO].of(Vector.empty[Published])
+        listeners <- Ref[IO].of(Vector.empty[PublishReturn => IO[Unit]])
+        tracer    <- RabbitTracer.create[IO](config)
+        client     = tracer.client(rabbitClient(new StubPublishingProgram(published, listeners)))
+        publisher <- client.createPublisher[AmqpMessage[Array[Byte]]](ExchangeName(""), RoutingKey("amq.gen-random"))
+        _         <- publisher(message())
+        spans     <- testkit.finishedSpans
+      } yield {
+        val span = spanNamed(spans, "publish")
+        stringAttribute(span.getAttributes, Messaging.MessagingDestinationName.name) shouldBe Some("amq.gen-random")
+        stringAttribute(span.getAttributes, "messaging.destination.template") shouldBe None
+        booleanAttribute(span.getAttributes, Messaging.MessagingDestinationAnonymous.name) shouldBe Some(true)
+      }
+    }
+
+  it should "include destination templates on links for publishes to generated queues" in
+    withTestkit { testkit =>
+      implicit val tracerProvider: TracerProvider[IO] = testkit.tracerProvider
+      for {
+        creationTracer <- testkit.tracerProvider.get("creation")
+        headers        <- {
+          implicit val tracer: Tracer[IO] = creationTracer
+          creationTracer.rootSpan("create-message").surround(Tracer[IO].propagate(Headers.empty))
+        }
+        published      <- Ref[IO].of(Vector.empty[Published])
+        listeners      <- Ref[IO].of(Vector.empty[PublishReturn => IO[Unit]])
+        tracer         <- RabbitTracer.create[IO](RabbitTracer.Config.default)
+        publisher      <- tracer
+                            .client(rabbitClient(new StubPublishingProgram(published, listeners)))
+                            .createPublisher[AmqpMessage[Array[Byte]]](ExchangeName(""), RoutingKey("amq.gen-random"))
+        _              <- publisher(message(headers))
+        spans          <- testkit.finishedSpans
+      } yield {
+        val span           = spanNamed(spans, "publish amq.gen-*")
+        span.getKind shouldBe JavaSpanKind.CLIENT
+        span.getLinks.size shouldBe 1
+        val linkAttributes = span.getLinks.get(0).getAttributes
+        stringAttribute(linkAttributes, Messaging.MessagingDestinationName.name) shouldBe Some("amq.gen-random")
+        stringAttribute(linkAttributes, "messaging.destination.template") shouldBe Some("amq.gen-*")
+      }
+    }
+
+  it should "apply a configured queue name template classifier once per span" in
+    withTestkit { testkit =>
+      implicit val tracerProvider: TracerProvider[IO] = testkit.tracerProvider
+      val classifierCalls                             = new AtomicInteger()
+      val classifier                                  = QueueNameTemplateClassifier
+        .matching {
+          case queue if queue.value.startsWith("reply-") =>
+            classifierCalls.incrementAndGet()
+            "reply-{id}"
+        }
+        .orElse(QueueNameTemplateClassifier.default)
+      val config                                      = RabbitTracer.Config.default.withQueueNameTemplateClassifier(classifier)
+
+      for {
+        creationTracer <- testkit.tracerProvider.get("creation")
+        headers        <- {
+          implicit val tracer: Tracer[IO] = creationTracer
+          creationTracer.rootSpan("create-message").surround(Tracer[IO].propagate(Headers.empty))
+        }
+        published      <- Ref[IO].of(Vector.empty[Published])
+        listeners      <- Ref[IO].of(Vector.empty[PublishReturn => IO[Unit]])
+        tracer         <- RabbitTracer.create[IO](config)
+        publisher      <- tracer
+                            .client(rabbitClient(new StubPublishingProgram(published, listeners)))
+                            .createPublisher[AmqpMessage[Array[Byte]]](ExchangeName(""), RoutingKey("reply-random"))
+        _              <- publisher(message(headers))
+        spans          <- testkit.finishedSpans
+      } yield {
+        val span = spanNamed(spans, "publish reply-{id}")
+        stringAttribute(span.getAttributes, "messaging.destination.template") shouldBe Some("reply-{id}")
+        booleanAttribute(span.getAttributes, Messaging.MessagingDestinationAnonymous.name) shouldBe None
+        span.getLinks.size shouldBe 1
+        stringAttribute(span.getLinks.get(0).getAttributes, "messaging.destination.template") shouldBe Some(
+          "reply-{id}"
+        )
+        classifierCalls.get() shouldBe 1
       }
     }
 

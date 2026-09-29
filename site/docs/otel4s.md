@@ -153,6 +153,24 @@ The destination is a colon-separated combination of exchange, routing key, and,
 for processing, queue name, with empty components removed. The default exchange
 and an empty routing key are represented as `amq.default`.
 
+Generated queue destinations use a low-cardinality destination template in the
+default span name. RabbitMQ names beginning with `amq.gen-` use `amq.gen-*`,
+names beginning with `spring.gen-` use `spring.gen-*`, and UUID-shaped names use
+`{queue_id}`. For example, `orders:created:amq.gen-4p09x` produces the process
+span name `process orders:created:amq.gen-*`. A publish routed directly to
+`amq.gen-4p09x` through the default exchange uses `publish amq.gen-*`. The span
+retains the actual value in `messaging.destination.name` and records the
+normalized value in `messaging.destination.template`.
+
+If a configured classifier returns no template for a known generated queue, the
+span name omits the destination rather than using its anonymous name, following
+the OpenTelemetry span naming rules. The actual destination remains on the span
+as `messaging.destination.name`, and `messaging.destination.anonymous=true`
+remains set.
+
+Publishing to a named exchange does not infer a generated queue from the routing
+key alone; the routing key remains part of the destination name and span name.
+
 ## Semantic attributes
 
 Every span has `messaging.system=rabbitmq`, `messaging.operation.name`,
@@ -162,13 +180,17 @@ also has:
 - `messaging.rabbitmq.destination.routing_key`
 - `messaging.message.id` and `messaging.message.conversation_id`
 - `messaging.rabbitmq.message.delivery_tag` on process spans
-- `messaging.destination.anonymous=true` for generated queue names
+- `messaging.destination.anonymous=true` for queue names recognized by the
+  built-in generated queue patterns on process spans and direct default-exchange
+  publishes; a custom template match alone does not set this attribute
+- `messaging.destination.template` for generated queue destinations, also used
+  in default process and publish span names
 - configured `messaging.client.id`, `server.address`, and `server.port`
 
-Links repeat the destination, routing key, message id, and, for processing, the
-delivery tag. Body and envelope size attributes are omitted because the public
-fs2-rabbit APIs do not expose a reliable encoded envelope size at every
-instrumented boundary.
+Links repeat the destination, routing key, message id, and destination template
+when available. Process links also include the delivery tag. Body and envelope
+size attributes are omitted because the public fs2-rabbit APIs do not expose a
+reliable encoded envelope size at every instrumented boundary.
 
 ## Customization
 
@@ -176,6 +198,28 @@ The defaults follow the current OpenTelemetry RabbitMQ messaging semantic
 conventions. Span names, extra attributes, and finalization behavior can be
 customized with `RabbitTracer.Config.withPublishSpanSetup` and
 `withProcessSpanSetup`. Use `RabbitTracer.noop` when tracing is disabled.
+
+Queue name templates are selected by `QueueNameTemplateClassifier`. The default
+classifier composes the built-in RabbitMQ generated queue, Spring generated
+queue, and UUID classifiers in order. Use `matching` to add an application
+pattern; classifiers return the first template they recognize:
+
+```scala
+val queueTemplates =
+  QueueNameTemplateClassifier
+    .matching {
+      case queue if queue.value.startsWith("reply-") => "reply-{id}"
+    }
+    .orElse(QueueNameTemplateClassifier.default)
+
+val config = RabbitTracer.Config.default
+  .withQueueNameTemplateClassifier(queueTemplates)
+```
+
+`withQueueNameTemplateClassifier` replaces the configured classifier. Compose
+with `QueueNameTemplateClassifier.default` to retain the built-in patterns.
+Use the individual `rabbitMqGeneratedQueue`, `springGeneratedQueue`, and
+`uuidQueue` classifiers to choose a different set of defaults.
 
 Do not enable overlapping RabbitMQ Java-agent instrumentation for the same client;
 doing so can create duplicate messaging spans.

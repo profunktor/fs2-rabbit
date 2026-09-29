@@ -31,7 +31,7 @@ import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator
 import io.opentelemetry.sdk.trace.data.SpanData
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
-import org.typelevel.otel4s.Attribute
+import org.typelevel.otel4s.{Attribute, Attributes}
 import org.typelevel.otel4s.context.propagation.TextMapGetter
 import org.typelevel.otel4s.oteljava.testkit.OtelJavaTestkit
 import org.typelevel.otel4s.semconv.experimental.attributes.MessagingExperimentalAttributes as Messaging
@@ -53,6 +53,7 @@ class RabbitTracingSpec extends AnyFlatSpecLike with Matchers {
         tracer    <- RabbitTracer.create[IO](
                        RabbitTracer.Config.default
                          .withServerAddress("rabbitmq.example.com", Some(5672))
+                         .withConstAttributes(Attributes(Attribute("config.attribute", "retained")))
                          .withClientId("orders-service")
                      )
         publisher <- tracer
@@ -79,6 +80,7 @@ class RabbitTracingSpec extends AnyFlatSpecLike with Matchers {
         assertStringAttribute(span, Messaging.MessagingMessageId("message-1"))
         assertStringAttribute(span, Messaging.MessagingMessageConversationId("conversation-1"))
         assertStringAttribute(span, Messaging.MessagingClientId("orders-service"))
+        attribute(span, "config.attribute") shouldBe "retained"
         attribute(span, "server.address") shouldBe "rabbitmq.example.com"
         longAttribute(span, "server.port") shouldBe 5672L
       }
@@ -129,10 +131,13 @@ class RabbitTracingSpec extends AnyFlatSpecLike with Matchers {
         moduleTracer <- testkit.tracerProvider.get("fs2.rabbit")
         consumer      = {
           implicit val tracer: Tracer[IO] = moduleTracer
+          val config                      = RabbitTracer.Config.default
+            .withServerAddress("rabbitmq.example.com", Some(5672))
+            .withConstAttributes(Attributes(Attribute("config.attribute", "retained")))
           TracedRabbitConsumer[IO, String](
             QueueName("orders-queue"),
             Stream.empty,
-            RabbitTracer.Config.default
+            config
           )
         }
         envelope      = AmqpEnvelope(
@@ -153,6 +158,9 @@ class RabbitTracingSpec extends AnyFlatSpecLike with Matchers {
         assertStringAttribute(span, Messaging.MessagingOperationType(Messaging.MessagingOperationTypeValue.Process))
         assertLongAttribute(span, Messaging.MessagingRabbitmqMessageDeliveryTag(7L))
         assertStringAttribute(span, Messaging.MessagingMessageId("message-1"))
+        attribute(span, "config.attribute") shouldBe "retained"
+        attribute(span, "server.address") shouldBe "rabbitmq.example.com"
+        longAttribute(span, "server.port") shouldBe 5672L
       }
     }
 

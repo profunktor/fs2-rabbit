@@ -20,6 +20,7 @@ import cats.effect.{Concurrent, Resource}
 import cats.syntax.functor.*
 import cats.syntax.semigroup.*
 import dev.profunktor.fs2rabbit.interpreter.RabbitClient
+import dev.profunktor.fs2rabbit.otel4s.internal.Semconv
 import org.typelevel.otel4s.semconv.attributes.{ErrorAttributes, ServerAttributes}
 import org.typelevel.otel4s.trace.{SpanFinalizer, StatusCode, Tracer, TracerProvider}
 import org.typelevel.otel4s.{Attribute, Attributes}
@@ -34,14 +35,23 @@ object RabbitTracer {
     private[otel4s] def tracerName: String
     private[otel4s] def constAttributes: Attributes
     private[otel4s] def clientId: Option[String]
-    private[otel4s] def publishSpanSetup: PublishSpanContext => Config.SpanSetup
-    private[otel4s] def processSpanSetup: ProcessSpanContext => Config.SpanSetup
+    private[otel4s] def serverAttributes: Attributes
+    private[otel4s] def queueNameTemplateClassifier: QueueNameTemplateClassifier
+    private[otel4s] def publishSpanSetup(
+        context: PublishSpanContext,
+        destination: Semconv.ResolvedDestination
+    ): Config.SpanSetup
+    private[otel4s] def processSpanSetup(
+        context: ProcessSpanContext,
+        destination: Semconv.ResolvedDestination
+    ): Config.SpanSetup
 
     def withConstAttributes(attributes: Attributes): Config
     def addConstAttributes(head: Attribute[?], tail: Attribute[?]*): Config
     def withClientId(clientId: String): Config
     def withPublishSpanSetup(f: PublishSpanContext => Config.SpanSetup): Config
     def withProcessSpanSetup(f: ProcessSpanContext => Config.SpanSetup): Config
+    def withQueueNameTemplateClassifier(classifier: QueueNameTemplateClassifier): Config
     def withServerAddress(serverAddress: String, serverPort: Option[Int]): Config
   }
 
@@ -51,10 +61,19 @@ object RabbitTracer {
       val tracerName: String = "fs2.rabbit"
 
       val publishSpanSetup: PublishSpanContext => SpanSetup =
-        context => SpanSetup(s"publish ${context.destinationName}")
+        context => publishSpanSetupFor(Semconv.resolvePublishDestination(context, QueueNameTemplateClassifier.default))
 
       val processSpanSetup: ProcessSpanContext => SpanSetup =
-        context => SpanSetup(s"process ${context.destinationName}")
+        context => processSpanSetupFor(Semconv.resolveProcessDestination(context, QueueNameTemplateClassifier.default))
+
+      private[otel4s] def publishSpanSetupFor(destination: Semconv.ResolvedDestination): SpanSetup =
+        SpanSetup(spanName("publish", destination.spanDestination))
+
+      private[otel4s] def processSpanSetupFor(destination: Semconv.ResolvedDestination): SpanSetup =
+        SpanSetup(spanName("process", destination.spanDestination))
+
+      private def spanName(operationName: String, destinationName: Option[String]): String =
+        destinationName.fold(operationName)(destination => s"$operationName $destination")
 
       val spanFinalizationStrategy: SpanFinalizer.Strategy = {
         case Resource.ExitCase.Errored(error) =>
@@ -102,17 +121,42 @@ object RabbitTracer {
         tracerName = Defaults.tracerName,
         constAttributes = Attributes.empty,
         clientId = None,
-        publishSpanSetup = Defaults.publishSpanSetup,
-        processSpanSetup = Defaults.processSpanSetup
+        serverAddress = None,
+        serverPort = None,
+        queueNameTemplateClassifier = QueueNameTemplateClassifier.default,
+        customPublishSpanSetup = None,
+        customProcessSpanSetup = None
       )
 
     final private case class ConfigImpl(
         tracerName: String,
         constAttributes: Attributes,
         clientId: Option[String],
-        publishSpanSetup: PublishSpanContext => SpanSetup,
-        processSpanSetup: ProcessSpanContext => SpanSetup
+        serverAddress: Option[String],
+        serverPort: Option[Int],
+        queueNameTemplateClassifier: QueueNameTemplateClassifier,
+        customPublishSpanSetup: Option[PublishSpanContext => SpanSetup],
+        customProcessSpanSetup: Option[ProcessSpanContext => SpanSetup]
     ) extends Config {
+      override private[otel4s] def serverAttributes: Attributes = {
+        val builder = Attributes.newBuilder
+        builder.addAll(ServerAttributes.ServerAddress.maybe(serverAddress))
+        builder.addAll(ServerAttributes.ServerPort.maybe(serverPort.map(_.toLong)))
+        builder.result()
+      }
+
+      override private[otel4s] def publishSpanSetup(
+          context: PublishSpanContext,
+          destination: Semconv.ResolvedDestination
+      ): SpanSetup =
+        customPublishSpanSetup.fold(Defaults.publishSpanSetupFor(destination))(_(context))
+
+      override private[otel4s] def processSpanSetup(
+          context: ProcessSpanContext,
+          destination: Semconv.ResolvedDestination
+      ): SpanSetup =
+        customProcessSpanSetup.fold(Defaults.processSpanSetupFor(destination))(_(context))
+
       override def withConstAttributes(attributes: Attributes): Config = copy(constAttributes = attributes)
 
       override def addConstAttributes(head: Attribute[?], tail: Attribute[?]*): Config =
@@ -120,16 +164,17 @@ object RabbitTracer {
 
       override def withClientId(clientId: String): Config = copy(clientId = Some(clientId))
 
-      override def withPublishSpanSetup(f: PublishSpanContext => SpanSetup): Config = copy(publishSpanSetup = f)
+      override def withPublishSpanSetup(f: PublishSpanContext => SpanSetup): Config =
+        copy(customPublishSpanSetup = Some(f))
 
-      override def withProcessSpanSetup(f: ProcessSpanContext => SpanSetup): Config = copy(processSpanSetup = f)
+      override def withProcessSpanSetup(f: ProcessSpanContext => SpanSetup): Config =
+        copy(customProcessSpanSetup = Some(f))
+
+      override def withQueueNameTemplateClassifier(classifier: QueueNameTemplateClassifier): Config =
+        copy(queueNameTemplateClassifier = classifier)
 
       override def withServerAddress(serverAddress: String, serverPort: Option[Int]): Config =
-        copy(
-          constAttributes = constAttributes +
-            ServerAttributes.ServerAddress(serverAddress) ++
-            ServerAttributes.ServerPort.maybe(serverPort.map(_.toLong))
-        )
+        copy(serverAddress = Some(serverAddress), serverPort = serverPort)
     }
   }
 

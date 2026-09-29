@@ -27,6 +27,8 @@ import org.typelevel.otel4s.semconv.experimental.attributes.MessagingExperimenta
 import org.typelevel.otel4s.trace.{SpanFinalizer, Tracer, TracerProvider}
 import org.typelevel.otel4s.{Attribute, Attributes}
 
+import java.util.concurrent.atomic.AtomicInteger
+
 class RabbitConsumerCoverageSpec extends AnyFlatSpecLike with RabbitTracingTestSupport {
 
   private implicit val channel: AMQPChannel                 = dummyChannel
@@ -113,6 +115,7 @@ class RabbitConsumerCoverageSpec extends AnyFlatSpecLike with RabbitTracingTestS
       } yield {
         val span       = spanNamed(spans, "process orders:created")
         assertStringAttribute(span, Messaging.MessagingDestinationName("orders:created"))
+        stringAttribute(span.getAttributes, "messaging.destination.template") shouldBe None
         span.getLinks.size shouldBe 1
         val attributes = span.getLinks.get(0).getAttributes
         stringAttribute(attributes, Messaging.MessagingDestinationName.name) shouldBe Some("orders:created")
@@ -122,23 +125,99 @@ class RabbitConsumerCoverageSpec extends AnyFlatSpecLike with RabbitTracingTestS
       }
     }
 
-  it should "mark generated queue destinations as anonymous" in
+  it should "use low-cardinality templates for generated queue destinations" in
     withTestkit { testkit =>
+      def process(queueName: String, headers: Headers, tracer: Tracer[IO]): IO[Unit] = {
+        implicit val implicitTracer: Tracer[IO] = tracer
+        val consumer                            = TracedRabbitConsumer[IO, String](QueueName(queueName), Stream.empty, RabbitTracer.Config.default)
+        consumer.process(envelope(headers))(IO.unit)
+      }
+
+      val generatedQueues = List(
+        "amq.gen-random"                       -> "amq.gen-*",
+        "spring.gen-random"                    -> "spring.gen-*",
+        "123e4567-e89b-12d3-a456-426614174000" -> "{queue_id}"
+      )
+
+      for {
+        creationTracer <- testkit.tracerProvider.get("creation")
+        headers        <- {
+          implicit val tracer: Tracer[IO] = creationTracer
+          creationTracer.rootSpan("create-message").surround(Tracer[IO].propagate(Headers.empty))
+        }
+        moduleTracer   <- testkit.tracerProvider.get("fs2.rabbit")
+        _              <- generatedQueues.foldLeft(IO.unit) { case (result, (queueName, _)) =>
+                            result.flatMap(_ => process(queueName, headers, moduleTracer))
+                          }
+        spans          <- testkit.finishedSpans
+      } yield generatedQueues.foreach { case (queueName, queueTemplate) =>
+        val template = s"orders:created:$queueTemplate"
+        val span     = spanNamed(spans, s"process $template")
+        stringAttribute(span.getAttributes, Messaging.MessagingDestinationName.name) shouldBe
+          Some(s"orders:created:$queueName")
+        stringAttribute(span.getAttributes, "messaging.destination.template") shouldBe Some(template)
+        booleanAttribute(span.getAttributes, Messaging.MessagingDestinationAnonymous.name) shouldBe Some(true)
+        span.getLinks.size shouldBe 1
+        stringAttribute(span.getLinks.get(0).getAttributes, "messaging.destination.template") shouldBe Some(template)
+      }
+    }
+
+  it should "omit an anonymous queue from the span name when its template is unavailable" in
+    withTestkit { testkit =>
+      val config =
+        RabbitTracer.Config.default.withQueueNameTemplateClassifier(QueueNameTemplateClassifier.indeterminate)
+
       for {
         moduleTracer <- testkit.tracerProvider.get("fs2.rabbit")
         consumer      = {
           implicit val tracer: Tracer[IO] = moduleTracer
-          TracedRabbitConsumer[IO, String](
-            QueueName("amq.gen-random"),
-            Stream.empty,
-            RabbitTracer.Config.default
-          )
+          TracedRabbitConsumer[IO, String](QueueName("amq.gen-random"), Stream.empty, config)
         }
         _            <- consumer.process(envelope())(IO.unit)
         spans        <- testkit.finishedSpans
       } yield {
-        val span = spanNamed(spans, "process orders:created:amq.gen-random")
+        val span = spanNamed(spans, "process")
+        stringAttribute(span.getAttributes, Messaging.MessagingDestinationName.name) shouldBe
+          Some("orders:created:amq.gen-random")
+        stringAttribute(span.getAttributes, "messaging.destination.template") shouldBe None
         booleanAttribute(span.getAttributes, Messaging.MessagingDestinationAnonymous.name) shouldBe Some(true)
+      }
+    }
+
+  it should "apply a configured queue name template classifier once per span" in
+    withTestkit { testkit =>
+      val classifierCalls = new AtomicInteger()
+      val classifier      = QueueNameTemplateClassifier
+        .matching {
+          case queue if queue.value.startsWith("reply-") =>
+            classifierCalls.incrementAndGet()
+            "reply-{id}"
+        }
+        .orElse(QueueNameTemplateClassifier.default)
+      val config          = RabbitTracer.Config.default.withQueueNameTemplateClassifier(classifier)
+
+      for {
+        creationTracer <- testkit.tracerProvider.get("creation")
+        headers        <- {
+          implicit val tracer: Tracer[IO] = creationTracer
+          creationTracer.rootSpan("create-message").surround(Tracer[IO].propagate(Headers.empty))
+        }
+        moduleTracer   <- testkit.tracerProvider.get("fs2.rabbit")
+        consumer        = {
+          implicit val tracer: Tracer[IO] = moduleTracer
+          TracedRabbitConsumer[IO, String](QueueName("reply-random"), Stream.empty, config)
+        }
+        _              <- consumer.process(envelope(headers))(IO.unit)
+        spans          <- testkit.finishedSpans
+      } yield {
+        val span = spanNamed(spans, "process orders:created:reply-{id}")
+        stringAttribute(span.getAttributes, "messaging.destination.template") shouldBe
+          Some("orders:created:reply-{id}")
+        booleanAttribute(span.getAttributes, Messaging.MessagingDestinationAnonymous.name) shouldBe None
+        span.getLinks.size shouldBe 1
+        stringAttribute(span.getLinks.get(0).getAttributes, "messaging.destination.template") shouldBe
+          Some("orders:created:reply-{id}")
+        classifierCalls.get() shouldBe 1
       }
     }
 
