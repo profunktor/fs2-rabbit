@@ -45,12 +45,6 @@ object TracedRabbitConsumer {
   ): TracedRabbitConsumer[F, A] =
     new Impl[F, A](queueName, underlying, config)
 
-  private[otel4s] def noop[F[_], A](
-      queueName: QueueName,
-      underlying: Stream[F, AmqpEnvelope[A]]
-  ): TracedRabbitConsumer[F, A] =
-    new Noop[F, A](queueName, underlying)
-
   final private class Impl[F[_]: Concurrent: Tracer, A](
       override val queueName: QueueName,
       override val underlying: Stream[F, AmqpEnvelope[A]],
@@ -84,6 +78,12 @@ object TracedRabbitConsumer {
         }
     }
   }
+
+  private[otel4s] def noop[F[_], A](
+      queueName: QueueName,
+      underlying: Stream[F, AmqpEnvelope[A]]
+  ): TracedRabbitConsumer[F, A] =
+    new Noop[F, A](queueName, underlying)
 
   final private class Noop[F[_], A](
       override val queueName: QueueName,
