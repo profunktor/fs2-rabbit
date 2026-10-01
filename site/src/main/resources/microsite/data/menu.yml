@@ -24,6 +24,10 @@ options:
         url: queues.html
         menu_section: guide
 
+      - title: OpenTelemetry tracing
+        url: otel4s.html
+        menu_section: guide
+
   - title: Consumers
     url: consumers/
     menu_section: consumer

@@ -1,5 +1,7 @@
 import Dependencies.*
 import microsites.ExtraMdFileConfig
+import sbtbuildinfo.BuildInfoPlugin
+import sbtbuildinfo.BuildInfoPlugin.autoImport.*
 import scala.collection.immutable
 
 ThisBuild / name               := "fs2-rabbit"
@@ -84,6 +86,14 @@ def ExamplesDependencies(scalaVersionStr: String): List[ModuleID] =
 
 def TestKitDependencies(scalaVersionStr: String): List[ModuleID] = List(Libraries.scalaCheck)
 
+def Otel4sDependencies(scalaVersionStr: String): List[ModuleID] =
+  List(
+    Libraries.otel4sCoreTrace,
+    Libraries.otel4sSemconv,
+    Libraries.otel4sSemconvExp % Test,
+    Libraries.otel4sTestkit    % Test
+  )
+
 def TestsDependencies(scalaVersionStr: String): List[ModuleID] =
   List(
     Libraries.disciplineScalaCheck % Test,
@@ -102,7 +112,7 @@ lazy val noPublish = List(
 lazy val `fs2-rabbit-root`: Project = project
   .in(file("."))
   .disablePlugins(MimaPlugin)
-  .aggregate(`fs2-rabbit`, `fs2-rabbit-circe`, tests, examples, microsite, `fs2-rabbit-testkit`)
+  .aggregate(`fs2-rabbit`, `fs2-rabbit-circe`, `fs2-rabbit-otel4s`, tests, examples, microsite, `fs2-rabbit-testkit`)
   .settings(noPublish)
 
 lazy val `fs2-rabbit`: Project = project
@@ -118,6 +128,19 @@ lazy val `fs2-rabbit-circe`: Project = project
   .settings(libraryDependencies ++= JsonDependencies(scalaVersion.value))
   .settings(Test / parallelExecution := false)
   .enablePlugins(AutomateHeaderPlugin)
+  .dependsOn(`fs2-rabbit`)
+
+lazy val `fs2-rabbit-otel4s`: Project = project
+  .in(file("otel4s"))
+  .settings(commonSettings: _*)
+  .settings(libraryDependencies ++= Otel4sDependencies(scalaVersion.value))
+  .settings(
+    buildInfoPackage         := "dev.profunktor.fs2rabbit.otel4s",
+    buildInfoOptions += BuildInfoOption.PackagePrivate,
+    buildInfoKeys            := Seq[BuildInfoKey]("version" -> version.value),
+    Test / parallelExecution := false
+  )
+  .enablePlugins(AutomateHeaderPlugin, BuildInfoPlugin)
   .dependsOn(`fs2-rabbit`)
 
 lazy val tests: Project = project
@@ -185,7 +208,7 @@ lazy val microsite: Project = project
       "-Xlint:-missing-interpolator,_"
     )
   )
-  .dependsOn(`fs2-rabbit`, `fs2-rabbit-circe`, `examples`)
+  .dependsOn(`fs2-rabbit`, `fs2-rabbit-circe`, `fs2-rabbit-otel4s`, `examples`)
 
 // CI build
 addCommandAlias("buildFs2Rabbit", ";clean;+test;mdoc")
