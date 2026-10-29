@@ -5,8 +5,8 @@ import sbtbuildinfo.BuildInfoPlugin.autoImport.*
 import scala.collection.immutable
 
 ThisBuild / name               := "fs2-rabbit"
-ThisBuild / scalaVersion       := "3.3.8"
-ThisBuild / crossScalaVersions := List("2.13.18", "3.3.8")
+ThisBuild / scalaVersion       := "3.3.9"
+ThisBuild / crossScalaVersions := List("2.13.18", "3.3.9")
 ThisBuild / versionScheme      := Some("semver-spec")
 ThisBuild / organization       := "dev.profunktor"
 ThisBuild / homepage           := Some(url("https://fs2-rabbit.profunktor.dev/"))
