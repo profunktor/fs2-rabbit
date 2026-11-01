@@ -37,6 +37,7 @@ object RabbitTracer {
     private[otel4s] def clientId: Option[String]
     private[otel4s] def serverAttributes: Attributes
     private[otel4s] def queueNameTemplateClassifier: QueueNameTemplateClassifier
+    private[otel4s] def processSpanParentingPolicy: ProcessSpanParentingPolicy
     private[otel4s] def publishSpanSetup(
         context: PublishSpanContext,
         destination: Semconv.ResolvedDestination
@@ -49,10 +50,17 @@ object RabbitTracer {
     def withConstAttributes(attributes: Attributes): Config
     def addConstAttributes(head: Attribute[?], tail: Attribute[?]*): Config
     def withClientId(clientId: String): Config
-    def withPublishSpanSetup(f: PublishSpanContext => Config.SpanSetup): Config
-    def withProcessSpanSetup(f: ProcessSpanContext => Config.SpanSetup): Config
+    def withPublishSpanSetup(f: (PublishSpanContext, Config.SpanSetup) => Config.SpanSetup): Config
+    def withProcessSpanSetup(f: (ProcessSpanContext, Config.SpanSetup) => Config.SpanSetup): Config
     def withQueueNameTemplateClassifier(classifier: QueueNameTemplateClassifier): Config
+    def withProcessSpanParentingPolicy(policy: ProcessSpanParentingPolicy): Config
     def withServerAddress(serverAddress: String, serverPort: Option[Int]): Config
+  }
+
+  sealed trait ProcessSpanParentingPolicy
+  object ProcessSpanParentingPolicy {
+    case object Root    extends ProcessSpanParentingPolicy
+    case object Ambient extends ProcessSpanParentingPolicy
   }
 
   object Config {
@@ -60,11 +68,9 @@ object RabbitTracer {
     object Defaults {
       val tracerName: String = "fs2.rabbit"
 
-      val publishSpanSetup: PublishSpanContext => SpanSetup =
-        context => publishSpanSetupFor(Semconv.resolvePublishDestination(context, QueueNameTemplateClassifier.default))
+      val publishSpanSetup: (PublishSpanContext, SpanSetup) => SpanSetup = (_, resolvedDefault) => resolvedDefault
 
-      val processSpanSetup: ProcessSpanContext => SpanSetup =
-        context => processSpanSetupFor(Semconv.resolveProcessDestination(context, QueueNameTemplateClassifier.default))
+      val processSpanSetup: (ProcessSpanContext, SpanSetup) => SpanSetup = (_, resolvedDefault) => resolvedDefault
 
       private[otel4s] def publishSpanSetupFor(destination: Semconv.ResolvedDestination): SpanSetup =
         SpanSetup(spanName("publish", destination.spanDestination))
@@ -124,6 +130,7 @@ object RabbitTracer {
         serverAddress = None,
         serverPort = None,
         queueNameTemplateClassifier = QueueNameTemplateClassifier.default,
+        parentingPolicy = ProcessSpanParentingPolicy.Root,
         customPublishSpanSetup = None,
         customProcessSpanSetup = None
       )
@@ -135,10 +142,13 @@ object RabbitTracer {
         serverAddress: Option[String],
         serverPort: Option[Int],
         queueNameTemplateClassifier: QueueNameTemplateClassifier,
-        customPublishSpanSetup: Option[PublishSpanContext => SpanSetup],
-        customProcessSpanSetup: Option[ProcessSpanContext => SpanSetup]
+        parentingPolicy: ProcessSpanParentingPolicy,
+        customPublishSpanSetup: Option[(PublishSpanContext, SpanSetup) => SpanSetup],
+        customProcessSpanSetup: Option[(ProcessSpanContext, SpanSetup) => SpanSetup]
     ) extends Config {
-      override private[otel4s] def serverAttributes: Attributes = {
+      override private[otel4s] def processSpanParentingPolicy: ProcessSpanParentingPolicy = parentingPolicy
+
+      override private[otel4s] val serverAttributes: Attributes = {
         val builder = Attributes.newBuilder
         builder.addAll(ServerAttributes.ServerAddress.maybe(serverAddress))
         builder.addAll(ServerAttributes.ServerPort.maybe(serverPort.map(_.toLong)))
@@ -148,14 +158,18 @@ object RabbitTracer {
       override private[otel4s] def publishSpanSetup(
           context: PublishSpanContext,
           destination: Semconv.ResolvedDestination
-      ): SpanSetup =
-        customPublishSpanSetup.fold(Defaults.publishSpanSetupFor(destination))(_(context))
+      ): SpanSetup = {
+        val default = Defaults.publishSpanSetupFor(destination)
+        customPublishSpanSetup.fold(default)(_(context, default))
+      }
 
       override private[otel4s] def processSpanSetup(
           context: ProcessSpanContext,
           destination: Semconv.ResolvedDestination
-      ): SpanSetup =
-        customProcessSpanSetup.fold(Defaults.processSpanSetupFor(destination))(_(context))
+      ): SpanSetup = {
+        val default = Defaults.processSpanSetupFor(destination)
+        customProcessSpanSetup.fold(default)(_(context, default))
+      }
 
       override def withConstAttributes(attributes: Attributes): Config = copy(constAttributes = attributes)
 
@@ -164,14 +178,17 @@ object RabbitTracer {
 
       override def withClientId(clientId: String): Config = copy(clientId = Some(clientId))
 
-      override def withPublishSpanSetup(f: PublishSpanContext => SpanSetup): Config =
+      override def withPublishSpanSetup(f: (PublishSpanContext, SpanSetup) => SpanSetup): Config =
         copy(customPublishSpanSetup = Some(f))
 
-      override def withProcessSpanSetup(f: ProcessSpanContext => SpanSetup): Config =
+      override def withProcessSpanSetup(f: (ProcessSpanContext, SpanSetup) => SpanSetup): Config =
         copy(customProcessSpanSetup = Some(f))
 
       override def withQueueNameTemplateClassifier(classifier: QueueNameTemplateClassifier): Config =
         copy(queueNameTemplateClassifier = classifier)
+
+      override def withProcessSpanParentingPolicy(policy: ProcessSpanParentingPolicy): Config =
+        copy(parentingPolicy = policy)
 
       override def withServerAddress(serverAddress: String, serverPort: Option[Int]): Config =
         copy(serverAddress = Some(serverAddress), serverPort = serverPort)

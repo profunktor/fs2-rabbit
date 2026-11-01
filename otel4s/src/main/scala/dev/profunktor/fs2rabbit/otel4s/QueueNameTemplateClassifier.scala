@@ -70,6 +70,10 @@ object QueueNameTemplateClassifier {
   val springGeneratedQueue: QueueNameTemplateClassifier =
     matching { case queue if queue.value.startsWith("spring.gen-") => "spring.gen-*" }
 
+  /** Classifies RabbitMQ Direct Reply-To addresses with opaque suffixes. */
+  val rabbitMqDirectReplyTo: QueueNameTemplateClassifier =
+    matching { case queue if queue.value.startsWith("amq.rabbitmq.reply-to.") => "amq.rabbitmq.reply-to.*" }
+
   /** Classifies lowercase canonical UUID queue names. */
   val uuidQueue: QueueNameTemplateClassifier =
     matching {
@@ -81,5 +85,6 @@ object QueueNameTemplateClassifier {
   val default: QueueNameTemplateClassifier =
     rabbitMqGeneratedQueue
       .orElse(springGeneratedQueue)
+      .orElse(rabbitMqDirectReplyTo)
       .orElse(uuidQueue)
 }

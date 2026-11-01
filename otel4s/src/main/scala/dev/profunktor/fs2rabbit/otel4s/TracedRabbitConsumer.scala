@@ -56,30 +56,38 @@ object TracedRabbitConsumer {
       val destination = Semconv.resolveProcessDestination(spanContext, config.queueNameTemplateClassifier)
       val spanSetup   = config.processSpanSetup(spanContext, destination)
 
-      Tracer[F]
-        .joinOrRoot(envelope.properties.headers)(Tracer[F].currentSpanContext)
-        .flatMap { creationContext =>
-          val builder = Tracer[F]
-            .spanBuilder(spanSetup.spanName)
-            .root
-            .withSpanKind(SpanKind.Consumer)
-            .withFinalizationStrategy(spanSetup.finalizationStrategy)
-            .addAttributes(
-              Semconv.processAttributes(spanContext, config.clientId, destination) ++
-                config.serverAttributes ++
-                config.constAttributes ++
-                spanSetup.attributes
-            )
+      Tracer[F].currentSpanContext.flatMap { surroundingContext =>
+        Tracer[F]
+          .joinOrRoot(envelope.properties.headers)(Tracer[F].currentSpanContext)
+          .flatMap { creationContext =>
+            val baseBuilder     = Tracer[F].spanBuilder(spanSetup.spanName)
+            val parentedBuilder = config.processSpanParentingPolicy match {
+              case RabbitTracer.ProcessSpanParentingPolicy.Root    => baseBuilder.root
+              case RabbitTracer.ProcessSpanParentingPolicy.Ambient =>
+                surroundingContext.fold(baseBuilder.root)(parent => baseBuilder.withParent(parent))
+            }
+            val builder         = parentedBuilder
+              .withSpanKind(SpanKind.Consumer)
+              .withFinalizationStrategy(spanSetup.finalizationStrategy)
+              .addAttributes(
+                Semconv.processAttributes(spanContext, config.clientId, destination) ++
+                  config.serverAttributes ++
+                  config.constAttributes ++
+                  spanSetup.attributes
+              )
 
-          creationContext
-            .fold(builder)(context => builder.addLink(context, Semconv.processLinkAttributes(spanContext, destination)))
-            .build
-            .surround(fa)
-        }
+            creationContext
+              .fold(builder)(context =>
+                builder.addLink(context, Semconv.processLinkAttributes(spanContext, destination))
+              )
+              .build
+              .surround(fa)
+          }
+      }
     }
   }
 
-  private[otel4s] def noop[F[_], A](
+  def noop[F[_], A](
       queueName: QueueName,
       underlying: Stream[F, AmqpEnvelope[A]]
   ): TracedRabbitConsumer[F, A] =

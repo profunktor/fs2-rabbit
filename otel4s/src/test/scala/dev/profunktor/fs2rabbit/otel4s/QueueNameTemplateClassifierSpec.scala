@@ -43,6 +43,9 @@ class QueueNameTemplateClassifierSpec extends AnyFlatSpecLike with Matchers {
     QueueNameTemplateClassifier.springGeneratedQueue.classify(QueueName("spring.gen-random")) shouldBe Some(
       "spring.gen-*"
     )
+    QueueNameTemplateClassifier.rabbitMqDirectReplyTo.classify(QueueName("amq.rabbitmq.reply-to.ab12")) shouldBe Some(
+      "amq.rabbitmq.reply-to.*"
+    )
     QueueNameTemplateClassifier.uuidQueue.classify(QueueName("123e4567-e89b-12d3-a456-426614174000")) shouldBe Some(
       "{queue_id}"
     )

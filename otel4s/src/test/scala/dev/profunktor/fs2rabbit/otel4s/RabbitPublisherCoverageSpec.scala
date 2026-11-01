@@ -249,6 +249,32 @@ class RabbitPublisherCoverageSpec extends AnyFlatSpecLike with RabbitTracingTest
       }
     }
 
+  it should "retain a configured queue template when using the default publish span setup callback" in
+    withTestkit { testkit =>
+      implicit val tracerProvider: TracerProvider[IO] = testkit.tracerProvider
+      val classifier                                  = QueueNameTemplateClassifier.matching {
+        case queue if queue.value.startsWith("reply-") => "reply-{id}"
+      }
+      val config                                      = RabbitTracer.Config.default
+        .withQueueNameTemplateClassifier(classifier)
+        .withPublishSpanSetup(RabbitTracer.Config.Defaults.publishSpanSetup)
+
+      for {
+        published <- Ref[IO].of(Vector.empty[Published])
+        listeners <- Ref[IO].of(Vector.empty[PublishReturn => IO[Unit]])
+        tracer    <- RabbitTracer.create[IO](config)
+        publisher <- tracer
+                       .client(rabbitClient(new StubPublishingProgram(published, listeners)))
+                       .createPublisher[AmqpMessage[Array[Byte]]](ExchangeName(""), RoutingKey("reply-opaque"))
+        _         <- publisher(message())
+        spans     <- testkit.finishedSpans
+      } yield {
+        val span = spanNamed(spans, "publish reply-{id}")
+        stringAttribute(span.getAttributes, Messaging.MessagingDestinationName.name) shouldBe Some("reply-opaque")
+        stringAttribute(span.getAttributes, "messaging.destination.template") shouldBe Some("reply-{id}")
+      }
+    }
+
   it should "finalize a canceled publish span" in
     withTestkit { testkit =>
       implicit val tracerProvider: TracerProvider[IO] = testkit.tracerProvider
@@ -289,7 +315,7 @@ class RabbitPublisherCoverageSpec extends AnyFlatSpecLike with RabbitTracingTest
             Attribute("attribute.priority", "constant")
           )
         )
-        .withPublishSpanSetup(_ =>
+        .withPublishSpanSetup((_, _) =>
           RabbitTracer.Config.SpanSetup(
             "custom publish",
             Attributes(Attribute("attribute.priority", "span")),

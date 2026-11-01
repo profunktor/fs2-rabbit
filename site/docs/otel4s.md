@@ -17,11 +17,13 @@ Create a `RabbitTracer` from the application's otel4s `TracerProvider`, then use
 its traced client for publishers and consumers. The tracer should normally be
 created once alongside the `RabbitClient`:
 
-```scala
+```scala mdoc:silent
 import cats.effect.Async
+import cats.syntax.all.*
 import dev.profunktor.fs2rabbit.interpreter.RabbitClient
 import dev.profunktor.fs2rabbit.model.*
 import dev.profunktor.fs2rabbit.otel4s.*
+import fs2.Stream
 import org.typelevel.otel4s.trace.TracerProvider
 
 def program[F[_]: Async: TracerProvider](client: RabbitClient[F])(implicit
@@ -37,8 +39,8 @@ def program[F[_]: Async: TracerProvider](client: RabbitClient[F])(implicit
       val traced = rabbitTracer.client(client)
 
       for {
-        _ <- publish(traced)
-        _ <- consume(traced)
+        publish <- traced.createPublisher[String](ExchangeName("orders"), RoutingKey("created"))
+        _       <- publish("order-123")
       } yield ()
     }
 ```
@@ -54,7 +56,7 @@ client. Each invocation of the returned function creates a publish span and
 injects a creation context into the AMQP headers when the message does not
 already carry one:
 
-```scala
+```scala mdoc:silent
 def publish[F[_]: Async](client: TracedRabbitClient[F])(implicit
     channel: AMQPChannel
 ): F[Unit] =
@@ -75,7 +77,7 @@ listener variants are also available on `TracedRabbitClient`.
 `recordsWithProcess` places a process span around the effect returned for each
 message:
 
-```scala
+```scala mdoc:silent
 def consume[F[_]: Async](client: TracedRabbitClient[F])(implicit
     channel: AMQPChannel
 ): F[Unit] =
@@ -98,10 +100,12 @@ additional spans.
 Use `records` and `consumer.process(envelope)(effect)` when the processing
 boundary needs to be placed manually:
 
-```scala
-consumer.records.evalMap { envelope =>
-  consumer.process(envelope)(handle(envelope))
-}
+```scala mdoc:silent
+def processManually[F[_]: Async, A](
+    consumer: TracedRabbitConsumer[F, A],
+    handle: AmqpEnvelope[A] => F[Unit]
+): Stream[F, Unit] =
+  consumer.records.evalMap(envelope => Async[F].defer(consumer.process(envelope)(handle(envelope))))
 ```
 
 ## Syntax
@@ -110,22 +114,24 @@ Importing `dev.profunktor.fs2rabbit.otel4s.syntax.*` enables two convenience
 extensions. They do not change tracing behavior; they are shorter forms of the
 regular API:
 
-```scala
+```scala mdoc:silent
+import cats.effect.Async
 import dev.profunktor.fs2rabbit.otel4s.syntax.*
 
-val traced = client.traced(rabbitTracer)
-// equivalent to rabbitTracer.client(client)
+def tracedClient[F[_]](client: RabbitClient[F], rabbitTracer: RabbitTracer[F]): TracedRabbitClient[F] =
+  client.traced(rabbitTracer)
 ```
 
 `processTraced` is useful with a manually chosen processing boundary. It requires
 the corresponding `TracedRabbitConsumer` to be in implicit scope:
 
-```scala
-implicit val tracedConsumer: TracedRabbitConsumer[F, String] = consumer
-
-consumer.records.evalMap { envelope =>
-  envelope.processTraced(handle(envelope))
-  // equivalent to consumer.process(envelope)(handle(envelope))
+```scala mdoc:silent
+def processWithSyntax[F[_]: Async, A](
+    consumer: TracedRabbitConsumer[F, A],
+    handle: AmqpEnvelope[A] => F[Unit]
+): Stream[F, Unit] = {
+  implicit val tracedConsumer: TracedRabbitConsumer[F, A] = consumer
+  consumer.records.evalMap(envelope => Async[F].defer(envelope.processTraced(handle(envelope))))
 }
 ```
 
@@ -138,15 +144,17 @@ be traced.
 | --- | --- | --- | --- |
 | Publish a message without creation context | `publish <destination>` | `PRODUCER` | The ambient span is the parent. A new creation context is injected into the AMQP headers. |
 | Publish a message with creation context | `publish <destination>` | `CLIENT` | The ambient span is the parent. The message creation context is preserved and linked. |
-| Process a delivered message | `process <destination>` | `CONSUMER` | Always a root span. The message creation context is linked when present. |
+| Process a delivered message | `process <destination>` | `CONSUMER` | Root by default; optionally parented to the currently active span. The message creation context is linked when present. |
 
 A message published without an existing creation context gets a `PRODUCER` span,
 and that span's context is injected into the message headers. If the message
 already contains valid trace context, the headers are preserved and publishing
 gets a `CLIENT` span linked to that context.
 
-Processing creates one root `CONSUMER` span per delivered message and links it to
-the creation context in the message headers. RabbitMQ pushes messages to consumers,
+Processing creates one `CONSUMER` span per delivered message and links it to
+the creation context in the message headers. Root parenting is the default; set
+`withProcessSpanParentingPolicy(RabbitTracer.ProcessSpanParentingPolicy.Ambient)`
+to use the currently active span as parent. RabbitMQ pushes messages to consumers,
 so the module emits `process` spans rather than `receive` spans.
 
 The destination is a colon-separated combination of exchange, routing key, and,
@@ -156,11 +164,15 @@ and an empty routing key are represented as `amq.default`.
 Generated queue destinations use a low-cardinality destination template in the
 default span name. RabbitMQ names beginning with `amq.gen-` use `amq.gen-*`,
 names beginning with `spring.gen-` use `spring.gen-*`, and UUID-shaped names use
-`{queue_id}`. For example, `orders:created:amq.gen-4p09x` produces the process
-span name `process orders:created:amq.gen-*`. A publish routed directly to
-`amq.gen-4p09x` through the default exchange uses `publish amq.gen-*`. The span
-retains the actual value in `messaging.destination.name` and records the
-normalized value in `messaging.destination.template`.
+`{queue_id}`. RabbitMQ Direct Reply-To addresses beginning with
+`amq.rabbitmq.reply-to.` use `amq.rabbitmq.reply-to.*`. For example,
+`orders:created:amq.gen-4p09x` produces the process span name
+`process orders:created:amq.gen-*`. A publish routed directly to
+`amq.gen-4p09x` through the default exchange uses `publish amq.gen-*`; a Direct
+Reply-To address such as `amq.rabbitmq.reply-to.ab12` uses
+`publish amq.rabbitmq.reply-to.*`. The span retains the actual value in
+`messaging.destination.name` and records the normalized value in
+`messaging.destination.template`.
 
 If a configured classifier returns no template for a known generated queue, the
 span name omits the destination rather than using its anonymous name, following
@@ -201,25 +213,28 @@ customized with `RabbitTracer.Config.withPublishSpanSetup` and
 
 Queue name templates are selected by `QueueNameTemplateClassifier`. The default
 classifier composes the built-in RabbitMQ generated queue, Spring generated
-queue, and UUID classifiers in order. Use `matching` to add an application
-pattern; classifiers return the first template they recognize:
+queue, Direct Reply-To, and UUID classifiers in order. Use `matching` to add an
+application pattern; classifiers return the first template they recognize:
 
-```scala
-val queueTemplates =
-  QueueNameTemplateClassifier
-    .matching {
-      case queue if queue.value.startsWith("reply-") => "reply-{id}"
-    }
-    .orElse(QueueNameTemplateClassifier.default)
+```scala mdoc:silent
+def config: RabbitTracer.Config = {
+  val queueTemplates =
+    QueueNameTemplateClassifier
+      .matching {
+        case queue if queue.value.startsWith("reply-") => "reply-{id}"
+      }
+      .orElse(QueueNameTemplateClassifier.default)
 
-val config = RabbitTracer.Config.default
-  .withQueueNameTemplateClassifier(queueTemplates)
+  RabbitTracer.Config.default
+    .withQueueNameTemplateClassifier(queueTemplates)
+}
 ```
 
 `withQueueNameTemplateClassifier` replaces the configured classifier. Compose
 with `QueueNameTemplateClassifier.default` to retain the built-in patterns.
-Use the individual `rabbitMqGeneratedQueue`, `springGeneratedQueue`, and
-`uuidQueue` classifiers to choose a different set of defaults.
+Use the individual `rabbitMqGeneratedQueue`, `springGeneratedQueue`,
+`rabbitMqDirectReplyTo`, and `uuidQueue` classifiers to choose a different set
+of defaults.
 
 Do not enable overlapping RabbitMQ Java-agent instrumentation for the same client;
 doing so can create duplicate messaging spans.

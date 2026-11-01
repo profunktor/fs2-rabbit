@@ -226,7 +226,7 @@ class RabbitConsumerCoverageSpec extends AnyFlatSpecLike with RabbitTracingTestS
       val finalize: SpanFinalizer.Strategy = { case _ =>
         SpanFinalizer.addAttribute(Attribute("process.finalized", true))
       }
-      val config                           = RabbitTracer.Config.default.withProcessSpanSetup(context =>
+      val config                           = RabbitTracer.Config.default.withProcessSpanSetup((context, _) =>
         RabbitTracer.Config.SpanSetup(
           s"handle ${context.queueName.value}",
           Attributes(Attribute("process.custom", context.redelivered)),

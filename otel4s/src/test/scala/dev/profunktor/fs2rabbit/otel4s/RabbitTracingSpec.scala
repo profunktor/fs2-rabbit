@@ -18,7 +18,7 @@ package dev.profunktor.fs2rabbit.otel4s
 
 import cats.data.Kleisli
 import cats.effect.unsafe.implicits.global
-import cats.effect.{IO, Ref}
+import cats.effect.{Concurrent, IO, Ref}
 import dev.profunktor.fs2rabbit.effects.MessageEncoder
 import dev.profunktor.fs2rabbit.interpreter.RabbitClient
 import dev.profunktor.fs2rabbit.model.*
@@ -161,6 +161,70 @@ class RabbitTracingSpec extends AnyFlatSpecLike with Matchers {
         attribute(span, "config.attribute") shouldBe "retained"
         attribute(span, "server.address") shouldBe "rabbitmq.example.com"
         longAttribute(span, "server.port") shouldBe 5672L
+      }
+    }
+
+  it should "use the active span as parent for manually invoked process spans when configured" in
+    withTestkit { testkit =>
+      for {
+        appTracer    <- testkit.tracerProvider.get("application")
+        headers      <- appTracer.rootSpan("create-message").surround(appTracer.propagate(Headers.empty))
+        traceparent   = TextMapGetter[Headers].get(headers, "traceparent").getOrElse(fail("missing trace context"))
+        moduleTracer <- testkit.tracerProvider.get("fs2.rabbit")
+        consumer      =
+          TracedRabbitConsumer.apply[IO, String](
+            QueueName("orders-queue"),
+            Stream.empty,
+            RabbitTracer.Config.default.withProcessSpanParentingPolicy(RabbitTracer.ProcessSpanParentingPolicy.Ambient)
+          )(using Concurrent[IO], moduleTracer)
+        testEnvelope  = AmqpEnvelope(
+                          DeliveryTag(7L),
+                          "payload",
+                          AmqpProperties.empty.copy(messageId = Some("message-1"), headers = headers),
+                          ExchangeName("orders"),
+                          RoutingKey("created"),
+                          redelivered = false
+                        )
+        _            <- appTracer.rootSpan("ambient").surround(consumer.process(testEnvelope)(IO.unit))
+        spans        <- testkit.finishedSpans
+      } yield {
+        val ambient = spanNamed(spans, "ambient")
+        val process = spanNamed(spans, "process orders:created:orders-queue")
+        process.getParentSpanId shouldBe ambient.getSpanContext.getSpanId
+        process.getLinks.size shouldBe 1
+        process.getLinks.get(0).getSpanContext.getSpanId shouldBe traceparent.split("-")(2)
+      }
+    }
+
+  it should "keep process spans root under the ambient policy when no span is active" in
+    withTestkit { testkit =>
+      for {
+        appTracer    <- testkit.tracerProvider.get("application")
+        headers      <- appTracer.rootSpan("create-message").surround(appTracer.propagate(Headers.empty))
+        traceparent   = TextMapGetter[Headers].get(headers, "traceparent").getOrElse(fail("missing trace context"))
+        moduleTracer <- testkit.tracerProvider.get("fs2.rabbit")
+        config        = RabbitTracer.Config.default
+                          .withProcessSpanParentingPolicy(RabbitTracer.ProcessSpanParentingPolicy.Ambient)
+        consumer      = TracedRabbitConsumer.apply[IO, String](QueueName("orders-queue"), Stream.empty, config)(
+                          using
+                          Concurrent[IO],
+                          moduleTracer
+                        )
+        envelope      = AmqpEnvelope(
+                          DeliveryTag(7L),
+                          "payload",
+                          AmqpProperties.empty.copy(messageId = Some("message-1"), headers = headers),
+                          ExchangeName("orders"),
+                          RoutingKey("created"),
+                          redelivered = false
+                        )
+        _            <- consumer.process(envelope)(IO.unit)
+        spans        <- testkit.finishedSpans
+      } yield {
+        val process = spanNamed(spans, "process orders:created:orders-queue")
+        process.getParentSpanContext.isValid shouldBe false
+        process.getLinks.size shouldBe 1
+        process.getLinks.get(0).getSpanContext.getSpanId shouldBe traceparent.split("-")(2)
       }
     }
 

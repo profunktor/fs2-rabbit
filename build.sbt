@@ -133,6 +133,7 @@ lazy val `fs2-rabbit-circe`: Project = project
 lazy val `fs2-rabbit-otel4s`: Project = project
   .in(file("otel4s"))
   .settings(commonSettings: _*)
+  .settings(mimaPreviousArtifacts := Set.empty)
   .settings(libraryDependencies ++= Otel4sDependencies(scalaVersion.value))
   .settings(
     buildInfoPackage         := "dev.profunktor.fs2rabbit.otel4s",
