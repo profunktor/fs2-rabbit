@@ -19,15 +19,20 @@ object Dependencies {
     val scalaCheck              = "1.20.0"
     val scalaTestPlusScalaCheck = "3.2.20.0"
     val disciplineScalaCheck    = "2.2.0"
+    val otel4s                  = "1.1.0"
   }
 
   object Libraries {
     def circe(artifact: String): ModuleID = "io.circe" %% artifact % Version.circe
 
-    lazy val amqpClient = "com.rabbitmq"   % "amqp-client" % Version.amqpClient
-    lazy val catsEffect = "org.typelevel" %% "cats-effect" % Version.catsEffect
-    lazy val fs2Core    = "co.fs2"        %% "fs2-core"    % Version.fs2
-    lazy val scodecCats = "org.scodec"    %% "scodec-cats" % Version.scodec
+    lazy val amqpClient       = "com.rabbitmq"   % "amqp-client"                 % Version.amqpClient
+    lazy val catsEffect       = "org.typelevel" %% "cats-effect"                 % Version.catsEffect
+    lazy val fs2Core          = "co.fs2"        %% "fs2-core"                    % Version.fs2
+    lazy val otel4sCoreTrace  = "org.typelevel" %% "otel4s-core-trace"           % Version.otel4s
+    lazy val otel4sSemconv    = "org.typelevel" %% "otel4s-semconv"              % Version.otel4s
+    lazy val otel4sSemconvExp = "org.typelevel" %% "otel4s-semconv-experimental" % Version.otel4s
+    lazy val otel4sTestkit    = "org.typelevel" %% "otel4s-oteljava-testkit"     % Version.otel4s
+    lazy val scodecCats       = "org.scodec"    %% "scodec-cats"                 % Version.scodec
 
     // Compiler
     lazy val kindProjector = "org.typelevel" % "kind-projector" % Version.kindProjector cross CrossVersion.full
