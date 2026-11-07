@@ -19,7 +19,7 @@ object Dependencies {
     val scalaCheck              = "1.20.0"
     val scalaTestPlusScalaCheck = "3.2.20.0"
     val disciplineScalaCheck    = "2.2.0"
-    val otel4s                  = "1.1.0"
+    val otel4s                  = "1.2.0"
   }
 
   object Libraries {
