@@ -1,0 +1,272 @@
+<!DOCTYPE html><html><head><title>Fs2 Rabbit: OpenTelemetry tracing</title><meta charset="utf-8" /><meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="author" content="ProfunKtor" /><meta name="description" content="RabbitMQ stream-based client" /><meta name="og:image" content="/img/poster.png" /><meta name="image" property="og:image" content="/img/poster.png" /><meta name="og:title" content="Fs2 Rabbit: OpenTelemetry tracing" /><meta name="title" property="og:title" content="Fs2 Rabbit: OpenTelemetry tracing" /><meta name="og:site_name" content="Fs2 Rabbit" /><meta name="og:url" content="https://fs2-rabbit.profunktor.dev/" /><meta name="og:type" content="website" /><meta name="og:description" content="RabbitMQ stream-based client" /><link rel="icon" type="image/png" href="/img/favicon.png" /><meta name="twitter:title" content="Fs2 Rabbit: OpenTelemetry tracing" /><meta name="twitter:image" content="/img/poster.png" /><meta name="twitter:description" content="RabbitMQ stream-based client" /><meta name="twitter:card" content="summary_large_image" /><link rel="icon" type="image/png" sizes="16x16" href="/img/favicon16x16.png" /><link rel="icon" type="image/png" sizes="24x24" href="/img/favicon24x24.png" /><link rel="icon" type="image/png" sizes="32x32" href="/img/favicon32x32.png" /><link rel="icon" type="image/png" sizes="48x48" href="/img/favicon48x48.png" /><link rel="icon" type="image/png" sizes="57x57" href="/img/favicon57x57.png" /><link rel="icon" type="image/png" sizes="60x60" href="/img/favicon60x60.png" /><link rel="icon" type="image/png" sizes="64x64" href="/img/favicon64x64.png" /><link rel="icon" type="image/png" sizes="70x70" href="/img/favicon70x70.png" /><link rel="icon" type="image/png" sizes="72x72" href="/img/favicon72x72.png" /><link rel="icon" type="image/png" sizes="76x76" href="/img/favicon76x76.png" /><link rel="icon" type="image/png" sizes="96x96" href="/img/favicon96x96.png" /><link rel="icon" type="image/png" sizes="114x114" href="/img/favicon114x114.png" /><link rel="icon" type="image/png" sizes="120x120" href="/img/favicon120x120.png" /><link rel="icon" type="image/png" sizes="128x128" href="/img/favicon128x128.png" /><link rel="icon" type="image/png" sizes="144x144" href="/img/favicon144x144.png" /><link rel="icon" type="image/png" sizes="150x150" href="/img/favicon150x150.png" /><link rel="icon" type="image/png" sizes="152x152" href="/img/favicon152x152.png" /><link rel="icon" type="image/png" sizes="196x196" href="/img/favicon196x196.png" /><link rel="icon" type="image/png" sizes="310x310" href="/img/favicon310x310.png" /><link rel="icon" type="image/png" sizes="310x150" href="/img/favicon310x150.png" /><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" /><link rel="stylesheet" href="/highlight/styles/vs.css" /><link rel="stylesheet" href="/css/light-style.css" /></head><body class="docs"><div id="wrapper"><div id="sidebar-wrapper"><div id="sidebar-brand"><a href="/" class="brand"><div class="brand-wrapper"></div><span>Fs2 Rabbit</span></a><button id="main-toggle" class="sidebar-toggle"><span class="close"></span></button></div><div class="sidebar-nav"> <div class="sidebar-nav-item  open"><a href="/guide.html" title="Guide" class="drop-nested">Guide</a><i class="fa fa-angle-right"></i><div class="sub-section"> <a href="/config.html" title="Configuration" class="">Configuration</a> <a href="/client.html" title="Fs2 Rabbit Client" class="">Fs2 Rabbit Client</a> <a href="/connection-channel.html" title="Connection and Channel" class="">Connection and Channel</a> <a href="/exchanges.html" title="Exchanges" class="">Exchanges</a> <a href="/queues.html" title="Queues" class="">Queues</a> <a href="/otel4s.html" title="OpenTelemetry tracing" class="active">OpenTelemetry tracing</a></div></div> <div class="sidebar-nav-item  "><a href="/consumers/" title="Consumers" class="drop-nested">Consumers</a><i class="fa fa-angle-right"></i><div class="sub-section"> <a href="/consumers/autoackconsumer.html" title="AutoAckConsumer" class="">AutoAckConsumer</a> <a href="/consumers/ackerconsumer.html" title="AckerConsumer" class="">AckerConsumer</a> <a href="/consumers/json.html" title="Consuming Json" class="">Consuming Json</a></div></div> <div class="sidebar-nav-item  "><a href="/publishers/" title="Publishers" class="drop-nested">Publishers</a><i class="fa fa-angle-right"></i><div class="sub-section"> <a href="/publishers/publisher.html" title="Publisher" class="">Publisher</a> <a href="/publishers/publisher-with-listener.html" title="Publisher with Listener" class="">Publisher with Listener</a> <a href="/publishers/json.html" title="Publishing Json" class="">Publishing Json</a></div></div> <div class="sidebar-nav-item  "><a href="/resiliency.html" title="Resiliency" class="">Resiliency</a></div> <div class="sidebar-nav-item  "><a href="/examples/" title="Examples" class="drop-nested">Examples</a><i class="fa fa-angle-right"></i><div class="sub-section"> <a href="/examples/sample-autoack.html" title="Single AutoAckConsumer" class="">Single AutoAckConsumer</a> <a href="/examples/sample-acker.html" title="Single AckerConsumer" class="">Single AckerConsumer</a> <a href="/examples/sample-mult-consumers.html" title="Multiple Consumers" class="">Multiple Consumers</a> <a href="/examples/sample-mult-connections.html" title="Multiple Connections" class="">Multiple Connections</a></div></div></div></div><div id="page-content-wrapper"><div class="nav"><div class="container-fluid"><div class="row"><div class="col-lg-12"><div class="action-menu pull-left clearfix"><a href="#menu-toggle" id="menu-toggle"><i class="fa fa-bars" aria-hidden="true"></i></a></div><ul class="pull-right"><li class="search-nav"><div id="search-dropdown"><label><i class="fa fa-search"></i>Search</label><input id="search-bar" type="text" placeholder="Enter keywords here..." onclick="displayToggleSearch(event)" /><ul id="search-dropdown-content" class="dropdown dropdown-content"></ul></div></li><li id="gh-eyes-item" class="hidden-xs to-uppercase"><a href="https://github.com/profunktor/fs2-rabbit" target="_blank" rel="noopener noreferrer"><i class="fa fa-eye"></i><span>Watchers<span id="eyes" class="label label-default">--</span></span></a></li><li id="gh-stars-item" class="hidden-xs to-uppercase"><a href="https://github.com/profunktor/fs2-rabbit" target="_blank" rel="noopener noreferrer"><i class="fa fa-star-o"></i><span>Stars<span id="stars" class="label label-default">--</span></span></a></li></ul></div></div></div></div><div id="content" data-github-owner="profunktor" data-github-repo="fs2-rabbit"><div class="content-wrapper"><section><h1 id="opentelemetry-tracing">OpenTelemetry tracing</h1>
+
+<p>The <code class="language-plaintext highlighter-rouge">fs2-rabbit-otel4s</code> module adds otel4s spans and trace-context propagation to
+publishers and consumers without requiring the OpenTelemetry Java agent.</p>
+
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">libraryDependencies</span> <span class="o">+=</span> <span class="s">"dev.profunktor"</span> <span class="o">%%</span> <span class="s">"fs2-rabbit-otel4s"</span> <span class="o">%</span> <span class="nc">Version</span>
+</code></pre></div></div>
+
+<p>Create a <code class="language-plaintext highlighter-rouge">RabbitTracer</code> from the application’s otel4s <code class="language-plaintext highlighter-rouge">TracerProvider</code>, then use
+its traced client for publishers and consumers. The tracer should normally be
+created once alongside the <code class="language-plaintext highlighter-rouge">RabbitClient</code>:</p>
+
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="nn">cats.effect.Async</span>
+<span class="k">import</span> <span class="nn">cats.syntax.all.</span><span class="o">*</span>
+<span class="k">import</span> <span class="nn">dev.profunktor.fs2rabbit.interpreter.RabbitClient</span>
+<span class="k">import</span> <span class="nn">dev.profunktor.fs2rabbit.model.</span><span class="o">*</span>
+<span class="k">import</span> <span class="nn">dev.profunktor.fs2rabbit.otel4s.</span><span class="o">*</span>
+<span class="k">import</span> <span class="nn">fs2.Stream</span>
+<span class="k">import</span> <span class="nn">org.typelevel.otel4s.trace.TracerProvider</span>
+
+<span class="k">def</span> <span class="nf">program</span><span class="o">[</span><span class="kt">F</span><span class="o">[</span><span class="k">_</span><span class="o">]</span><span class="kt">:</span> <span class="kt">Async:</span> <span class="kt">TracerProvider</span><span class="o">](</span><span class="n">client</span><span class="k">:</span> <span class="kt">RabbitClient</span><span class="o">[</span><span class="kt">F</span><span class="o">])(</span><span class="k">implicit</span>
+    <span class="n">channel</span><span class="k">:</span> <span class="kt">AMQPChannel</span>
+<span class="o">)</span><span class="k">:</span> <span class="kt">F</span><span class="o">[</span><span class="kt">Unit</span><span class="o">]</span> <span class="k">=</span>
+  <span class="nc">RabbitTracer</span>
+    <span class="o">.</span><span class="py">resource</span><span class="o">[</span><span class="kt">F</span><span class="o">](</span>
+      <span class="nv">RabbitTracer</span><span class="o">.</span><span class="py">Config</span><span class="o">.</span><span class="py">default</span>
+        <span class="o">.</span><span class="py">withServerAddress</span><span class="o">(</span><span class="s">"rabbitmq.example.com"</span><span class="o">,</span> <span class="nc">Some</span><span class="o">(</span><span class="mi">5672</span><span class="o">))</span>
+        <span class="o">.</span><span class="py">withClientId</span><span class="o">(</span><span class="s">"orders-service"</span><span class="o">)</span>
+    <span class="o">)</span>
+    <span class="o">.</span><span class="py">use</span> <span class="o">{</span> <span class="n">rabbitTracer</span> <span class="k">=&gt;</span>
+      <span class="k">val</span> <span class="nv">traced</span> <span class="k">=</span> <span class="nv">rabbitTracer</span><span class="o">.</span><span class="py">client</span><span class="o">(</span><span class="n">client</span><span class="o">)</span>
+
+      <span class="k">for</span> <span class="o">{</span>
+        <span class="n">publish</span> <span class="k">&lt;-</span> <span class="nv">traced</span><span class="o">.</span><span class="py">createPublisher</span><span class="o">[</span><span class="kt">String</span><span class="o">](</span><span class="nc">ExchangeName</span><span class="o">(</span><span class="s">"orders"</span><span class="o">),</span> <span class="nc">RoutingKey</span><span class="o">(</span><span class="s">"created"</span><span class="o">))</span>
+        <span class="k">_</span>       <span class="k">&lt;-</span> <span class="nf">publish</span><span class="o">(</span><span class="s">"order-123"</span><span class="o">)</span>
+      <span class="o">}</span> <span class="nf">yield</span> <span class="o">()</span>
+    <span class="o">}</span>
+</code></pre></div></div>
+
+<p>The encoder and decoder instances are the same ones used by the regular
+<code class="language-plaintext highlighter-rouge">RabbitClient</code> API. All publisher variants and the auto-ack and manual-ack consumer
+constructors have traced equivalents.</p>
+
+<h2 id="publishing">Publishing</h2>
+
+<p>Create publishers from the <code class="language-plaintext highlighter-rouge">TracedRabbitClient</code> in the same way as from a regular
+client. Each invocation of the returned function creates a publish span and
+injects a creation context into the AMQP headers when the message does not
+already carry one:</p>
+
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">publish</span><span class="o">[</span><span class="kt">F</span><span class="o">[</span><span class="k">_</span><span class="o">]</span><span class="kt">:</span> <span class="kt">Async</span><span class="o">](</span><span class="n">client</span><span class="k">:</span> <span class="kt">TracedRabbitClient</span><span class="o">[</span><span class="kt">F</span><span class="o">])(</span><span class="k">implicit</span>
+    <span class="n">channel</span><span class="k">:</span> <span class="kt">AMQPChannel</span>
+<span class="o">)</span><span class="k">:</span> <span class="kt">F</span><span class="o">[</span><span class="kt">Unit</span><span class="o">]</span> <span class="k">=</span>
+  <span class="k">for</span> <span class="o">{</span>
+    <span class="n">publish</span> <span class="k">&lt;-</span> <span class="nv">client</span><span class="o">.</span><span class="py">createPublisher</span><span class="o">[</span><span class="kt">String</span><span class="o">](</span>
+                 <span class="nc">ExchangeName</span><span class="o">(</span><span class="s">"orders"</span><span class="o">),</span>
+                 <span class="nc">RoutingKey</span><span class="o">(</span><span class="s">"created"</span><span class="o">)</span>
+               <span class="o">)</span>
+    <span class="k">_</span> <span class="k">&lt;-</span> <span class="nf">publish</span><span class="o">(</span><span class="s">"order-123"</span><span class="o">)</span>
+  <span class="o">}</span> <span class="nf">yield</span> <span class="o">()</span>
+</code></pre></div></div>
+
+<p>The routing publisher, basic publisher, publishing flags, and returned-message
+listener variants are also available on <code class="language-plaintext highlighter-rouge">TracedRabbitClient</code>.</p>
+
+<h2 id="consuming">Consuming</h2>
+
+<p><code class="language-plaintext highlighter-rouge">recordsWithProcess</code> places a process span around the effect returned for each
+message:</p>
+
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">consume</span><span class="o">[</span><span class="kt">F</span><span class="o">[</span><span class="k">_</span><span class="o">]</span><span class="kt">:</span> <span class="kt">Async</span><span class="o">](</span><span class="n">client</span><span class="k">:</span> <span class="kt">TracedRabbitClient</span><span class="o">[</span><span class="kt">F</span><span class="o">])(</span><span class="k">implicit</span>
+    <span class="n">channel</span><span class="k">:</span> <span class="kt">AMQPChannel</span>
+<span class="o">)</span><span class="k">:</span> <span class="kt">F</span><span class="o">[</span><span class="kt">Unit</span><span class="o">]</span> <span class="k">=</span>
+  <span class="k">for</span> <span class="o">{</span>
+    <span class="n">consumer</span> <span class="k">&lt;-</span> <span class="nv">client</span><span class="o">.</span><span class="py">createAutoAckConsumer</span><span class="o">[</span><span class="kt">String</span><span class="o">](</span><span class="nc">QueueName</span><span class="o">(</span><span class="s">"order-workers"</span><span class="o">))</span>
+    <span class="k">_</span> <span class="k">&lt;-</span> <span class="n">consumer</span>
+           <span class="o">.</span><span class="py">recordsWithProcess</span> <span class="o">{</span> <span class="n">envelope</span> <span class="k">=&gt;</span>
+             <span class="nc">Async</span><span class="o">[</span><span class="kt">F</span><span class="o">].</span><span class="py">delay</span><span class="o">(</span><span class="nf">println</span><span class="o">(</span><span class="nv">envelope</span><span class="o">.</span><span class="py">payload</span><span class="o">))</span>
+           <span class="o">}</span>
+           <span class="o">.</span><span class="py">compile</span>
+           <span class="o">.</span><span class="py">drain</span>
+  <span class="o">}</span> <span class="nf">yield</span> <span class="o">()</span>
+</code></pre></div></div>
+
+<p>For manual acknowledgement, use <code class="language-plaintext highlighter-rouge">createAckerConsumer</code> or
+<code class="language-plaintext highlighter-rouge">createAckerConsumerWithMultipleFlag</code>. Acknowledgement and rejection use the
+regular fs2-rabbit functions returned by those constructors and do not create
+additional spans.</p>
+
+<p>Use <code class="language-plaintext highlighter-rouge">records</code> and <code class="language-plaintext highlighter-rouge">consumer.process(envelope)(effect)</code> when the processing
+boundary needs to be placed manually:</p>
+
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">processManually</span><span class="o">[</span><span class="kt">F</span><span class="o">[</span><span class="k">_</span><span class="o">]</span><span class="kt">:</span> <span class="kt">Async</span>, <span class="kt">A</span><span class="o">](</span>
+    <span class="n">consumer</span><span class="k">:</span> <span class="kt">TracedRabbitConsumer</span><span class="o">[</span><span class="kt">F</span>, <span class="kt">A</span><span class="o">],</span>
+    <span class="n">handle</span><span class="k">:</span> <span class="kt">AmqpEnvelope</span><span class="o">[</span><span class="kt">A</span><span class="o">]</span> <span class="k">=&gt;</span> <span class="n">F</span><span class="o">[</span><span class="kt">Unit</span><span class="o">]</span>
+<span class="o">)</span><span class="k">:</span> <span class="kt">Stream</span><span class="o">[</span><span class="kt">F</span>, <span class="kt">Unit</span><span class="o">]</span> <span class="k">=</span>
+  <span class="nv">consumer</span><span class="o">.</span><span class="py">records</span><span class="o">.</span><span class="py">evalMap</span><span class="o">(</span><span class="n">envelope</span> <span class="k">=&gt;</span> <span class="nc">Async</span><span class="o">[</span><span class="kt">F</span><span class="o">].</span><span class="py">defer</span><span class="o">(</span><span class="nv">consumer</span><span class="o">.</span><span class="py">process</span><span class="o">(</span><span class="n">envelope</span><span class="o">)(</span><span class="nf">handle</span><span class="o">(</span><span class="n">envelope</span><span class="o">))))</span>
+</code></pre></div></div>
+
+<h2 id="syntax">Syntax</h2>
+
+<p>Importing <code class="language-plaintext highlighter-rouge">dev.profunktor.fs2rabbit.otel4s.syntax.*</code> enables two convenience
+extensions. They do not change tracing behavior; they are shorter forms of the
+regular API:</p>
+
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="nn">cats.effect.Async</span>
+<span class="k">import</span> <span class="nn">dev.profunktor.fs2rabbit.otel4s.syntax.</span><span class="o">*</span>
+
+<span class="k">def</span> <span class="nf">tracedClient</span><span class="o">[</span><span class="kt">F</span><span class="o">[</span><span class="k">_</span><span class="o">]](</span><span class="n">client</span><span class="k">:</span> <span class="kt">RabbitClient</span><span class="o">[</span><span class="kt">F</span><span class="o">],</span> <span class="n">rabbitTracer</span><span class="k">:</span> <span class="kt">RabbitTracer</span><span class="o">[</span><span class="kt">F</span><span class="o">])</span><span class="k">:</span> <span class="kt">TracedRabbitClient</span><span class="o">[</span><span class="kt">F</span><span class="o">]</span> <span class="k">=</span>
+  <span class="nv">client</span><span class="o">.</span><span class="py">traced</span><span class="o">(</span><span class="n">rabbitTracer</span><span class="o">)</span>
+</code></pre></div></div>
+
+<p><code class="language-plaintext highlighter-rouge">processTraced</code> is useful with a manually chosen processing boundary. It requires
+the corresponding <code class="language-plaintext highlighter-rouge">TracedRabbitConsumer</code> to be in implicit scope:</p>
+
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">processWithSyntax</span><span class="o">[</span><span class="kt">F</span><span class="o">[</span><span class="k">_</span><span class="o">]</span><span class="kt">:</span> <span class="kt">Async</span>, <span class="kt">A</span><span class="o">](</span>
+    <span class="n">consumer</span><span class="k">:</span> <span class="kt">TracedRabbitConsumer</span><span class="o">[</span><span class="kt">F</span>, <span class="kt">A</span><span class="o">],</span>
+    <span class="n">handle</span><span class="k">:</span> <span class="kt">AmqpEnvelope</span><span class="o">[</span><span class="kt">A</span><span class="o">]</span> <span class="k">=&gt;</span> <span class="n">F</span><span class="o">[</span><span class="kt">Unit</span><span class="o">]</span>
+<span class="o">)</span><span class="k">:</span> <span class="kt">Stream</span><span class="o">[</span><span class="kt">F</span>, <span class="kt">Unit</span><span class="o">]</span> <span class="k">=</span> <span class="o">{</span>
+  <span class="k">implicit</span> <span class="k">val</span> <span class="nv">tracedConsumer</span><span class="k">:</span> <span class="kt">TracedRabbitConsumer</span><span class="o">[</span><span class="kt">F</span>, <span class="kt">A</span><span class="o">]</span> <span class="k">=</span> <span class="n">consumer</span>
+  <span class="nv">consumer</span><span class="o">.</span><span class="py">records</span><span class="o">.</span><span class="py">evalMap</span><span class="o">(</span><span class="n">envelope</span> <span class="k">=&gt;</span> <span class="nc">Async</span><span class="o">[</span><span class="kt">F</span><span class="o">].</span><span class="py">defer</span><span class="o">(</span><span class="nv">envelope</span><span class="o">.</span><span class="py">processTraced</span><span class="o">(</span><span class="nf">handle</span><span class="o">(</span><span class="n">envelope</span><span class="o">))))</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p><code class="language-plaintext highlighter-rouge">recordsWithProcess</code> is usually simpler when the whole <code class="language-plaintext highlighter-rouge">evalMap</code> operation should
+be traced.</p>
+
+<h2 id="span-model">Span model</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Operation</th>
+      <th>Span name</th>
+      <th>Kind</th>
+      <th>Parent and links</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Publish a message without creation context</td>
+      <td><code class="language-plaintext highlighter-rouge">publish &lt;destination&gt;</code></td>
+      <td><code class="language-plaintext highlighter-rouge">PRODUCER</code></td>
+      <td>The ambient span is the parent. A new creation context is injected into the AMQP headers.</td>
+    </tr>
+    <tr>
+      <td>Publish a message with creation context</td>
+      <td><code class="language-plaintext highlighter-rouge">publish &lt;destination&gt;</code></td>
+      <td><code class="language-plaintext highlighter-rouge">CLIENT</code></td>
+      <td>The ambient span is the parent. The message creation context is preserved and linked.</td>
+    </tr>
+    <tr>
+      <td>Process a delivered message</td>
+      <td><code class="language-plaintext highlighter-rouge">process &lt;destination&gt;</code></td>
+      <td><code class="language-plaintext highlighter-rouge">CONSUMER</code></td>
+      <td>Root by default; optionally parented to the currently active span. The message creation context is linked when present.</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>A message published without an existing creation context gets a <code class="language-plaintext highlighter-rouge">PRODUCER</code> span,
+and that span’s context is injected into the message headers. If the message
+already contains valid trace context, the headers are preserved and publishing
+gets a <code class="language-plaintext highlighter-rouge">CLIENT</code> span linked to that context.</p>
+
+<p>Processing creates one <code class="language-plaintext highlighter-rouge">CONSUMER</code> span per delivered message and links it to
+the creation context in the message headers. Root parenting is the default; set
+<code class="language-plaintext highlighter-rouge">withProcessSpanParentingPolicy(RabbitTracer.ProcessSpanParentingPolicy.Ambient)</code>
+to use the currently active span as parent. RabbitMQ pushes messages to consumers,
+so the module emits <code class="language-plaintext highlighter-rouge">process</code> spans rather than <code class="language-plaintext highlighter-rouge">receive</code> spans.</p>
+
+<p>The destination is a colon-separated combination of exchange, routing key, and,
+for processing, queue name, with empty components removed. The default exchange
+and an empty routing key are represented as <code class="language-plaintext highlighter-rouge">amq.default</code>.</p>
+
+<p>Generated queue destinations use a low-cardinality destination template in the
+default span name. RabbitMQ names beginning with <code class="language-plaintext highlighter-rouge">amq.gen-</code> use <code class="language-plaintext highlighter-rouge">amq.gen-*</code>,
+names beginning with <code class="language-plaintext highlighter-rouge">spring.gen-</code> use <code class="language-plaintext highlighter-rouge">spring.gen-*</code>, and UUID-shaped names use
+<code class="language-plaintext highlighter-rouge">{queue_id}</code>. RabbitMQ Direct Reply-To addresses beginning with
+<code class="language-plaintext highlighter-rouge">amq.rabbitmq.reply-to.</code> use <code class="language-plaintext highlighter-rouge">amq.rabbitmq.reply-to.*</code>. For example,
+<code class="language-plaintext highlighter-rouge">orders:created:amq.gen-4p09x</code> produces the process span name
+<code class="language-plaintext highlighter-rouge">process orders:created:amq.gen-*</code>. A publish routed directly to
+<code class="language-plaintext highlighter-rouge">amq.gen-4p09x</code> through the default exchange uses <code class="language-plaintext highlighter-rouge">publish amq.gen-*</code>; a Direct
+Reply-To address such as <code class="language-plaintext highlighter-rouge">amq.rabbitmq.reply-to.ab12</code> uses
+<code class="language-plaintext highlighter-rouge">publish amq.rabbitmq.reply-to.*</code>. The span retains the actual value in
+<code class="language-plaintext highlighter-rouge">messaging.destination.name</code> and records the normalized value in
+<code class="language-plaintext highlighter-rouge">messaging.destination.template</code>.</p>
+
+<p>If a configured classifier returns no template for a known generated queue, the
+span name omits the destination rather than using its anonymous name, following
+the OpenTelemetry span naming rules. The actual destination remains on the span
+as <code class="language-plaintext highlighter-rouge">messaging.destination.name</code>, and <code class="language-plaintext highlighter-rouge">messaging.destination.anonymous=true</code>
+remains set.</p>
+
+<p>Publishing to a named exchange does not infer a generated queue from the routing
+key alone; the routing key remains part of the destination name and span name.</p>
+
+<h2 id="semantic-attributes">Semantic attributes</h2>
+
+<p>Every span has <code class="language-plaintext highlighter-rouge">messaging.system=rabbitmq</code>, <code class="language-plaintext highlighter-rouge">messaging.operation.name</code>,
+<code class="language-plaintext highlighter-rouge">messaging.operation.type</code>, and <code class="language-plaintext highlighter-rouge">messaging.destination.name</code>. When applicable it
+also has:</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">messaging.rabbitmq.destination.routing_key</code></li>
+  <li><code class="language-plaintext highlighter-rouge">messaging.message.id</code> and <code class="language-plaintext highlighter-rouge">messaging.message.conversation_id</code></li>
+  <li><code class="language-plaintext highlighter-rouge">messaging.rabbitmq.message.delivery_tag</code> on process spans</li>
+  <li><code class="language-plaintext highlighter-rouge">messaging.destination.anonymous=true</code> for queue names recognized by the
+built-in generated queue patterns on process spans and direct default-exchange
+publishes; a custom template match alone does not set this attribute</li>
+  <li><code class="language-plaintext highlighter-rouge">messaging.destination.template</code> for generated queue destinations, also used
+in default process and publish span names</li>
+  <li>configured <code class="language-plaintext highlighter-rouge">messaging.client.id</code>, <code class="language-plaintext highlighter-rouge">server.address</code>, and <code class="language-plaintext highlighter-rouge">server.port</code></li>
+</ul>
+
+<p>Links repeat the destination, routing key, message id, and destination template
+when available. Process links also include the delivery tag. Body and envelope
+size attributes are omitted because the public fs2-rabbit APIs do not expose a
+reliable encoded envelope size at every instrumented boundary.</p>
+
+<h2 id="customization">Customization</h2>
+
+<p>The defaults follow the current OpenTelemetry RabbitMQ messaging semantic
+conventions. Span names, extra attributes, and finalization behavior can be
+customized with <code class="language-plaintext highlighter-rouge">RabbitTracer.Config.withPublishSpanSetup</code> and
+<code class="language-plaintext highlighter-rouge">withProcessSpanSetup</code>. Use <code class="language-plaintext highlighter-rouge">RabbitTracer.noop</code> when tracing is disabled.</p>
+
+<p>Queue name templates are selected by <code class="language-plaintext highlighter-rouge">QueueNameTemplateClassifier</code>. The default
+classifier composes the built-in RabbitMQ generated queue, Spring generated
+queue, Direct Reply-To, and UUID classifiers in order. Use <code class="language-plaintext highlighter-rouge">matching</code> to add an
+application pattern; classifiers return the first template they recognize:</p>
+
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">config</span><span class="k">:</span> <span class="kt">RabbitTracer.Config</span> <span class="o">=</span> <span class="o">{</span>
+  <span class="k">val</span> <span class="nv">queueTemplates</span> <span class="k">=</span>
+    <span class="nc">QueueNameTemplateClassifier</span>
+      <span class="o">.</span><span class="py">matching</span> <span class="o">{</span>
+        <span class="k">case</span> <span class="n">queue</span> <span class="k">if</span> <span class="nv">queue</span><span class="o">.</span><span class="py">value</span><span class="o">.</span><span class="py">startsWith</span><span class="o">(</span><span class="s">"reply-"</span><span class="o">)</span> <span class="k">=&gt;</span> <span class="s">"reply-{id}"</span>
+      <span class="o">}</span>
+      <span class="o">.</span><span class="py">orElse</span><span class="o">(</span><span class="nv">QueueNameTemplateClassifier</span><span class="o">.</span><span class="py">default</span><span class="o">)</span>
+
+  <span class="nv">RabbitTracer</span><span class="o">.</span><span class="py">Config</span><span class="o">.</span><span class="py">default</span>
+    <span class="o">.</span><span class="py">withQueueNameTemplateClassifier</span><span class="o">(</span><span class="n">queueTemplates</span><span class="o">)</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p><code class="language-plaintext highlighter-rouge">withQueueNameTemplateClassifier</code> replaces the configured classifier. Compose
+with <code class="language-plaintext highlighter-rouge">QueueNameTemplateClassifier.default</code> to retain the built-in patterns.
+Use the individual <code class="language-plaintext highlighter-rouge">rabbitMqGeneratedQueue</code>, <code class="language-plaintext highlighter-rouge">springGeneratedQueue</code>,
+<code class="language-plaintext highlighter-rouge">rabbitMqDirectReplyTo</code>, and <code class="language-plaintext highlighter-rouge">uuidQueue</code> classifiers to choose a different set
+of defaults.</p>
+
+<p>Do not enable overlapping RabbitMQ Java-agent instrumentation for the same client;
+doing so can create duplicate messaging spans.</p>
+</section></div></div></div></div><script src="/highlight/highlight.pack.js"></script><script src="/lunr/lunr.js"></script><script>
+// For all code blocks, copy the language from the containing div
+// to the inner code tag (where hljs expects it to be)
+const langPrefix = 'language-';
+document.querySelectorAll(`div[class^='${langPrefix}']`).forEach(function(div) {
+  div.classList.forEach(function(cssClass) {
+    if (cssClass.startsWith(langPrefix)) {
+      const lang = cssClass.substring(langPrefix.length);
+      div.querySelectorAll('pre code').forEach(function(code) {
+        code.classList.add(lang);
+      });
+    }
+  });
+});
+
+hljs.configure({languages:['scala','java','bash']});
+hljs.initHighlightingOnLoad();
+      </script><script>console.info('\x57\x65\x62\x73\x69\x74\x65\x20\x62\x75\x69\x6c\x74\x20\x77\x69\x74\x68\x3a\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x5f\x5f\x20\x20\x20\x20\x5f\x5f\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x5f\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x5f\x20\x5f\x5f\x0a\x20\x20\x20\x5f\x5f\x5f\x5f\x5f\x2f\x20\x2f\x5f\x20\x20\x2f\x20\x2f\x5f\x20\x20\x20\x20\x20\x20\x5f\x5f\x5f\x5f\x20\x5f\x5f\x5f\x20\x20\x28\x5f\x29\x5f\x5f\x5f\x5f\x5f\x5f\x5f\x5f\x5f\x5f\x5f\x5f\x5f\x20\x20\x5f\x5f\x5f\x5f\x5f\x28\x5f\x29\x20\x2f\x5f\x5f\x5f\x5f\x20\x20\x5f\x5f\x5f\x5f\x5f\x0a\x20\x20\x2f\x20\x5f\x5f\x5f\x2f\x20\x5f\x5f\x20\x5c\x2f\x20\x5f\x5f\x2f\x5f\x5f\x5f\x5f\x5f\x2f\x20\x5f\x5f\x20\x60\x5f\x5f\x20\x5c\x2f\x20\x2f\x20\x5f\x5f\x5f\x2f\x20\x5f\x5f\x5f\x2f\x20\x5f\x5f\x20\x5c\x2f\x20\x5f\x5f\x5f\x2f\x20\x2f\x20\x5f\x5f\x2f\x20\x5f\x20\x5c\x2f\x20\x5f\x5f\x5f\x2f\x0a\x20\x28\x5f\x5f\x20\x20\x29\x20\x2f\x5f\x2f\x20\x2f\x20\x2f\x5f\x2f\x5f\x5f\x5f\x5f\x5f\x2f\x20\x2f\x20\x2f\x20\x2f\x20\x2f\x20\x2f\x20\x2f\x20\x2f\x5f\x5f\x2f\x20\x2f\x20\x20\x2f\x20\x2f\x5f\x2f\x20\x28\x5f\x5f\x20\x20\x29\x20\x2f\x20\x2f\x5f\x2f\x20\x20\x5f\x5f\x28\x5f\x5f\x20\x20\x29\x0a\x2f\x5f\x5f\x5f\x5f\x2f\x5f\x2e\x5f\x5f\x5f\x2f\x5c\x5f\x5f\x2f\x20\x20\x20\x20\x20\x2f\x5f\x2f\x20\x2f\x5f\x2f\x20\x2f\x5f\x2f\x5f\x2f\x5c\x5f\x5f\x5f\x2f\x5f\x2f\x20\x20\x20\x5c\x5f\x5f\x5f\x5f\x2f\x5f\x5f\x5f\x5f\x2f\x5f\x2f\x5c\x5f\x5f\x2f\x5c\x5f\x5f\x5f\x2f\x5f\x5f\x5f\x5f\x2f\x0a\x0a\x68\x74\x74\x70\x73\x3a\x2f\x2f\x34\x37\x64\x65\x67\x2e\x67\x69\x74\x68\x75\x62\x2e\x69\x6f\x2f\x73\x62\x74\x2d\x6d\x69\x63\x72\x6f\x73\x69\x74\x65\x73')</script><script>((window.gitter = {}).chat = {}).options = {
+room: 'profunktor-dev/fs2-rabbit'};</script><script src="https://sidecar.gitter.im/dist/sidecar.v1.js"></script><script src="/js/search.js"></script><script src="/js/docs.js"></script></body></html>
