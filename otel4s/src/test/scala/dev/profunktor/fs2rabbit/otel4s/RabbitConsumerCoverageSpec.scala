@@ -24,6 +24,7 @@ import fs2.Stream
 import io.opentelemetry.api.trace.SpanKind as JavaSpanKind
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.typelevel.otel4s.semconv.experimental.attributes.MessagingExperimentalAttributes as Messaging
+import org.typelevel.otel4s.semconv.experimental.attributes.RabbitmqExperimentalAttributes as Rabbitmq
 import org.typelevel.otel4s.trace.{SpanFinalizer, Tracer, TracerProvider}
 import org.typelevel.otel4s.{Attribute, Attributes}
 
@@ -119,9 +120,9 @@ class RabbitConsumerCoverageSpec extends AnyFlatSpecLike with RabbitTracingTestS
         span.getLinks.size shouldBe 1
         val attributes = span.getLinks.get(0).getAttributes
         stringAttribute(attributes, Messaging.MessagingDestinationName.name) shouldBe Some("orders:created")
-        stringAttribute(attributes, Messaging.MessagingRabbitmqDestinationRoutingKey.name) shouldBe Some("created")
+        stringAttribute(attributes, Rabbitmq.RabbitmqDestinationRoutingKey.name) shouldBe Some("created")
         stringAttribute(attributes, Messaging.MessagingMessageId.name) shouldBe Some("message-1")
-        longAttribute(attributes, Messaging.MessagingRabbitmqMessageDeliveryTag.name) shouldBe Some(7L)
+        longAttribute(attributes, Rabbitmq.RabbitmqMessageDeliveryTag.name) shouldBe Some(7L)
       }
     }
 

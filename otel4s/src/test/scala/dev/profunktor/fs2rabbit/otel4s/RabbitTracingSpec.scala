@@ -35,6 +35,7 @@ import org.typelevel.otel4s.{Attribute, Attributes}
 import org.typelevel.otel4s.context.propagation.TextMapGetter
 import org.typelevel.otel4s.oteljava.testkit.OtelJavaTestkit
 import org.typelevel.otel4s.semconv.experimental.attributes.MessagingExperimentalAttributes as Messaging
+import org.typelevel.otel4s.semconv.experimental.attributes.RabbitmqExperimentalAttributes as Rabbitmq
 import org.typelevel.otel4s.trace.{Tracer, TracerProvider}
 
 class RabbitTracingSpec extends AnyFlatSpecLike with Matchers {
@@ -72,11 +73,11 @@ class RabbitTracingSpec extends AnyFlatSpecLike with Matchers {
         span.getKind shouldBe JavaSpanKind.PRODUCER
         span.getParentSpanContext.isValid shouldBe true
         span.getLinks shouldBe empty
-        assertStringAttribute(span, Messaging.MessagingSystem(Messaging.MessagingSystemValue.Rabbitmq))
+        assertStringAttribute(span, Messaging.MessagingSystemName(Messaging.MessagingSystemValue.Rabbitmq))
         assertStringAttribute(span, Messaging.MessagingOperationName("publish"))
         assertStringAttribute(span, Messaging.MessagingOperationType(Messaging.MessagingOperationTypeValue.Send))
         assertStringAttribute(span, Messaging.MessagingDestinationName("orders:created"))
-        assertStringAttribute(span, Messaging.MessagingRabbitmqDestinationRoutingKey("created"))
+        assertStringAttribute(span, Rabbitmq.RabbitmqDestinationRoutingKey("created"))
         assertStringAttribute(span, Messaging.MessagingMessageId("message-1"))
         assertStringAttribute(span, Messaging.MessagingMessageConversationId("conversation-1"))
         assertStringAttribute(span, Messaging.MessagingClientId("orders-service"))
@@ -156,7 +157,7 @@ class RabbitTracingSpec extends AnyFlatSpecLike with Matchers {
         span.getParentSpanContext.isValid shouldBe false
         span.getLinks.size shouldBe 1
         assertStringAttribute(span, Messaging.MessagingOperationType(Messaging.MessagingOperationTypeValue.Process))
-        assertLongAttribute(span, Messaging.MessagingRabbitmqMessageDeliveryTag(7L))
+        assertLongAttribute(span, Rabbitmq.RabbitmqMessageDeliveryTag(7L))
         assertStringAttribute(span, Messaging.MessagingMessageId("message-1"))
         attribute(span, "config.attribute") shouldBe "retained"
         attribute(span, "server.address") shouldBe "rabbitmq.example.com"

@@ -29,7 +29,7 @@ private[otel4s] object Semconv {
   )
 
   object Const {
-    val MessagingSystem: Attribute[String] = Attribute("messaging.system", "rabbitmq")
+    val MessagingSystemName: Attribute[String] = Attribute("messaging.system.name", "rabbitmq")
   }
 
   object Keys {
@@ -41,10 +41,8 @@ private[otel4s] object Semconv {
     val ClientId: AttributeKey[String]                    = AttributeKey[String]("messaging.client.id")
     val MessageConversationId: AttributeKey[String]       = AttributeKey[String]("messaging.message.conversation_id")
     val MessageId: AttributeKey[String]                   = AttributeKey[String]("messaging.message.id")
-    val RabbitDestinationRoutingKey: AttributeKey[String] =
-      AttributeKey[String]("messaging.rabbitmq.destination.routing_key")
-    val RabbitMessageDeliveryTag: AttributeKey[Long]      =
-      AttributeKey[Long]("messaging.rabbitmq.message.delivery_tag")
+    val RabbitDestinationRoutingKey: AttributeKey[String] = AttributeKey[String]("rabbitmq.destination.routing_key")
+    val RabbitMessageDeliveryTag: AttributeKey[Long]      = AttributeKey[Long]("rabbitmq.message.delivery_tag")
   }
 
   def publishSpanContext(
@@ -177,7 +175,7 @@ private[otel4s] object Semconv {
       clientId: Option[String]
   ): Attributes.Builder = {
     val builder = Attributes.newBuilder
-    builder.addOne(Const.MessagingSystem)
+    builder.addOne(Const.MessagingSystemName)
     builder.addOne(Keys.OperationName(operationName))
     builder.addOne(Keys.OperationType(operationType))
     builder.addOne(Keys.DestinationName(destinationName))
