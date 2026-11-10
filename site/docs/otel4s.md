@@ -185,13 +185,13 @@ key alone; the routing key remains part of the destination name and span name.
 
 ## Semantic attributes
 
-Every span has `messaging.system=rabbitmq`, `messaging.operation.name`,
+Every span has `messaging.system.name=rabbitmq`, `messaging.operation.name`,
 `messaging.operation.type`, and `messaging.destination.name`. When applicable it
 also has:
 
-- `messaging.rabbitmq.destination.routing_key`
+- `rabbitmq.destination.routing_key`
 - `messaging.message.id` and `messaging.message.conversation_id`
-- `messaging.rabbitmq.message.delivery_tag` on process spans
+- `rabbitmq.message.delivery_tag` on process spans
 - `messaging.destination.anonymous=true` for queue names recognized by the
   built-in generated queue patterns on process spans and direct default-exchange
   publishes; a custom template match alone does not set this attribute
