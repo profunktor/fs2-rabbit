@@ -8,7 +8,7 @@ object Dependencies {
     val fs2                     = "3.16.0"
     val circe                   = "0.14.17"
     val amqpClient              = "5.38.0"
-    val logback                 = "1.6.7"
+    val logback                 = "1.6.8"
     val monix                   = "3.3.0"
     val zio                     = "1.0.18"
     val zioCats                 = "3.2.9.1"
